@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet.helpers';
 import { Text } from '@/components/ui/text';
-import { AmountType, CommitmentPaymentStatus } from '@/constants/enums';
+import { AmountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { CoreTokens } from '@/constants/theme_tokens';
 import { AccountPickerSheet } from '@/modules/accounts/components/account_picker_sheet';
@@ -22,6 +22,7 @@ import { formatAccountBalance, formatCurrencyAmount } from '@/utils/format_amoun
 import { formatLongDate, formatShortDate, toLocalDateString } from '@/utils/format_date';
 import { ms } from '@/utils/responsive';
 
+import { isUnpaidPayment } from '../../../../domain/payment_state';
 import type { Commitment } from '../../../../entities/commitment.entity';
 import type { CommitmentPayment } from '../../../../entities/commitment_payment.entity';
 import { usePaySheet } from './pay_sheet.hook';
@@ -50,9 +51,7 @@ export function PaySheet({ owner, commitment, payment }: Props) {
   const [showIosDate, setShowIosDate] = useState(false);
   const { onFocus, onBlur } = useBottomSheetAwareHandlers();
 
-  const isAlreadyPaid =
-    payment?.status === CommitmentPaymentStatus.Paid ||
-    payment?.status === CommitmentPaymentStatus.Skipped;
+  const isAlreadyPaid = payment !== undefined && !isUnpaidPayment(payment);
   const isVariable = commitment?.amount_type === AmountType.Variable;
 
   // The RHF error wins the slot; the live flag is the only source of it before a submit.

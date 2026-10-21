@@ -6,7 +6,6 @@ import type { AccountStats } from '@/modules/accounts/database/account_stats';
 import { isRateUsable } from '@/modules/accounts/domain/account_aggregation';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { BudgetDashboardSummaryVM } from '@/modules/budget/utils/budget_summary';
-import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import { useBaseCurrencyStore } from '@/modules/currency/store/base_currency.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import type { DashboardLoadInput } from '@/modules/dashboard/repositories/dashboard.repository';
@@ -32,7 +31,10 @@ import type { DashboardSegment } from './types';
 
 const EMPTY_ACCOUNTS: Account[] = [];
 const EMPTY_STATS_MAP: Record<string, AccountStats> = {};
-const EMPTY_COMMITMENT_PAYMENTS: CommitmentPayment[] = [];
+const EMPTY_COMMITMENT_SUMMARY: ReturnType<typeof computeDashboardCommitmentSummary> = {
+  counts: { paid: 0, overdue: 0, due: 0, upcoming: 0, skipped: 0, total: 0 },
+  totalsByCurrency: new Map(),
+};
 const EMPTY_MONTH_FACTS: DashboardMonthFacts = {
   totals: { incomeEgp: 0, expenseEgp: 0, netEgp: 0 },
   spend: { totalEgp: 0, usdNative: 0, count: 0 },
@@ -144,7 +146,6 @@ export function useDashboard() {
   const currentMonth = matchingSnapshot?.currentMonth ?? EMPTY_MONTH_FACTS;
   const previousMonth = matchingSnapshot?.previousMonth ?? EMPTY_MONTH_FACTS;
   const budgetSummary = matchingSnapshot?.budgetSummary ?? EMPTY_BUDGET_SUMMARY;
-  const commitmentPayments = matchingSnapshot?.commitmentPayments ?? EMPTY_COMMITMENT_PAYMENTS;
   const yearMonth = matchingSnapshot?.yearMonth ?? currentYearMonth();
   const previousYearMonth = matchingSnapshot?.previousYearMonth ?? shiftYearMonth(yearMonth, -1);
 
@@ -165,8 +166,15 @@ export function useDashboard() {
   const groupedAccounts = useMemo(() => groupAccountsByType(accounts), [accounts]);
   const accountCounts = useMemo(() => computeDashboardAccountCounts(accounts), [accounts]);
   const commitments = useMemo(
-    () => computeDashboardCommitmentSummary(commitmentPayments),
-    [commitmentPayments],
+    () =>
+      matchingSnapshot
+        ? computeDashboardCommitmentSummary(
+            matchingSnapshot.commitmentPayments,
+            matchingSnapshot.yearMonth,
+            matchingSnapshot.today,
+          )
+        : EMPTY_COMMITMENT_SUMMARY,
+    [matchingSnapshot],
   );
   const spendDeltaPct = useMemo(
     () => computeDashboardSpendDeltaPct(currentMonth.spend.totalEgp, previousMonth.spend.totalEgp),

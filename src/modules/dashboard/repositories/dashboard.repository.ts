@@ -15,6 +15,7 @@ import {
   reduceDashboardTransactionFacts,
   type DashboardMonthFacts,
 } from '@/modules/dashboard/screens/dashboard/dashboard.helpers';
+import { toLocalDateString } from '@/utils/format_date';
 
 export type { DashboardMonthFacts };
 
@@ -22,6 +23,7 @@ export interface DashboardSnapshot {
   key: string;
   yearMonth: string;
   previousYearMonth: string;
+  today: string;
   accounts: Account[];
   statsMap: Record<string, AccountStats>;
   currentMonth: DashboardMonthFacts;
@@ -52,12 +54,13 @@ export class DashboardRepository implements IDashboardRepository {
   async getSnapshot({ yearMonth, now }: DashboardLoadInput): Promise<DashboardSnapshot> {
     const db = await getDb();
     const window = resolveDashboardMonthWindow(yearMonth);
+    const today = toLocalDateString(now);
     const accounts = await getAccounts(db);
 
     const [transactionRows, budgetLimits, commitmentPayments, statsMap] = await Promise.all([
       getDashboardTransactionFactRows(db, window),
       getDashboardBudgetLimitRows(db, yearMonth),
-      getPaymentsByMonth(db, yearMonth),
+      getPaymentsByMonth(db, yearMonth, today),
       getAccountsStats(
         db,
         accounts.map((account) => account.id),
@@ -74,6 +77,7 @@ export class DashboardRepository implements IDashboardRepository {
       key: yearMonth,
       yearMonth,
       previousYearMonth: window.previousYearMonth,
+      today,
       accounts,
       statsMap,
       currentMonth: facts.currentMonth,

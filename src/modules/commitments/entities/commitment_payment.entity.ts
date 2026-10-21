@@ -1,4 +1,4 @@
-import type { CommitmentPaymentStatus, Currency } from '@/constants/enums';
+import type { Currency } from '@/constants/enums';
 
 export interface CommitmentPayment {
   id: string;
@@ -12,7 +12,6 @@ export interface CommitmentPayment {
   exchange_rate_snapshot: number | null;
   account_id: string | null;
   transaction_id: string | null;
-  status: CommitmentPaymentStatus;
   notes: string | null;
   created_at: string;
   updated_at: string;

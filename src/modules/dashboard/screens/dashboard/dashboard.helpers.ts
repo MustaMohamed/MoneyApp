@@ -13,6 +13,7 @@ import {
 import { baseEquivalent } from '@/modules/accounts/domain/account_figures';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { BudgetDashboardSummaryVM } from '@/modules/budget/utils/budget_summary';
+import { isDueInMonth, resolvePaymentState } from '@/modules/commitments/domain/payment_state';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import type {
   DashboardBudgetLimitRow,
@@ -302,7 +303,11 @@ export function computeDashboardSpendDeltaPct(
   return wholePercent(currentEgp - previousEgp, previousEgp);
 }
 
-export function computeDashboardCommitmentSummary(payments: CommitmentPayment[]): {
+export function computeDashboardCommitmentSummary(
+  payments: CommitmentPayment[],
+  yearMonth: string,
+  today: string,
+): {
   counts: {
     paid: number;
     overdue: number;
@@ -317,12 +322,15 @@ export function computeDashboardCommitmentSummary(payments: CommitmentPayment[])
   const totalsByCurrency = new Map<Currency, number>();
 
   for (const payment of payments) {
-    switch (payment.status) {
+    const state = resolvePaymentState(payment, today);
+    if (state === CommitmentPaymentStatus.Overdue) counts.overdue++;
+    // A row carried from an earlier month counts as overdue and nowhere else.
+    if (!isDueInMonth(payment, yearMonth)) continue;
+    switch (state) {
       case CommitmentPaymentStatus.Paid:
         counts.paid++;
         break;
       case CommitmentPaymentStatus.Overdue:
-        counts.overdue++;
         break;
       case CommitmentPaymentStatus.Due:
         counts.due++;
@@ -337,7 +345,7 @@ export function computeDashboardCommitmentSummary(payments: CommitmentPayment[])
 
     counts.total++;
     const amount =
-      payment.status === CommitmentPaymentStatus.Paid
+      state === CommitmentPaymentStatus.Paid
         ? (payment.amount_paid ?? payment.amount_due)
         : payment.amount_due;
     if (amount !== null) {

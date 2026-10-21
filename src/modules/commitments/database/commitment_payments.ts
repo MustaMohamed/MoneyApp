@@ -1,18 +1,18 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-import { CommitmentPaymentStatus } from '@/constants/enums';
 import { applyAccountDelta } from '@/modules/accounts/database/accounts';
 import { insertTransactionRow } from '@/modules/transactions/database/transactions';
 import type { AccountDelta } from '@/modules/transactions/domain/transaction_policy';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 
+import { carriedDueBound } from '../domain/payment_state';
 import type { CommitmentPayment } from '../entities/commitment_payment.entity';
 
 const INSERT_PAYMENT_PREFIX = `INSERT OR IGNORE INTO commitment_payments
   (id, commitment_id, due_date, paid_date, skipped_date, amount_due, amount_paid,
-   currency, exchange_rate_snapshot, account_id, transaction_id, status, notes,
+   currency, exchange_rate_snapshot, account_id, transaction_id, notes,
    created_at, updated_at) VALUES`;
-const PAYMENT_VALUE_PLACEHOLDER = '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+const PAYMENT_VALUE_PLACEHOLDER = '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
 const PAYMENT_INSERT_CHUNK_SIZE = 60;
 
 function paymentInsertParams(payment: CommitmentPayment) {
@@ -28,7 +28,6 @@ function paymentInsertParams(payment: CommitmentPayment) {
     payment.exchange_rate_snapshot,
     payment.account_id,
     payment.transaction_id,
-    payment.status,
     payment.notes,
     payment.created_at,
     payment.updated_at,
@@ -52,10 +51,11 @@ export function getActiveCommitmentDueDates(
   );
 }
 
-/** `yearMonth` is `YYYY-MM`. */
+/** `yearMonth` is `YYYY-MM`, `today` the local date: the month's rows plus the unpaid rows carried into it. */
 export async function getPaymentsByMonth(
   db: SQLiteDatabase,
   yearMonth: string,
+  today: string,
 ): Promise<CommitmentPayment[]> {
   const monthStart = `${yearMonth}-01`;
 
@@ -66,9 +66,12 @@ export async function getPaymentsByMonth(
 
   return db.getAllAsync<CommitmentPayment>(
     `SELECT * FROM commitment_payments
-     WHERE due_date >= ? AND due_date < ?
-     ORDER BY due_date ASC, status DESC`,
-    [monthStart, nextMonthStr],
+      WHERE due_date >= ? AND due_date < ?
+     UNION ALL
+     SELECT * FROM commitment_payments
+      WHERE due_date < ? AND paid_date IS NULL AND skipped_date IS NULL
+     ORDER BY due_date ASC, id ASC`,
+    [monthStart, nextMonthStr, carriedDueBound(yearMonth, today)],
   );
 }
 
@@ -117,50 +120,22 @@ export async function addPayments(
   });
 }
 
-export async function updatePaymentStatus(
+/** `skippedDate` is the local calendar date `YYYY-MM-DD`. */
+export async function markPaymentSkipped(
   db: SQLiteDatabase,
   id: string,
-  status: CommitmentPaymentStatus,
-  fields?: {
-    paid_date?: string;
-    skipped_date?: string;
-    amount_paid?: number;
-    account_id?: string;
-    exchange_rate_snapshot?: number;
-    transaction_id?: string;
-  },
+  skippedDate: string,
 ): Promise<void> {
-  const now = new Date().toISOString();
-  const isSkipping = status === CommitmentPaymentStatus.Skipped;
   const result = await db.runAsync(
-    `UPDATE commitment_payments SET
-      status = ?,
-      paid_date = COALESCE(?, paid_date),
-      skipped_date = COALESCE(?, skipped_date),
-      amount_paid = COALESCE(?, amount_paid),
-      account_id = COALESCE(?, account_id),
-      exchange_rate_snapshot = COALESCE(?, exchange_rate_snapshot),
-      transaction_id = COALESCE(?, transaction_id),
-      updated_at = ?
+    `UPDATE commitment_payments SET skipped_date = ?, updated_at = ?
      WHERE id = ?
-       ${
-         isSkipping ? "AND status IN ('upcoming', 'due', 'overdue') AND transaction_id IS NULL" : ''
-       }`,
-    [
-      status,
-      fields?.paid_date ?? null,
-      fields?.skipped_date ?? null,
-      fields?.amount_paid ?? null,
-      fields?.account_id ?? null,
-      fields?.exchange_rate_snapshot ?? null,
-      fields?.transaction_id ?? null,
-      now,
-      id,
-    ],
+       AND paid_date IS NULL AND skipped_date IS NULL
+       AND transaction_id IS NULL`,
+    [skippedDate, new Date().toISOString(), id],
   );
-  if (isSkipping && result.changes !== 1) {
+  if (result.changes !== 1) {
     const existing = await getPaymentById(db, id);
-    if (existing?.status === CommitmentPaymentStatus.Skipped && existing.transaction_id === null) {
+    if (existing && existing.skipped_date !== null && existing.paid_date === null) {
       return;
     }
     if (!existing) throw new Error(`Commitment payment not found: ${id}`);
@@ -174,7 +149,7 @@ export async function deleteUnpaidPaymentsByCommitment(
 ): Promise<void> {
   await db.runAsync(
     `DELETE FROM commitment_payments
-     WHERE commitment_id = ? AND status IN ('upcoming', 'due')`,
+     WHERE commitment_id = ? AND paid_date IS NULL AND skipped_date IS NULL`,
     [commitmentId],
   );
 }
@@ -189,7 +164,7 @@ export async function updateUnpaidPaymentsAccount(
   const result = await db.runAsync(
     `UPDATE commitment_payments SET account_id = ?, updated_at = ?
      WHERE commitment_id IN (SELECT id FROM commitments WHERE account_id = ? AND is_active = 1)
-       AND status IN ('upcoming', 'due', 'overdue')`,
+       AND paid_date IS NULL AND skipped_date IS NULL`,
     [toAccountId, updatedAt, fromAccountId],
   );
   return result.changes;
@@ -201,7 +176,7 @@ export async function getLastPaidPayment(
 ): Promise<CommitmentPayment | null> {
   const rows = await db.getAllAsync<CommitmentPayment>(
     `SELECT * FROM commitment_payments
-     WHERE commitment_id = ? AND status = 'paid'
+     WHERE commitment_id = ? AND paid_date IS NOT NULL
      ORDER BY paid_date DESC
      LIMIT 1`,
     [commitmentId],
@@ -215,7 +190,7 @@ export async function getPaidCountByCommitment(
 ): Promise<number> {
   const rows = await db.getAllAsync<{ count: number }>(
     `SELECT COUNT(*) AS count FROM commitment_payments
-     WHERE commitment_id = ? AND status = 'paid'`,
+     WHERE commitment_id = ? AND paid_date IS NOT NULL`,
     [commitmentId],
   );
   return rows[0]?.count ?? 0;
@@ -253,7 +228,6 @@ export async function markCommitmentAsPaid(
   await db.withTransactionAsync(async () => {
     const paymentResult = await db.runAsync(
       `UPDATE commitment_payments SET
-        status = 'paid',
         paid_date = ?,
         amount_paid = ?,
         account_id = ?,
@@ -261,7 +235,7 @@ export async function markCommitmentAsPaid(
         notes = ?,
         updated_at = ?
        WHERE id = ?
-         AND status IN ('upcoming', 'due', 'overdue')
+         AND paid_date IS NULL AND skipped_date IS NULL
          AND transaction_id IS NULL`,
       [
         details.paid_date,
@@ -276,7 +250,7 @@ export async function markCommitmentAsPaid(
     );
     if (paymentResult.changes !== 1) {
       const existing = await getPaymentById(db, paymentId);
-      if (existing?.status === CommitmentPaymentStatus.Paid && existing.transaction_id !== null) {
+      if (existing && existing.paid_date !== null && existing.transaction_id !== null) {
         return;
       }
       if (!existing) throw new Error(`Commitment payment not found: ${paymentId}`);

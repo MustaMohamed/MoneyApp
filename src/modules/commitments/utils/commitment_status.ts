@@ -6,6 +6,7 @@ import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
 import { formatDisplayAmount } from '@/utils/format_amount';
 
+import { isPaidPayment } from '../domain/payment_state';
 import type { Commitment } from '../entities/commitment.entity';
 import type { CommitmentPayment } from '../entities/commitment_payment.entity';
 
@@ -54,7 +55,7 @@ export function resolveDisplayAmount(
   payment: CommitmentPayment | undefined,
   commitment: Commitment | undefined,
 ): DisplayAmount {
-  const isPaid = payment?.status === CommitmentPaymentStatus.Paid;
+  const isPaid = payment !== undefined && isPaidPayment(payment);
   const isVariable = commitment?.amount_type === AmountType.Variable;
   // Read the fields before the ternary; inside it `isPaid` narrows `payment` to non-nullish.
   const paidAmount = payment?.amount_paid ?? undefined;

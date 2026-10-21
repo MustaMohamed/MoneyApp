@@ -133,11 +133,13 @@ export default function CommitmentsScreen() {
 
   const renderItem = useCallback(
     ({ item }: SectionListRenderItemInfo<CommitmentPayment, CommitmentSection>) => {
+      if (state.today === undefined) return null;
       const commitment = state.commitmentsById.get(item.commitment_id);
       const category = commitment ? state.categoriesById.get(commitment.category_id) : undefined;
       return (
         <CommitmentRow
           payment={item}
+          today={state.today}
           commitment={commitment}
           category={category}
           onPress={goToDetail}
@@ -154,6 +156,7 @@ export default function CommitmentsScreen() {
       requestSkip,
       state.categoriesById,
       state.commitmentsById,
+      state.today,
     ],
   );
 

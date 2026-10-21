@@ -10,6 +10,12 @@ import { runAfterInteractions } from '@/utils/run_after_interactions';
 import { useDebouncedValue } from '@/utils/use_debounced_value.hook';
 import { shiftYearMonth } from '@/utils/year_month';
 
+import {
+  isDueInMonth,
+  isPaidPayment,
+  isSkippedPayment,
+  resolvePaymentState,
+} from '../../domain/payment_state';
 import type { Commitment } from '../../entities/commitment.entity';
 import type { CommitmentPayment } from '../../entities/commitment_payment.entity';
 import { useCommitmentStore } from '../../store/commitment.store';
@@ -51,6 +57,7 @@ export function useCommitments() {
     commitmentsLoaded,
     paymentsLoaded,
     loadedMonth,
+    today,
     loading,
     loadError,
   } = useCommitmentStore(
@@ -61,6 +68,7 @@ export function useCommitments() {
       commitmentsLoaded: s.commitmentsLoaded,
       paymentsLoaded: s.paymentsLoaded,
       loadedMonth: s.loadedMonth,
+      today: s.today,
       loading: s.loading,
       loadError: s.loadError,
     })),
@@ -92,7 +100,8 @@ export function useCommitments() {
 
   const accountsById = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts]);
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
-  const hasMatchingSnapshot = commitmentsLoaded && paymentsLoaded && loadedMonth === selectedMonth;
+  const hasMatchingSnapshot =
+    commitmentsLoaded && paymentsLoaded && loadedMonth === selectedMonth && today !== undefined;
   const activeCommitments = hasMatchingSnapshot ? commitments : EMPTY_COMMITMENTS;
   const activePayments = hasMatchingSnapshot ? payments : EMPTY_PAYMENTS;
 
@@ -102,11 +111,13 @@ export function useCommitments() {
   );
 
   const sections: CommitmentsSection[] = useMemo(() => {
+    if (today === undefined) return [];
+    const stateOf = (payment: CommitmentPayment) => resolvePaymentState(payment, today);
     const filter = deferredStatusFilter;
     const allPayments =
       filter === 'all'
         ? activePayments
-        : activePayments.filter((payment) => payment.status === filter);
+        : activePayments.filter((payment) => stateOf(payment) === filter);
     const filteredPayments = allPayments.filter((payment) => {
       const commitment = commitmentsById.get(payment.commitment_id);
       const accountId = payment.account_id ?? commitment?.account_id;
@@ -122,11 +133,13 @@ export function useCommitments() {
       );
     });
     const result: CommitmentsSection[] = [];
-    const overdue = filteredPayments.filter((p) => p.status === CommitmentPaymentStatus.Overdue);
-    const dueToday = filteredPayments.filter((p) => p.status === CommitmentPaymentStatus.Due);
-    const upcoming = filteredPayments.filter((p) => p.status === CommitmentPaymentStatus.Upcoming);
-    const paid = filteredPayments.filter((p) => p.status === CommitmentPaymentStatus.Paid);
-    const skipped = filteredPayments.filter((p) => p.status === CommitmentPaymentStatus.Skipped);
+    const overdue = filteredPayments.filter((p) => stateOf(p) === CommitmentPaymentStatus.Overdue);
+    const dueToday = filteredPayments.filter((p) => stateOf(p) === CommitmentPaymentStatus.Due);
+    const upcoming = filteredPayments.filter(
+      (p) => stateOf(p) === CommitmentPaymentStatus.Upcoming,
+    );
+    const paid = filteredPayments.filter(isPaidPayment);
+    const skipped = filteredPayments.filter(isSkippedPayment);
     if (overdue.length > 0) result.push({ title: Strings.commitmentsOverdue, data: overdue });
     if (dueToday.length > 0) result.push({ title: Strings.commitmentsDueToday, data: dueToday });
     if (upcoming.length > 0) result.push({ title: Strings.commitmentsUpcoming, data: upcoming });
@@ -141,6 +154,7 @@ export function useCommitments() {
     debouncedSearch,
     deferredStatusFilter,
     activePayments,
+    today,
   ]);
 
   const counts = useMemo(() => {
@@ -149,34 +163,32 @@ export function useCommitments() {
     let due = 0;
     let upcoming = 0;
     let skipped = 0;
-    for (const p of activePayments) {
-      switch (p.status) {
-        case CommitmentPaymentStatus.Paid:
-          paid++;
-          break;
-        case CommitmentPaymentStatus.Overdue:
-          overdue++;
-          break;
-        case CommitmentPaymentStatus.Due:
-          due++;
-          break;
-        case CommitmentPaymentStatus.Upcoming:
-          upcoming++;
-          break;
-        case CommitmentPaymentStatus.Skipped:
-          skipped++;
-          break;
+    // Carried rows count as overdue; the total takes the selected month's rows alone.
+    let total = 0;
+    if (today !== undefined) {
+      for (const p of activePayments) {
+        if (!isSkippedPayment(p) && isDueInMonth(p, selectedMonth)) total++;
+        switch (resolvePaymentState(p, today)) {
+          case CommitmentPaymentStatus.Paid:
+            paid++;
+            break;
+          case CommitmentPaymentStatus.Overdue:
+            overdue++;
+            break;
+          case CommitmentPaymentStatus.Due:
+            due++;
+            break;
+          case CommitmentPaymentStatus.Upcoming:
+            upcoming++;
+            break;
+          case CommitmentPaymentStatus.Skipped:
+            skipped++;
+            break;
+        }
       }
     }
-    return {
-      paid,
-      overdue,
-      due,
-      upcoming,
-      skipped,
-      total: paid + overdue + due + upcoming, // excludes skipped
-    };
-  }, [activePayments]);
+    return { paid, overdue, due, upcoming, skipped, total };
+  }, [activePayments, selectedMonth, today]);
   const isEmpty = activePayments.length === 0;
   const activeFilterCount = useMemo(
     () => countActiveCommitmentFilters(appliedFilters),
@@ -188,14 +200,13 @@ export function useCommitments() {
   const totalsByCurrency = useMemo(() => {
     const totals = new Map<Currency, number>();
     for (const p of activePayments) {
-      if (p.status === CommitmentPaymentStatus.Skipped) continue;
-      const isPaid = p.status === CommitmentPaymentStatus.Paid;
-      const value = isPaid ? (p.amount_paid ?? p.amount_due) : p.amount_due;
+      if (isSkippedPayment(p) || !isDueInMonth(p, selectedMonth)) continue;
+      const value = isPaidPayment(p) ? (p.amount_paid ?? p.amount_due) : p.amount_due;
       if (value == null) continue;
       totals.set(p.currency, (totals.get(p.currency) ?? 0) + value);
     }
     return totals;
-  }, [activePayments]);
+  }, [activePayments, selectedMonth]);
 
   const selectedMonthRef = useRef(selectedMonth);
   selectedMonthRef.current = selectedMonth;
@@ -285,6 +296,7 @@ export function useCommitments() {
     state: {
       sections,
       selectedMonth,
+      today,
       counts,
       totalsByCurrency,
       refreshing,

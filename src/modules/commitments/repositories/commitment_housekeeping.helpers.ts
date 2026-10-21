@@ -1,4 +1,3 @@
-import { CommitmentPaymentStatus } from '@/constants/enums';
 import type { ActiveCommitmentDueDate } from '@/modules/commitments/database/commitment_payments';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
@@ -25,7 +24,6 @@ export function planMissingCommitmentPayments({
   }
 
   const timestamp = now.toISOString();
-  const today = timestamp.slice(0, 10);
   const rows: CommitmentPayment[] = [];
 
   for (const commitment of commitments) {
@@ -55,12 +53,6 @@ export function planMissingCommitmentPayments({
         exchange_rate_snapshot: null,
         account_id: commitment.account_id,
         transaction_id: null,
-        status:
-          dueDate < today
-            ? CommitmentPaymentStatus.Overdue
-            : dueDate === today
-              ? CommitmentPaymentStatus.Due
-              : CommitmentPaymentStatus.Upcoming,
         notes: null,
         created_at: timestamp,
         updated_at: timestamp,
