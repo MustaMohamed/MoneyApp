@@ -1,7 +1,11 @@
 import Database from 'better-sqlite3';
 
 import { MIGRATIONS } from '@/database/migrations';
-import { paidPaymentSql, unpaidPaymentSql } from '@/modules/commitments/database/payment_state_sql';
+import {
+  paidPaymentSql,
+  settledPaymentSql,
+  unpaidPaymentSql,
+} from '@/modules/commitments/database/payment_state_sql';
 import { isPaidPayment, isUnpaidPayment } from '@/modules/commitments/domain/payment_state';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 
@@ -18,6 +22,7 @@ const ROWS: Row[] = [
 const CASES: [string, (alias?: string) => string, (row: Row) => boolean][] = [
   ['unpaid', unpaidPaymentSql, isUnpaidPayment],
   ['paid', paidPaymentSql, isPaidPayment],
+  ['settled', settledPaymentSql, (row) => !isUnpaidPayment(row)],
 ];
 
 let db: Database.Database;

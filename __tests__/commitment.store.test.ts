@@ -100,9 +100,9 @@ function makeRepository(overrides: Partial<ICommitmentRepository> = {}): ICommit
     getPaidCount: jest.fn().mockResolvedValue(0),
     getExistingDueDates: jest.fn().mockResolvedValue([]),
     insertPayments: jest.fn().mockResolvedValue(undefined),
-    deleteUnpaidPayments: jest.fn().mockResolvedValue(undefined),
     markAsPaid: jest.fn().mockResolvedValue(paymentAmounts()),
     markAsSkipped: jest.fn().mockResolvedValue(undefined),
+    undoSkip: jest.fn().mockResolvedValue(undefined),
     runHousekeeping: jest.fn().mockResolvedValue(undefined),
     getMonthSnapshot: jest.fn().mockResolvedValue(snapshot()),
     ...overrides,
@@ -448,8 +448,11 @@ describe('commitment store mutation invalidation', () => {
       refreshError,
     );
 
-    expect(repository.update).toHaveBeenCalledWith('commitment', updateInput);
-    expect(repository.deleteUnpaidPayments).toHaveBeenCalledWith('commitment');
+    expect(repository.update).toHaveBeenCalledTimes(1);
+    expect((repository.update as jest.Mock).mock.calls[0].slice(0, 2)).toEqual([
+      'commitment',
+      updateInput,
+    ]);
     expect(repository.getMonthSnapshot).not.toHaveBeenCalled();
     expect(store.getState().loadError).toBe(true);
     consoleSpy.mockRestore();
@@ -521,8 +524,11 @@ describe('commitment store mutation invalidation', () => {
     await store.getState().updateCommitment('commitment', updateInput);
     await flushMicrotasks();
 
-    expect(repository.update).toHaveBeenCalledWith('commitment', updateInput);
-    expect(repository.deleteUnpaidPayments).toHaveBeenCalledWith('commitment');
+    expect(repository.update).toHaveBeenCalledTimes(1);
+    expect((repository.update as jest.Mock).mock.calls[0].slice(0, 2)).toEqual([
+      'commitment',
+      updateInput,
+    ]);
     expect(repository.runHousekeeping).toHaveBeenCalledTimes(1);
     expect(store.getState().generation).toBe(1);
   });
@@ -551,10 +557,23 @@ describe('commitment store mutation invalidation', () => {
     await store.getState().markAsPaid('payment', paymentDetails);
     await flushMicrotasks();
 
-    expect(repository.markAsPaid).toHaveBeenCalledWith('payment', paymentDetails, commitment());
+    expect(repository.markAsPaid).toHaveBeenCalledWith('payment', paymentDetails);
     expect(repository.runHousekeeping).toHaveBeenCalledTimes(1);
     expect(repository.getMonthSnapshot).toHaveBeenCalledTimes(1);
     expect(store.getState().generation).toBe(1);
+  });
+
+  it('pays a row the loaded month does not hold, by id through the repository', async () => {
+    const repository = makeRepository({
+      getMonthSnapshot: jest.fn().mockResolvedValue(snapshot(MAY, [commitment()], [])),
+    });
+    const store = createCommitmentStore(repository);
+    await store.getState().loadMonthSnapshot(MAY);
+
+    await expect(store.getState().markAsPaid('payment', paymentDetails)).resolves.toBeUndefined();
+
+    expect(repository.markAsPaid).toHaveBeenCalledWith('payment', paymentDetails);
+    expect(store.getState().payments).toEqual([]);
   });
 
   it('locks a payment against a stale Skip while Pay persistence is in flight', async () => {
@@ -786,5 +805,66 @@ describe('commitment store selectors', () => {
     );
 
     expect(store.getState().getTotalMonthlyCommitted()).toBe(250);
+  });
+});
+
+describe('commitment store undoSkip', () => {
+  const skipped = payment({ skipped_date: MAY_8 });
+
+  it('undoes with the local calendar date and clears the published skip', async () => {
+    const refresh = deferred<void>();
+    const repository = makeRepository({
+      getMonthSnapshot: jest.fn().mockResolvedValue(snapshot(MAY, [commitment()], [skipped])),
+    });
+    const store = createCommitmentStore(repository);
+    await store.getState().loadMonthSnapshot(MAY, MAY_8_LOCAL);
+    (repository.runHousekeeping as jest.Mock).mockReset().mockReturnValue(refresh.promise);
+
+    await store.getState().undoSkip('payment', MAY_8_LOCAL);
+
+    expect(repository.undoSkip).toHaveBeenCalledWith('payment', MAY_8, MAY_8_LOCAL.toISOString());
+    expect(store.getState().payments).toEqual([
+      expect.objectContaining({ id: 'payment', paid_date: null, skipped_date: null }),
+    ]);
+    expect(store.getState().transitioningPaymentIds).toEqual([]);
+
+    refresh.resolve();
+    await flushMicrotasks();
+  });
+
+  it('rethrows a refused undo and leaves the published skip set', async () => {
+    const refusal = new Error('undo refused');
+    const repository = makeRepository({
+      getMonthSnapshot: jest.fn().mockResolvedValue(snapshot(MAY, [commitment()], [skipped])),
+      undoSkip: jest.fn().mockRejectedValue(refusal),
+    });
+    const store = createCommitmentStore(repository);
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    await store.getState().loadMonthSnapshot(MAY, MAY_8_LOCAL);
+
+    await expect(store.getState().undoSkip('payment', MAY_8_LOCAL)).rejects.toThrow(refusal);
+
+    expect(store.getState().payments).toEqual([
+      expect.objectContaining({ id: 'payment', skipped_date: MAY_8 }),
+    ]);
+    expect(store.getState().transitioningPaymentIds).toEqual([]);
+    consoleSpy.mockRestore();
+  });
+
+  it('refuses an undo while a pay on the same row is in flight, with no repository call', async () => {
+    const payRequest = deferred<CommitmentPaymentAmounts>();
+    const repository = makeRepository({
+      markAsPaid: jest.fn().mockReturnValue(payRequest.promise),
+    });
+    const store = createCommitmentStore(repository);
+    await store.getState().loadMonthSnapshot(MAY);
+
+    const payAction = store.getState().markAsPaid('payment', paymentDetails);
+    const undoAction = store.getState().undoSkip('payment', MAY_8_LOCAL);
+
+    await expect(undoAction).rejects.toThrow('Payment transition already in progress: payment');
+    expect(repository.undoSkip).not.toHaveBeenCalled();
+    payRequest.resolve(paymentAmounts());
+    await payAction;
   });
 });

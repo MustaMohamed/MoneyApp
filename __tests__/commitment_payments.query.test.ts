@@ -6,6 +6,7 @@ import type { Transaction } from '@/database/entities/transaction.entity';
 import { MIGRATIONS } from '@/database/migrations';
 import {
   addPayments,
+  clearPaymentSkipped,
   deleteUnpaidPaymentsByCommitment,
   getExistingDueDates,
   getLastPaidPayment,
@@ -14,6 +15,7 @@ import {
   getPaymentsByMonth,
   getActiveCommitmentDueDates,
   getPaidCountByCommitment,
+  getSettledCountByCommitment,
   insertPaymentRows,
   markCommitmentAsPaid,
   updatePaymentSkipped,
@@ -897,5 +899,71 @@ describe('markCommitmentAsPaid', () => {
         budget_id: null,
       },
     );
+  });
+});
+
+describe('getSettledCountByCommitment', () => {
+  it('counts the paid and the skipped rows and leaves the unpaid one out', async () => {
+    await addPayments(mockDb, [
+      makePayment({
+        id: 'settled-paid',
+        due_date: '2026-03-01',
+        paid_date: '2026-03-02',
+        amount_paid: 200,
+      }),
+      makePayment({ id: 'settled-skipped', due_date: '2026-04-01', skipped_date: '2026-04-02' }),
+      makePayment({ id: 'settled-unpaid', due_date: '2026-05-01' }),
+    ]);
+
+    await expect(getSettledCountByCommitment(mockDb, 'commitment1')).resolves.toBe(2);
+  });
+
+  it('reads 0 for an unknown commitment id', async () => {
+    await expect(getSettledCountByCommitment(mockDb, 'no-such-commitment')).resolves.toBe(0);
+  });
+});
+
+describe('clearPaymentSkipped', () => {
+  const UPDATED_AT = '2026-05-09T10:00:00.000Z';
+
+  function readRow(id: string) {
+    return realDb
+      .prepare('SELECT paid_date, skipped_date, updated_at FROM commitment_payments WHERE id = ?')
+      .get(id);
+  }
+
+  it('clears the skipped date on a skipped unpaid row and reports one change', async () => {
+    await addPayments(mockDb, [makePayment({ id: 'clear-skipped', skipped_date: '2026-05-02' })]);
+
+    await expect(clearPaymentSkipped(mockDb, 'clear-skipped', UPDATED_AT)).resolves.toBe(1);
+
+    expect(readRow('clear-skipped')).toEqual({
+      paid_date: null,
+      skipped_date: null,
+      updated_at: UPDATED_AT,
+    });
+  });
+
+  it.each([
+    ['a paid row', { paid_date: '2026-05-02', amount_paid: 200 }],
+    [
+      'a paid row that also holds a skipped date',
+      { paid_date: '2026-05-02', amount_paid: 200, skipped_date: '2026-05-03' },
+    ],
+    ['an unpaid row', {}],
+  ] as [string, Partial<CommitmentPayment>][])(
+    'reports no change on %s and leaves it as it was',
+    async (_name, overrides) => {
+      await addPayments(mockDb, [makePayment({ id: 'clear-untouched', ...overrides })]);
+      const before = readRow('clear-untouched');
+
+      await expect(clearPaymentSkipped(mockDb, 'clear-untouched', UPDATED_AT)).resolves.toBe(0);
+
+      expect(readRow('clear-untouched')).toEqual(before);
+    },
+  );
+
+  it('reports no change for a missing row', async () => {
+    await expect(clearPaymentSkipped(mockDb, 'no-such-payment', UPDATED_AT)).resolves.toBe(0);
   });
 });

@@ -242,17 +242,60 @@ describe('CommitmentRepository.update', () => {
       end_after_count: null,
     };
 
-    await repo.update('c-1', updateData);
+    (getCommitmentById as jest.Mock).mockResolvedValue({ ...baseCommitment, ...updateData });
+    (getExistingDueDates as jest.Mock).mockResolvedValue(['2026-01-01']);
 
-    expect(updateCommitment).toHaveBeenCalledWith(mockDb, 'c-1', updateData);
+    await repo.update('c-1', updateData, new Date('2026-05-08T10:00:00.000Z'));
+
+    expect(mockDb.withExclusiveTransactionAsync).toHaveBeenCalledTimes(1);
+    expect(updateCommitment).toHaveBeenCalledWith(transactionDb, 'c-1', updateData);
+    expect(deleteUnpaidPaymentsByCommitment).toHaveBeenCalledWith(transactionDb, 'c-1');
+    expect(getCommitmentById).toHaveBeenCalledWith(transactionDb, 'c-1');
+    expect(getExistingDueDates).toHaveBeenCalledWith(transactionDb, 'c-1');
+    expect(insertPaymentRows).toHaveBeenCalledTimes(1);
+    const [insertDb, plannedRows] = (insertPaymentRows as jest.Mock).mock.calls[0];
+    expect(insertDb).toBe(transactionDb);
+    expect(plannedRows.map((row: CommitmentPayment) => row.due_date)).not.toContain('2026-01-01');
+    expect(plannedRows[0]).toMatchObject({ commitment_id: 'c-1', amount_due: 150 });
+  });
+
+  it('rejects inside the transaction when the edited commitment is not found', async () => {
+    (getCommitmentById as jest.Mock).mockResolvedValue(null);
+
+    await expect(
+      repo.update(
+        'c-1',
+        {
+          name: baseCommitment.name,
+          amount_type: baseCommitment.amount_type,
+          amount: baseCommitment.amount,
+          currency: baseCommitment.currency,
+          category_id: baseCommitment.category_id,
+          recurrence_every: baseCommitment.recurrence_every,
+          recurrence_period: baseCommitment.recurrence_period,
+          start_date: baseCommitment.start_date,
+          account_id: baseCommitment.account_id,
+          notes: baseCommitment.notes,
+          duration_type: baseCommitment.duration_type,
+          end_date: baseCommitment.end_date,
+          end_after_count: baseCommitment.end_after_count,
+        },
+        new Date('2026-05-08T10:00:00.000Z'),
+      ),
+    ).rejects.toThrow('Commitment not found: c-1');
+
+    expect(mockDb.withExclusiveTransactionAsync).toHaveBeenCalledTimes(1);
+    expect(insertPaymentRows).not.toHaveBeenCalled();
   });
 });
 
 describe('CommitmentRepository.deactivate', () => {
-  it('calls deactivateCommitment with id', async () => {
+  it('marks the commitment inactive and deletes its unpaid rows in one exclusive transaction', async () => {
     await repo.deactivate('c-1');
 
-    expect(deactivateCommitment).toHaveBeenCalledWith(mockDb, 'c-1');
+    expect(mockDb.withExclusiveTransactionAsync).toHaveBeenCalledTimes(1);
+    expect(deactivateCommitment).toHaveBeenCalledWith(transactionDb, 'c-1');
+    expect(deleteUnpaidPaymentsByCommitment).toHaveBeenCalledWith(transactionDb, 'c-1');
   });
 });
 
@@ -406,14 +449,6 @@ describe('CommitmentRepository.insertPayments', () => {
   });
 });
 
-describe('CommitmentRepository.deleteUnpaidPayments', () => {
-  it('calls deleteUnpaidPaymentsByCommitment with db and commitmentId', async () => {
-    await repo.deleteUnpaidPayments('c-1');
-
-    expect(deleteUnpaidPaymentsByCommitment).toHaveBeenCalledWith(mockDb, 'c-1');
-  });
-});
-
 describe('CommitmentRepository.markAsPaid', () => {
   const details: PaymentDetails = {
     amount_paid: 250,
@@ -421,8 +456,43 @@ describe('CommitmentRepository.markAsPaid', () => {
     paid_date: '2026-05-08',
   };
 
+  beforeEach(() => {
+    (getPaymentById as jest.Mock).mockResolvedValue({
+      ...basePayment,
+      id: 'p-1',
+      commitment_id: 'c-1',
+    });
+    (getCommitmentById as jest.Mock).mockResolvedValue(baseCommitment);
+  });
+
+  it('reads the payment and its commitment by id before any write', async () => {
+    await repo.markAsPaid('p-1', details);
+
+    expect(getPaymentById).toHaveBeenCalledWith(expect.anything(), 'p-1');
+    expect(getCommitmentById).toHaveBeenCalledWith(expect.anything(), 'c-1');
+  });
+
+  it('rejects a payment it cannot find and writes nothing', async () => {
+    (getPaymentById as jest.Mock).mockResolvedValue(null);
+
+    await expect(repo.markAsPaid('p-1', details)).rejects.toThrow(
+      'Commitment payment not found: p-1',
+    );
+
+    expect(markCommitmentAsPaid).not.toHaveBeenCalled();
+  });
+
+  it('rejects a payment whose commitment it cannot find and writes nothing', async () => {
+    (getCommitmentById as jest.Mock).mockResolvedValue(null);
+
+    await expect(repo.markAsPaid('p-1', details)).rejects.toThrow();
+
+    expect(getCommitmentById).toHaveBeenCalledWith(expect.anything(), 'c-1');
+    expect(markCommitmentAsPaid).not.toHaveBeenCalled();
+  });
+
   it('calls markCommitmentAsPaid with a native transaction and account delta', async () => {
-    await repo.markAsPaid('p-1', details, baseCommitment);
+    await repo.markAsPaid('p-1', details);
 
     expect(markCommitmentAsPaid).toHaveBeenCalledTimes(1);
     const [calledDb, calledPaymentId, calledDetails, calledTx, calledDelta] = (
@@ -465,16 +535,16 @@ describe('CommitmentRepository.markAsPaid', () => {
         ...baseAccount,
         currency: accountCurrency,
       });
+      (getCommitmentById as jest.Mock).mockResolvedValue({
+        ...baseCommitment,
+        currency: commitmentCurrency,
+      });
 
-      await repo.markAsPaid(
-        'p-1',
-        {
-          ...details,
-          amount_paid: faceAmount,
-          exchange_rate_snapshot: rate,
-        },
-        { ...baseCommitment, currency: commitmentCurrency },
-      );
+      await repo.markAsPaid('p-1', {
+        ...details,
+        amount_paid: faceAmount,
+        exchange_rate_snapshot: rate,
+      });
 
       const [, , , calledTx] = (markCommitmentAsPaid as jest.Mock).mock.calls[0];
       expect(calledTx).toMatchObject({
@@ -487,22 +557,14 @@ describe('CommitmentRepository.markAsPaid', () => {
   );
 
   it('hands markCommitmentAsPaid the resolver-rounded amount_paid, not the raw input', async () => {
-    await repo.markAsPaid(
-      'p-1',
-      { ...details, amount_paid: 10.999 },
-      { ...baseCommitment, currency: Currency.EGP },
-    );
+    await repo.markAsPaid('p-1', { ...details, amount_paid: 10.999 });
 
     const [, , calledDetails] = (markCommitmentAsPaid as jest.Mock).mock.calls[0];
     expect(calledDetails.amount_paid).toBe(11);
   });
 
   it('returns the resolved amounts so the caller can bind the rounded value', async () => {
-    const returned = await repo.markAsPaid(
-      'p-1',
-      { ...details, amount_paid: 10.999 },
-      { ...baseCommitment, currency: Currency.EGP },
-    );
+    const returned = await repo.markAsPaid('p-1', { ...details, amount_paid: 10.999 });
 
     expect(returned.paymentAmount).toBe(11);
   });
@@ -515,7 +577,7 @@ describe('CommitmentRepository.markAsPaid', () => {
       revolving_balance: 500,
     });
 
-    await repo.markAsPaid('p-1', details, baseCommitment);
+    await repo.markAsPaid('p-1', details);
 
     const [, , , , calledDelta] = (markCommitmentAsPaid as jest.Mock).mock.calls[0];
     expect(calledDelta).toEqual({

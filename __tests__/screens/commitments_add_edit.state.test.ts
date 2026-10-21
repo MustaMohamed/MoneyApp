@@ -24,6 +24,14 @@ describe('useAddCommitmentState', () => {
     useAddCommitmentState.getState().reset();
     expect(useAddCommitmentState.getState().saving).toBe(false);
   });
+
+  it('setSaveError sets the save error and reset clears it', () => {
+    useAddCommitmentState.getState().setSaveError('Could not save');
+    expect(useAddCommitmentState.getState().saveError).toBe('Could not save');
+
+    useAddCommitmentState.getState().reset();
+    expect(useAddCommitmentState.getState().saveError).toBeUndefined();
+  });
 });
 
 const entryOf = (owner: string) => useEditCommitmentState.getState().entries[owner];
