@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { useEffect, useRef } from 'react';
 
 import { DurationType } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { useZodForm } from '@/utils/use_zod_form.hook';
@@ -24,7 +25,9 @@ export function useAddCommitment() {
   const categories = useCategoryStore.useState.categories();
   const addCommitment = useCommitmentStore.getState().addCommitment;
   const saving = useAddCommitmentState.useState.saving();
+  const saveError = useAddCommitmentState((s) => s.saveError);
   const setSaving = useAddCommitmentState.getState().setSaving;
+  const setSaveError = useAddCommitmentState.getState().setSaveError;
   const reset = useAddCommitmentState.getState().reset;
 
   const form = useZodForm(COMMITMENT_SCHEMA, {
@@ -41,6 +44,7 @@ export function useAddCommitment() {
     if (saveInFlightRef.current) return;
     saveInFlightRef.current = true;
     setSaving(true);
+    setSaveError(undefined);
     try {
       await addCommitment({
         name: data.name,
@@ -63,7 +67,7 @@ export function useAddCommitment() {
       form.reset(buildAddDefaults());
       router.back();
     } catch {
-      // error logged by store
+      setSaveError(Strings.commitmentsSaveError);
     } finally {
       saveInFlightRef.current = false;
       setSaving(false);
@@ -73,6 +77,7 @@ export function useAddCommitment() {
   return {
     state: {
       saving,
+      saveError,
       categories,
       accounts,
     },

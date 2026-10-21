@@ -3,7 +3,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import { AmountType, Currency, DurationType, RecurrencePeriod } from '@/constants/enums';
 
 import type { Commitment } from '../entities/commitment.entity';
-import { paidPaymentSql, unpaidPaymentSql } from './payment_state_sql';
+import { settledPaymentSql, unpaidPaymentSql } from './payment_state_sql';
 
 export async function getCommitments(db: SQLiteDatabase): Promise<Commitment[]> {
   return db.getAllAsync<Commitment>(
@@ -174,6 +174,18 @@ export async function deactivateCommitment(db: SQLiteDatabase, id: string): Prom
   ]);
 }
 
+export async function reactivateCommitment(
+  db: SQLiteDatabase,
+  id: string,
+  updatedAt: string,
+): Promise<number> {
+  const result = await db.runAsync(
+    'UPDATE commitments SET is_active = 1, updated_at = ? WHERE id = ? AND is_active = 0',
+    [updatedAt, id],
+  );
+  return result.changes;
+}
+
 export async function deactivateExpiredCommitments(
   db: SQLiteDatabase,
   asOfDate: string,
@@ -190,7 +202,7 @@ export async function deactivateExpiredCommitments(
             AND (SELECT COUNT(*)
                    FROM commitment_payments INDEXED BY idx_cp_commitment_id
                   WHERE commitment_id = commitments.id
-                    AND ${paidPaymentSql()}) >= end_after_count)
+                    AND ${settledPaymentSql()}) >= end_after_count)
         )`,
     [updatedAt, asOfDate],
   );

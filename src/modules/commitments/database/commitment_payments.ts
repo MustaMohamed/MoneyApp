@@ -6,7 +6,7 @@ import type { AccountDelta } from '@/modules/transactions/domain/transaction_pol
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 
 import type { CommitmentPayment } from '../entities/commitment_payment.entity';
-import { paidPaymentSql, unpaidPaymentSql } from './payment_state_sql';
+import { paidPaymentSql, settledPaymentSql, unpaidPaymentSql } from './payment_state_sql';
 
 const INSERT_PAYMENT_PREFIX = `INSERT OR IGNORE INTO commitment_payments
   (id, commitment_id, due_date, paid_date, skipped_date, amount_due, amount_paid,
@@ -144,6 +144,19 @@ export async function updatePaymentSkipped(
   }
 }
 
+export async function clearPaymentSkipped(
+  db: SQLiteDatabase,
+  id: string,
+  updatedAt: string,
+): Promise<number> {
+  const result = await db.runAsync(
+    `UPDATE commitment_payments SET skipped_date = NULL, updated_at = ?
+     WHERE id = ? AND skipped_date IS NOT NULL AND paid_date IS NULL`,
+    [updatedAt, id],
+  );
+  return result.changes;
+}
+
 export async function deleteUnpaidPaymentsByCommitment(
   db: SQLiteDatabase,
   commitmentId: string,
@@ -192,6 +205,18 @@ export async function getPaidCountByCommitment(
   const rows = await db.getAllAsync<{ count: number }>(
     `SELECT COUNT(*) AS count FROM commitment_payments
      WHERE commitment_id = ? AND ${paidPaymentSql()}`,
+    [commitmentId],
+  );
+  return rows[0]?.count ?? 0;
+}
+
+export async function getSettledCountByCommitment(
+  db: SQLiteDatabase,
+  commitmentId: string,
+): Promise<number> {
+  const rows = await db.getAllAsync<{ count: number }>(
+    `SELECT COUNT(*) AS count FROM commitment_payments
+     WHERE commitment_id = ? AND ${settledPaymentSql()}`,
     [commitmentId],
   );
   return rows[0]?.count ?? 0;
