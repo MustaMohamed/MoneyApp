@@ -105,6 +105,7 @@ function makeRepository(overrides: Partial<ICommitmentRepository> = {}): ICommit
     undoSkip: jest.fn().mockResolvedValue(undefined),
     runHousekeeping: jest.fn().mockResolvedValue(undefined),
     getMonthSnapshot: jest.fn().mockResolvedValue(snapshot()),
+    getMonthAggregate: jest.fn(),
     ...overrides,
   };
 }

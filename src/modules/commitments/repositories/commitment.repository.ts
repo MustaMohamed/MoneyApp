@@ -20,6 +20,7 @@ import {
   getLastPaidPayment,
   getPaidCountByCommitment,
   getPaymentById,
+  getPaymentMonthAggregate,
   getPaymentsByCommitment,
   getPaymentsByMonth,
   getSettledCountByCommitment,
@@ -38,6 +39,7 @@ import {
   updateCommitment,
   type UpdateCommitmentData,
 } from '../database/commitments';
+import type { CommitmentMonthAggregate } from '../domain/commitment_month_totals';
 import { carriedDueBound, resolveUndoSkip } from '../domain/payment_state';
 import type { Commitment } from '../entities/commitment.entity';
 import type { CommitmentPayment } from '../entities/commitment_payment.entity';
@@ -98,6 +100,11 @@ export interface ICommitmentRepository {
   undoSkip(paymentId: string, today: string, updatedAt: string): Promise<void>;
   runHousekeeping(now: Date): Promise<void>;
   getMonthSnapshot(yearMonth: string, today: string): Promise<CommitmentMonthSnapshot>;
+  getMonthAggregate(
+    yearMonth: string,
+    today: string,
+    accountId?: string,
+  ): Promise<CommitmentMonthAggregate>;
 }
 
 export class CommitmentRepository implements ICommitmentRepository {
@@ -156,6 +163,21 @@ export class CommitmentRepository implements ICommitmentRepository {
   async getPaymentsForMonth(yearMonth: string, today: string): Promise<CommitmentPayment[]> {
     const db = await getDb();
     return getPaymentsByMonth(db, yearMonth, carriedDueBound(yearMonth, today));
+  }
+
+  async getMonthAggregate(
+    yearMonth: string,
+    today: string,
+    accountId?: string,
+  ): Promise<CommitmentMonthAggregate> {
+    const db = await getDb();
+    const carriedBefore = carriedDueBound(yearMonth, today);
+    return getPaymentMonthAggregate(db, {
+      yearMonth,
+      today,
+      carriedBefore,
+      ...(accountId === undefined ? {} : { accountId }),
+    });
   }
 
   async getMonthSnapshot(yearMonth: string, today: string): Promise<CommitmentMonthSnapshot> {
