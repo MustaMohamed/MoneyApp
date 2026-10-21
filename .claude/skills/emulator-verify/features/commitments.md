@@ -62,7 +62,8 @@ Route `/commitments`, a tab. Screen `src/modules/commitments/screens/commitments
 - The count pill draws only at `count > 0`: an accordion with nothing selected has no pill to measure.
 - `filter_accordion.tsx` is shared with the transactions filter sheet; a height read here holds there, and a divergence is a caller override.
 - `filter_sheet_frame.tsx` and the Accounts, Categories and Amount sections are shared with the transactions filter sheet (MA-233); a read of the frame or a section here holds there, and a divergence is a caller override.
-- An open section's header button answers no `label="<Title>"` at 2.0; only its title `TextView` does. A walk closes an open section with `tapxy` on the title's centre (MA-233).
+- With a section open, `label="<Title>"` matches two nodes, the header button and its title `TextView`. A walk closes an open section with `tapxy` on the title's centre, which lies inside the button (MA-233).
+- A section header's button box holds the card's vertical padding, and the 12 dp gap above the body while open: 47.24 to 47.62 dp closed and 45.71 open at 1.0, 64.38 to 64.76 and 62.86 at 2.0. Its title `TextView` sits 14 dp under the button's top (MA-233).
 - At 2.0 with the filter sheet at its 45% snap, the lower option pills sit under `sheet-footer`, and a tap on one lands on Reset. Drag the sheet to 92% before a pick (MA-233).
 - The accordion pill has no vertical padding, so its height is the line box alone — 14, not 18 like the padded pills.
 - The month pill in the rail is the shared `month_filter.tsx`, measured once as `month filter pill` in `transactions.md` § States; that read holds here, so do not re-measure it — a divergence is a caller override.

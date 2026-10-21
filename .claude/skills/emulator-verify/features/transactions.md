@@ -121,7 +121,8 @@ Route `/transactions`, a tab. Screen `src/modules/transactions/screens/transacti
 
 - `month_filter.tsx` is shared with commitments and budget; a height read here holds there, and a divergence is a caller override.
 - `filter_sheet_frame.tsx` and the Accounts, Categories and Amount sections are shared with the commitments filter sheet (MA-233); a read of the frame or a section here holds there, and a divergence is a caller override.
-- An open section's header button answers no `label="<Title>"` at 2.0; only its title `TextView` does. A walk closes an open section with `tapxy` on the title's centre (MA-233).
+- With a section open, `label="<Title>"` matches two nodes, the header button and its title `TextView`. A walk closes an open section with `tapxy` on the title's centre, which lies inside the button (MA-233).
+- A section header's button box holds the card's vertical padding, and the 12 dp gap above the body while open: 47.24 to 47.62 dp closed and 45.71 open at 1.0, 64.38 to 64.76 and 62.86 at 2.0. Its title `TextView` sits 14 dp under the button's top (MA-233).
 - At 2.0 with the filter sheet at its 45% snap, `Car` and the option pills below it sit under `sheet-footer`, and a tap on one lands on Reset. Drag the sheet to 92% before a pick (MA-233).
 - The `hero, change against last month` seed puts rows two and three months back, so on that device `hero, empty month` and `hero, past month` read differently: the first empty month over an empty month before it is four back, and one back shows a change node.
 - `mqa ui` returns nothing while the hero skeleton shimmers: `uiautomator dump` waits for an idle screen. Read the search field through `adb shell dumpsys activity top` instead.
