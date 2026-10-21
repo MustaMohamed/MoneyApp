@@ -4,8 +4,8 @@ import { Strings } from '@/constants/strings';
 import { Size } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 
-import { formatRateRowValue } from '../transaction_form.helpers';
 import { FormPickerRow } from './form_picker_row';
+import { formatRateRowValue } from './form_sheet.helpers';
 import { openRateEditor } from './rate_editor_sheet.hook';
 import { RateStaleLine } from './rate_stale_line';
 

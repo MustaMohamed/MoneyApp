@@ -1,3 +1,4 @@
+import type { ConvertedAmount } from '@/components/ui/form_sheet.helpers';
 import type { AccountTypeIconName } from '@/constants/account_type_icons';
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { Currency, TransactionType } from '@/constants/enums';
@@ -30,7 +31,6 @@ import {
 } from '@/modules/transactions/components/transaction_row.helpers';
 import { requiresDestination } from '@/modules/transactions/domain/transaction_amounts';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
-import type { ConvertedAmount } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form.helpers';
 import { resolveAccountName } from '@/utils/account_name';
 import {
   type AmountSign,

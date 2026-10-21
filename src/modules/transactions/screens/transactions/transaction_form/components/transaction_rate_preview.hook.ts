@@ -1,8 +1,9 @@
-import { useMemo } from 'react';
+import { useCallback } from 'react';
 
+import type { ConvertedAmount } from '@/components/ui/form_sheet.helpers';
 import type { Currency, TransactionType } from '@/constants/enums';
 
-import { type ConvertedAmount, resolveConvertedAmount } from '../transaction_form.helpers';
+import { resolveConvertedAmount } from '../transaction_form.helpers';
 import type { TransactionFormMode } from '../transaction_form.types';
 import { useTransactionAmount } from './transaction_amount.hook';
 
@@ -11,17 +12,17 @@ export interface RatePreviewInput {
   type: TransactionType;
   sourceCurrency: Currency | undefined;
   destinationCurrency: Currency | undefined;
-  /** The rate exactly as the field holds it, unparsed. */
-  exchangeRate: string;
 }
 
-/** The converted amount under the amount, derived by the same resolver the save runs. */
-export function useTransactionRatePreview(input: RatePreviewInput): ConvertedAmount | undefined {
-  const { mode, type, sourceCurrency, destinationCurrency, exchangeRate } = input;
+/** Converts a rate's text, unparsed, to the amount under the amount, by the same resolver the save runs. */
+export function useTransactionRatePreview(
+  input: RatePreviewInput,
+): (exchangeRate: string) => ConvertedAmount | undefined {
+  const { mode, type, sourceCurrency, destinationCurrency } = input;
   const amountText = useTransactionAmount(mode);
 
-  return useMemo(
-    () =>
+  return useCallback(
+    (exchangeRate: string) =>
       resolveConvertedAmount({
         type,
         amountText,
@@ -29,6 +30,6 @@ export function useTransactionRatePreview(input: RatePreviewInput): ConvertedAmo
         destinationCurrency,
         exchangeRateText: exchangeRate,
       }),
-    [amountText, destinationCurrency, exchangeRate, sourceCurrency, type],
+    [amountText, destinationCurrency, sourceCurrency, type],
   );
 }

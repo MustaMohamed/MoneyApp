@@ -17,14 +17,11 @@ import { TouchSize, Type, lineHeightFor } from '@/constants/theme';
 import { RATE_MESSAGE_SLOT_STYLE } from '@/modules/transactions/components/exchange_rate_row.geometry';
 import { formatStoredMoneyText } from '@/utils/money_text';
 
-import { resolveRateEditorSource } from '../transaction_form.helpers';
 import { ConvertedAmountLine } from './converted_amount_line';
+import { RATE_RESET_SLOT_STYLE } from './form_sheet.geometry';
+import { type ConvertedAmount, resolveRateEditorSource } from './form_sheet.helpers';
 import { useRateEditor, useRateEditorFocus } from './rate_editor_sheet.hook';
 import { RateStaleLine } from './rate_stale_line';
-import { RATE_RESET_SLOT_STYLE } from './transaction_form.geometry';
-import type { RatePreviewInput } from './transaction_rate_preview.hook';
-
-type RatePreviewContext = Omit<RatePreviewInput, 'exchangeRate'>;
 
 interface RateEditorSheetBodyProps {
   inputRef: RefObject<TextInput | null>;
@@ -35,7 +32,7 @@ interface RateEditorSheetBodyProps {
   stale: boolean;
   showsReset: boolean;
   onReset: () => void;
-  preview: RatePreviewContext;
+  converted: ConvertedAmount | undefined;
 }
 
 // Its own component so `useBottomSheetAwareHandlers` runs inside the sheet's context.
@@ -48,7 +45,7 @@ function RateEditorSheetBody({
   stale,
   showsReset,
   onReset,
-  preview,
+  converted,
 }: RateEditorSheetBodyProps) {
   const { onFocus, onBlur } = useBottomSheetAwareHandlers();
   const { fontScale } = useWindowDimensions();
@@ -89,8 +86,7 @@ function RateEditorSheetBody({
         />
       </View>
       <ConvertedAmountLine
-        {...preview}
-        exchangeRate={draft}
+        converted={converted}
         testID="rate-editor-converted-amount"
         textAlign="left"
         oneLine={oneLine}
@@ -181,25 +177,27 @@ export function RateEditorSheet({
   );
 }
 
-interface TransactionRateEditorProps extends RatePreviewContext {
+interface RateEditorProps {
   ownerId: string;
   value: string;
   onCommit: (text: string) => boolean;
   storedRate: number;
   rateUpdatedAt: string | null;
   stale: boolean;
+  /** The converted amount for a rate's text, as the owner's resolver derives it. */
+  convertedFor: (rateText: string) => ConvertedAmount | undefined;
 }
 
 // Mounted with the form body, not the row, so its sheet has seen every keyboard event before the row opens it.
-export function TransactionRateEditor({
+export function RateEditor({
   ownerId,
   value,
   onCommit,
   storedRate,
   rateUpdatedAt,
   stale,
-  ...preview
-}: TransactionRateEditorProps): React.ReactElement {
+  convertedFor,
+}: RateEditorProps): React.ReactElement {
   const editor = useRateEditor(ownerId, value, onCommit, formatStoredMoneyText(storedRate));
   const source = resolveRateEditorSource({
     draftText: editor.state.draft,
@@ -221,7 +219,7 @@ export function TransactionRateEditor({
       stale={stale}
       showsReset={!source.usesStoredRate}
       onReset={editor.resetToStoredRate}
-      preview={preview}
+      converted={convertedFor(editor.state.draft)}
     />
   );
 }

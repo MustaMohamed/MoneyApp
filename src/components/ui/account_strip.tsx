@@ -13,11 +13,9 @@ import {
   resolveOneLineTextProps,
   scaledTextStyleAboveOne,
 } from '@/components/ui/text_scale.geometry';
-import type { TransactionType } from '@/constants/enums';
 import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 
-import type { AccountStripChip } from '../transaction_form.helpers';
 import { useAccountStripReveal } from './account_strip.hook';
 import { DangerRing } from './danger_ring';
 import {
@@ -32,7 +30,8 @@ import {
   ACCOUNT_STRIP_TILE,
   ACCOUNT_STRIP_TILE_NAME_GAP,
   resolveAccountStripChipGeometry,
-} from './transaction_form.geometry';
+} from './form_sheet.geometry';
+import type { AccountStripChip } from './form_sheet.helpers';
 
 type FocusHook = NonNullable<BottomSheetScrollableProps['focusHook']>;
 
@@ -42,8 +41,8 @@ const noScrollEventsHandlers: ScrollEventsHandlersHookType = () => ({});
 
 interface AccountStripProps {
   chips: AccountStripChip[];
-  /** The form's transaction type; a switch between two types asks the strip to show its selected chip again. */
-  type: TransactionType;
+  /** A change of it asks the strip to show its selected chip again. */
+  revealKey?: string;
   onSelect?: (id: string) => void;
   caption?: string;
   error?: string;
@@ -53,7 +52,7 @@ interface AccountStripProps {
 
 export function AccountStrip({
   chips,
-  type,
+  revealKey,
   onSelect,
   caption,
   error,
@@ -61,7 +60,7 @@ export function AccountStrip({
 }: AccountStripProps): React.ReactElement {
   const { scrollRef, handleLayout, handleScroll, handleChipPress } = useAccountStripReveal(
     chips.findIndex((chip) => chip.selected),
-    type,
+    revealKey,
   );
   const { fontScale } = useWindowDimensions();
   const chipGeometry = resolveAccountStripChipGeometry(fontScale);
