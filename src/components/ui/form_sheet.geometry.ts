@@ -33,6 +33,12 @@ export const AMOUNT_MESSAGE_TEXT_STYLE = {
   textAlign: 'center',
 } as const;
 
+/** The rate card's and the rate editor's message slots: a floor and no fixed height, so a message wrapped at a large font scale stays whole. */
+export const RATE_MESSAGE_SLOT_STYLE = {
+  minHeight: ms(16),
+  justifyContent: 'center',
+} as const;
+
 /** The rate editor's Reset slot: the touch floor whether or not the link shows, so typing a rate moves nothing. */
 export const RATE_RESET_SLOT_STYLE = {
   minHeight: TouchSize.min,
@@ -62,6 +68,9 @@ export const ACCOUNT_STRIP_INSET_X = Spacing.md;
 /** The strip row's padding above and below its chips; the scroll holds the slop, since Android drops a touch outside the ScrollView. */
 export const ACCOUNT_STRIP_PADDING_Y = Math.max(Spacing.xxs, ACCOUNT_STRIP_CHIP_SLOP_Y);
 export const ACCOUNT_STRIP_WRAPPER_PADDING_Y = ACCOUNT_STRIP_PADDING_Y - ACCOUNT_STRIP_CHIP_SLOP_Y;
+
+/** The amount input's floor, so an empty or one-digit amount keeps its centred box. */
+export const AMOUNT_INPUT_MIN_WIDTH = ms(80);
 
 /** Auto basis and no shrink: a flank of the amount row is never narrower than the code it holds, and the two grow by equal shares. */
 export const AMOUNT_FLANK_STYLE = { flexGrow: 1, flexShrink: 0, flexBasis: 'auto' } as const;

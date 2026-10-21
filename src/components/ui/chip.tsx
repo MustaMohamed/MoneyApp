@@ -14,7 +14,7 @@ import {
   resolveHeroPillGeometry,
   resolveSuccessChipGeometry,
 } from '@/components/ui/chip.geometry';
-import { SOLID_GOLD_SELECTED_RADIUS } from '@/components/ui/tabs';
+import { SOLID_GOLD_SELECTED_RADIUS } from '@/components/ui/tabs.geometry';
 import { resolveOneLineTextProps } from '@/components/ui/text_scale.geometry';
 import { Colors, Radius, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens, GoldTokens } from '@/constants/theme_tokens';

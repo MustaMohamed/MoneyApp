@@ -14,11 +14,10 @@ import {
 } from '@/components/ui/text_scale.geometry';
 import { Strings } from '@/constants/strings';
 import { TouchSize, Type, lineHeightFor } from '@/constants/theme';
-import { RATE_MESSAGE_SLOT_STYLE } from '@/modules/transactions/components/exchange_rate_row.geometry';
 import { formatStoredMoneyText } from '@/utils/money_text';
 
 import { ConvertedAmountLine } from './converted_amount_line';
-import { RATE_RESET_SLOT_STYLE } from './form_sheet.geometry';
+import { RATE_MESSAGE_SLOT_STYLE, RATE_RESET_SLOT_STYLE } from './form_sheet.geometry';
 import { type ConvertedAmount, resolveRateEditorSource } from './form_sheet.helpers';
 import { useRateEditor, useRateEditorFocus } from './rate_editor_sheet.hook';
 import { RateStaleLine } from './rate_stale_line';

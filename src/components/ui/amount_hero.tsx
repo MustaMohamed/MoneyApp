@@ -18,6 +18,7 @@ import {
   AMOUNT_ERROR_LINE_HEIGHT,
   AMOUNT_ERROR_LINE_STYLE,
   AMOUNT_FLANK_STYLE,
+  AMOUNT_INPUT_MIN_WIDTH,
 } from './form_sheet.geometry';
 
 const amountClass = tv({
@@ -80,7 +81,7 @@ export function AmountHero({
           className={amountClass({ tone })}
           allowFontScaling={false}
           style={{
-            minWidth: 80,
+            minWidth: AMOUNT_INPUT_MIN_WIDTH,
             textAlign: 'center',
             padding: 0,
             borderColor: INPUT_NO_FOCUS_BORDER_COLOR,

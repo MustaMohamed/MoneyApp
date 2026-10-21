@@ -2,6 +2,7 @@ import type MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIco
 import type React from 'react';
 import { PixelRatio } from 'react-native';
 
+import type { AccountStripTile } from '@/components/ui/form_sheet.helpers';
 import { resolveRowStacking, scaledFontSize } from '@/components/ui/text_scale.geometry';
 import { TYPE_BADGE_VERTICAL_CHROME } from '@/components/ui/type_badge';
 import { CURRENCY_CONFIG } from '@/constants/currency';
@@ -106,11 +107,7 @@ export interface TransactionRowPresentationInput {
   category?: Category;
 }
 
-export interface RowTile {
-  color: string | null;
-  type: AccountType;
-  hollow: boolean;
-}
+export type RowTile = AccountStripTile;
 
 export type RowTileSet = [] | [RowTile] | [RowTile, RowTile];
 

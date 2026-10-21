@@ -83,7 +83,7 @@ pay sheet. The asymmetry is the point.
 **Superseded in part 2026-10-13 (#695).** One statement in this section no longer holds: the
 rate-row wrapper no longer subscribes to the amount, and a keystroke re-renders
 `ConvertedAmountLine` under the amount, where the paragraph above has it re-render the row.
-`useTransactionRatePreview` still derives the figure, as `ConvertedAmount | undefined`.
+`useTransactionRatePreview` still derives the figure, now through a converter, `(exchangeRate: string) => ConvertedAmount | undefined`.
 `docs/adr/2026-10-13-converted-amount.md` §4 records it.
 
 ## 5. The schema must not accept what the write path rejects

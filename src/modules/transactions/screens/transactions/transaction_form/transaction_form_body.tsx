@@ -39,13 +39,13 @@ import { ms } from '@/utils/responsive';
 
 import { TransactionAmountHero } from './components/transaction_amount_hero';
 import {
-  TransactionConvertedAmountLine,
-  TransactionRateEditor,
-} from './components/transaction_converted_amount';
-import {
   resolveNoteInputGeometry,
   TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
 } from './components/transaction_form.geometry';
+import {
+  TransactionConvertedAmountLine,
+  TransactionRateEditor,
+} from './components/transaction_rate_preview';
 import type { RatePreviewInput } from './components/transaction_rate_preview.hook';
 import { TypeTabs } from './components/type_tabs';
 import { resolveBudgetFieldError, resolveToRowFace } from './transaction_form.helpers';
