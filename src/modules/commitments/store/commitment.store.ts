@@ -2,9 +2,11 @@ import { create } from 'zustand';
 
 import { CommitmentPaymentStatus } from '@/constants/enums';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
+import { toLocalDateString } from '@/utils/format_date';
 import { currentYearMonth } from '@/utils/year_month';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
+import { isPaidPayment, isSkippedPayment, resolvePaymentState } from '../domain/payment_state';
 import type { Commitment } from '../entities/commitment.entity';
 import type { CommitmentPayment } from '../entities/commitment_payment.entity';
 import {
@@ -32,6 +34,7 @@ interface CommitmentStoreState {
   commitmentsLoaded: boolean;
   paymentsLoaded: boolean;
   loadedMonth: string | undefined;
+  today: string | undefined;
   loading: boolean;
   loadError: boolean;
   generation: number;
@@ -39,14 +42,14 @@ interface CommitmentStoreState {
 
 type CommitmentStore = CommitmentStoreState & {
   ensureHousekeepingCurrent(now?: Date): Promise<void>;
-  loadMonthSnapshot(yearMonth: string): Promise<void>;
+  loadMonthSnapshot(yearMonth: string, now?: Date): Promise<void>;
   setSelectedMonth(yearMonth: string): Promise<void>;
 
   addCommitment(data: NewCommitmentInput): Promise<void>;
   updateCommitment(id: string, data: UpdateCommitmentInput): Promise<void>;
   deactivateCommitment(id: string): Promise<void>;
   markAsPaid(paymentId: string, details: PaymentDetails): Promise<void>;
-  skipPayment(paymentId: string): Promise<void>;
+  skipPayment(paymentId: string, now?: Date): Promise<void>;
 
   getOverdue(): CommitmentPayment[];
   getDueToday(): CommitmentPayment[];
@@ -69,6 +72,7 @@ function initialState(generation = 0): CommitmentStoreState {
     commitmentsLoaded: false,
     paymentsLoaded: false,
     loadedMonth: undefined,
+    today: undefined,
     loading: false,
     loadError: false,
     generation,
@@ -99,11 +103,11 @@ export function createCommitmentStore(
     return request;
   };
 
-  const getSnapshotRequest = (month: string, generation: number) => {
-    const key = `${month}:${generation}`;
+  const getSnapshotRequest = (month: string, today: string, generation: number) => {
+    const key = `${month}:${today}:${generation}`;
     const existing = inFlightSnapshots.get(key);
     if (existing) return existing;
-    const request = repo.getMonthSnapshot(month).finally(() => {
+    const request = repo.getMonthSnapshot(month, today).finally(() => {
       if (inFlightSnapshots.get(key) === request) inFlightSnapshots.delete(key);
     });
     inFlightSnapshots.set(key, request);
@@ -135,6 +139,12 @@ export function createCommitmentStore(
         }));
       };
 
+      const paymentsInState = (status: CommitmentPaymentStatus) => {
+        const { payments, today } = get();
+        if (today === undefined) return [];
+        return payments.filter((payment) => resolvePaymentState(payment, today) === status);
+      };
+
       const endPaymentTransition = (paymentId: string) => {
         set((state) => ({
           transitioningPaymentIds: state.transitioningPaymentIds.filter(
@@ -163,14 +173,15 @@ export function createCommitmentStore(
           }
         },
 
-        loadMonthSnapshot: async (yearMonth) => {
+        loadMonthSnapshot: async (yearMonth, now = new Date()) => {
           const requestId = ++latestSnapshotRequest;
           latestRequestedMonth = yearMonth;
           const generation = dataGeneration;
+          const today = toLocalDateString(now);
           set({ loading: true, loadError: false });
 
           try {
-            await get().ensureHousekeepingCurrent();
+            await get().ensureHousekeepingCurrent(now);
             if (
               requestId !== latestSnapshotRequest ||
               yearMonth !== latestRequestedMonth ||
@@ -179,7 +190,7 @@ export function createCommitmentStore(
               return;
             }
 
-            const snapshot = await getSnapshotRequest(yearMonth, generation);
+            const snapshot = await getSnapshotRequest(yearMonth, today, generation);
             if (
               requestId !== latestSnapshotRequest ||
               yearMonth !== latestRequestedMonth ||
@@ -261,7 +272,6 @@ export function createCommitmentStore(
                 candidate.id === paymentId
                   ? {
                       ...candidate,
-                      status: CommitmentPaymentStatus.Paid,
                       paid_date: details.paid_date,
                       skipped_date: null,
                       amount_paid: amounts.paymentAmount,
@@ -283,19 +293,19 @@ export function createCommitmentStore(
           }
         },
 
-        skipPayment: async (paymentId) => {
+        skipPayment: async (paymentId, now = new Date()) => {
           beginPaymentTransition(paymentId);
           try {
-            await repo.markAsSkipped(paymentId);
-            const skippedAt = new Date().toISOString();
+            const skippedDate = toLocalDateString(now);
+            const updatedAt = now.toISOString();
+            await repo.markAsSkipped(paymentId, skippedDate, updatedAt);
             set((state) => ({
               payments: state.payments.map((candidate) =>
                 candidate.id === paymentId
                   ? {
                       ...candidate,
-                      status: CommitmentPaymentStatus.Skipped,
-                      skipped_date: skippedAt,
-                      updated_at: skippedAt,
+                      skipped_date: skippedDate,
+                      updated_at: updatedAt,
                     }
                   : candidate,
               ),
@@ -310,28 +320,19 @@ export function createCommitmentStore(
           }
         },
 
-        getOverdue: () =>
-          get().payments.filter((payment) => payment.status === CommitmentPaymentStatus.Overdue),
+        getOverdue: () => paymentsInState(CommitmentPaymentStatus.Overdue),
 
-        getDueToday: () =>
-          get().payments.filter((payment) => payment.status === CommitmentPaymentStatus.Due),
+        getDueToday: () => paymentsInState(CommitmentPaymentStatus.Due),
 
-        getUpcoming: () =>
-          get().payments.filter((payment) => payment.status === CommitmentPaymentStatus.Upcoming),
+        getUpcoming: () => paymentsInState(CommitmentPaymentStatus.Upcoming),
 
-        getPaid: () =>
-          get().payments.filter((payment) => payment.status === CommitmentPaymentStatus.Paid),
+        getPaid: () => get().payments.filter(isPaidPayment),
 
-        getSkipped: () =>
-          get().payments.filter((payment) => payment.status === CommitmentPaymentStatus.Skipped),
+        getSkipped: () => get().payments.filter(isSkippedPayment),
 
-        getPaidCount: () =>
-          get().payments.filter((payment) => payment.status === CommitmentPaymentStatus.Paid)
-            .length,
+        getPaidCount: () => get().payments.filter(isPaidPayment).length,
 
-        getTotalCount: () =>
-          get().payments.filter((payment) => payment.status !== CommitmentPaymentStatus.Skipped)
-            .length,
+        getTotalCount: () => get().payments.filter((payment) => !isSkippedPayment(payment)).length,
 
         getTotalMonthlyCommitted: () =>
           get().commitments.reduce(

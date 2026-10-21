@@ -5,7 +5,7 @@ import Animated from 'react-native-reanimated';
 
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
-import { AmountType, CommitmentPaymentStatus } from '@/constants/enums';
+import { AmountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Type, lineHeightFor, withAlpha } from '@/constants/theme';
 import {
@@ -16,26 +16,27 @@ import {
 } from '@/modules/commitments/utils/commitment_status';
 import { formatShortDate } from '@/utils/format_date';
 
+import { isUnpaidPayment, resolvePaymentState } from '../../../../domain/payment_state';
 import type { Commitment } from '../../../../entities/commitment.entity';
 import type { CommitmentPayment } from '../../../../entities/commitment_payment.entity';
 import { cardEntering } from '../detail.anim';
 
 interface Props {
   payment: CommitmentPayment;
+  today: string;
   commitment: Commitment;
   onMarkAsPaid: () => void;
   onSkip: () => void;
 }
 
-export function CurrentCycleCard({ payment, commitment, onMarkAsPaid, onSkip }: Props) {
-  const statusColor = STATUS_COLORS[payment.status];
-  const statusLabel = STATUS_LABELS[payment.status];
+export function CurrentCycleCard({ payment, today, commitment, onMarkAsPaid, onSkip }: Props) {
+  const paymentState = resolvePaymentState(payment, today);
+  const statusColor = STATUS_COLORS[paymentState];
+  const statusLabel = STATUS_LABELS[paymentState];
   const amountText =
     formatCommitmentAmount(payment, commitment) ??
     (commitment.amount_type === AmountType.Variable ? Strings.commitmentsAmountVariable : '—');
-  const isActionable =
-    payment.status !== CommitmentPaymentStatus.Paid &&
-    payment.status !== CommitmentPaymentStatus.Skipped;
+  const isActionable = isUnpaidPayment(payment);
 
   return (
     <Animated.View entering={cardEntering} className="mx-4 mt-4">
@@ -65,7 +66,7 @@ export function CurrentCycleCard({ payment, commitment, onMarkAsPaid, onSkip }: 
             className="gap-1 rounded-full px-2 py-0.5"
           >
             <MaterialCommunityIcons
-              name={STATUS_ICONS[payment.status]}
+              name={STATUS_ICONS[paymentState]}
               size={12}
               color={statusColor}
             />

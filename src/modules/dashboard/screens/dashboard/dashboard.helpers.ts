@@ -1,5 +1,5 @@
 import { foreignCurrencyFor } from '@/constants/currency';
-import { AccountType, CommitmentPaymentStatus, Currency } from '@/constants/enums';
+import { AccountType, Currency } from '@/constants/enums';
 import {
   assertSupportedCurrency,
   convertCurrency,
@@ -13,7 +13,6 @@ import {
 import { baseEquivalent } from '@/modules/accounts/domain/account_figures';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { BudgetDashboardSummaryVM } from '@/modules/budget/utils/budget_summary';
-import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import type {
   DashboardBudgetLimitRow,
   DashboardTransactionFactRow,
@@ -300,53 +299,4 @@ export function computeDashboardSpendDeltaPct(
 ): number | null {
   if (!exceedsToCent(previousEgp, 0)) return null;
   return wholePercent(currentEgp - previousEgp, previousEgp);
-}
-
-export function computeDashboardCommitmentSummary(payments: CommitmentPayment[]): {
-  counts: {
-    paid: number;
-    overdue: number;
-    due: number;
-    upcoming: number;
-    skipped: number;
-    total: number;
-  };
-  totalsByCurrency: Map<Currency, number>;
-} {
-  const counts = { paid: 0, overdue: 0, due: 0, upcoming: 0, skipped: 0, total: 0 };
-  const totalsByCurrency = new Map<Currency, number>();
-
-  for (const payment of payments) {
-    switch (payment.status) {
-      case CommitmentPaymentStatus.Paid:
-        counts.paid++;
-        break;
-      case CommitmentPaymentStatus.Overdue:
-        counts.overdue++;
-        break;
-      case CommitmentPaymentStatus.Due:
-        counts.due++;
-        break;
-      case CommitmentPaymentStatus.Upcoming:
-        counts.upcoming++;
-        break;
-      case CommitmentPaymentStatus.Skipped:
-        counts.skipped++;
-        continue;
-    }
-
-    counts.total++;
-    const amount =
-      payment.status === CommitmentPaymentStatus.Paid
-        ? (payment.amount_paid ?? payment.amount_due)
-        : payment.amount_due;
-    if (amount !== null) {
-      totalsByCurrency.set(
-        payment.currency,
-        (totalsByCurrency.get(payment.currency) ?? 0) + amount,
-      );
-    }
-  }
-
-  return { counts, totalsByCurrency };
 }

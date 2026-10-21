@@ -1,8 +1,8 @@
-import { CommitmentPaymentStatus } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 
+import { isPaidPayment } from '../../../domain/payment_state';
 import { detectPreset } from '../commitment_form.shared';
 import type { CommitmentAdvancedFilters } from './filter.store';
 
@@ -72,8 +72,7 @@ export function commitmentFiltersEqual(
 }
 
 function resolveDisplayAmount(payment: CommitmentPayment): number | null {
-  if (payment.status === CommitmentPaymentStatus.Paid)
-    return payment.amount_paid ?? payment.amount_due;
+  if (isPaidPayment(payment)) return payment.amount_paid ?? payment.amount_due;
   return payment.amount_due;
 }
 

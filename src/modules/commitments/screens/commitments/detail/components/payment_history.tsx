@@ -12,10 +12,11 @@ import { PaymentRow } from './payment_row';
 
 interface Props {
   payments: CommitmentPayment[];
+  today: string;
   commitment: Commitment;
 }
 
-export function PaymentHistory({ payments, commitment }: Props) {
+export function PaymentHistory({ payments, today, commitment }: Props) {
   if (payments.length === 0) return null;
 
   return (
@@ -31,6 +32,7 @@ export function PaymentHistory({ payments, commitment }: Props) {
           renderItem={({ item, index }) => (
             <PaymentRow
               payment={item}
+              today={today}
               commitment={commitment}
               showDivider={index < payments.length - 1}
             />

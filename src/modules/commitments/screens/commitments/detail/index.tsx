@@ -45,7 +45,7 @@ export default function CommitmentDetailScreen() {
 
       {state.viewState === 'firstLoadError' ? <DetailLoadError onRetry={reload} /> : null}
 
-      {showsBody && state.commitment ? (
+      {showsBody && state.commitment && state.today !== undefined ? (
         <ScreenScroll
           contentContainerStyle={{ paddingBottom: 40 }}
           showsVerticalScrollIndicator={false}
@@ -59,6 +59,7 @@ export default function CommitmentDetailScreen() {
           {state.payment ? (
             <CurrentCycleCard
               payment={state.payment}
+              today={state.today}
               commitment={state.commitment}
               onMarkAsPaid={openPaySheet}
               onSkip={confirmSkip}
@@ -70,7 +71,11 @@ export default function CommitmentDetailScreen() {
             recurrenceLabel={state.recurrenceLabel}
             durationLabel={state.durationLabel}
           />
-          <PaymentHistory payments={state.allPayments} commitment={state.commitment} />
+          <PaymentHistory
+            payments={state.allPayments}
+            today={state.today}
+            commitment={state.commitment}
+          />
         </ScreenScroll>
       ) : null}
 

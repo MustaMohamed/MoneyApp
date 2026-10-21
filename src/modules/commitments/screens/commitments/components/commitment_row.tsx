@@ -22,11 +22,13 @@ import { formatShortDate } from '@/utils/format_date';
 import { toIconName } from '@/utils/icon_name_guard';
 import { useDragCancelledPress } from '@/utils/use_drag_cancelled_press.hook';
 
+import { resolvePaymentState } from '../../../domain/payment_state';
 import type { Commitment } from '../../../entities/commitment.entity';
 import type { CommitmentPayment } from '../../../entities/commitment_payment.entity';
 
 interface CommitmentRowProps {
   payment: CommitmentPayment;
+  today: string;
   commitment: Commitment | undefined;
   category: Category | undefined;
   onPress: (paymentId: string) => void;
@@ -37,6 +39,7 @@ interface CommitmentRowProps {
 
 function CommitmentRowComponent({
   payment,
+  today,
   commitment,
   category,
   onPress,
@@ -44,8 +47,9 @@ function CommitmentRowComponent({
   onEdit,
   onDelete,
 }: CommitmentRowProps) {
-  const statusColor = STATUS_COLORS[payment.status];
-  const statusLabel = STATUS_LABELS[payment.status];
+  const paymentState = resolvePaymentState(payment, today);
+  const statusColor = STATUS_COLORS[paymentState];
+  const statusLabel = STATUS_LABELS[paymentState];
   const { showTilde } = resolveDisplayAmount(payment, commitment);
   const amountText =
     formatCommitmentAmount(payment, commitment) ?? `${showTilde ? '~' : ''}— ${payment.currency}`;
@@ -144,7 +148,7 @@ function CommitmentRowComponent({
             className="gap-0.5 rounded-full px-1.5 py-0.5"
           >
             <MaterialCommunityIcons
-              name={STATUS_ICONS[payment.status]}
+              name={STATUS_ICONS[paymentState]}
               size={11}
               color={statusColor}
             />

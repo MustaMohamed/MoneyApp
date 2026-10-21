@@ -3,8 +3,10 @@ import Database from 'better-sqlite3';
 import { getDb } from '@/database/client';
 import { MIGRATIONS } from '@/database/migrations';
 import * as accountStatsQuery from '@/modules/accounts/database/account_stats';
+import * as commitmentPaymentsQuery from '@/modules/commitments/database/commitment_payments';
 import { DashboardRepository } from '@/modules/dashboard/repositories/dashboard.repository';
 import { createMockSQLiteDatabase, getSQLiteParams } from '@/test_helpers/sqlite';
+import { toLocalDateString } from '@/utils/format_date';
 
 jest.mock('@/database/client', () => ({
   getDb: jest.fn(),
@@ -125,10 +127,10 @@ function seedSnapshotFixture(): void {
       'months', '2026-01-01', 'active-first', 'forever', 1, '${NOW}', '${NOW}'
     );
     INSERT INTO commitment_payments (
-      id, commitment_id, due_date, amount_due, currency, status, created_at, updated_at
+      id, commitment_id, due_date, amount_due, currency, created_at, updated_at
     ) VALUES
-      ('payment-later', 'commitment', '2026-07-20', 100, 'EGP', 'upcoming', '${NOW}', '${NOW}'),
-      ('payment-first', 'commitment', '2026-07-10', 100, 'EGP', 'due', '${NOW}', '${NOW}');
+      ('payment-later', 'commitment', '2026-07-20', 100, 'EGP', '${NOW}', '${NOW}'),
+      ('payment-first', 'commitment', '2026-07-10', 100, 'EGP', '${NOW}', '${NOW}');
   `);
 }
 
@@ -158,6 +160,28 @@ afterAll(() => {
 });
 
 describe('DashboardRepository', () => {
+  it('reads the month payments against the local today and carries an earlier unpaid row', async () => {
+    seedSnapshotFixture();
+    realDb.exec(`
+      INSERT INTO commitment_payments (
+        id, commitment_id, due_date, amount_due, currency, created_at, updated_at
+      ) VALUES ('payment-carried', 'commitment', '2026-06-20', 100, 'EGP', '${NOW}', '${NOW}');
+    `);
+    const now = new Date(NOW);
+    const paymentsSpy = jest.spyOn(commitmentPaymentsQuery, 'getPaymentsByMonth');
+
+    const snapshot = await new DashboardRepository().getSnapshot({ yearMonth: '2026-07', now });
+
+    expect(paymentsSpy).toHaveBeenCalledWith(sqlite.database, '2026-07', '2026-07-01');
+    expect(snapshot.today).toBe(toLocalDateString(now));
+    expect(snapshot.commitmentPayments.map((payment) => payment.id)).toEqual([
+      'payment-carried',
+      'payment-first',
+      'payment-later',
+    ]);
+    paymentsSpy.mockRestore();
+  });
+
   it('assembles one complete ordered snapshot with at most five reads', async () => {
     seedSnapshotFixture();
     const now = new Date(NOW);

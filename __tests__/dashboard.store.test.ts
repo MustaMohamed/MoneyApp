@@ -39,6 +39,7 @@ function snapshot(key: string): DashboardSnapshot {
       categoryCount: 0,
     },
     commitmentPayments: [],
+    today: `${key}-15`,
     loadedAt: new Date(`${key}-15T12:00:00.000Z`).getTime(),
   };
 }

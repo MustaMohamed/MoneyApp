@@ -277,8 +277,8 @@ describe('getTransactions — expanded search projection', () => {
     realDb
       .prepare(
         `INSERT INTO commitment_payments
-         (id, commitment_id, due_date, amount_due, currency, status, created_at, updated_at)
-         VALUES ('payment-power', 'commitment-power', '2026-05-01', 300, 'EGP', 'paid', ?, ?)`,
+         (id, commitment_id, due_date, amount_due, currency, created_at, updated_at)
+         VALUES ('payment-power', 'commitment-power', '2026-05-01', 300, 'EGP', ?, ?)`,
       )
       .run(NOW, NOW);
     await insert({ id: 'budget-row', budget_id: 'budget-trip' });

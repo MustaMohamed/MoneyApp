@@ -62,12 +62,12 @@ function seed(): void {
   const payment = realDb.prepare(
     `INSERT INTO commitment_payments
        (id, commitment_id, due_date, paid_date, amount_due, amount_paid, currency,
-        account_id, status, created_at, updated_at)
-     VALUES (?, 'com-arch-on', ?, ?, 200, ?, 'EGP', ?, ?, ?, ?)`,
+        account_id, created_at, updated_at)
+     VALUES (?, 'com-arch-on', ?, ?, 200, ?, 'EGP', ?, ?, ?)`,
   );
-  payment.run('pay-paid', '2026-08-01', '2026-08-01', 200, ARCH, 'paid', NOW, NOW);
-  payment.run('pay-overdue', '2026-09-01', null, null, ARCH, 'overdue', NOW, NOW);
-  payment.run('pay-upcoming', '2026-10-01', null, null, ARCH, 'upcoming', NOW, NOW);
+  payment.run('pay-paid', '2026-08-01', '2026-08-01', 200, ARCH, NOW, NOW);
+  payment.run('pay-overdue', '2026-09-01', null, null, ARCH, NOW, NOW);
+  payment.run('pay-upcoming', '2026-10-01', null, null, ARCH, NOW, NOW);
 }
 
 beforeAll(() => {

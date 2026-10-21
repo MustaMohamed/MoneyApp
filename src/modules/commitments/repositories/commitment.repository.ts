@@ -1,6 +1,6 @@
 import uuid from 'react-native-uuid';
 
-import { CommitmentPaymentStatus, TransactionType } from '@/constants/enums';
+import { TransactionType } from '@/constants/enums';
 import { getDb } from '@/database/client';
 import { getAccountByIdIncludingArchived } from '@/modules/accounts/database/accounts';
 import type { Account } from '@/modules/accounts/entities/account.entity';
@@ -23,7 +23,7 @@ import {
   getPaymentsByMonth,
   insertPaymentRows,
   markCommitmentAsPaid,
-  updatePaymentStatus,
+  updatePaymentSkipped,
 } from '../database/commitment_payments';
 import {
   addCommitment,
@@ -35,6 +35,7 @@ import {
   updateCommitment,
   type UpdateCommitmentData,
 } from '../database/commitments';
+import { carriedDueBound } from '../domain/payment_state';
 import type { Commitment } from '../entities/commitment.entity';
 import type { CommitmentPayment } from '../entities/commitment_payment.entity';
 import { planMissingCommitmentPayments } from './commitment_housekeeping.helpers';
@@ -67,6 +68,7 @@ export type PaymentDetails = {
 
 export interface CommitmentMonthSnapshot {
   loadedMonth: string;
+  today: string;
   commitments: Commitment[];
   payments: CommitmentPayment[];
 }
@@ -78,7 +80,7 @@ export interface ICommitmentRepository {
   update(id: string, data: UpdateCommitmentInput): Promise<void>;
   deactivate(id: string): Promise<void>;
 
-  getPaymentsForMonth(yearMonth: string): Promise<CommitmentPayment[]>;
+  getPaymentsForMonth(yearMonth: string, today: string): Promise<CommitmentPayment[]>;
   getPaymentsByCommitment(commitmentId: string): Promise<CommitmentPayment[]>;
   getPaymentById(id: string): Promise<CommitmentPayment | undefined>;
   getLastPaidPayment(commitmentId: string): Promise<CommitmentPayment | undefined>;
@@ -93,9 +95,9 @@ export interface ICommitmentRepository {
     details: PaymentDetails,
     commitment: Commitment,
   ): Promise<CommitmentPaymentAmounts>;
-  markAsSkipped(paymentId: string): Promise<void>;
+  markAsSkipped(paymentId: string, skippedDate: string, updatedAt: string): Promise<void>;
   runHousekeeping(now: Date): Promise<void>;
-  getMonthSnapshot(yearMonth: string): Promise<CommitmentMonthSnapshot>;
+  getMonthSnapshot(yearMonth: string, today: string): Promise<CommitmentMonthSnapshot>;
 }
 
 export class CommitmentRepository implements ICommitmentRepository {
@@ -135,16 +137,17 @@ export class CommitmentRepository implements ICommitmentRepository {
     await deactivateCommitment(db, id);
   }
 
-  async getPaymentsForMonth(yearMonth: string): Promise<CommitmentPayment[]> {
+  async getPaymentsForMonth(yearMonth: string, today: string): Promise<CommitmentPayment[]> {
     const db = await getDb();
-    return getPaymentsByMonth(db, yearMonth);
+    return getPaymentsByMonth(db, yearMonth, carriedDueBound(yearMonth, today));
   }
 
-  async getMonthSnapshot(yearMonth: string): Promise<CommitmentMonthSnapshot> {
+  async getMonthSnapshot(yearMonth: string, today: string): Promise<CommitmentMonthSnapshot> {
     const db = await getDb();
-    const commitments = await getCommitmentsForMonthSnapshot(db, yearMonth);
-    const payments = await getPaymentsByMonth(db, yearMonth);
-    return { loadedMonth: yearMonth, commitments, payments };
+    const carriedBefore = carriedDueBound(yearMonth, today);
+    const commitments = await getCommitmentsForMonthSnapshot(db, yearMonth, carriedBefore);
+    const payments = await getPaymentsByMonth(db, yearMonth, carriedBefore);
+    return { loadedMonth: yearMonth, today, commitments, payments };
   }
 
   async runHousekeeping(now: Date): Promise<void> {
@@ -254,12 +257,9 @@ export class CommitmentRepository implements ICommitmentRepository {
     return amounts;
   }
 
-  async markAsSkipped(paymentId: string): Promise<void> {
+  async markAsSkipped(paymentId: string, skippedDate: string, updatedAt: string): Promise<void> {
     const db = await getDb();
-    const now = new Date().toISOString();
-    await updatePaymentStatus(db, paymentId, CommitmentPaymentStatus.Skipped, {
-      skipped_date: now,
-    });
+    await updatePaymentSkipped(db, paymentId, skippedDate, updatedAt);
   }
 }
 

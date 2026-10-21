@@ -2,7 +2,7 @@ import { router, useLocalSearchParams, usePathname } from 'expo-router';
 import { useCallback, useEffect, useId, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
-import { CommitmentPaymentStatus, DurationType } from '@/constants/enums';
+import { DurationType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
@@ -10,6 +10,7 @@ import { buildRecurrenceLabel } from '@/modules/commitments/utils/recurrence_lab
 import { commitmentEditRoute, stackedPrefixOf } from '@/modules/navigation/domain/stacked_route';
 import { formatLongDate } from '@/utils/format_date';
 
+import { isUnpaidPayment } from '../../../domain/payment_state';
 import type { Commitment } from '../../../entities/commitment.entity';
 import type { CommitmentPayment } from '../../../entities/commitment_payment.entity';
 import { commitmentRepository } from '../../../repositories/commitment.repository';
@@ -34,18 +35,9 @@ function buildDurationLabel(commitment: Commitment): string {
   }
 }
 
-const STATUS_PRIORITY: CommitmentPaymentStatus[] = [
-  CommitmentPaymentStatus.Overdue,
-  CommitmentPaymentStatus.Due,
-  CommitmentPaymentStatus.Upcoming,
-];
-
+// Rows arrive in due-date order, so the first unpaid one is the earliest open cycle.
 function findCurrentPayment(payments: CommitmentPayment[]): CommitmentPayment | undefined {
-  for (const status of STATUS_PRIORITY) {
-    const found = payments.find((p) => p.status === status);
-    if (found) return found;
-  }
-  return undefined;
+  return payments.find(isUnpaidPayment);
 }
 
 export function useCommitmentDetail() {
@@ -61,10 +53,11 @@ export function useCommitmentDetail() {
   }>();
   const stackedPrefix = stackedPrefixOf(usePathname());
 
-  const { payments, commitments } = useCommitmentStore(
+  const { payments, commitments, today } = useCommitmentStore(
     useShallow((s) => ({
       payments: s.payments,
       commitments: s.commitments,
+      today: s.today,
     })),
   );
   const storeSkipPayment = useCommitmentStore.getState().skipPayment;
@@ -211,6 +204,7 @@ export function useCommitmentDetail() {
       category,
       account,
       currentPayment,
+      today,
       recurrenceLabel,
       durationLabel,
       skipConfirmVisible,

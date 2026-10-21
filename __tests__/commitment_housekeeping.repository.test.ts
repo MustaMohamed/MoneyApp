@@ -148,9 +148,9 @@ function insertPayment(row: CommitmentPayment) {
     .prepare(
       `INSERT INTO commitment_payments
         (id, commitment_id, due_date, paid_date, skipped_date, amount_due, amount_paid,
-         currency, exchange_rate_snapshot, account_id, transaction_id, status, notes,
+         currency, exchange_rate_snapshot, account_id, transaction_id, notes,
          created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .run(
       row.id,
@@ -164,7 +164,6 @@ function insertPayment(row: CommitmentPayment) {
       row.exchange_rate_snapshot,
       row.account_id,
       row.transaction_id,
-      row.status,
       row.notes,
       row.created_at,
       row.updated_at,
@@ -189,7 +188,6 @@ function payment(
     exchange_rate_snapshot: null,
     account_id: 'account',
     transaction_id: null,
-    status,
     notes: null,
     created_at: NOW_ISO,
     updated_at: NOW_ISO,
@@ -273,7 +271,7 @@ describe('CommitmentRepository.runHousekeeping', () => {
     await repository.runHousekeeping(NOW);
     const firstPass = realDb
       .prepare(
-        `SELECT commitment_id, due_date, amount_due, account_id, status, created_at, updated_at
+        `SELECT commitment_id, due_date, amount_due, account_id, created_at, updated_at
            FROM commitment_payments
           ORDER BY commitment_id`,
       )
@@ -287,7 +285,6 @@ describe('CommitmentRepository.runHousekeeping', () => {
         due_date: '2026-05-08',
         amount_due: 200,
         account_id: 'account',
-        status: CommitmentPaymentStatus.Due,
         created_at: NOW_ISO,
         updated_at: NOW_ISO,
       },
@@ -296,7 +293,6 @@ describe('CommitmentRepository.runHousekeeping', () => {
         due_date: '2026-05-07',
         amount_due: 200,
         account_id: 'account',
-        status: CommitmentPaymentStatus.Overdue,
         created_at: NOW_ISO,
         updated_at: NOW_ISO,
       },
@@ -305,7 +301,6 @@ describe('CommitmentRepository.runHousekeeping', () => {
         due_date: '2026-05-09',
         amount_due: null,
         account_id: null,
-        status: CommitmentPaymentStatus.Upcoming,
         created_at: NOW_ISO,
         updated_at: NOW_ISO,
       },
@@ -362,7 +357,7 @@ describe('CommitmentRepository.runHousekeeping', () => {
 });
 
 describe('CommitmentRepository.getMonthSnapshot', () => {
-  it('returns one exact-month coherent snapshot from one DB handle', async () => {
+  it('returns one coherent snapshot with today and the unpaid row carried from April', async () => {
     insertCommitments([commitment('monthly', { duration_type: DurationType.Forever })]);
     insertPayment(payment('april', 'monthly', '2026-04-30'));
     insertPayment(payment('may-paid', 'monthly', '2026-05-02', CommitmentPaymentStatus.Paid));
@@ -370,14 +365,13 @@ describe('CommitmentRepository.getMonthSnapshot', () => {
     insertPayment(payment('june', 'monthly', '2026-06-01'));
     const repository = new CommitmentRepository();
 
-    const snapshot = await repository.getMonthSnapshot('2026-05');
+    const snapshot = await repository.getMonthSnapshot('2026-05', '2026-05-08');
 
     expect(snapshot.loadedMonth).toBe('2026-05');
+    expect(snapshot.today).toBe('2026-05-08');
     expect(snapshot.commitments.map((row) => row.id)).toEqual(['monthly']);
-    expect(snapshot.payments.map((row) => row.id)).toEqual(['may-paid', 'may-upcoming']);
-    expect(
-      snapshot.payments.filter((row) => row.status === CommitmentPaymentStatus.Paid),
-    ).toHaveLength(1);
+    expect(snapshot.payments.map((row) => row.id)).toEqual(['april', 'may-paid', 'may-upcoming']);
+    expect(snapshot.payments.filter((row) => row.paid_date !== null)).toHaveLength(1);
     expect(snapshot.commitments.reduce((total, row) => total + (row.amount ?? 0), 0)).toBe(200);
     expect(getDb).toHaveBeenCalledTimes(1);
   });

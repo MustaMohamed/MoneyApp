@@ -3,6 +3,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import { AmountType, Currency, DurationType, RecurrencePeriod } from '@/constants/enums';
 
 import type { Commitment } from '../entities/commitment.entity';
+import { paidPaymentSql, unpaidPaymentSql } from './payment_state_sql';
 
 export async function getCommitments(db: SQLiteDatabase): Promise<Commitment[]> {
   return db.getAllAsync<Commitment>(
@@ -13,6 +14,7 @@ export async function getCommitments(db: SQLiteDatabase): Promise<Commitment[]> 
 export async function getCommitmentsForMonthSnapshot(
   db: SQLiteDatabase,
   yearMonth: string,
+  carriedBefore: string,
 ): Promise<Commitment[]> {
   const monthStart = `${yearMonth}-01`;
   const [year, month] = yearMonth.split('-').map(Number);
@@ -28,11 +30,13 @@ export async function getCommitmentsForMonthSnapshot(
               SELECT 1
                 FROM commitment_payments payment INDEXED BY idx_cp_commitment_id
                WHERE payment.commitment_id = commitment.id
-                 AND payment.due_date >= ?
-                 AND payment.due_date < ?
+                 AND (
+                       (payment.due_date >= ? AND payment.due_date < ?)
+                       OR (payment.due_date < ? AND ${unpaidPaymentSql('payment')})
+                     )
             )
       ORDER BY commitment.created_at DESC`,
-    [monthStart, nextMonthStart],
+    [monthStart, nextMonthStart, carriedBefore],
   );
 }
 
@@ -155,7 +159,7 @@ export async function getActiveCommitmentsByAccount(
             (SELECT MIN(p.due_date)
                FROM commitment_payments p INDEXED BY idx_cp_commitment_id
               WHERE p.commitment_id = c.id
-                AND p.status IN ('upcoming', 'due', 'overdue')) AS next_due_date
+                AND ${unpaidPaymentSql('p')}) AS next_due_date
        FROM commitments c
       WHERE c.account_id = ? AND c.is_active = 1
       ORDER BY c.name COLLATE NOCASE, c.id`,
@@ -186,7 +190,7 @@ export async function deactivateExpiredCommitments(
             AND (SELECT COUNT(*)
                    FROM commitment_payments INDEXED BY idx_cp_commitment_id
                   WHERE commitment_id = commitments.id
-                    AND status = 'paid') >= end_after_count)
+                    AND ${paidPaymentSql()}) >= end_after_count)
         )`,
     [updatedAt, asOfDate],
   );

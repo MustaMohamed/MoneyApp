@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react-native';
 
-import { AccountType, CommitmentPaymentStatus, Currency } from '@/constants/enums';
+import { AccountType, Currency } from '@/constants/enums';
 import type { DashboardNetWorth } from '@/modules/accounts/domain/account_aggregation';
 import { useBaseCurrencyStore } from '@/modules/currency/store/base_currency.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
@@ -160,12 +160,12 @@ function populatedSnapshot(): DashboardSnapshot {
         exchange_rate_snapshot: null,
         account_id: 'usd-bank',
         transaction_id: null,
-        status: CommitmentPaymentStatus.Paid,
         notes: null,
         created_at: '2026-01-01T00:00:00.000Z',
         updated_at: '2026-07-09T00:00:00.000Z',
       },
     ],
+    today: '2026-07-23',
     loadedAt: new Date('2026-07-23T10:00:00.000Z').getTime(),
   };
 }
@@ -444,6 +444,50 @@ describe('useDashboard', () => {
     });
     expect(result.current.state.accounts).toEqual([]);
     expect(result.current.state.transactions.previous).toBeNull();
+  });
+
+  it('counts a carried overdue row against the snapshot month and today, and zero without a snapshot', async () => {
+    const current = populatedSnapshot();
+    dashboardStoreState.snapshot = {
+      ...current,
+      commitmentPayments: [
+        {
+          ...current.commitmentPayments[0],
+          id: 'carried',
+          due_date: '2026-06-28',
+          paid_date: null,
+          amount_paid: null,
+        },
+        ...current.commitmentPayments,
+      ],
+    };
+    const { result, rerender } = await renderHook(() => useDashboard());
+
+    expect(result.current.state.commitments.counts).toEqual({
+      paid: 1,
+      overdue: 1,
+      due: 0,
+      upcoming: 0,
+      skipped: 0,
+      total: 1,
+    });
+    expect(result.current.state.commitments.totalsByCurrency).toEqual(
+      new Map([[Currency.EGP, 90]]),
+    );
+
+    dashboardStoreState.snapshot = undefined;
+    dashboardStoreState.status = 'initialLoading';
+    await rerender({});
+
+    expect(result.current.state.commitments.counts).toEqual({
+      paid: 0,
+      overdue: 0,
+      due: 0,
+      upcoming: 0,
+      skipped: 0,
+      total: 0,
+    });
+    expect(result.current.state.commitments.totalsByCurrency.size).toBe(0);
   });
 
   it('projects non-interactive overview state while a matching snapshot is unavailable', async () => {

@@ -5,18 +5,21 @@ import { STATUS_COLORS, STATUS_LABELS } from '@/modules/commitments/utils/commit
 import { formatCurrencyAmount } from '@/utils/format_amount';
 import { formatMonthYear } from '@/utils/format_date';
 
+import { resolvePaymentState } from '../../../../domain/payment_state';
 import type { Commitment } from '../../../../entities/commitment.entity';
 import type { CommitmentPayment } from '../../../../entities/commitment_payment.entity';
 
 interface Props {
   payment: CommitmentPayment;
+  today: string;
   commitment: Commitment;
   showDivider?: boolean;
 }
 
-export function PaymentRow({ payment, commitment, showDivider = true }: Props) {
-  const statusColor = STATUS_COLORS[payment.status];
-  const statusLabel = STATUS_LABELS[payment.status];
+export function PaymentRow({ payment, today, commitment, showDivider = true }: Props) {
+  const paymentState = resolvePaymentState(payment, today);
+  const statusColor = STATUS_COLORS[paymentState];
+  const statusLabel = STATUS_LABELS[paymentState];
   const displayAmount = payment.amount_paid ?? payment.amount_due ?? commitment.amount;
   const amountText =
     displayAmount != null ? formatCurrencyAmount(displayAmount, payment.currency) : '—';

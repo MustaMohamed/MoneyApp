@@ -3,7 +3,7 @@ export {
   getPaymentsByCommitment,
   getPaymentById,
   addPayments,
-  updatePaymentStatus,
+  updatePaymentSkipped,
   deleteUnpaidPaymentsByCommitment,
   getLastPaidPayment,
   getPaidCountByCommitment,

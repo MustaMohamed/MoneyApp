@@ -19,6 +19,7 @@ import { migration018 } from './018_add_transaction_revolving_delta';
 import { migration019 } from './019_add_account_is_deleted';
 import { migration020 } from './020_trim_category_and_commitment_names';
 import { migration021 } from './021_recolour_category_palette';
+import { migration022 } from './022_drop_payment_status';
 
 export interface Migration {
   version: number;
@@ -47,4 +48,5 @@ export const MIGRATIONS: Migration[] = [
   migration019,
   migration020,
   migration021,
+  migration022,
 ];

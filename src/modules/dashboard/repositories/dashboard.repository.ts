@@ -4,6 +4,7 @@ import { getAccounts } from '@/modules/accounts/database/accounts';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { BudgetDashboardSummaryVM } from '@/modules/budget/utils/budget_summary';
 import { getPaymentsByMonth } from '@/modules/commitments/database/commitment_payments';
+import { carriedDueBound } from '@/modules/commitments/domain/payment_state';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import {
   getDashboardBudgetLimitRows,
@@ -15,6 +16,7 @@ import {
   reduceDashboardTransactionFacts,
   type DashboardMonthFacts,
 } from '@/modules/dashboard/screens/dashboard/dashboard.helpers';
+import { toLocalDateString } from '@/utils/format_date';
 
 export type { DashboardMonthFacts };
 
@@ -22,6 +24,7 @@ export interface DashboardSnapshot {
   key: string;
   yearMonth: string;
   previousYearMonth: string;
+  today: string;
   accounts: Account[];
   statsMap: Record<string, AccountStats>;
   currentMonth: DashboardMonthFacts;
@@ -52,12 +55,13 @@ export class DashboardRepository implements IDashboardRepository {
   async getSnapshot({ yearMonth, now }: DashboardLoadInput): Promise<DashboardSnapshot> {
     const db = await getDb();
     const window = resolveDashboardMonthWindow(yearMonth);
+    const today = toLocalDateString(now);
     const accounts = await getAccounts(db);
 
     const [transactionRows, budgetLimits, commitmentPayments, statsMap] = await Promise.all([
       getDashboardTransactionFactRows(db, window),
       getDashboardBudgetLimitRows(db, yearMonth),
-      getPaymentsByMonth(db, yearMonth),
+      getPaymentsByMonth(db, yearMonth, carriedDueBound(yearMonth, today)),
       getAccountsStats(
         db,
         accounts.map((account) => account.id),
@@ -74,6 +78,7 @@ export class DashboardRepository implements IDashboardRepository {
       key: yearMonth,
       yearMonth,
       previousYearMonth: window.previousYearMonth,
+      today,
       accounts,
       statsMap,
       currentMonth: facts.currentMonth,

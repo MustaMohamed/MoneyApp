@@ -1,7 +1,6 @@
 import {
   AmountType,
   AccountType,
-  CommitmentPaymentStatus,
   Currency,
   DurationType,
   RecurrencePeriod,
@@ -22,7 +21,7 @@ import {
   getPaymentsByCommitment,
   getPaymentsByMonth,
   markCommitmentAsPaid,
-  updatePaymentStatus,
+  updatePaymentSkipped,
 } from '@/modules/commitments/database/commitment_payments';
 import {
   addCommitment,
@@ -75,7 +74,6 @@ beforeEach(() => {
   (insertPaymentRows as jest.Mock).mockResolvedValue(undefined);
   (deleteUnpaidPaymentsByCommitment as jest.Mock).mockResolvedValue(undefined);
   (markCommitmentAsPaid as jest.Mock).mockResolvedValue(undefined);
-  (updatePaymentStatus as jest.Mock).mockResolvedValue(undefined);
   (getAccountByIdIncludingArchived as jest.Mock).mockResolvedValue(baseAccount);
 });
 
@@ -151,7 +149,6 @@ const basePayment: CommitmentPayment = {
   exchange_rate_snapshot: null,
   account_id: null,
   transaction_id: null,
-  status: CommitmentPaymentStatus.Due,
   notes: null,
   created_at: '2026-01-01T00:00:00.000Z',
   updated_at: '2026-01-01T00:00:00.000Z',
@@ -264,9 +261,9 @@ describe('CommitmentRepository.getPaymentsForMonth', () => {
     const expected = [basePayment];
     (getPaymentsByMonth as jest.Mock).mockResolvedValue(expected);
 
-    const result = await repo.getPaymentsForMonth('2026-05');
+    const result = await repo.getPaymentsForMonth('2026-05', '2026-05-08');
 
-    expect(getPaymentsByMonth).toHaveBeenCalledWith(mockDb, '2026-05');
+    expect(getPaymentsByMonth).toHaveBeenCalledWith(mockDb, '2026-05', '2026-05-01');
     expect(result).toBe(expected);
   });
 });
@@ -276,22 +273,25 @@ describe('CommitmentRepository.getMonthSnapshot', () => {
     (getCommitmentsForMonthSnapshot as jest.Mock).mockResolvedValue([baseCommitment]);
     (getPaymentsByMonth as jest.Mock).mockResolvedValue([basePayment]);
 
-    await expect(repo.getMonthSnapshot('2026-05')).resolves.toEqual({
+    await expect(repo.getMonthSnapshot('2026-05', '2026-05-08')).resolves.toEqual({
       loadedMonth: '2026-05',
+      today: '2026-05-08',
       commitments: [baseCommitment],
       payments: [basePayment],
     });
 
     expect(getDb).toHaveBeenCalledTimes(1);
-    expect(getCommitmentsForMonthSnapshot).toHaveBeenCalledWith(mockDb, '2026-05');
-    expect(getPaymentsByMonth).toHaveBeenCalledWith(mockDb, '2026-05');
+    expect(getCommitmentsForMonthSnapshot).toHaveBeenCalledWith(mockDb, '2026-05', '2026-05-01');
+    expect(getPaymentsByMonth).toHaveBeenCalledWith(mockDb, '2026-05', '2026-05-01');
   });
 
   it('does not publish a partial result when the second read fails', async () => {
     (getCommitments as jest.Mock).mockResolvedValue([baseCommitment]);
     (getPaymentsByMonth as jest.Mock).mockRejectedValue(new Error('payment read failed'));
 
-    await expect(repo.getMonthSnapshot('2026-05')).rejects.toThrow('payment read failed');
+    await expect(repo.getMonthSnapshot('2026-05', '2026-05-08')).rejects.toThrow(
+      'payment read failed',
+    );
   });
 });
 
@@ -316,7 +316,6 @@ describe('CommitmentRepository.runHousekeeping', () => {
         id: 'test-uuid-1234',
         commitment_id: 'c-1',
         due_date: '2026-05-08',
-        status: CommitmentPaymentStatus.Due,
         created_at: '2026-05-08T10:11:12.000Z',
         updated_at: '2026-05-08T10:11:12.000Z',
       }),
@@ -359,7 +358,7 @@ describe('CommitmentRepository.getPaymentById', () => {
 
 describe('CommitmentRepository.getLastPaidPayment', () => {
   it('calls getLastPaidPayment with db and commitmentId', async () => {
-    const paidPayment = { ...basePayment, status: CommitmentPaymentStatus.Paid };
+    const paidPayment = { ...basePayment, paid_date: '2026-05-01' };
     (getLastPaidPayment as jest.Mock).mockResolvedValue(paidPayment);
 
     const result = await repo.getLastPaidPayment('c-1');
@@ -528,15 +527,15 @@ describe('CommitmentRepository.markAsPaid', () => {
 });
 
 describe('CommitmentRepository.markAsSkipped', () => {
-  it('calls updatePaymentStatus with skipped status and skipped_date', async () => {
-    await repo.markAsSkipped('p-1');
+  it('stores the skipped date it is given through updatePaymentSkipped', async () => {
+    await repo.markAsSkipped('p-1', '2026-10-21', '2026-10-21T08:00:00.000Z');
 
-    expect(updatePaymentStatus).toHaveBeenCalledTimes(1);
-    const [calledDb, calledId, calledStatus, calledFields] = (updatePaymentStatus as jest.Mock).mock
-      .calls[0];
-    expect(calledDb).toBe(mockDb);
-    expect(calledId).toBe('p-1');
-    expect(calledStatus).toBe(CommitmentPaymentStatus.Skipped);
-    expect(calledFields.skipped_date).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
+    expect(updatePaymentSkipped).toHaveBeenCalledTimes(1);
+    expect(updatePaymentSkipped).toHaveBeenCalledWith(
+      mockDb,
+      'p-1',
+      '2026-10-21',
+      '2026-10-21T08:00:00.000Z',
+    );
   });
 });

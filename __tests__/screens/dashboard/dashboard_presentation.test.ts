@@ -47,6 +47,7 @@ function snapshot(accountCount: number): DashboardSnapshot {
       categoryCount: 0,
     },
     commitmentPayments: [],
+    today: '2026-07-23',
     loadedAt: new Date('2026-07-23T10:00:00.000Z').getTime(),
   };
 }

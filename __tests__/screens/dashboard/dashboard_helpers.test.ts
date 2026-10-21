@@ -1,4 +1,4 @@
-import { AccountType, CommitmentPaymentStatus, Currency } from '@/constants/enums';
+import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
 import {
@@ -6,12 +6,12 @@ import {
   type DashboardNetWorth,
 } from '@/modules/accounts/domain/account_aggregation';
 import { budgetBandColor } from '@/modules/budget/utils/budget_summary';
+import { summarizeMonthPayments } from '@/modules/commitments/domain/payment_summary';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import { shouldShowProportionBar } from '@/modules/dashboard/screens/dashboard/components/net_worth_breakdown_sheet.helpers';
 import {
   buildDashboardBudgetSummary,
   computeDashboardAccountCounts,
-  computeDashboardCommitmentSummary,
   computeDashboardSpendDeltaPct,
   computeLiabilitiesBreakdown,
   computeLiquidityBreakdown,
@@ -57,7 +57,6 @@ const makePayment = (overrides: Partial<CommitmentPayment> = {}): CommitmentPaym
   exchange_rate_snapshot: null,
   account_id: null,
   transaction_id: null,
-  status: CommitmentPaymentStatus.Upcoming,
   notes: null,
   created_at: '2026-01-01T00:00:00.000Z',
   updated_at: '2026-01-01T00:00:00.000Z',
@@ -1411,34 +1410,44 @@ describe('computeDashboardSpendDeltaPct', () => {
   });
 });
 
-describe('computeDashboardCommitmentSummary', () => {
-  it('counts statuses and totals non-skipped amounts by native currency', () => {
-    const summary = computeDashboardCommitmentSummary([
-      makePayment({
-        id: 'paid',
-        status: CommitmentPaymentStatus.Paid,
-        amount_due: 100,
-        amount_paid: 90,
-      }),
-      makePayment({
-        id: 'paid-fallback',
-        status: CommitmentPaymentStatus.Paid,
-        amount_due: 70,
-      }),
-      makePayment({
-        id: 'overdue-usd',
-        status: CommitmentPaymentStatus.Overdue,
-        currency: Currency.USD,
-        amount_due: 20,
-      }),
-      makePayment({ id: 'due', status: CommitmentPaymentStatus.Due, amount_due: 40 }),
-      makePayment({ id: 'upcoming', amount_due: null }),
-      makePayment({
-        id: 'skipped',
-        status: CommitmentPaymentStatus.Skipped,
-        amount_due: 500,
-      }),
-    ]);
+describe('summarizeMonthPayments', () => {
+  const MONTH = '2026-05';
+  const TODAY = '2026-05-08';
+
+  it('counts states from the dates and totals non-skipped amounts by native currency', () => {
+    const summary = summarizeMonthPayments(
+      [
+        makePayment({
+          id: 'paid',
+          due_date: '2026-05-01',
+          paid_date: '2026-05-01',
+          amount_due: 100,
+          amount_paid: 90,
+        }),
+        makePayment({
+          id: 'paid-fallback',
+          due_date: '2026-05-02',
+          paid_date: '2026-05-03',
+          amount_due: 70,
+        }),
+        makePayment({
+          id: 'overdue-usd',
+          due_date: '2026-05-06',
+          currency: Currency.USD,
+          amount_due: 20,
+        }),
+        makePayment({ id: 'due', due_date: TODAY, amount_due: 40 }),
+        makePayment({ id: 'upcoming', due_date: '2026-05-31', amount_due: null }),
+        makePayment({
+          id: 'skipped',
+          due_date: '2026-05-04',
+          skipped_date: '2026-05-04',
+          amount_due: 500,
+        }),
+      ],
+      MONTH,
+      TODAY,
+    );
 
     expect(summary.counts).toEqual({
       paid: 2,
@@ -1456,12 +1465,54 @@ describe('computeDashboardCommitmentSummary', () => {
     );
   });
 
+  it('counts an unpaid row due the day before today in overdue and in the total', () => {
+    const summary = summarizeMonthPayments(
+      [makePayment({ id: 'yesterday', due_date: '2026-05-07', amount_due: 40 })],
+      MONTH,
+      TODAY,
+    );
+
+    expect(summary.counts).toEqual({
+      paid: 0,
+      overdue: 1,
+      due: 0,
+      upcoming: 0,
+      skipped: 0,
+      total: 1,
+    });
+  });
+
+  it('counts a row carried from the month before in overdue, never in the total or the amounts', () => {
+    const summary = summarizeMonthPayments(
+      [
+        makePayment({ id: 'carried', due_date: '2026-04-30', amount_due: 300 }),
+        makePayment({ id: 'in-month', due_date: '2026-05-20', amount_due: 40 }),
+      ],
+      MONTH,
+      TODAY,
+    );
+
+    expect(summary.counts).toEqual({
+      paid: 0,
+      overdue: 1,
+      due: 0,
+      upcoming: 1,
+      skipped: 0,
+      total: 1,
+    });
+    expect(summary.totalsByCurrency).toEqual(new Map([[Currency.EGP, 40]]));
+  });
+
   it('and therefore renders "749 EGP" for the header total — three 249.50 commitments summing to 748.5', () => {
-    const summary = computeDashboardCommitmentSummary([
-      makePayment({ id: 'a', status: CommitmentPaymentStatus.Due, amount_due: 249.5 }),
-      makePayment({ id: 'b', status: CommitmentPaymentStatus.Due, amount_due: 249.5 }),
-      makePayment({ id: 'c', status: CommitmentPaymentStatus.Due, amount_due: 249.5 }),
-    ]);
+    const summary = summarizeMonthPayments(
+      [
+        makePayment({ id: 'a', due_date: '2026-05-10', amount_due: 249.5 }),
+        makePayment({ id: 'b', due_date: '2026-05-11', amount_due: 249.5 }),
+        makePayment({ id: 'c', due_date: '2026-05-12', amount_due: 249.5 }),
+      ],
+      MONTH,
+      TODAY,
+    );
     const total = summary.totalsByCurrency.get(Currency.EGP);
     expect(total).toBe(748.5);
     expect(formatCurrencyAmount(total ?? 0, Currency.EGP)).toBe('749 EGP');
