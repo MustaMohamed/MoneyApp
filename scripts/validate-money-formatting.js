@@ -51,6 +51,7 @@ const HAND_JOIN = /\} \$\{[^}]*(?:code|Code|urrency)[^}]*\}/g;
 // Ascending by path; `name` narrows an entry as it does in `OWNED_SIGN_ALLOWLIST`.
 const HAND_JOIN_ALLOWLIST = [
   { path: 'src/constants/strings.ts', name: 'n4CaptionConverted' },
+  { path: 'src/modules/transactions/utils/amount_range_filter.ts' },
   { path: 'src/utils/format_amount.ts' },
 ];
 

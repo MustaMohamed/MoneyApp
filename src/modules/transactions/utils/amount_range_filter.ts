@@ -1,7 +1,7 @@
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { MONEY_ROUNDING_DECIMALS, formatAmount } from '@/utils/format_amount';
+import { MONEY_ROUNDING_DECIMALS, formatAmount, formatCurrencyAmount } from '@/utils/format_amount';
 import { parseDecimalText } from '@/utils/parse_decimal';
 
 export interface AmountRangeBounds {
@@ -70,14 +70,16 @@ export function formatAmountSummary(bounds: AmountRangeBounds): string {
       value,
       Number.isInteger(value) ? CURRENCY_CONFIG[cur].decimals : MONEY_ROUNDING_DECIMALS,
     );
+  const boundWithCode = (value: number) =>
+    formatCurrencyAmount(value, cur, Number.isInteger(value) ? undefined : MONEY_ROUNDING_DECIMALS);
   if (amountMin === undefined) {
     return amountMax === undefined
       ? Strings.filterSummaryAmountEmpty
-      : `${Strings.filterSummaryAmountUpTo} ${bound(amountMax)} ${cur}`;
+      : `${Strings.filterSummaryAmountUpTo} ${boundWithCode(amountMax)}`;
   }
   if (amountMax === undefined)
-    return `${Strings.filterSummaryAmountFrom} ${bound(amountMin)} ${cur}`;
-  return `${bound(amountMin)}–${bound(amountMax)} ${cur}`;
+    return `${Strings.filterSummaryAmountFrom} ${boundWithCode(amountMin)}`;
+  return `${bound(amountMin)}–${boundWithCode(amountMax)}`;
 }
 
 export interface AmountRangeDraft {
