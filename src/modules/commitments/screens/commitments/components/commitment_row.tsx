@@ -3,34 +3,38 @@ import { PressableFeedback } from 'heroui-native';
 import React, { useCallback, useMemo } from 'react';
 import { View, useWindowDimensions } from 'react-native';
 
-import { Box } from '@/components/ui/box';
+import { AccountColorTile } from '@/components/ui/account_color_tile';
+import { StatusBadge } from '@/components/ui/status_badge';
 import { SwipeableRow, type SwipeAction } from '@/components/ui/swipeable_row';
 import { Text } from '@/components/ui/text';
-import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
+import { resolveFitAmountTextProps, scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Strings } from '@/constants/strings';
-import { Type, withAlpha } from '@/constants/theme';
-import { CoreTokens } from '@/constants/theme_tokens';
-import type { Category } from '@/database/entities/category.entity';
-import {
-  STATUS_COLORS,
-  STATUS_ICONS,
-  STATUS_LABELS,
-  formatCommitmentAmount,
-  resolveDisplayAmount,
-} from '@/modules/commitments/utils/commitment_status';
-import { formatShortDate } from '@/utils/format_date';
-import { toIconName } from '@/utils/icon_name_guard';
+import { Size } from '@/constants/theme';
+import type { Account } from '@/modules/accounts/entities/account.entity';
+import type { Category } from '@/modules/categories/entities/category.entity';
+import { resolveTransactionRowValueTrackMaxWidth } from '@/modules/transactions/components/transaction_row.helpers';
+import { ms } from '@/utils/responsive';
 import { useDragCancelledPress } from '@/utils/use_drag_cancelled_press.hook';
 
-import { resolvePaymentState } from '../../../domain/payment_state';
 import type { Commitment } from '../../../entities/commitment.entity';
 import type { CommitmentPayment } from '../../../entities/commitment_payment.entity';
+import {
+  COMMITMENT_ROW_AMOUNT_FONT_SIZE,
+  COMMITMENT_ROW_CAPTION_FONT_SIZE,
+  COMMITMENT_ROW_CODE_FONT_SIZE,
+  COMMITMENT_ROW_LINE_GAP,
+  COMMITMENT_ROW_TITLE_FONT_SIZE,
+  buildCommitmentRowPresentation,
+  resolveCommitmentRowHeight,
+} from './commitment_row.helpers';
 
 interface CommitmentRowProps {
   payment: CommitmentPayment;
   today: string;
   commitment: Commitment | undefined;
   category: Category | undefined;
+  /** The row's account, from `resolveCommitmentRowAccountId`; `undefined` when unresolved or absent. */
+  account: Account | undefined;
   onPress: (paymentId: string) => void;
   onSkip: (paymentId: string) => void;
   onEdit: (commitmentId: string | undefined) => void;
@@ -42,20 +46,18 @@ function CommitmentRowComponent({
   today,
   commitment,
   category,
+  account,
   onPress,
   onSkip,
   onEdit,
   onDelete,
 }: CommitmentRowProps) {
-  const paymentState = resolvePaymentState(payment, today);
-  const statusColor = STATUS_COLORS[paymentState];
-  const statusLabel = STATUS_LABELS[paymentState];
-  const { showTilde } = resolveDisplayAmount(payment, commitment);
-  const amountText =
-    formatCommitmentAmount(payment, commitment) ?? `${showTilde ? '~' : ''}— ${payment.currency}`;
-  const iconBg = category?.color ? withAlpha(category.color, '2E') : CoreTokens.surfaceEl;
+  const row = useMemo(
+    () => buildCommitmentRowPresentation({ payment, commitment, category, account, today }),
+    [account, category, commitment, payment, today],
+  );
   const { fontScale } = useWindowDimensions();
-  const primaryText = scaledTextStyle(Type.bodyStrong, fontScale);
+  const amountProps = resolveFitAmountTextProps(COMMITMENT_ROW_AMOUNT_FONT_SIZE, fontScale);
 
   const handlePress = useCallback(() => onPress(payment.id), [onPress, payment.id]);
   const handleSkip = useCallback(() => onSkip(payment.id), [onSkip, payment.id]);
@@ -94,71 +96,93 @@ function CommitmentRowComponent({
       rowId={payment.id}
       actions={actions}
       disabled={commitment === undefined}
-      accessibilityLabel={`${commitment?.name ?? ''}, ${amountText}, ${statusLabel}`}
+      accessibilityLabel={row.accessibilityLabel}
     >
       <PressableFeedback
         {...press}
         accessibilityRole="button"
-        accessibilityLabel={`${commitment?.name ?? ''}, ${amountText}, ${statusLabel}`}
-        style={{ flexDirection: 'row', alignItems: 'center' }}
-        className="border-separator min-h-[48px] gap-2 border-b px-4 py-2"
+        accessibilityLabel={row.accessibilityLabel}
       >
         <View
-          style={{ backgroundColor: iconBg, width: 36, height: 36 }}
-          className="items-center justify-center rounded-md"
+          testID="commitment-row"
+          style={{ height: resolveCommitmentRowHeight(fontScale), justifyContent: 'center' }}
+          className="border-separator border-b px-4"
         >
-          <MaterialCommunityIcons
-            name={toIconName(category?.icon, 'tag-outline')}
-            size={18}
-            color={category?.color ?? CoreTokens.text2}
-          />
-        </View>
-        <Box style={{ flex: 1 }}>
-          <Text
-            allowFontScaling={false}
-            className="font-inter-medium text-foreground"
-            style={primaryText}
-            numberOfLines={1}
-          >
-            {commitment?.name ?? '—'}
-          </Text>
-          <Text
-            allowFontScaling={false}
-            className="font-inter text-muted mt-0.5"
-            style={scaledTextStyle(Type.micro, fontScale)}
-            numberOfLines={1}
-          >
-            {formatShortDate(payment.due_date)}
-          </Text>
-        </Box>
-        <View style={{ alignItems: 'flex-end' }} className="gap-1">
-          <Text
-            allowFontScaling={false}
-            className="font-sora-bold text-foreground"
-            style={primaryText}
-          >
-            {amountText}
-          </Text>
-          <View
-            style={{
-              backgroundColor: withAlpha(statusColor, '22'),
-              flexDirection: 'row',
-              alignItems: 'center',
-            }}
-            className="gap-0.5 rounded-full px-1.5 py-0.5"
-          >
-            <MaterialCommunityIcons
-              name={STATUS_ICONS[paymentState]}
-              size={11}
-              color={statusColor}
-            />
-            <Text
-              allowFontScaling={false}
-              className="font-inter"
-              style={{ ...scaledTextStyle(Type.pillLabel, fontScale), color: statusColor }}
+          <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-3">
+            <View testID="commitment-row-tile">
+              <AccountColorTile
+                color={row.tile.color}
+                type={row.tile.type}
+                hollow={row.tile.hollow}
+                size={Size.accountTile}
+                glyphSize={Size.iconXs}
+              />
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-1.5">
+                <MaterialCommunityIcons
+                  name={row.glyphName}
+                  size={Size.rowGlyph}
+                  color={row.glyphColor}
+                />
+                <Text
+                  allowFontScaling={false}
+                  className="font-inter-medium text-foreground min-w-0 shrink"
+                  style={scaledTextStyle(COMMITMENT_ROW_TITLE_FONT_SIZE, fontScale)}
+                  numberOfLines={1}
+                >
+                  {row.name}
+                </Text>
+                <View style={{ marginLeft: ms(4) }}>
+                  <StatusBadge
+                    size="xs"
+                    fontScale={fontScale}
+                    label={row.statusLabel}
+                    icon={row.statusIcon}
+                    fill={row.statusFill}
+                    foreground={row.statusForeground}
+                  />
+                </View>
+              </View>
+              <Text
+                allowFontScaling={false}
+                className="font-inter text-content-secondary"
+                style={{
+                  ...scaledTextStyle(COMMITMENT_ROW_CAPTION_FONT_SIZE, fontScale),
+                  marginTop: COMMITMENT_ROW_LINE_GAP,
+                }}
+                numberOfLines={1}
+              >
+                {row.dueDay}
+              </Text>
+            </View>
+            {/* Two sibling texts, never nested: RN Android drops margins on inline text. */}
+            <View
+              testID="commitment-row-value-track"
+              style={{
+                flexShrink: 0,
+                flexDirection: 'row',
+                alignItems: 'baseline',
+                gap: ms(4),
+                maxWidth: resolveTransactionRowValueTrackMaxWidth(fontScale),
+              }}
             >
-              {statusLabel}
-            </Text>
+              <Text
+                {...amountProps}
+                className="font-sora text-foreground tabular-nums"
+                style={{ ...amountProps.style, flexShrink: 1 }}
+              >
+                {row.amountText}
+              </Text>
+              <Text
+                allowFontScaling={false}
+                className="font-inter text-content-secondary"
+                style={scaledTextStyle(COMMITMENT_ROW_CODE_FONT_SIZE, fontScale)}
+                numberOfLines={1}
+              >
+                {row.currencyCode}
+              </Text>
+            </View>
           </View>
         </View>
       </PressableFeedback>

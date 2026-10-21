@@ -14,15 +14,19 @@ export interface StatusBadgeProps {
   fill: string;
   foreground: string;
   icon?: IconName;
-  size?: 'sm' | 'md';
+  size?: 'xs' | 'sm' | 'md';
   /** Given, the label draws at this app scale on one line; omitted, the OS scales it. */
   fontScale?: number;
 }
 
 // Raw, never ms(): the detail hero's geometry adds it above and below the label.
 export const STATUS_BADGE_PADDING_VERTICAL = 2;
-const ICON_SIZE = { sm: 10, md: 12 } as const;
+// Raw, as above: A1 `.stag`, the commitment row's tag; its geometry adds it around the label.
+export const STATUS_BADGE_XS_PADDING_VERTICAL = 1;
+const XS_CHROME = { paddingLeft: 4, paddingRight: 6, gap: 3 } as const;
+const ICON_SIZE = { xs: 11, sm: 10, md: 12 } as const;
 const LABEL_STYLE = {
+  xs: { fontSize: Type.compactBadge, lineHeight: lineHeightFor(Type.compactBadge) },
   sm: { fontSize: Type.pillLabel, lineHeight: lineHeightFor(Type.pillLabel) },
   md: { fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) },
 } as const;
@@ -36,15 +40,17 @@ export function StatusBadge({
   fontScale,
 }: StatusBadgeProps) {
   const scaled = fontScale !== undefined;
+  const xs = size === 'xs';
   return (
     <View
       style={{
         backgroundColor: fill,
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: STATUS_BADGE_PADDING_VERTICAL,
+        paddingVertical: xs ? STATUS_BADGE_XS_PADDING_VERTICAL : STATUS_BADGE_PADDING_VERTICAL,
+        ...(xs ? XS_CHROME : undefined),
       }}
-      className="gap-0.5 rounded-full px-1.5"
+      className={xs ? 'rounded-full' : 'gap-0.5 rounded-full px-1.5'}
     >
       {icon != null ? (
         <MaterialCommunityIcons name={icon} size={ICON_SIZE[size]} color={foreground} />
@@ -52,7 +58,7 @@ export function StatusBadge({
       <Typography
         allowFontScaling={!scaled}
         numberOfLines={scaled ? 1 : undefined}
-        className="font-inter"
+        className={xs ? 'font-inter-bold' : 'font-inter'}
         style={{
           color: foreground,
           ...(scaled

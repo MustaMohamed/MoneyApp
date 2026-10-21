@@ -1179,6 +1179,8 @@ export const Strings = {
   commitmentsStatusUpcoming: 'Upcoming',
   commitmentsStatusPaid: 'Paid',
   commitmentsStatusSkipped: 'Skipped',
+  commitmentRowEstimate: (amount: string) => `~ ${amount}`,
+  commitmentRowNoEstimate: '~',
 
   // Commitments: recurrence / duration labels
   commitmentsRecurrenceEveryN: (n: number, period: string) =>

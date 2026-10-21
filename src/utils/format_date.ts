@@ -32,6 +32,14 @@ export function formatWeekdayDate(dateStr: string): string {
   return `${weekday} ${day} ${MONTHS_SHORT[month - 1]} ${y}`;
 }
 
+/** `Thu 1 Oct` in the year of `today`, a local `YYYY-MM-DD`; in another year, with its year. */
+export function formatShortWeekdayDate(dateStr: string, today: string): string {
+  const [y, month, day] = dateStr.split('-').map(Number);
+  if (y !== Number(today.slice(0, 4))) return formatWeekdayDate(dateStr);
+  const weekday = WEEKDAYS_SHORT[new Date(y, month - 1, day).getDay()];
+  return `${weekday} ${day} ${MONTHS_SHORT[month - 1]}`;
+}
+
 export function formatMonthYear(dateStr: string): string {
   const [y, month] = dateStr.split('-').map(Number);
   return `${MONTHS_LONG[month - 1]} ${y}`;

@@ -25,6 +25,7 @@ import { useCommitments } from './commitments.hook';
 import type { CommitmentStatusFilter } from './commitments.state';
 import { CommitmentDeleteConfirmSheet } from './components/commitment_delete_confirm_sheet';
 import { CommitmentRow } from './components/commitment_row';
+import { resolveCommitmentRowAccountId } from './components/commitment_row.helpers';
 import { CommitmentRowsSkeleton } from './components/commitment_rows_skeleton';
 import { CommitmentsEmptyState } from './components/empty_state';
 import { CommitmentSearchRow } from './components/search_row';
@@ -136,12 +137,14 @@ export default function CommitmentsScreen() {
       if (state.today === undefined) return null;
       const commitment = state.commitmentsById.get(item.commitment_id);
       const category = commitment ? state.categoriesById.get(commitment.category_id) : undefined;
+      const accountId = resolveCommitmentRowAccountId(item, commitment);
       return (
         <CommitmentRow
           payment={item}
           today={state.today}
           commitment={commitment}
           category={category}
+          account={accountId === undefined ? undefined : state.accountsById.get(accountId)}
           onPress={goToDetail}
           onSkip={requestSkip}
           onEdit={goToEdit}
@@ -154,6 +157,7 @@ export default function CommitmentsScreen() {
       goToEdit,
       requestCommitmentDelete,
       requestSkip,
+      state.accountsById,
       state.categoriesById,
       state.commitmentsById,
       state.today,
