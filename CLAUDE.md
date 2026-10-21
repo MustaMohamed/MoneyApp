@@ -2,7 +2,7 @@
 
 React Native (Expo) personal finance app: local-only, no bank connections.
 
-Path-scoped rules in `.claude/rules/` load with matching files: `database.md` (queries, migrations, repositories), `ui.md` (all `.tsx`, styling, HeroUI, sheets), `state.md` (stores, state, hooks), `money.md` (domain resolvers, rounding, formatting), `tests.md` (everything in `__tests__/`), `review.md` (the five recurring defect classes, all of `src/**`), `business.md` (business rules 1-8: onboarding, accounts, net worth). Project skills are in `.claude/skills/`; each one's description says when it applies.
+Path-scoped rules in `.claude/rules/` load with matching files: `database.md` (queries, migrations, repositories), `ui.md` (all `.tsx`, styling, HeroUI, sheets), `state.md` (stores, state, hooks), `money.md` (domain resolvers, rounding, formatting), `tests.md` (everything in `__tests__/`), `review.md` (the five recurring defect classes, all of `src/**`), `business.md` (business rules 1-9: onboarding, accounts, net worth). Project skills are in `.claude/skills/`; each one's description says when it applies.
 
 Rules and agent files cite audit findings by ID (`H11`, `M33`, `L2`, …). They resolve in [docs/superpowers/reviews/2026-07-29-full-technical-audit.md](docs/superpowers/reviews/2026-07-29-full-technical-audit.md); remediation is tracked in [docs/superpowers/plans/2026-07-30-audit-remediation-backlog.md](docs/superpowers/plans/2026-07-30-audit-remediation-backlog.md).
 
