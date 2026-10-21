@@ -258,7 +258,7 @@ const BANNED: BannedSeed[] = [
   },
   {
     guard: 'a filter module import in a filter component',
-    target: `${TRANSACTIONS}/filter/components/account_accordion.tsx`,
+    target: 'src/components/ui/filter_account_accordion.tsx',
     text: "import { seeded } from '../filter.helpers';",
     token: 'filter.helpers',
   },

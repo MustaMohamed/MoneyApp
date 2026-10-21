@@ -1,15 +1,17 @@
 import { fireEvent, render } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 
+import { FILTER_SHEET_ACTION_STYLE } from '@/components/ui/filter_sheet_frame';
 import { Strings } from '@/constants/strings';
-import {
-  COMMITMENT_FILTER_SHEET_ACTION_STYLE,
-  CommitmentFilterSheet,
-} from '@/modules/commitments/screens/commitments/filter';
+import { CommitmentFilterSheet } from '@/modules/commitments/screens/commitments/filter';
+
+type OptionLabelProps = { optionAccessibilityLabel: (name: string) => string };
 
 const mockResetDraft = jest.fn();
 const mockApplyDraft = jest.fn();
 const mockAmountAccordionProps = jest.fn();
+const mockAccountAccordionProps = jest.fn<void, [OptionLabelProps]>();
+const mockCategoryAccordionProps = jest.fn<void, [OptionLabelProps]>();
 let mockStateOverrides: Record<string, unknown> = {};
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
@@ -93,20 +95,22 @@ jest.mock('@/modules/commitments/screens/commitments/filter/filter.hook', () => 
     applyDraft: mockApplyDraft,
   }),
 }));
-jest.mock('@/modules/commitments/screens/commitments/filter/components/account_accordion', () => ({
-  CommitmentAccountAccordion: () => {
+jest.mock('@/components/ui/filter_account_accordion', () => ({
+  FilterAccountAccordion: (props: OptionLabelProps) => {
     const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
+    mockAccountAccordionProps(props);
     return <Text>Accounts section</Text>;
   },
 }));
-jest.mock('@/modules/commitments/screens/commitments/filter/components/category_accordion', () => ({
-  CommitmentCategoryAccordion: () => {
+jest.mock('@/components/ui/filter_category_accordion', () => ({
+  FilterCategoryAccordion: (props: OptionLabelProps) => {
     const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
+    mockCategoryAccordionProps(props);
     return <Text>Categories section</Text>;
   },
 }));
-jest.mock('@/modules/commitments/screens/commitments/filter/components/amount_accordion', () => ({
-  CommitmentAmountAccordion: (props: Record<string, unknown>) => {
+jest.mock('@/components/ui/filter_amount_accordion', () => ({
+  FilterAmountAccordion: (props: Record<string, unknown>) => {
     const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
     mockAmountAccordionProps(props);
     return <Text>Amount section</Text>;
@@ -151,15 +155,11 @@ describe('CommitmentFilterSheet', () => {
   it('renders Reset and Apply as equal-width themed footer buttons', async () => {
     const { getByText, getByTestId } = await render(<CommitmentFilterSheet />);
 
-    expect(COMMITMENT_FILTER_SHEET_ACTION_STYLE).toEqual({ flex: 1 });
+    expect(FILTER_SHEET_ACTION_STYLE).toEqual({ flex: 1 });
     expect(getByText(`secondary:flat:${Strings.filterReset}`)).toBeTruthy();
     expect(getByText(`primary:flat:${Strings.filterApplyWithCount(3)}`)).toBeTruthy();
-    expect(getByTestId('commitment-filter-reset-action')).toHaveStyle(
-      COMMITMENT_FILTER_SHEET_ACTION_STYLE,
-    );
-    expect(getByTestId('commitment-filter-apply-action')).toHaveStyle(
-      COMMITMENT_FILTER_SHEET_ACTION_STYLE,
-    );
+    expect(getByTestId('commitment-filter-reset-action')).toHaveStyle(FILTER_SHEET_ACTION_STYLE);
+    expect(getByTestId('commitment-filter-apply-action')).toHaveStyle(FILTER_SHEET_ACTION_STYLE);
   });
 
   it('wires Reset and Apply actions from the footer', async () => {
@@ -182,6 +182,13 @@ describe('CommitmentFilterSheet', () => {
     expect(mockResetDraft).toHaveBeenCalledTimes(1);
   });
 
+  it('disables a bare Apply from canApply at a draft count of 0', async () => {
+    mockStateOverrides = { draftCount: 0, canReset: true, canApply: false };
+    const { getByText } = await render(<CommitmentFilterSheet />);
+
+    expect(getByText(`primary:flat:${Strings.filterApply}`)).toBeDisabled();
+  });
+
   it('passes the hook amount errors to the Amount section (MA-212)', async () => {
     mockStateOverrides = {
       amountMinError: Strings.filterAmountInvalid,
@@ -197,5 +204,19 @@ describe('CommitmentFilterSheet', () => {
         rangeError: Strings.filterAmountRangeInvalid,
       }),
     );
+  });
+
+  it('labels the shared sections with the commitments copy', async () => {
+    await render(<CommitmentFilterSheet />);
+
+    expect(mockAmountAccordionProps).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        currencyAccessibilityLabel: Strings.commitmentFilterAmountCurrencyAccessibility,
+      }),
+    );
+    const accountLabel = mockAccountAccordionProps.mock.lastCall?.[0].optionAccessibilityLabel;
+    const categoryLabel = mockCategoryAccordionProps.mock.lastCall?.[0].optionAccessibilityLabel;
+    expect(accountLabel?.('Cash')).toBe(Strings.commitmentFilterAccountAccessibility('Cash'));
+    expect(categoryLabel?.('Food')).toBe(Strings.commitmentFilterCategoryAccessibility('Food'));
   });
 });
