@@ -40,9 +40,13 @@ import {
   type CommitmentFormValues,
   PRESET_MAP,
   SET_OPTS,
+  composeFieldBlur,
   detectPreset,
 } from '../commitment_form.shared';
-import { COMMITMENT_FORM_TABS_SLOP } from './commitment_form.geometry';
+import {
+  COMMITMENT_FORM_CONTENT_CONTAINER_STYLE,
+  COMMITMENT_FORM_TABS_SLOP,
+} from './commitment_form.geometry';
 import { useCommitmentFormBodyPickers } from './commitment_form_body.hook';
 import { DecimalAmountInput } from './decimal_amount_input';
 import { DurationPicker } from './duration_picker';
@@ -66,8 +70,6 @@ type CommitmentFormBodyProps = {
   accounts: Account[];
   locked?: boolean;
 } & CommitmentFormPresentationProps;
-
-const CONTENT_CONTAINER_STYLE = { gap: 8, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 16 };
 
 export function CommitmentFormFooter({
   errorMessage,
@@ -136,7 +138,7 @@ function CommitmentFormScroll({
       <BottomSheetScrollView
         testID="commitment-form-scroll"
         style={{ flex: 1 }}
-        contentContainerStyle={CONTENT_CONTAINER_STYLE}
+        contentContainerStyle={COMMITMENT_FORM_CONTENT_CONTAINER_STYLE}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
@@ -146,7 +148,7 @@ function CommitmentFormScroll({
   }
   return (
     <ScreenScroll
-      contentContainerStyle={CONTENT_CONTAINER_STYLE}
+      contentContainerStyle={COMMITMENT_FORM_CONTENT_CONTAINER_STYLE}
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
     >
@@ -284,10 +286,7 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
                 value={value ?? ''}
                 onChangeText={onChange}
                 onFocus={onInputFocus}
-                onBlur={(event) => {
-                  onInputBlur(event);
-                  onBlur();
-                }}
+                onBlur={composeFieldBlur(onInputBlur, onBlur)}
                 placeholder={Strings.commitmentsNamePlaceholder}
                 maxLength={50}
                 isDisabled={locked}
@@ -352,10 +351,7 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
                     if (!held) onChange(n);
                   }}
                   onFocus={onInputFocus}
-                  onBlur={(event) => {
-                    onInputBlur(event);
-                    onBlur();
-                  }}
+                  onBlur={composeFieldBlur(onInputBlur, onBlur)}
                   hasError={!!errors.amount}
                   placeholder={
                     amountType === AmountType.Variable
@@ -531,10 +527,7 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
                 value={value ?? ''}
                 onChangeText={(v) => onChange(v || undefined)}
                 onFocus={onInputFocus}
-                onBlur={(event) => {
-                  onInputBlur(event);
-                  onBlur();
-                }}
+                onBlur={composeFieldBlur(onInputBlur, onBlur)}
                 placeholder={Strings.addTxNotePlaceholder}
                 multiline
                 numberOfLines={3}

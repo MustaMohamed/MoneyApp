@@ -1,4 +1,4 @@
-import { useAddCommitmentState } from '@/modules/commitments/screens/commitments/add_commitment/add_commitment.state';
+import { useAddCommitmentState } from '@/modules/commitments/screens/commitments/commitment_form/add_commitment.state';
 import { useCommitmentFormHostState } from '@/modules/commitments/store/commitment_form_host.state';
 
 const host = () => useCommitmentFormHostState.getState();
@@ -44,12 +44,25 @@ describe('useCommitmentFormHostState', () => {
   });
 
   it('starts closing on a completed save from open, and refuses one from closed', () => {
-    expect(host().completeSave()).toBe(false);
+    expect(host().completeSave(0)).toBe(false);
     expect(host().phase).toBe('closed');
 
     host().openAdd();
 
-    expect(host().completeSave()).toBe(true);
+    expect(host().completeSave(1)).toBe(true);
+    expect(host().phase).toBe('closing');
+  });
+
+  it('refuses a completed save from another session and stays open', () => {
+    host().openAdd();
+    host().requestClose();
+    host().completeClose(1);
+    host().openAdd();
+
+    expect(host().completeSave(1)).toBe(false);
+    expect(host().phase).toBe('open');
+
+    expect(host().completeSave(2)).toBe(true);
     expect(host().phase).toBe('closing');
   });
 
@@ -61,7 +74,7 @@ describe('useCommitmentFormHostState', () => {
     expect(host().phase).toBe('closing');
     expect(host().sessionId).toBe(1);
 
-    expect(host().completeSave()).toBe(false);
+    expect(host().completeSave(1)).toBe(false);
     expect(host().phase).toBe('closing');
     expect(host().sessionId).toBe(1);
   });

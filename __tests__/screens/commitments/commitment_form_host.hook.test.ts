@@ -4,7 +4,7 @@ import { BackHandler } from 'react-native';
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
-import { useAddCommitmentState } from '@/modules/commitments/screens/commitments/add_commitment/add_commitment.state';
+import { useAddCommitmentState } from '@/modules/commitments/screens/commitments/commitment_form/add_commitment.state';
 import { useCommitmentFormHost } from '@/modules/commitments/screens/commitments/commitment_form/commitment_form_host.hook';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { useCommitmentFormHostState } from '@/modules/commitments/store/commitment_form_host.state';
@@ -208,5 +208,24 @@ describe('useCommitmentFormHost', () => {
     expect(host().sessionId).toBe(2);
     expect(result.current.form.getValues('name')).toBe('');
     expect(result.current.state.saveError).toBeUndefined();
+  });
+
+  describe('an open on a later day', () => {
+    beforeEach(() => {
+      jest.useFakeTimers({ now: new Date('2026-10-22T12:00:00') });
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('drafts the start date of the day the sheet opens on', async () => {
+      const { result } = await renderHook(() => useCommitmentFormHost());
+
+      jest.setSystemTime(new Date('2026-10-23T12:00:00'));
+      await act(() => host().openAdd());
+
+      expect(result.current.form.getValues('startDate')).toBe('2026-10-23');
+    });
   });
 });

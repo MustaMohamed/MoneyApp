@@ -114,12 +114,13 @@ export function useDashboard() {
     handledCommitmentGenerationRef.current = commitmentGeneration;
     if (!isFocusedRef.current) return;
 
-    // An add writes only the commitment row; its payment rows come from the housekeeping pass, and a failed pass surfaces through the dashboard load's own loadError.
+    // A rejected commitment reload still revalidates; the commitment store sets its own loadError.
     const revalidate = () => {
       if (!isFocusedRef.current) return;
       void useDashboardStore.getState().revalidateAfterMutation(createDashboardLoadInput());
     };
-    void useCommitmentStore.getState().ensureHousekeepingCurrent().then(revalidate, revalidate);
+    const commitments = useCommitmentStore.getState();
+    void commitments.loadMonthSnapshot(commitments.selectedMonth).then(revalidate, revalidate);
   }, [commitmentGeneration]);
 
   const refresh = useCallback(

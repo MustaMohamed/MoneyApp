@@ -8,7 +8,7 @@ import { Text } from '@/components/ui/text';
 import { RecurrencePeriod, RecurrencePreset } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 
-import { type CommitmentFormValues, SET_OPTS } from '../commitment_form.shared';
+import { type CommitmentFormValues, SET_OPTS, composeFieldBlur } from '../commitment_form.shared';
 import { COMMITMENT_FORM_PILL_SLOP } from './commitment_form.geometry';
 
 interface Props {
@@ -78,10 +78,7 @@ export function RecurrencePicker({ form, recurrencePreset, onPresetChange }: Pro
                     if (!isNaN(n)) onChange(n);
                   }}
                   onFocus={onInputFocus}
-                  onBlur={(event) => {
-                    onInputBlur(event);
-                    onBlur();
-                  }}
+                  onBlur={composeFieldBlur(onInputBlur, onBlur)}
                   keyboardType="number-pad"
                   maxLength={3}
                   isInvalid={!!everyError}

@@ -84,7 +84,7 @@ const refreshSnapshot = jest.fn<Promise<void>, [DashboardLoadInput]>();
 const retrySnapshot = jest.fn<Promise<void>, [DashboardLoadInput]>();
 const revalidateAfterMutation = jest.fn<Promise<void>, [DashboardLoadInput]>();
 const invalidate = jest.fn();
-const ensureHousekeepingCurrent = jest.fn<Promise<void>, [Date?]>();
+const loadMonthSnapshot = jest.fn<Promise<void>, [string, Date?]>();
 const setBreakdownVisible = jest.fn();
 const setSelectedSegment = jest.fn();
 
@@ -216,7 +216,8 @@ let transactionStoreState: {
 
 let commitmentStoreState: {
   generation: number;
-  ensureHousekeepingCurrent: typeof ensureHousekeepingCurrent;
+  selectedMonth: string;
+  loadMonthSnapshot: typeof loadMonthSnapshot;
 };
 
 beforeEach(() => {
@@ -229,7 +230,7 @@ beforeEach(() => {
   refreshSnapshot.mockResolvedValue(undefined);
   retrySnapshot.mockResolvedValue(undefined);
   revalidateAfterMutation.mockResolvedValue(undefined);
-  ensureHousekeepingCurrent.mockResolvedValue(undefined);
+  loadMonthSnapshot.mockResolvedValue(undefined);
   dashboardStoreState = {
     snapshot: populatedSnapshot(),
     status: 'ready',
@@ -263,7 +264,8 @@ beforeEach(() => {
   };
   commitmentStoreState = {
     generation: 0,
-    ensureHousekeepingCurrent,
+    selectedMonth: '2026-07',
+    loadMonthSnapshot,
   };
 
   attachMockSelectorStore(useDashboardStore, () => dashboardStoreState);
@@ -374,9 +376,9 @@ describe('useDashboard', () => {
       });
     }
 
-    it('revalidates once the housekeeping pass lands while Dashboard stays focused', async () => {
-      const housekeeping = deferred<void>();
-      ensureHousekeepingCurrent.mockReturnValueOnce(housekeeping.promise);
+    it('revalidates once the commitment snapshot reload lands while Dashboard stays focused', async () => {
+      const reload = deferred<void>();
+      loadMonthSnapshot.mockReturnValueOnce(reload.promise);
       const { rerender } = await renderHook(() => useDashboard());
       await act(() => {
         mockCapturedFocusCallback?.();
@@ -386,19 +388,20 @@ describe('useDashboard', () => {
       await rerender({});
       await settle();
 
-      expect(ensureHousekeepingCurrent).toHaveBeenCalledTimes(1);
+      expect(loadMonthSnapshot).toHaveBeenCalledTimes(1);
+      expect(loadMonthSnapshot).toHaveBeenCalledWith('2026-07');
       expect(revalidateAfterMutation).not.toHaveBeenCalled();
 
-      housekeeping.resolve();
+      reload.resolve();
       await settle();
 
       expect(revalidateAfterMutation).toHaveBeenCalledTimes(1);
       expect(revalidateAfterMutation).toHaveBeenCalledWith(LOAD_INPUT);
     });
 
-    it('skips the revalidation when Dashboard blurs during the housekeeping pass', async () => {
-      const housekeeping = deferred<void>();
-      ensureHousekeepingCurrent.mockReturnValueOnce(housekeeping.promise);
+    it('skips the revalidation when Dashboard blurs during the commitment snapshot reload', async () => {
+      const reload = deferred<void>();
+      loadMonthSnapshot.mockReturnValueOnce(reload.promise);
       const { rerender } = await renderHook(() => useDashboard());
       let cleanup: void | (() => void);
       await act(() => {
@@ -408,20 +411,20 @@ describe('useDashboard', () => {
       commitmentStoreState.generation += 1;
       await rerender({});
       await settle();
-      expect(ensureHousekeepingCurrent).toHaveBeenCalledTimes(1);
+      expect(loadMonthSnapshot).toHaveBeenCalledTimes(1);
 
       await act(() => {
         cleanup?.();
       });
-      housekeeping.resolve();
+      reload.resolve();
       await settle();
 
       expect(revalidateAfterMutation).not.toHaveBeenCalled();
     });
 
-    it('still revalidates when the housekeeping pass rejects while focused', async () => {
-      const housekeeping = deferred<void>();
-      ensureHousekeepingCurrent.mockReturnValueOnce(housekeeping.promise);
+    it('still revalidates when the commitment snapshot reload rejects while focused', async () => {
+      const reload = deferred<void>();
+      loadMonthSnapshot.mockReturnValueOnce(reload.promise);
       const { rerender } = await renderHook(() => useDashboard());
       await act(() => {
         mockCapturedFocusCallback?.();
@@ -430,9 +433,9 @@ describe('useDashboard', () => {
       commitmentStoreState.generation += 1;
       await rerender({});
       await settle();
-      expect(ensureHousekeepingCurrent).toHaveBeenCalledTimes(1);
+      expect(loadMonthSnapshot).toHaveBeenCalledTimes(1);
 
-      housekeeping.reject(new Error('housekeeping failed'));
+      reload.reject(new Error('commitment reload failed'));
       await settle();
 
       expect(revalidateAfterMutation).toHaveBeenCalledTimes(1);
@@ -453,7 +456,7 @@ describe('useDashboard', () => {
       await rerender({});
       await settle();
 
-      expect(ensureHousekeepingCurrent).not.toHaveBeenCalled();
+      expect(loadMonthSnapshot).not.toHaveBeenCalled();
       expect(revalidateAfterMutation).not.toHaveBeenCalled();
 
       await act(() => {
@@ -463,7 +466,7 @@ describe('useDashboard', () => {
       await rerender({});
       await settle();
 
-      expect(ensureHousekeepingCurrent).toHaveBeenCalledTimes(1);
+      expect(loadMonthSnapshot).toHaveBeenCalledTimes(1);
       expect(revalidateAfterMutation).toHaveBeenCalledTimes(1);
     });
   });

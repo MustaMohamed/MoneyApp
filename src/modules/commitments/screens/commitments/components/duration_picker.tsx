@@ -12,7 +12,7 @@ import { Strings } from '@/constants/strings';
 import { CoreTokens } from '@/constants/theme_tokens';
 import { formatLongDate, toLocalDateString } from '@/utils/format_date';
 
-import { type CommitmentFormValues, SET_OPTS } from '../commitment_form.shared';
+import { type CommitmentFormValues, SET_OPTS, composeFieldBlur } from '../commitment_form.shared';
 import { COMMITMENT_FORM_PILL_SLOP } from './commitment_form.geometry';
 
 interface Props {
@@ -89,10 +89,7 @@ export function DurationPicker({
                     onChange(isNaN(n) ? undefined : n);
                   }}
                   onFocus={onInputFocus}
-                  onBlur={(event) => {
-                    onInputBlur(event);
-                    onBlur();
-                  }}
+                  onBlur={composeFieldBlur(onInputBlur, onBlur)}
                   keyboardType="number-pad"
                   maxLength={4}
                   placeholder={Strings.commitmentsAfterCountPlaceholder}

@@ -1,9 +1,9 @@
 import { create } from 'zustand';
 
-import { useAddCommitmentState } from '@/modules/commitments/screens/commitments/add_commitment/add_commitment.state';
+import { useAddCommitmentState } from '@/modules/commitments/screens/commitments/commitment_form/add_commitment.state';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
-export type CommitmentFormPhase = 'closed' | 'open' | 'closing';
+type CommitmentFormPhase = 'closed' | 'open' | 'closing';
 
 interface CommitmentFormHostStateShape {
   phase: CommitmentFormPhase;
@@ -13,7 +13,7 @@ interface CommitmentFormHostStateShape {
 type CommitmentFormHostState = CommitmentFormHostStateShape & {
   openAdd: () => void;
   requestClose: () => boolean;
-  completeSave: () => boolean;
+  completeSave: (sessionId: number) => boolean;
   completeClose: (sessionId: number) => void;
   reset: () => void;
 };
@@ -40,8 +40,9 @@ export const useCommitmentFormHostState = createMoneyAppSelectors(
       return true;
     },
 
-    completeSave: () => {
-      if (get().phase !== 'open') return false;
+    completeSave: (sessionId) => {
+      const state = get();
+      if (state.phase !== 'open' || state.sessionId !== sessionId) return false;
       set({ phase: 'closing' });
       return true;
     },

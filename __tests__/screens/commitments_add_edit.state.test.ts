@@ -1,4 +1,4 @@
-import { useAddCommitmentState } from '@/modules/commitments/screens/commitments/add_commitment/add_commitment.state';
+import { useAddCommitmentState } from '@/modules/commitments/screens/commitments/commitment_form/add_commitment.state';
 import {
   INITIAL_UI_ENTRY,
   useEditCommitmentState,

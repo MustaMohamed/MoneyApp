@@ -5,7 +5,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { Strings } from '@/constants/strings';
 import { useCommitmentFormHostState } from '@/modules/commitments/store/commitment_form_host.state';
 
-import { useAddCommitment } from '../add_commitment/add_commitment.hook';
+import { useAddCommitment } from './add_commitment.hook';
 
 export function useCommitmentFormHost() {
   const { phase, sessionId } = useCommitmentFormHostState(
@@ -18,8 +18,8 @@ export function useCommitmentFormHost() {
   const hasSession = phase !== 'closed';
 
   const handleSaved = useCallback(() => {
-    completeSave();
-  }, [completeSave]);
+    completeSave(sessionId);
+  }, [completeSave, sessionId]);
   const { state, form, onSubmit, resetDraft } = useAddCommitment({ onSaved: handleSaved });
 
   useEffect(() => {

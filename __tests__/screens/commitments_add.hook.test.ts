@@ -3,9 +3,9 @@ import { act, renderHook } from '@testing-library/react-native';
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
-import { useAddCommitment } from '@/modules/commitments/screens/commitments/add_commitment/add_commitment.hook';
-import { useAddCommitmentState } from '@/modules/commitments/screens/commitments/add_commitment/add_commitment.state';
 import { COMMITMENT_AMOUNT_REFUSES_ZERO } from '@/modules/commitments/screens/commitments/commitment_form.shared';
+import { useAddCommitment } from '@/modules/commitments/screens/commitments/commitment_form/add_commitment.hook';
+import { useAddCommitmentState } from '@/modules/commitments/screens/commitments/commitment_form/add_commitment.state';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { deferred } from '@/test_helpers/deferred';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
@@ -25,7 +25,7 @@ jest.mock('@/modules/accounts/store/account.store', () => ({
   useAccountStore: jest.fn(),
 }));
 jest.mock('@/modules/categories/store/category.store', () => ({ useCategoryStore: jest.fn() }));
-jest.mock('@/modules/commitments/screens/commitments/add_commitment/add_commitment.state', () => ({
+jest.mock('@/modules/commitments/screens/commitments/commitment_form/add_commitment.state', () => ({
   useAddCommitmentState: jest.fn(),
 }));
 
