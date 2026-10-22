@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/status_badge';
 import { scaledFontSize } from '@/components/ui/text_scale.geometry';
 import { CURRENCY_CONFIG } from '@/constants/currency';
-import { CommitmentPaymentStatus } from '@/constants/enums';
+import { CommitmentPaymentStatus, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { lineHeightFor } from '@/constants/theme';
 import { AcctTokens, CoreTokens } from '@/constants/theme_tokens';
@@ -37,12 +37,16 @@ import {
   type RowTile,
 } from '@/modules/transactions/components/transaction_row.helpers';
 import { resolveAccountName } from '@/utils/account_name';
-import { formatDisplayAmountParts } from '@/utils/format_amount';
+import { formatDisplayAmount, formatDisplayAmountParts } from '@/utils/format_amount';
 import { formatShortWeekdayDate } from '@/utils/format_date';
 
+import { resolveCommitmentRowLegEgp } from '../../../domain/commitment_section_sums';
 import { isPaidPayment, resolvePaymentState } from '../../../domain/payment_state';
 import type { Commitment } from '../../../entities/commitment.entity';
-import type { CommitmentPayment } from '../../../entities/commitment_payment.entity';
+import type {
+  CommitmentMonthPayment,
+  CommitmentPayment,
+} from '../../../entities/commitment_payment.entity';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -120,13 +124,15 @@ export function resolveCommitmentRowAccountId(
 }
 
 export interface CommitmentRowPresentationInput {
-  payment: CommitmentPayment;
+  payment: CommitmentMonthPayment;
   commitment: Commitment | undefined;
   category: Category | undefined;
   /** The lookup of `resolveCommitmentRowAccountId`; `undefined` when unresolved or absent. */
   account: Account | undefined;
   /** The local calendar date, `YYYY-MM-DD`. */
   today: string;
+  /** EGP per USD, `undefined` until it loads. */
+  liveRate: number | undefined;
 }
 
 export interface CommitmentRowPresentation {
@@ -139,6 +145,8 @@ export interface CommitmentRowPresentation {
   statusFill: string;
   statusForeground: string;
   dueDay: string;
+  /** The due day, then a USD row's `≈ n EGP` leg once it resolves. */
+  caption: string;
   amountText: string;
   currencyCode: string;
   accessibilityLabel: string;
@@ -146,10 +154,10 @@ export interface CommitmentRowPresentation {
 
 function amountFor(
   payment: CommitmentPayment,
-  commitment: Commitment | undefined,
+  displayAmount: ReturnType<typeof resolveDisplayAmount>,
   code: string,
 ): { text: string; spoken: string } {
-  const { amount, showTilde } = resolveDisplayAmount(payment, commitment);
+  const { amount, showTilde } = displayAmount;
   if (amount === undefined) {
     return showTilde
       ? {
@@ -176,13 +184,23 @@ export function buildCommitmentRowPresentation({
   category,
   account,
   today,
+  liveRate,
 }: CommitmentRowPresentationInput): CommitmentRowPresentation {
   const name = commitment?.name ?? Strings.commitmentRowNoName;
   const status = resolvePaymentState(payment, today);
   const tagColors = COMMITMENT_STATUS_TAG_COLORS[status];
   const dueDay = formatShortWeekdayDate(payment.due_date, today);
   const currencyCode: string = CURRENCY_CONFIG[payment.currency].code;
-  const amount = amountFor(payment, commitment, currencyCode);
+  const displayAmount = resolveDisplayAmount(payment, commitment);
+  const amount = amountFor(payment, displayAmount, currencyCode);
+  const leg = resolveCommitmentRowLegEgp({ payment, amount: displayAmount.amount, rate: liveRate });
+  const caption =
+    leg === undefined
+      ? dueDay
+      : Strings.commitmentRowDueDayWithLeg(
+          dueDay,
+          Strings.addTxConvertedAmount(formatDisplayAmount(leg, Currency.EGP)),
+        );
   // The tile carries no label, so the row speaks its account; a commitment with no account speaks none.
   const hasAccount = resolveCommitmentRowAccountId(payment, commitment) !== undefined;
 
@@ -195,13 +213,14 @@ export function buildCommitmentRowPresentation({
     statusFill: tagColors.fill,
     statusForeground: tagColors.foreground,
     dueDay,
+    caption,
     amountText: amount.text,
     currencyCode,
     accessibilityLabel: [
       name,
       hasAccount ? resolveAccountName(account) : undefined,
       STATUS_LABELS[status],
-      dueDay,
+      caption,
       amount.spoken,
     ]
       .filter((part): part is string => part !== undefined)

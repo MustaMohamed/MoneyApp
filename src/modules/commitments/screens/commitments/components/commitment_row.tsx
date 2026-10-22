@@ -1,7 +1,7 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { PressableFeedback } from 'heroui-native';
 import React, { useCallback, useMemo } from 'react';
-import { View, useWindowDimensions } from 'react-native';
+import { type StyleProp, View, type ViewStyle, useWindowDimensions } from 'react-native';
 
 import { AccountColorTile } from '@/components/ui/account_color_tile';
 import { StatusBadge } from '@/components/ui/status_badge';
@@ -17,7 +17,7 @@ import { ms } from '@/utils/responsive';
 import { useDragCancelledPress } from '@/utils/use_drag_cancelled_press.hook';
 
 import type { Commitment } from '../../../entities/commitment.entity';
-import type { CommitmentPayment } from '../../../entities/commitment_payment.entity';
+import type { CommitmentMonthPayment } from '../../../entities/commitment_payment.entity';
 import {
   COMMITMENT_ROW_AMOUNT_FONT_SIZE,
   COMMITMENT_ROW_CAPTION_FONT_SIZE,
@@ -29,8 +29,10 @@ import {
 } from './commitment_row.helpers';
 
 interface CommitmentRowProps {
-  payment: CommitmentPayment;
+  payment: CommitmentMonthPayment;
   today: string;
+  /** EGP per USD once loaded; a USD row draws its EGP leg from it. */
+  liveRate: number | undefined;
   commitment: Commitment | undefined;
   category: Category | undefined;
   account: Account | undefined;
@@ -38,11 +40,14 @@ interface CommitmentRowProps {
   onSkip: (paymentId: string) => void;
   onEdit: (commitmentId: string | undefined) => void;
   onDelete: (commitmentId: string | undefined) => void;
+  showSeparator?: boolean;
+  swipeContainerStyle?: StyleProp<ViewStyle>;
 }
 
 function CommitmentRowComponent({
   payment,
   today,
+  liveRate,
   commitment,
   category,
   account,
@@ -50,10 +55,13 @@ function CommitmentRowComponent({
   onSkip,
   onEdit,
   onDelete,
+  showSeparator = true,
+  swipeContainerStyle,
 }: CommitmentRowProps) {
   const row = useMemo(
-    () => buildCommitmentRowPresentation({ payment, commitment, category, account, today }),
-    [account, category, commitment, payment, today],
+    () =>
+      buildCommitmentRowPresentation({ payment, commitment, category, account, today, liveRate }),
+    [account, category, commitment, liveRate, payment, today],
   );
   const { fontScale } = useWindowDimensions();
   const amountProps = resolveFitAmountTextProps(COMMITMENT_ROW_AMOUNT_FONT_SIZE, fontScale);
@@ -101,6 +109,7 @@ function CommitmentRowComponent({
       actions={actions}
       disabled={commitment === undefined}
       accessibilityLabel={row.accessibilityLabel}
+      containerStyle={swipeContainerStyle}
     >
       <PressableFeedback
         {...press}
@@ -110,7 +119,7 @@ function CommitmentRowComponent({
         <View
           testID="commitment-row"
           style={{ height: rowHeight, justifyContent: 'center' }}
-          className="border-separator border-b px-4"
+          className={showSeparator ? 'border-separator border-b px-4' : 'px-4'}
         >
           <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-3">
             <View testID="commitment-row-tile">
@@ -157,7 +166,7 @@ function CommitmentRowComponent({
                 }}
                 numberOfLines={1}
               >
-                {row.dueDay}
+                {row.caption}
               </Text>
             </View>
             {/* Two sibling texts, never nested: RN Android drops margins on inline text. */}
