@@ -31,16 +31,22 @@ export const COMMITMENT_PICKER_CAPTION_ROW_OVER_ROW_EDGE: TouchFloorRoom = {
   bottom: COMMITMENT_FORM_PICKER_GAP / 2,
 };
 
-/** The period row's room above: half the drawn distance to the presets on the custom row's first line, half the gap to the `Every` input when it wraps under it. */
+/** The period row's room above: half the drawn distance to the presets while it shares the `Every` input's line, half the gap to that input once it wraps at or below the line's bottom. */
 export function resolvePeriodRowTopRoom(
   presetsRowBottom: number | undefined,
   customRowTop: number | undefined,
+  inputLineBottom: number | undefined,
   periodRowTop: number | undefined,
 ): number {
-  if (presetsRowBottom === undefined || customRowTop === undefined || periodRowTop === undefined) {
+  if (
+    presetsRowBottom === undefined ||
+    customRowTop === undefined ||
+    inputLineBottom === undefined ||
+    periodRowTop === undefined
+  ) {
     return COMMITMENT_FORM_PICKER_GAP / 2;
   }
-  if (periodRowTop > 0) return COMMITMENT_FORM_PICKER_GAP / 2;
+  if (periodRowTop >= inputLineBottom) return COMMITMENT_FORM_PICKER_GAP / 2;
   return (customRowTop + periodRowTop - presetsRowBottom) / 2;
 }
 

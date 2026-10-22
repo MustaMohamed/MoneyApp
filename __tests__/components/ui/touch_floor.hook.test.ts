@@ -34,4 +34,19 @@ describe('useTouchFloorGridHitSlop', () => {
     expect(second.top).toBe(GAP / 2);
     expect(second.bottom).toBe(EDGE.bottom);
   });
+
+  it('MA-236: when the bottom row leaves the mounted keys, the top row takes the bottom edge room', async () => {
+    const hook = await renderHook(
+      ({ keys }: { keys: string[] }) => useTouchFloorGridHitSlop(GAP, EDGE, undefined, keys),
+      { initialProps: { keys: ['first', 'second'] } },
+    );
+
+    await act(() => hook.result.current.item('first').onLayout(layoutEvent(0, PILL_HEIGHT)));
+    await act(() => hook.result.current.item('second').onLayout(layoutEvent(35, PILL_HEIGHT)));
+    expect(hook.result.current.item('first').hitSlop.bottom).toBe(GAP / 2);
+
+    await hook.rerender({ keys: ['first'] });
+
+    expect(hook.result.current.item('first').hitSlop.bottom).toBe(EDGE.bottom);
+  });
 });

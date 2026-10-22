@@ -92,7 +92,7 @@ export function RecurrencePicker({ form, recurrencePreset, onPresetChange }: Pro
           <Text className="font-inter text-muted text-[11px]">
             {Strings.commitmentsRecurrenceEvery}
           </Text>
-          <View style={{ width: 56 }}>
+          <View style={{ width: 56 }} onLayout={periodRoom.onInputLayout}>
             <Controller
               control={form.control}
               name="recurrenceEvery"

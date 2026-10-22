@@ -1,11 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { ListGroup, PressableFeedback, Separator, Typography } from 'heroui-native';
-import {
-  type AccessibilityActionEvent,
-  View,
-  type ViewStyle,
-  useWindowDimensions,
-} from 'react-native';
+import { type AccessibilityActionEvent, View, useWindowDimensions } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
 
@@ -45,8 +40,6 @@ import {
 
 // The grip's own press absorbs a tap, so it never reaches the row and opens the account.
 const absorbGripPress = () => undefined;
-
-// HeroUI's root class clips, and RNGH skips a clipping view before it reads the Pan's hit slop.
 
 interface AccountListRowProps {
   account: Account;

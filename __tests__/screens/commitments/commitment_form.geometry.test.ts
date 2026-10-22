@@ -11,8 +11,10 @@ import {
 import { HEROUI_TEXT_TYPE } from '@/components/ui/text_scale.geometry';
 import { lineHeightFor, touchFloorHitSlop } from '@/constants/theme';
 import {
+  COMMITMENT_FORM_PICKER_GAP,
   COMMITMENT_FORM_PILL_SLOP,
   COMMITMENT_FORM_TABS_SLOP,
+  resolvePeriodRowTopRoom,
 } from '@/modules/commitments/screens/commitments/components/commitment_form.geometry';
 
 describe('COMMITMENT_FORM_PILL_SLOP', () => {
@@ -33,6 +35,36 @@ describe('COMMITMENT_FORM_TABS_SLOP', () => {
     expect(COMMITMENT_FORM_TABS_SLOP).toEqual(touchFloorHitSlop(resolveDefaultTriggerHeight(1)));
     expect(COMMITMENT_FORM_TABS_SLOP).toEqual(
       touchFloorHitSlop(lineHeightFor(HEROUI_TEXT_TYPE.base) + 2 * TABS_TRIGGER_PADDING_BLOCK),
+    );
+  });
+});
+
+describe('resolvePeriodRowTopRoom', () => {
+  const presetsRowBottom = 33;
+  const customRowTop = 41;
+  const inputLineBottom = 48;
+
+  it('MA-236: before every row lays out, the period row takes half the picker gap', () => {
+    expect(resolvePeriodRowTopRoom(undefined, customRowTop, inputLineBottom, 0)).toBe(
+      COMMITMENT_FORM_PICKER_GAP / 2,
+    );
+    expect(resolvePeriodRowTopRoom(presetsRowBottom, customRowTop, undefined, 0)).toBe(
+      COMMITMENT_FORM_PICKER_GAP / 2,
+    );
+  });
+
+  it('MA-236: a period row wrapped at or below the input line takes half the gap to the input', () => {
+    expect(
+      resolvePeriodRowTopRoom(presetsRowBottom, customRowTop, inputLineBottom, inputLineBottom + 8),
+    ).toBe(COMMITMENT_FORM_PICKER_GAP / 2);
+    expect(
+      resolvePeriodRowTopRoom(presetsRowBottom, customRowTop, inputLineBottom, inputLineBottom),
+    ).toBe(COMMITMENT_FORM_PICKER_GAP / 2);
+  });
+
+  it('MA-236: a period row centred on the input line takes half the drawn distance to the presets', () => {
+    expect(resolvePeriodRowTopRoom(presetsRowBottom, customRowTop, inputLineBottom, 11.24)).toBe(
+      (customRowTop + 11.24 - presetsRowBottom) / 2,
     );
   });
 });

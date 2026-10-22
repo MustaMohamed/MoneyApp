@@ -13,7 +13,7 @@ import {
   resolveOneLineTextProps,
   scaledTextStyleAboveOne,
 } from '@/components/ui/text_scale.geometry';
-import { HIT_SLOP_UNCLIPPED_STYLE, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
+import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 
 import { useAccountStripReveal } from './account_strip.hook';
@@ -159,7 +159,6 @@ export function AccountStrip({
                   borderRadius: ACCOUNT_STRIP_CHIP_RADIUS,
                   paddingVertical: 0,
                   paddingHorizontal: ACCOUNT_STRIP_CHIP_PADDING_X,
-                  ...HIT_SLOP_UNCLIPPED_STYLE,
                   ...(chip.dimmed
                     ? { opacity: ACCOUNT_STRIP_DIMMED_OPACITY, borderStyle: 'dashed' as const }
                     : null),
