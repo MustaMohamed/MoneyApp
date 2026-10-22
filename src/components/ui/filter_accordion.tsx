@@ -9,12 +9,7 @@ import { Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 
 import { SelectablePill } from './chip';
-import {
-  FILTER_ACCORDION_BODY_GAP,
-  FILTER_ACCORDION_PADDING,
-  FILTER_OPTION_PILL_HIT_SLOP,
-  resolveFilterAmountSlotStyle,
-} from './filter_accordion.geometry';
+import { resolveFilterAmountSlotStyle } from './filter_accordion.geometry';
 import { Input } from './input';
 import { SegmentedTabs } from './tabs';
 import { Text } from './text';
@@ -77,12 +72,7 @@ export function FilterAccordionShell({
           {/* The trigger holds the card's vertical padding and the gap above the body, so its box clears TouchSize.min. */}
           <Accordion.Trigger
             className={cn('gap-0 px-0 pt-3.5', expanded ? 'pb-3' : 'pb-3.5')}
-            style={{
-              paddingHorizontal: 0,
-              paddingTop: FILTER_ACCORDION_PADDING,
-              paddingBottom: expanded ? FILTER_ACCORDION_BODY_GAP : FILTER_ACCORDION_PADDING,
-              gap: 0,
-            }}
+            style={{ paddingHorizontal: 0, gap: 0 }}
           >
             <View className="flex-row items-center justify-between gap-2" style={{ flex: 1 }}>
               <View className="flex-row items-center gap-2" style={{ flexShrink: 0 }}>
@@ -118,10 +108,7 @@ export function FilterAccordionShell({
               </View>
             </View>
           </Accordion.Trigger>
-          <Accordion.Content
-            className="px-0 pt-0 pb-3.5"
-            style={{ paddingHorizontal: 0, paddingTop: 0, paddingBottom: FILTER_ACCORDION_PADDING }}
-          >
+          <Accordion.Content className="px-0 pt-0 pb-3.5" style={{ paddingHorizontal: 0 }}>
             {children}
           </Accordion.Content>
         </Accordion.Item>
@@ -145,7 +132,6 @@ export function FilterOptionPillList<T extends string = string>({
           startIcon={option.startIcon}
           checkable
           accessibilityLabel={option.accessibilityLabel}
-          hitSlop={FILTER_OPTION_PILL_HIT_SLOP}
         />
       ))}
     </View>
