@@ -54,7 +54,7 @@ Route `/commitments`, a tab. Screen `src/modules/commitments/screens/commitments
 | commitment row tap | `/stacked/commitments/[id]`, above the tabs | this list |
 | `Filter` | the filter sheet over this screen | this list |
 | the month pill | the month picker sheet | this list |
-| the FAB (`Add`), then `Add Commitment` | `/commitments/add` | this list |
+| the FAB's long press (`Add`), then `Add Commitment`, or the empty state's `Add Commitment` | the add sheet over this list (`add_commitment.md` § Reach it) | this list |
 | Back | the previous tab | n/a |
 
 ## Gotchas
