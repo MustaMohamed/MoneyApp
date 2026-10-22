@@ -32,6 +32,25 @@ const VERSIONED_FILE = 'src/modules/transactions/seeded_surface.ts';
 const TRANSACTION_CALL_FILE = 'src/modules/transactions/seeded_transaction_call.ts';
 const HELPER_CALL_FILE = 'src/test_helpers/seeded_transaction_call.ts';
 const BARE_IDENTIFIER_FILE = 'src/modules/transactions/seeded_bare_identifier.ts';
+const MEMBER_FORMS_FILE = 'src/modules/transactions/seeded_member_forms.ts';
+const MEMBER_FORMS = [
+  'const { getEachAsync } = db;',
+  "db['execSync'](source);",
+  'db["runSync"](source);',
+  'db[`getAllSync`](source);',
+  'const {',
+  '  prepareSync: prepare,',
+  '} = db;',
+  'const read = ({ getFirstSync }: SQLiteDatabase) => getFirstSync(source);',
+  'report({ execSync });',
+  "const { 'runSync': run } = db;",
+  'const { db: { getEachSync } } = context;',
+  'for (const { prepareAsync } of connections) prepareAsync(source);',
+  'async function close({ execSync }): Promise<void> {}',
+  'const each = ({ getAllSync }) => getAllSync(source);',
+  'function pick() { return execSync; }',
+  '',
+].join('\n');
 const TRANSACTION_CALLS =
   'db.withTransactionAsync(task);\ndb.withExclusiveTransactionAsync(task);\ndb.getEachAsync(source);\n';
 const FIELD_MESSAGE_RAIL = 'src/modules/accounts/components/field_message_rail.tsx';
@@ -505,6 +524,7 @@ describe('validate-structural-guards.js, banned tokens seeded together in one ru
     write(TRANSACTION_CALL_FILE, TRANSACTION_CALLS);
     write(HELPER_CALL_FILE, TRANSACTION_CALLS);
     write(BARE_IDENTIFIER_FILE, 'const execSync = 1;\ndb.prepareAsync(source);\n');
+    write(MEMBER_FORMS_FILE, MEMBER_FORMS);
     result = runGuard();
     restoreTouched();
   });
@@ -536,6 +556,31 @@ describe('validate-structural-guards.js, banned tokens seeded together in one ru
     expectReported(result, [lineAt(BARE_IDENTIFIER_FILE, 2, 'prepareAsync')]);
     expect(
       stderrLines(result).filter((line) => line.startsWith(`${BARE_IDENTIFIER_FILE}:1:`)),
+    ).toEqual([]);
+  });
+
+  it.each([
+    ['an object-destructuring declaration', 1, 'getEachAsync'],
+    ['a single-quoted bracket access', 2, "['execSync']"],
+    ['a double-quoted bracket access', 3, '["runSync"]'],
+    ['a template-literal bracket access', 4, '[`getAllSync`]'],
+    ['a renamed key in a destructuring pattern oxfmt wrapped', 6, 'prepareSync'],
+    ['a typed arrow parameter pattern', 8, 'getFirstSync'],
+    ['a quoted key in a destructuring pattern', 10, 'runSync'],
+    ['a nested destructuring pattern', 11, 'getEachSync'],
+    ['a for-of pattern', 12, 'prepareAsync'],
+    ['a function parameter pattern with a return type', 13, 'execSync'],
+    ['an untyped arrow parameter pattern', 14, 'getAllSync'],
+  ])('T6: reports a connection method reached through %s', (_form, line, token) => {
+    expectReported(result, [lineAt(MEMBER_FORMS_FILE, line, token)]);
+  });
+
+  it.each([
+    ['a shorthand property of an object literal', 9],
+    ['a statement in a block', 15],
+  ])('T6: passes a bare identifier of the same name as %s', (_form, line) => {
+    expect(
+      stderrLines(result).filter((entry) => entry.startsWith(`${MEMBER_FORMS_FILE}:${line}:`)),
     ).toEqual([]);
   });
 

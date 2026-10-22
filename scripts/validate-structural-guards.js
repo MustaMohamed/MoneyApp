@@ -42,6 +42,21 @@ function memberAccess(/** @type {string} */ name) {
   return new RegExp(`\\.${escapeRegExp(name)}(?![\\w$])`);
 }
 
+// A string-literal bracket access: `db['prepareAsync']` is `db.prepareAsync`.
+function bracketAccess(/** @type {string} */ name) {
+  return new RegExp(`\\[\\s*(['"\`])${escapeRegExp(name)}\\1\\s*\\]`);
+}
+
+// The name in an object pattern, nested or not, closed before `=`, `:`, `of` or a parameter list; matched across lines for a wrapped one.
+function destructured(/** @type {string} */ name) {
+  const key = escapeRegExp(name);
+  const span = '[^{}();<>]*';
+  return new RegExp(
+    `(?<![\\w$.])${key}(?![\\w$])(?<=\\{${span}${key})(?=${span}\\}(?:${span}\\})*\\s*(?:=(?![=>])|:|of(?![\\w$])|\\)\\s*(?:=>|\\{|:)))`,
+    'g',
+  );
+}
+
 // `createMoneyAppSelectors` gives a store a `useState` accessor, so `x.useState.y()` is not the hook.
 const USE_STATE = /(?<![\w$])useState(?![\w$])(?!(?<=\.useState)\s*\.)/;
 
@@ -362,6 +377,17 @@ const NAMED_ROWS = [
   },
 ];
 
+const UNQUEUED_CALLS = [
+  'prepareAsync',
+  'prepareSync',
+  'getEachAsync',
+  'getEachSync',
+  'execSync',
+  'runSync',
+  'getAllSync',
+  'getFirstSync',
+];
+
 const TREE_ROWS = [
   {
     name: 'T1, every *.state.ts under src/',
@@ -405,16 +431,8 @@ const TREE_ROWS = [
   {
     name: 'T6, every .ts and .tsx under src/ outside src/test_helpers/',
     matches: (/** @type {string} */ rel) => !rel.startsWith('src/test_helpers/'),
-    banned: [
-      'prepareAsync',
-      'prepareSync',
-      'getEachAsync',
-      'getEachSync',
-      'execSync',
-      'runSync',
-      'getAllSync',
-      'getFirstSync',
-    ].map(memberAccess),
+    banned: UNQUEUED_CALLS.flatMap((name) => [memberAccess(name), bracketAccess(name)]),
+    bannedInSource: UNQUEUED_CALLS.map(destructured),
     rule: 'skips the main connection queue; app code calls a connection through `execAsync`, `runAsync`, `getFirstAsync` and `getAllAsync` only',
   },
 ];
@@ -504,12 +522,18 @@ for (const rel of namedFiles.filter((named) => !load(named))) {
   errors.push(`${rel}: not in the tree; move its rows in ${SCRIPT}`);
 }
 
-/** @typedef {{ banned?: RegExp[], rule?: string, required?: Requirement[], needs?: string }} Row */
+/** @typedef {{ banned?: RegExp[], bannedInSource?: RegExp[], rule?: string, required?: Requirement[], needs?: string }} Row */
 
 /** @param {string} rel @param {string[]} lines @param {Row} row */
 function reportRow(rel, lines, row) {
   reportBanned(rel, lines, row.banned ?? [], row.rule);
   const source = lines.join('\n');
+  for (const pattern of row.bannedInSource ?? []) {
+    for (const match of source.matchAll(pattern)) {
+      const line = source.slice(0, match.index).split('\n').length;
+      errors.push(`${rel}:${line}: \`${match[0]}\` ${row.rule}`);
+    }
+  }
   for (const { found, missing } of row.required ?? []) {
     if (!found(source)) errors.push(`${rel}: ${missing}; ${row.needs}`);
   }
