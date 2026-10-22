@@ -44,6 +44,7 @@ import {
   type NewCommitmentInput,
   type PaymentDetails,
 } from '@/modules/commitments/repositories/commitment.repository';
+import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
 
 jest.mock('@/modules/commitments/database/commitments');
 jest.mock('@/modules/commitments/database/commitment_payments');
@@ -106,25 +107,15 @@ const baseAccount: Account = {
   updated_at: '2026-01-01T00:00:00.000Z',
 };
 
-const baseCommitment: Commitment = {
+const baseCommitment = makeTestCommitment({
   id: 'c-1',
   name: 'Netflix',
-  amount_type: AmountType.Fixed,
   amount: 250,
-  currency: Currency.EGP,
   category_id: 'cat-1',
-  recurrence_every: 1,
-  recurrence_period: RecurrencePeriod.Months,
-  start_date: '2026-01-01',
   account_id: 'acc-1',
-  notes: null,
-  duration_type: DurationType.Forever,
-  end_date: null,
-  end_after_count: null,
-  is_active: 1,
   created_at: '2026-01-01T00:00:00.000Z',
   updated_at: '2026-01-01T00:00:00.000Z',
-};
+});
 
 const baseInput: NewCommitmentInput = {
   name: 'Netflix',
@@ -142,22 +133,14 @@ const baseInput: NewCommitmentInput = {
   end_after_count: null,
 };
 
-const basePayment: CommitmentPayment = {
+const basePayment = makeTestPayment({
   id: 'p-1',
   commitment_id: 'c-1',
   due_date: '2026-05-01',
-  paid_date: null,
-  skipped_date: null,
   amount_due: 250,
-  amount_paid: null,
-  currency: Currency.EGP,
-  exchange_rate_snapshot: null,
-  account_id: null,
-  transaction_id: null,
-  notes: null,
   created_at: '2026-01-01T00:00:00.000Z',
   updated_at: '2026-01-01T00:00:00.000Z',
-};
+});
 
 describe('CommitmentRepository.getAll', () => {
   it('calls getCommitments with db and returns result', async () => {

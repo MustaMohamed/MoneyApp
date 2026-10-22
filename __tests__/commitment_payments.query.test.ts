@@ -21,6 +21,7 @@ import {
   updatePaymentSkipped,
 } from '@/modules/commitments/database/commitment_payments';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
+import { makeTestPayment } from '@/test_helpers/commitment';
 import { deferred } from '@/test_helpers/deferred';
 import { explainQueryPlan } from '@/test_helpers/sqlite_fixtures';
 
@@ -113,24 +114,17 @@ const mockDb = (SQLite as unknown as { __fakeDb: unknown }).__fakeDb as Paramete
   typeof getPaymentsByMonth
 >[0];
 
-function makePayment(overrides: Partial<CommitmentPayment> = {}): CommitmentPayment {
-  return {
-    id: `pay-${Math.random().toString(36).slice(2, 9)}`,
+function makePayment(
+  overrides: Partial<CommitmentPayment> & Pick<CommitmentPayment, 'id'>,
+): CommitmentPayment {
+  return makeTestPayment({
     commitment_id: 'commitment1',
     due_date: '2026-05-01',
-    paid_date: null,
-    skipped_date: null,
     amount_due: 200,
-    amount_paid: null,
-    currency: Currency.EGP,
-    exchange_rate_snapshot: null,
-    account_id: null,
-    transaction_id: null,
-    notes: null,
     created_at: NOW,
     updated_at: NOW,
     ...overrides,
-  };
+  });
 }
 
 function makeTx(overrides: Partial<Transaction> = {}): Transaction {

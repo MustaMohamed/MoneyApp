@@ -1,16 +1,15 @@
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 
-import { AmountType, Currency, DurationType, RecurrencePeriod } from '@/constants/enums';
+import { AmountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/database/entities/account.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
-import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
-import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import { PaySheet } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet';
 import { usePaySheetState } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.state';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
+import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: unknown) => sel }));
@@ -103,42 +102,25 @@ const payAccount = {
   color: null,
 } as unknown as Account;
 
-const variableCommitment: Commitment = {
-  id: 'c1',
+const variableCommitment = makeTestCommitment({
   name: 'Server',
   amount_type: AmountType.Variable,
   amount: null,
   currency: Currency.USD,
   category_id: 'cat1',
-  recurrence_every: 1,
-  recurrence_period: RecurrencePeriod.Months,
-  start_date: '2026-01-01',
   account_id: null,
-  notes: null,
-  duration_type: DurationType.Forever,
-  end_date: null,
-  end_after_count: null,
-  is_active: 1,
   created_at: '2026-01-01T00:00:00.000Z',
   updated_at: '2026-01-01T00:00:00.000Z',
-};
+});
 
-const duePayment: CommitmentPayment = {
-  id: 'p1',
-  commitment_id: 'c1',
+const duePayment = makeTestPayment({
+  commitment_id: variableCommitment.id,
   due_date: '2026-05-01',
   amount_due: null,
-  amount_paid: null,
   currency: Currency.USD,
-  paid_date: null,
-  skipped_date: null,
-  account_id: null,
-  exchange_rate_snapshot: null,
-  transaction_id: null,
-  notes: null,
   created_at: '2026-01-01T00:00:00.000Z',
   updated_at: '2026-01-01T00:00:00.000Z',
-};
+});
 
 const paySheetState = {
   entries: {

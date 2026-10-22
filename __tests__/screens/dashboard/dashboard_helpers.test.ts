@@ -20,6 +20,7 @@ import {
   reduceDashboardTransactionFacts,
 } from '@/modules/dashboard/screens/dashboard/dashboard.helpers';
 import type { Account } from '@/store/account.store';
+import { makeTestPayment } from '@/test_helpers/commitment';
 import { formatAmount, formatCurrencyAmount } from '@/utils/format_amount';
 
 const makeAccount = (overrides: Partial<Account> = {}): Account => ({
@@ -45,23 +46,16 @@ const makeAccount = (overrides: Partial<Account> = {}): Account => ({
   ...overrides,
 });
 
-const makePayment = (overrides: Partial<CommitmentPayment> = {}): CommitmentPayment => ({
-  id: 'payment-1',
-  commitment_id: 'commitment-1',
-  due_date: '2026-07-10',
-  paid_date: null,
-  skipped_date: null,
-  amount_due: 100,
-  amount_paid: null,
-  currency: Currency.EGP,
-  exchange_rate_snapshot: null,
-  account_id: null,
-  transaction_id: null,
-  notes: null,
-  created_at: '2026-01-01T00:00:00.000Z',
-  updated_at: '2026-01-01T00:00:00.000Z',
-  ...overrides,
-});
+const makePayment = (overrides: Partial<CommitmentPayment> = {}): CommitmentPayment =>
+  makeTestPayment({
+    id: 'payment-1',
+    commitment_id: 'commitment-1',
+    due_date: '2026-07-10',
+    amount_due: 100,
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: '2026-01-01T00:00:00.000Z',
+    ...overrides,
+  });
 
 // The gate reads only whether this marker is null; a non-null value means a rate was written.
 const VERIFIED = '2026-08-18T09:00:00.000Z';

@@ -5,7 +5,6 @@ import uuid from 'react-native-uuid';
 import {
   AmountType,
   CommitmentPaymentStatus,
-  Currency,
   DurationType,
   RecurrencePeriod,
 } from '@/constants/enums';
@@ -14,6 +13,7 @@ import { MIGRATIONS } from '@/database/migrations';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import { CommitmentRepository } from '@/modules/commitments/repositories/commitment.repository';
+import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
 
 jest.mock('@/database/client', () => ({ getDb: jest.fn() }));
 jest.mock('react-native-uuid', () => ({ v4: jest.fn() }));
@@ -90,26 +90,19 @@ afterAll(() => {
 });
 
 function commitment(id: string, overrides: Partial<Commitment> = {}): Commitment {
-  return {
+  return makeTestCommitment({
     id,
     name: id,
-    amount_type: AmountType.Fixed,
     amount: 200,
-    currency: Currency.EGP,
     category_id: 'cat',
-    recurrence_every: 1,
-    recurrence_period: RecurrencePeriod.Months,
     start_date: '2026-05-08',
     account_id: 'account',
-    notes: null,
     duration_type: DurationType.AfterCount,
-    end_date: null,
     end_after_count: 1,
-    is_active: 1,
     created_at: NOW_ISO,
     updated_at: NOW_ISO,
     ...overrides,
-  };
+  });
 }
 
 function insertCommitments(rows: Commitment[]) {
@@ -176,22 +169,17 @@ function payment(
   dueDate: string,
   status = CommitmentPaymentStatus.Upcoming,
 ): CommitmentPayment {
-  return {
+  return makeTestPayment({
     id,
     commitment_id: commitmentId,
     due_date: dueDate,
     paid_date: status === CommitmentPaymentStatus.Paid ? dueDate : null,
-    skipped_date: null,
     amount_due: 200,
     amount_paid: status === CommitmentPaymentStatus.Paid ? 200 : null,
-    currency: Currency.EGP,
-    exchange_rate_snapshot: null,
     account_id: 'account',
-    transaction_id: null,
-    notes: null,
     created_at: NOW_ISO,
     updated_at: NOW_ISO,
-  };
+  });
 }
 
 function workloadCounts() {

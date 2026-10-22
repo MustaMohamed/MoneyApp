@@ -1,30 +1,23 @@
-import { Currency } from '@/constants/enums';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import {
   INITIAL_DATA_ENTRY,
   useCommitmentDetailStore,
 } from '@/modules/commitments/screens/commitments/detail/detail.store';
+import { makeTestPayment } from '@/test_helpers/commitment';
 
 const entryOf = (owner: string) => useCommitmentDetailStore.getState().entries[owner];
 
 function makePayment(overrides: Partial<CommitmentPayment> = {}): CommitmentPayment {
-  return {
+  return makeTestPayment({
     id: 'pay-1',
     commitment_id: 'commitment-1',
     due_date: '2026-05-01',
-    paid_date: null,
-    skipped_date: null,
     amount_due: 5000,
-    amount_paid: null,
-    currency: Currency.EGP,
-    exchange_rate_snapshot: null,
     account_id: 'account-1',
-    transaction_id: null,
-    notes: null,
     created_at: '2026-01-01T00:00:00.000Z',
     updated_at: '2026-01-01T00:00:00.000Z',
     ...overrides,
-  };
+  });
 }
 
 beforeEach(() => {

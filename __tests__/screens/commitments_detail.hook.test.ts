@@ -2,7 +2,6 @@ import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { router } from 'expo-router';
 import { createContext, createElement, useContext, type PropsWithChildren } from 'react';
 
-import { AmountType, Currency, DurationType, RecurrencePeriod } from '@/constants/enums';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
@@ -12,6 +11,7 @@ import { useCommitmentDetail } from '@/modules/commitments/screens/commitments/d
 import { useCommitmentDetailState } from '@/modules/commitments/screens/commitments/detail/detail.state';
 import { useCommitmentDetailStore } from '@/modules/commitments/screens/commitments/detail/detail.store';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
+import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
 import { deferred } from '@/test_helpers/deferred';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
@@ -69,42 +69,24 @@ function paramsWrapper(params: DetailParams) {
   };
 }
 
-const commitment: Commitment = {
+const commitment = makeTestCommitment({
   id: 'commitment-1',
-  name: 'Rent',
-  amount_type: AmountType.Fixed,
   amount: 5000,
-  currency: Currency.EGP,
   category_id: 'category-1',
-  recurrence_every: 1,
-  recurrence_period: RecurrencePeriod.Months,
-  start_date: '2026-01-01',
   account_id: 'account-1',
-  notes: null,
-  duration_type: DurationType.Forever,
-  end_date: null,
-  end_after_count: null,
-  is_active: 1,
   created_at: '2026-01-01T00:00:00.000Z',
   updated_at: '2026-01-01T00:00:00.000Z',
-};
+});
 
-const payment: CommitmentPayment = {
+const payment = makeTestPayment({
   id: 'pay-1',
   commitment_id: commitment.id,
   due_date: '2026-05-01',
-  paid_date: null,
-  skipped_date: null,
   amount_due: 5000,
-  amount_paid: null,
-  currency: Currency.EGP,
-  exchange_rate_snapshot: null,
   account_id: 'account-1',
-  transaction_id: null,
-  notes: null,
   created_at: '2026-01-01T00:00:00.000Z',
   updated_at: '2026-01-01T00:00:00.000Z',
-};
+});
 
 const otherCommitment: Commitment = { ...commitment, id: 'commitment-2', name: 'Gym' };
 const otherPayment: CommitmentPayment = {

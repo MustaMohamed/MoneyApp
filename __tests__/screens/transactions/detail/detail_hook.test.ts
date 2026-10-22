@@ -23,6 +23,7 @@ import { useTxDetailStore } from '@/modules/transactions/screens/transactions/de
 import { useTransactionDeleteState } from '@/modules/transactions/screens/transactions/transaction_delete.state';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import { useTransactionFormState } from '@/modules/transactions/store/transaction_form_host.state';
+import { makeTestPayment } from '@/test_helpers/commitment';
 import { deferred } from '@/test_helpers/deferred';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 import { makeTestAccount } from '@/test_helpers/transaction';
@@ -382,22 +383,18 @@ describe('useTransactionDetail loading', () => {
   });
 });
 
-const paidPayment: CommitmentPayment = {
+const paidPayment = makeTestPayment({
   id: 'payment-1',
   commitment_id: 'commitment-1',
   due_date: '2026-04-18',
   paid_date: '2026-04-18',
-  skipped_date: null,
   amount_due: 200,
   amount_paid: 200,
-  currency: Currency.EGP,
-  exchange_rate_snapshot: null,
   account_id: 'account-1',
   transaction_id: 'transaction-1',
-  notes: null,
   created_at: '2026-04-18T10:00:00.000Z',
   updated_at: '2026-04-18T10:00:00.000Z',
-};
+});
 
 describe('useTransactionDetail commitment navigation', () => {
   it('loads the linked payment month before navigating', async () => {
