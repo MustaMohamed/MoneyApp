@@ -19,6 +19,7 @@ import {
 import { settledPaymentSql } from '@/modules/commitments/database/payment_state_sql';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
+import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
 
 const sqlite = SQLite as unknown as { __reset: () => void };
 let realDb: ReturnType<typeof Database>;
@@ -89,26 +90,15 @@ const mockDb = (SQLite as unknown as { __fakeDb: unknown }).__fakeDb as Paramete
 >[0];
 
 function makeCommitment(overrides: Partial<Commitment> = {}): Commitment {
-  return {
-    id: `com-${Math.random().toString(36).slice(2, 9)}`,
+  return makeTestCommitment({
     name: 'Netflix',
-    amount_type: AmountType.Fixed,
     amount: 200,
-    currency: Currency.EGP,
     category_id: 'cat1',
-    recurrence_every: 1,
-    recurrence_period: RecurrencePeriod.Months,
-    start_date: '2026-01-01',
     account_id: 'acc1',
-    notes: null,
-    duration_type: DurationType.Forever,
-    end_date: null,
-    end_after_count: null,
-    is_active: 1,
     created_at: NOW,
     updated_at: NOW,
     ...overrides,
-  };
+  });
 }
 
 describe('addCommitment', () => {
@@ -564,23 +554,18 @@ function makePayment(
   dueDate: string,
   overrides: Partial<CommitmentPayment> = {},
 ): CommitmentPayment {
-  return {
+  return makeTestPayment({
     id,
     commitment_id: commitmentId,
     due_date: dueDate,
     paid_date: dueDate,
-    skipped_date: null,
     amount_due: 200,
     amount_paid: 200,
-    currency: Currency.EGP,
-    exchange_rate_snapshot: null,
     account_id: 'acc1',
-    transaction_id: null,
-    notes: null,
     created_at: NOW,
     updated_at: NOW,
     ...overrides,
-  };
+  });
 }
 
 describe('clearCommitmentAccount — MA-020', () => {
