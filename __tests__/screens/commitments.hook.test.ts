@@ -7,8 +7,6 @@ import {
   CategoryType,
   CommitmentPaymentStatus,
   Currency,
-  DurationType,
-  RecurrencePeriod,
 } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/modules/accounts/entities/account.entity';
@@ -22,6 +20,7 @@ import type { CommitmentStatusFilter } from '@/modules/commitments/screens/commi
 import { useCommitmentsScreenState } from '@/modules/commitments/screens/commitments/commitments.state';
 import { EMPTY_COMMITMENT_FILTERS } from '@/modules/commitments/screens/commitments/filter/filter.store';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
+import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
 const mockUseDeferredValue = jest.fn((value: unknown) => value);
@@ -110,21 +109,15 @@ function makePayment(
   state: CommitmentPaymentStatus,
   overrides: Partial<CommitmentPayment> = {},
 ): CommitmentPayment {
-  return {
+  return makeTestPayment({
     id,
     commitment_id: `commitment-${id}`,
     ...DATES_BY_STATE[state],
     amount_due: 100,
-    amount_paid: null,
-    currency: Currency.EGP,
-    exchange_rate_snapshot: null,
-    account_id: null,
-    transaction_id: null,
-    notes: null,
     created_at: '2026-05-01T00:00:00.000Z',
     updated_at: '2026-05-01T00:00:00.000Z',
     ...overrides,
-  };
+  });
 }
 
 function sectionIds(sections: { title: string; data: CommitmentPayment[] }[]) {
@@ -132,26 +125,17 @@ function sectionIds(sections: { title: string; data: CommitmentPayment[] }[]) {
 }
 
 function makeCommitment(id: string, overrides: Partial<Commitment> = {}): Commitment {
-  return {
+  return makeTestCommitment({
     id,
     name: id,
-    amount_type: AmountType.Fixed,
     amount: 100,
-    currency: Currency.EGP,
     category_id: 'cat-bills',
-    recurrence_every: 1,
-    recurrence_period: RecurrencePeriod.Months,
     start_date: '2026-05-01',
     account_id: 'account-wallet',
-    notes: null,
-    duration_type: DurationType.Forever,
-    end_date: null,
-    end_after_count: null,
-    is_active: 1,
     created_at: '2026-05-01T00:00:00.000Z',
     updated_at: '2026-05-01T00:00:00.000Z',
     ...overrides,
-  };
+  });
 }
 
 function makeAccount(id: string, name: string): Account {

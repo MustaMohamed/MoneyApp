@@ -1,10 +1,4 @@
-import {
-  AmountType,
-  Currency,
-  DurationType,
-  RecurrencePeriod,
-  RecurrencePreset,
-} from '@/constants/enums';
+import { AmountType, Currency, RecurrencePeriod, RecurrencePreset } from '@/constants/enums';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import {
@@ -14,48 +8,34 @@ import {
   countActiveCommitmentFilters,
 } from '@/modules/commitments/screens/commitments/filter/filter.helpers';
 import type { CommitmentAdvancedFilters } from '@/modules/commitments/screens/commitments/filter/filter.store';
+import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
 
 function makeCommitment(overrides: Partial<Commitment> = {}): Commitment {
-  return {
+  return makeTestCommitment({
     id: 'commitment-1',
     name: 'Apartment Rent',
-    amount_type: AmountType.Fixed,
     amount: 5000,
-    currency: Currency.EGP,
     category_id: 'cat-home',
-    recurrence_every: 1,
-    recurrence_period: RecurrencePeriod.Months,
     start_date: '2026-07-01',
     account_id: 'account-default',
     notes: 'Lease memo',
-    duration_type: DurationType.Forever,
-    end_date: null,
-    end_after_count: null,
-    is_active: 1,
     created_at: '2026-07-01T00:00:00.000Z',
     updated_at: '2026-07-01T00:00:00.000Z',
     ...overrides,
-  };
+  });
 }
 
 function makePayment(overrides: Partial<CommitmentPayment> = {}): CommitmentPayment {
-  return {
+  return makeTestPayment({
     id: 'payment-1',
     commitment_id: 'commitment-1',
     due_date: '2026-07-05',
-    paid_date: null,
-    skipped_date: null,
     amount_due: 5000,
-    amount_paid: null,
-    currency: Currency.EGP,
-    exchange_rate_snapshot: null,
-    account_id: null,
-    transaction_id: null,
     notes: 'Payment note',
     created_at: '2026-07-01T00:00:00.000Z',
     updated_at: '2026-07-01T00:00:00.000Z',
     ...overrides,
-  };
+  });
 }
 
 function makeFilters(
