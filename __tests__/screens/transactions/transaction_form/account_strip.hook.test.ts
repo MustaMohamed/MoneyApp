@@ -2,14 +2,13 @@ import type { BottomSheetScrollViewMethods } from '@gorhom/bottom-sheet';
 import { act, renderHook } from '@testing-library/react-native';
 import type { LayoutChangeEvent, NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 
-import { TransactionType } from '@/constants/enums';
-import { Spacing } from '@/constants/theme';
-import { useAccountStripReveal } from '@/modules/transactions/screens/transactions/transaction_form/components/account_strip.hook';
+import { useAccountStripReveal } from '@/components/ui/account_strip.hook';
 import {
   ACCOUNT_STRIP_CHIP_HEIGHT,
   ACCOUNT_STRIP_CHIP_WIDTH,
   ACCOUNT_STRIP_GAP,
-} from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form.geometry';
+} from '@/components/ui/form_sheet.geometry';
+import { Spacing } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
 const FRAME_MS = 16;
@@ -37,14 +36,17 @@ const animatedTo = (x: number) => ({ x: expect.closeTo(x, 5) as unknown, animate
 
 interface StripProps {
   selectedIndex: number;
-  type: TransactionType;
+  revealKey: string | undefined;
 }
 
-async function mountStrip(selectedIndex: number, type = TransactionType.Expense) {
+async function mountStrip(
+  selectedIndex: number,
+  { revealKey }: Pick<StripProps, 'revealKey'> = { revealKey: 'expense' },
+) {
   const scrollTo = jest.fn();
   const hook = await renderHook(
-    (props: StripProps) => useAccountStripReveal(props.selectedIndex, props.type),
-    { initialProps: { selectedIndex, type } },
+    (props: StripProps) => useAccountStripReveal(props.selectedIndex, props.revealKey),
+    { initialProps: { selectedIndex, revealKey } },
   );
   hook.result.current.scrollRef.current = { scrollTo } as unknown as BottomSheetScrollViewMethods;
   return {
@@ -106,7 +108,7 @@ describe('useAccountStripReveal', () => {
 
   it('scrolls on the frame after a new selectedIndex whose chip is cut', async () => {
     const strip = await mountLaidOut(IN_VIEW);
-    await strip.setProps({ selectedIndex: CUT, type: TransactionType.Expense });
+    await strip.setProps({ selectedIndex: CUT, revealKey: 'expense' });
     expect(strip.scrollTo).not.toHaveBeenCalled();
 
     await runFrame();
@@ -114,10 +116,27 @@ describe('useAccountStripReveal', () => {
     expect(strip.scrollTo).toHaveBeenLastCalledWith(animatedTo(offsetShowingFromTheRight(CUT)));
   });
 
-  it('scrolls once under a new type when a recorded scroll has left the same selected chip out of view', async () => {
+  it('MA-206: scrolls once on the frame after a new cut selectedIndex with no reveal key on any render', async () => {
+    const strip = await mountStrip(IN_VIEW, { revealKey: undefined });
+    await strip.layout(VIEWPORT);
+    await runFrame();
+    expect(strip.scrollTo).not.toHaveBeenCalled();
+
+    await strip.setProps({ selectedIndex: CUT, revealKey: undefined });
+    expect(strip.scrollTo).not.toHaveBeenCalled();
+
+    await runFrame();
+    expect(strip.scrollTo).toHaveBeenCalledTimes(1);
+    expect(strip.scrollTo).toHaveBeenLastCalledWith(animatedTo(offsetShowingFromTheRight(CUT)));
+
+    await runFrame();
+    expect(strip.scrollTo).toHaveBeenCalledTimes(1);
+  });
+
+  it('scrolls once under a new reveal key when a recorded scroll has left the same selected chip out of view', async () => {
     const strip = await mountLaidOut(IN_VIEW);
     await strip.recordScroll(PAST_CHIP_ONE);
-    await strip.setProps({ selectedIndex: IN_VIEW, type: TransactionType.Income });
+    await strip.setProps({ selectedIndex: IN_VIEW, revealKey: 'income' });
     expect(strip.scrollTo).not.toHaveBeenCalled();
 
     await runFrame();
@@ -128,9 +147,9 @@ describe('useAccountStripReveal', () => {
     expect(strip.scrollTo).toHaveBeenCalledTimes(1);
   });
 
-  it('never scrolls under a new type while the selected chip lies whole in view', async () => {
+  it('never scrolls under a new reveal key while the selected chip lies whole in view', async () => {
     const strip = await mountLaidOut(IN_VIEW);
-    await strip.setProps({ selectedIndex: IN_VIEW, type: TransactionType.Income });
+    await strip.setProps({ selectedIndex: IN_VIEW, revealKey: 'income' });
     await runFrame();
 
     expect(strip.scrollTo).not.toHaveBeenCalled();
@@ -194,15 +213,15 @@ describe('useAccountStripReveal', () => {
   it('computes the first reveal from offset 0 once a type with no chip has unmounted the scroll view', async () => {
     const strip = await mountLaidOut(IN_VIEW);
     await strip.recordScroll(leftEdgeOf(PAST_THE_EDGE - 1));
-    await strip.setProps({ selectedIndex: PAST_THE_EDGE, type: TransactionType.Expense });
+    await strip.setProps({ selectedIndex: PAST_THE_EDGE, revealKey: 'expense' });
     await runFrame();
     expect(strip.scrollTo).not.toHaveBeenCalled();
 
     strip.unmountScroll();
-    await strip.setProps({ selectedIndex: -1, type: TransactionType.Transfer });
+    await strip.setProps({ selectedIndex: -1, revealKey: 'transfer' });
     await runFrame();
     strip.mountScroll();
-    await strip.setProps({ selectedIndex: PAST_THE_EDGE, type: TransactionType.Expense });
+    await strip.setProps({ selectedIndex: PAST_THE_EDGE, revealKey: 'expense' });
     expect(strip.scrollTo).not.toHaveBeenCalled();
 
     await runFrame();
@@ -216,16 +235,16 @@ describe('useAccountStripReveal', () => {
     const offsetShowingTheChipWhole = leftEdgeOf(PAST_THE_EDGE - 1);
     const strip = await mountLaidOut(IN_VIEW);
     await strip.recordScroll(offsetShowingTheChipWhole);
-    await strip.setProps({ selectedIndex: PAST_THE_EDGE, type: TransactionType.Expense });
+    await strip.setProps({ selectedIndex: PAST_THE_EDGE, revealKey: 'expense' });
     await runFrame();
     expect(strip.scrollTo).not.toHaveBeenCalled();
 
     strip.unmountScroll();
-    await strip.setProps({ selectedIndex: -1, type: TransactionType.Transfer });
+    await strip.setProps({ selectedIndex: -1, revealKey: 'transfer' });
     await strip.recordScroll(offsetShowingTheChipWhole);
     await runFrame();
     strip.mountScroll();
-    await strip.setProps({ selectedIndex: PAST_THE_EDGE, type: TransactionType.Expense });
+    await strip.setProps({ selectedIndex: PAST_THE_EDGE, revealKey: 'expense' });
     expect(strip.scrollTo).not.toHaveBeenCalled();
 
     await runFrame();
@@ -237,10 +256,10 @@ describe('useAccountStripReveal', () => {
 
   it('never scrolls while no chip is selected', async () => {
     const strip = await mountLaidOut(-1);
-    await strip.setProps({ selectedIndex: -1, type: TransactionType.Transfer });
+    await strip.setProps({ selectedIndex: -1, revealKey: 'transfer' });
     await runFrame();
     await strip.recordScroll(PAST_CHIP_ONE);
-    await strip.setProps({ selectedIndex: -1, type: TransactionType.Expense });
+    await strip.setProps({ selectedIndex: -1, revealKey: 'expense' });
     await runFrame();
 
     expect(strip.scrollTo).not.toHaveBeenCalled();

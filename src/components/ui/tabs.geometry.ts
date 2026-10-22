@@ -4,12 +4,16 @@ import {
   scaledTextStyle,
   scaledTextStyleAboveOne,
 } from '@/components/ui/text_scale.geometry';
-import { Size, Spacing, Type } from '@/constants/theme';
+import { Radius, Size, Spacing, Type } from '@/constants/theme';
 
 // `.tabs__list--variant-primary`'s own padding, unscaled CSS.
 export const TABS_LIST_PADDING = 3;
 // `.tabs__trigger`'s own `padding-block`, unscaled CSS.
 export const TABS_TRIGGER_PADDING_BLOCK = 6;
+
+// The form vocabulary is small radii — inputs and tiles sit at Radius.md — so the solid-gold track overrides HeroUI's pill `--radius-3xl` (user ruling 2026-09-01); the fill is concentric inside the list padding.
+export const SOLID_GOLD_TRACK_RADIUS = Radius.md;
+export const SOLID_GOLD_SELECTED_RADIUS = Math.max(SOLID_GOLD_TRACK_RADIUS - TABS_LIST_PADDING, 0);
 
 /** Dp past a trigger's top and bottom edges that still select it. */
 export interface TabsTriggerHitSlop {

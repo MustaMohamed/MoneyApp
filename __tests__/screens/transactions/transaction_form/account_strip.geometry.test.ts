@@ -1,4 +1,3 @@
-import { Size, Spacing, TouchSize } from '@/constants/theme';
 import {
   ACCOUNT_STRIP_CHIP_HEIGHT,
   ACCOUNT_STRIP_CHIP_PADDING_X,
@@ -9,7 +8,8 @@ import {
   ACCOUNT_STRIP_TILE,
   ACCOUNT_STRIP_TILE_NAME_GAP,
   resolveAccountStripRevealX,
-} from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form.geometry';
+} from '@/components/ui/form_sheet.geometry';
+import { Size, Spacing, TouchSize } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
 const STRIP_VIEWPORT = ms(390) - 2 * Spacing.md;

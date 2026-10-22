@@ -1,3 +1,9 @@
+import {
+  formatConvertedAmount,
+  formatRateRowValue,
+  resolveRateCommit,
+  resolveRateEditorSource,
+} from '@/components/ui/form_sheet.helpers';
 import { AccountType, CategoryType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { AcctTokens } from '@/constants/theme_tokens';
@@ -11,10 +17,9 @@ import {
   TransactionValidationError,
 } from '@/modules/transactions/repositories/transaction.errors';
 import {
+  AMOUNT_HERO_TONE,
   applyRateCommit,
   countTransactionFormFieldErrors,
-  formatConvertedAmount,
-  formatRateRowValue,
   resolveAccountPreselect,
   resolveAccountStripChips,
   resolveBudgetFieldError,
@@ -23,8 +28,6 @@ import {
   resolveEligibleFromAccounts,
   resolveEligibleToAccounts,
   resolveLockedStripChips,
-  resolveRateCommit,
-  resolveRateEditorSource,
   resolveStripSelectedId,
   resolveToRowFace,
   resolveTransactionDeleteError,
@@ -990,5 +993,20 @@ describe('MA-168 converted amount', () => {
 
     expect(converted).toBeUndefined();
     expect(formatConvertedAmount(converted)).toBe('≈ —');
+  });
+});
+
+describe('MA-206 AMOUNT_HERO_TONE', () => {
+  it.each([
+    [TransactionType.Expense, 'danger'],
+    [TransactionType.Income, 'success'],
+    [TransactionType.Transfer, 'info'],
+    [TransactionType.CCPayment, 'accentCc'],
+  ] as const)('tones the amount hero of %s as %s', (type, tone) => {
+    expect(AMOUNT_HERO_TONE[type]).toBe(tone);
+  });
+
+  it('keys every transaction type', () => {
+    expect(Object.keys(AMOUNT_HERO_TONE).sort()).toEqual(Object.values(TransactionType).sort());
   });
 });

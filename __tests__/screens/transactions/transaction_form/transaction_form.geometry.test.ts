@@ -1,15 +1,17 @@
 import { DISPLAY_HEADLINE_MAX_FONT_SCALE } from '@/components/ui/display_headline.geometry';
 import { resolveFactRowHeight } from '@/components/ui/fact_row.geometry';
-import { TABS_LIST_PADDING, resolveSegmentedTabsGeometry } from '@/components/ui/tabs.geometry';
-import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
-import { Spacing, TouchSize, Type, lineHeightFor } from '@/constants/theme';
 import {
   ACCOUNT_STRIP_CHIP_HEIGHT,
   ACCOUNT_STRIP_CHIP_WIDTH,
   AMOUNT_ENTRY_MAX_FONT_SCALE,
+  resolveAccountStripChipGeometry,
+} from '@/components/ui/form_sheet.geometry';
+import { TABS_LIST_PADDING, resolveSegmentedTabsGeometry } from '@/components/ui/tabs.geometry';
+import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
+import { Spacing, TouchSize, Type, lineHeightFor } from '@/constants/theme';
+import {
   TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
   TRANSACTION_FORM_SKELETON_GEOMETRY,
-  resolveAccountStripChipGeometry,
   resolveNoteInputGeometry,
   resolveTransactionFormSkeletonBars,
   resolveTypeTabsGeometry,

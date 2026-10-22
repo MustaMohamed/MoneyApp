@@ -21,15 +21,15 @@ The five fields a hook action writes are the pay sheet amount and rate, the inco
 
 Every Save runs the schema unchanged, so Save refuses `48.` and, where zero is refused, `0` and `0.0`, with the shipped messages. A re-validation another field causes also runs the schema unchanged. The add and edit transaction sheets are the exception for the rate, which their schemas no longer check: see the amendment below.
 
-On the add and edit transaction sheets the rate is typed in the rate editor, whose hook is `components/rate_editor_sheet.hook.ts` and calls no hold. A keystroke there clears the editor's message and checks nothing. Each hook's pick effect, which validates in full after a refused Save, takes the form's rate among its deps, so a committed rate, a Reset to global and a pick's seed each re-validate the form.
+On the add and edit transaction sheets the rate is typed in the rate editor, whose hook is `src/components/ui/rate_editor_sheet.hook.ts` and calls no hold. A keystroke there clears the editor's message and checks nothing. Each hook's pick effect, which validates in full after a refused Save, takes the form's rate among its deps, so a committed rate, a Reset to global and a pick's seed each re-validate the form.
 
-**Amended 2026-10-14, MA-169 (#696).** The transaction sheets check the rate once, at the rate editor's Done, through `resolveRateCommit` in `transaction_form.helpers.ts`. A text it refuses, `48.`, `0` and `0.0` included, keeps the editor open with its message and never reaches the form. Save and the picks never validate the rate, which leaves both schemas, the field errors and the footer count. `transaction_form_rate.hook.ts` and its held-text ref are removed.
+**Amended 2026-10-14, MA-169 (#696).** The transaction sheets check the rate once, at the rate editor's Done, through `resolveRateCommit` in `src/components/ui/form_sheet.helpers.ts`. A text it refuses, `48.`, `0` and `0.0` included, keeps the editor open with its message and never reaches the form. Save and the picks never validate the rate, which leaves both schemas, the field errors and the footer count. `transaction_form_rate.hook.ts` and its held-text ref are removed.
 
 ## 3. The fields, and which refuse zero
 
 | Field | Where the hold is called | Refuses zero |
 |---|---|---|
-| Transaction rate, add and edit sheet | no hold: `components/rate_editor_sheet.hook.ts` checks the rate only at Done (MA-169) | yes |
+| Transaction rate, add and edit sheet | no hold: `src/components/ui/rate_editor_sheet.hook.ts` checks the rate only at Done (MA-169) | yes |
 | Pay sheet amount | `pay_sheet.hook.ts`, through `setTypedDecimal` | yes |
 | Pay sheet rate | `pay_sheet.hook.ts`, through `setTypedDecimal` | yes |
 | Commitment amount, add and edit form | `commitment_form_body.tsx` | yes |

@@ -26,19 +26,19 @@ jest.mock('@/components/ui/sheet', () => ({
   useBottomSheetAwareHandlers: () => ({ onFocus: jest.fn(), onBlur: jest.fn() }),
 }));
 
-import { AmountHero } from '@/modules/transactions/screens/transactions/transaction_form/components/amount_hero';
 import {
   AMOUNT_ENTRY_MAX_FONT_SCALE,
   AMOUNT_ERROR_LINE_HEIGHT,
   AMOUNT_ERROR_LINE_STYLE,
-} from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form.geometry';
+} from '@/components/ui/form_sheet.geometry';
+import { TransactionAmountHero } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_amount_hero';
 
-describe('AmountHero', () => {
+describe('TransactionAmountHero', () => {
   beforeEach(() => useAddTransactionStore.getState().reset());
 
   it('does not focus or select the amount when the sheet opens', async () => {
     const { getByTestId } = await render(
-      <AmountHero
+      <TransactionAmountHero
         onChange={jest.fn()}
         type={TransactionType.Expense}
         currency={Currency.EGP}
@@ -56,7 +56,7 @@ describe('AmountHero', () => {
       useAddTransactionStore.getState().setAmountStr(value),
     );
     const { getByTestId } = await render(
-      <AmountHero
+      <TransactionAmountHero
         onChange={onChange}
         type={TransactionType.Expense}
         currency={Currency.EGP}
@@ -73,7 +73,7 @@ describe('AmountHero', () => {
     useAddTransactionStore.getState().setAmountStr('12');
     const onChange = jest.fn();
     const { getByTestId } = await render(
-      <AmountHero
+      <TransactionAmountHero
         onChange={onChange}
         type={TransactionType.Expense}
         currency={Currency.EGP}
@@ -92,7 +92,7 @@ describe('AmountHero', () => {
       useAddTransactionStore.getState().setAmountStr(value),
     );
     const { getByTestId } = await render(
-      <AmountHero
+      <TransactionAmountHero
         onChange={onChange}
         type={TransactionType.Expense}
         currency={Currency.EGP}
@@ -111,7 +111,7 @@ describe('AmountHero', () => {
       useAddTransactionStore.getState().setAmountStr(value),
     );
     const { getByTestId } = await render(
-      <AmountHero
+      <TransactionAmountHero
         onChange={onChange}
         type={TransactionType.Expense}
         currency={Currency.EGP}
@@ -126,7 +126,7 @@ describe('AmountHero', () => {
 
   it('MA-133: marks an invalid amount with a line outside its layout, only while invalid, and never with a ring', async () => {
     const { queryByTestId, getByTestId, rerender } = await render(
-      <AmountHero
+      <TransactionAmountHero
         onChange={jest.fn()}
         type={TransactionType.Expense}
         currency={Currency.EGP}
@@ -138,7 +138,7 @@ describe('AmountHero', () => {
     expect(queryByTestId('amount-hero-ring')).toBeNull();
 
     await rerender(
-      <AmountHero
+      <TransactionAmountHero
         onChange={jest.fn()}
         type={TransactionType.Expense}
         currency={Currency.EGP}
@@ -153,7 +153,7 @@ describe('AmountHero', () => {
     expect(queryByTestId('amount-hero-ring')).toBeNull();
 
     await rerender(
-      <AmountHero
+      <TransactionAmountHero
         onChange={jest.fn()}
         type={TransactionType.Expense}
         currency={Currency.EGP}
@@ -169,7 +169,7 @@ describe('AmountHero', () => {
     const { fontScale } = Dimensions.get('window');
     expect(fontScale).toBeGreaterThan(AMOUNT_ENTRY_MAX_FONT_SCALE);
     const { getByTestId } = await render(
-      <AmountHero
+      <TransactionAmountHero
         onChange={jest.fn()}
         type={TransactionType.Expense}
         currency={Currency.EGP}
@@ -186,7 +186,7 @@ describe('AmountHero', () => {
 
   it('MA-163: shows the currency code once to accessibility, with its mirror on the right hidden', async () => {
     const { getAllByText } = await render(
-      <AmountHero
+      <TransactionAmountHero
         onChange={jest.fn()}
         type={TransactionType.Expense}
         currency={Currency.EGP}

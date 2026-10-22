@@ -1,13 +1,13 @@
 import { act, renderHook } from '@testing-library/react-native';
 import { Keyboard, type TextInput } from 'react-native';
 
-import { Strings } from '@/constants/strings';
 import {
   openRateEditor,
   useRateEditor,
   useRateEditorFocus,
-} from '@/modules/transactions/screens/transactions/transaction_form/components/rate_editor_sheet.hook';
-import { useRateEditorSheetState } from '@/modules/transactions/screens/transactions/transaction_form/components/rate_editor_sheet.state';
+} from '@/components/ui/rate_editor_sheet.hook';
+import { useRateEditorSheetState } from '@/components/ui/rate_editor_sheet.state';
+import { Strings } from '@/constants/strings';
 
 const ADD_OWNER = 'add-session';
 const EDIT_OWNER = 'edit-session';

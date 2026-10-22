@@ -2,12 +2,10 @@ import { render, within } from '@testing-library/react-native';
 import type { ComponentProps, ReactNode } from 'react';
 import { Dimensions, StyleSheet } from 'react-native';
 
+import { SegmentedTabs } from '@/components/ui/tabs';
 import {
   SOLID_GOLD_SELECTED_RADIUS,
   SOLID_GOLD_TRACK_RADIUS,
-  SegmentedTabs,
-} from '@/components/ui/tabs';
-import {
   TABS_LIST_PADDING,
   resolveSegmentedTabsGeometry,
   resolveTabsScrollSlopInset,
