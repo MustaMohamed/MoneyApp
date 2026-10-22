@@ -78,20 +78,21 @@ export async function withWriteTransactionAsync(
     await task();
     await db.execAsync('COMMIT');
   } catch (error) {
-    await rollBack(db);
+    await rollBack(db, error);
     throw error;
   }
 }
 
 // SQLite has already rolled back after some errors; a ROLLBACK that fails with the transaction still open is the failure to report.
-async function rollBack(db: SQLite.SQLiteDatabase): Promise<void> {
+async function rollBack(db: SQLite.SQLiteDatabase, error: unknown): Promise<void> {
   try {
     await db.execAsync('ROLLBACK');
   } catch (rollbackError) {
     if (await db.isInTransactionAsync()) {
-      throw new Error('ROLLBACK failed and the transaction is still open', {
-        cause: rollbackError,
+      const failure = new Error('ROLLBACK failed and the transaction is still open', {
+        cause: error,
       });
+      throw Object.assign(failure, { rollbackError });
     }
   }
 }
