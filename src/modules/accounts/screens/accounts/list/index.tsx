@@ -21,6 +21,7 @@ import {
   ACCOUNTS_LIST_FLOATING_STYLE,
   ACCOUNTS_LIST_RAIL_STYLE,
   ACCOUNTS_LIST_REORDER_NOTE_STYLE,
+  ACCOUNTS_LIST_TYPE_TRIGGER_HIT_SLOP,
 } from './accounts_list.geometry';
 import { useAccountsList } from './accounts_list.hook';
 import { ACCOUNTS_LIST_TYPE_FILTERS } from './accounts_list.presentation';
@@ -94,6 +95,7 @@ export default function AccountsListScreen() {
               filters={ACCOUNTS_LIST_TYPE_FILTERS}
               accessibilityLabel={Strings.accountTypeFilterAccessibility}
               corners="form"
+              triggerHitSlop={ACCOUNTS_LIST_TYPE_TRIGGER_HIT_SLOP}
             />
           </View>
 

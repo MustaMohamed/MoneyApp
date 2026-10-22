@@ -159,8 +159,6 @@ export function AccountStrip({
                   borderRadius: ACCOUNT_STRIP_CHIP_RADIUS,
                   paddingVertical: 0,
                   paddingHorizontal: ACCOUNT_STRIP_CHIP_PADDING_X,
-                  // HeroUI's pressable root clips, and RNGH drops a hitSlop outside a clipping view on Android.
-                  overflow: 'visible',
                   ...(chip.dimmed
                     ? { opacity: ACCOUNT_STRIP_DIMMED_OPACITY, borderStyle: 'dashed' as const }
                     : null),

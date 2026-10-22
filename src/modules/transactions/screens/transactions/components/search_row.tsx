@@ -1,5 +1,6 @@
 import React from 'react';
 
+import { CHIP_ROW_ROOM_BELOW } from '@/components/ui/account_chips.geometry';
 import { SearchFilterRow } from '@/components/ui/search_filter_row';
 import { Strings } from '@/constants/strings';
 
@@ -27,6 +28,7 @@ export function SearchRow({
       activeFilterCount={activeFilterCount}
       filterBadgeTestID="filter-badge"
       isDisabled={isDisabled}
+      topRoom={CHIP_ROW_ROOM_BELOW}
     />
   );
 }

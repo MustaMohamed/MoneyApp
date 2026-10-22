@@ -1,11 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { ListGroup, PressableFeedback, Separator, Typography } from 'heroui-native';
-import {
-  type AccessibilityActionEvent,
-  View,
-  type ViewStyle,
-  useWindowDimensions,
-} from 'react-native';
+import { type AccessibilityActionEvent, View, useWindowDimensions } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
 
@@ -15,7 +10,14 @@ import {
 } from '@/components/ui/text_scale.geometry';
 import { ACCOUNT_TYPE_ICONS } from '@/constants/account_type_icons';
 import { Strings } from '@/constants/strings';
-import { Colors, Radius, Size, Type, lineHeightFor } from '@/constants/theme';
+import {
+  Colors,
+  HIT_SLOP_UNCLIPPED_STYLE,
+  Radius,
+  Size,
+  Type,
+  lineHeightFor,
+} from '@/constants/theme';
 import { resolveAccountName } from '@/utils/account_name';
 import { formatAccountBalanceParts } from '@/utils/format_amount';
 
@@ -38,9 +40,6 @@ import {
 
 // The grip's own press absorbs a tap, so it never reaches the row and opens the account.
 const absorbGripPress = () => undefined;
-
-// HeroUI's root class clips, and RNGH skips a clipping view before it reads the Pan's hit slop.
-const GRIP_UNCLIPPED_STYLE: ViewStyle = { overflow: 'visible' };
 
 interface AccountListRowProps {
   account: Account;
@@ -192,7 +191,7 @@ export function AccountListRow({
               animation={false}
               onPress={absorbGripPress}
               hitSlop={ACCOUNTS_LIST_GRIP_HIT_SLOP}
-              style={[ACCOUNTS_LIST_GRIP_SLOT_STYLE, GRIP_UNCLIPPED_STYLE]}
+              style={[ACCOUNTS_LIST_GRIP_SLOT_STYLE, HIT_SLOP_UNCLIPPED_STYLE]}
               accessibilityRole="button"
               accessibilityLabel={Strings.accountsReorderGrip(resolveAccountName(account))}
               accessibilityActions={moveActions}

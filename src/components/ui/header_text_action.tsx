@@ -19,6 +19,7 @@ export function HeaderTextAction({ label, onPress }: HeaderTextActionProps) {
     <HeaderActionBox
       accessibilityLabel={label}
       onPress={onPress}
+      edge="trailing"
       style={{
         minWidth: geometry.minWidth,
         height: geometry.height,

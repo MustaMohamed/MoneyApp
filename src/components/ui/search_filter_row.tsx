@@ -4,10 +4,16 @@ import React from 'react';
 import { View, useWindowDimensions } from 'react-native';
 
 import { Strings } from '@/constants/strings';
-import { Size } from '@/constants/theme';
+import { HIT_SLOP_UNCLIPPED_STYLE, Size } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 
-import { resolveSearchFilterRowGeometry } from './search_filter_row.geometry';
+import { PressHighlight } from './press_highlight';
+import {
+  SEARCH_ROW_GAP,
+  SEARCH_ROW_MARGIN_BOTTOM,
+  resolveSearchFilterRowGeometry,
+  resolveSearchRowHitSlop,
+} from './search_filter_row.geometry';
 import { useSearchFieldSheetFocus } from './search_filter_row.hook';
 import { Text } from './text';
 
@@ -21,6 +27,8 @@ interface SearchFilterRowProps {
   clearAccessibilityLabel?: string;
   filterAccessibilityLabel?: string;
   isDisabled?: boolean;
+  /** The room the Filter and clear slops may take above the row, per the neighbour there. */
+  topRoom: number;
 }
 
 export function SearchFilterRow({
@@ -33,8 +41,10 @@ export function SearchFilterRow({
   clearAccessibilityLabel = Strings.filterSearchClearAccessibility,
   filterAccessibilityLabel = Strings.filterSearchButtonAccessibility,
   isDisabled,
+  topRoom,
 }: SearchFilterRowProps): React.ReactElement {
   const geometry = resolveSearchFilterRowGeometry(useWindowDimensions().fontScale);
+  const hitSlop = resolveSearchRowHitSlop(geometry.input.height, topRoom);
   const { inputRef, handleFocus, handleBlur } = useSearchFieldSheetFocus();
   const hasFilters = activeFilterCount > 0;
   const filterLabel = hasFilters
@@ -42,7 +52,10 @@ export function SearchFilterRow({
     : filterAccessibilityLabel;
 
   return (
-    <View className="mb-2 flex-row items-center gap-2 px-4">
+    <View
+      className="flex-row items-center px-4"
+      style={{ gap: SEARCH_ROW_GAP, marginBottom: SEARCH_ROW_MARGIN_BOTTOM }}
+    >
       <SearchField value={value} onChange={onChangeText} isDisabled={isDisabled} className="flex-1">
         <SearchField.Group style={geometry.input}>
           <SearchField.SearchIcon iconProps={{ size: Size.iconXs, color: CoreTokens.text2 }} />
@@ -57,12 +70,18 @@ export function SearchFilterRow({
             allowFontScaling={geometry.inputText === undefined}
             style={geometry.inputStyle}
           />
-          <SearchField.ClearButton accessibilityLabel={clearAccessibilityLabel} />
+          <SearchField.ClearButton
+            accessibilityLabel={clearAccessibilityLabel}
+            hitSlop={hitSlop.clear}
+            style={HIT_SLOP_UNCLIPPED_STYLE}
+            feedbackVariant="scale"
+            background={<PressHighlight radius={Size.searchClearTrack / 2} />}
+          />
         </SearchField.Group>
       </SearchField>
       <PressableFeedback
         onPress={onOpenFilter}
-        hitSlop={8}
+        hitSlop={hitSlop.filter}
         accessibilityRole="button"
         accessibilityLabel={filterLabel}
         className="bg-default/40 relative items-center justify-center"

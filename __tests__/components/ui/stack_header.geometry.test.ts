@@ -5,7 +5,7 @@ import {
   resolveStackHeaderGeometry,
 } from '@/components/ui/stack_header.geometry';
 import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
-import { lineHeightFor, Size, Type } from '@/constants/theme';
+import { lineHeightFor, Size, TouchSize, Type, touchFloorHitSlop } from '@/constants/theme';
 
 describe('resolveStackHeaderGeometry', () => {
   it('shrinks the title and keeps the header at its token height at font scale 0.85', () => {
@@ -77,9 +77,22 @@ describe('resolveHeaderTextActionGeometry', () => {
 });
 
 describe('HEADER_ACTION_HIT_SLOP', () => {
-  // The literal, not the token: a drifted `headerActionSlop` must fail here, not on a device.
-  it('takes taps 8 dp past every side of a header action or back button box', () => {
-    expect(HEADER_ACTION_HIT_SLOP).toEqual({ top: 8, bottom: 8, left: 8, right: 8 });
+  it('MA-236: takes the touch-floor slop of the header action box above, below and on its outer side, and none toward the title it abuts', () => {
+    const floor = touchFloorHitSlop(Size.headerActionTrack).top;
+
+    expect(HEADER_ACTION_HIT_SLOP.leading).toEqual({
+      top: floor,
+      bottom: floor,
+      left: floor,
+      right: 0,
+    });
+    expect(HEADER_ACTION_HIT_SLOP.trailing).toEqual({
+      top: floor,
+      bottom: floor,
+      left: 0,
+      right: floor,
+    });
+    expect(Size.headerActionTrack + 2 * floor).toBeGreaterThanOrEqual(TouchSize.min);
   });
 });
 

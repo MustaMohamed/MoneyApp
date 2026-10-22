@@ -1,3 +1,4 @@
+import { TABS_LIST_PADDING, resolveSegmentedTabsGeometry } from '@/components/ui/tabs.geometry';
 import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import {
   Colors,
@@ -26,6 +27,7 @@ import {
   ACCOUNTS_LIST_ROW_CAPTION_STYLE,
   ACCOUNTS_LIST_ROW_STYLE,
   resolveArchivedCardHeaderGeometry,
+  ACCOUNTS_LIST_TYPE_TRIGGER_HIT_SLOP,
 } from '@/modules/accounts/screens/accounts/list/accounts_list.geometry';
 import { ms, msFont } from '@/utils/responsive';
 
@@ -414,4 +416,17 @@ describe('accounts list edge scroll geometry (B6)', () => {
     expect(ACCOUNTS_LIST_EDGE_SCROLL).toEqual(expect.any(Object));
     expect(Object.isFrozen(ACCOUNTS_LIST_EDGE_SCROLL)).toBe(true);
   });
+});
+
+describe('ACCOUNTS_LIST_TYPE_TRIGGER_HIT_SLOP', () => {
+  it.each([1, 2])(
+    'MA-236: at font scale %p a type segment reaches the touch floor, its slop above inside the rail margin and list padding',
+    (fontScale) => {
+      const { top, bottom } = ACCOUNTS_LIST_TYPE_TRIGGER_HIT_SLOP;
+      const height = resolveSegmentedTabsGeometry(fontScale).compact.triggerHeight;
+
+      expect(top).toBeLessThanOrEqual(Spacing.xxs + TABS_LIST_PADDING);
+      expect(height + top + bottom).toBeGreaterThanOrEqual(TouchSize.min);
+    },
+  );
 });

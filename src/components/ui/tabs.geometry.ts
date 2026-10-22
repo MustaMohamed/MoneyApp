@@ -82,6 +82,13 @@ export function resolveSegmentedTabsGeometry(
     defaultListHeight:
       defaultLabel === undefined
         ? undefined
-        : defaultLabel.lineHeight + 2 * TABS_TRIGGER_PADDING_BLOCK + 2 * TABS_LIST_PADDING,
+        : resolveDefaultTriggerHeight(fontScale, maxFontScale) + 2 * TABS_LIST_PADDING,
   };
+}
+
+export function resolveDefaultTriggerHeight(fontScale: number, maxFontScale = Infinity): number {
+  return (
+    scaledTextStyle(HEROUI_TEXT_TYPE.base, fontScale, maxFontScale).lineHeight +
+    2 * TABS_TRIGGER_PADDING_BLOCK
+  );
 }

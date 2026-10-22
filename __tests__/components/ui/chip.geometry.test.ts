@@ -1,11 +1,14 @@
-import { HERO_PILL_HEIGHT } from '@/components/ui/chip';
+import { render } from '@testing-library/react-native';
+import { createElement } from 'react';
+
+import { HERO_PILL_HEIGHT, SelectablePill } from '@/components/ui/chip';
 import {
   CHIP_MD_PADDING_BLOCK,
   resolveHeroPillGeometry,
   resolveSuccessChipGeometry,
 } from '@/components/ui/chip.geometry';
 import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
-import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
+import { HIT_SLOP_UNCLIPPED_STYLE, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 
 const CAPTION_AT_ONE = { fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) };
 
@@ -48,5 +51,18 @@ describe('resolveHeroPillGeometry', () => {
 
     expect(resolveHeroPillGeometry(2, lineBox + 1).height).toBe(lineBox + 1);
     expect(resolveHeroPillGeometry(2, lineBox - 1).height).toBe(lineBox);
+  });
+});
+
+describe('SelectablePill', () => {
+  it('MA-236: unclips its root only when it takes a hit slop, so RNGH reaches a slop past its box', async () => {
+    const props = { label: 'Days', selected: false, onPress: jest.fn() };
+    const view = await render(createElement(SelectablePill, { ...props, hitSlop: { top: 4 } }));
+
+    expect(view.getByLabelText('Days')).toHaveStyle(HIT_SLOP_UNCLIPPED_STYLE);
+
+    await view.rerender(createElement(SelectablePill, props));
+
+    expect(view.getByLabelText('Days')).not.toHaveStyle(HIT_SLOP_UNCLIPPED_STYLE);
   });
 });

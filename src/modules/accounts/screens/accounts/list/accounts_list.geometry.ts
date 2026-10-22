@@ -1,5 +1,6 @@
 import type { Insets, TextStyle, ViewStyle } from 'react-native';
 
+import { TABS_LIST_PADDING, type TabsTriggerHitSlop } from '@/components/ui/tabs.geometry';
 import { type ScaledTextStyle, scaledTextStyleAboveOne } from '@/components/ui/text_scale.geometry';
 import {
   Colors,
@@ -11,6 +12,7 @@ import {
   Type,
   lineHeightFor,
   touchFloorHitSlop,
+  touchFloorHitSlopWithin,
   withAlpha,
 } from '@/constants/theme';
 
@@ -81,6 +83,9 @@ export const ACCOUNTS_LIST_ARCHIVED_ROW_STYLE: Readonly<ViewStyle> = Object.free
   alignItems: 'center',
 });
 
+// SectionHeader's `mt-4` under the rail, unscaled CSS px.
+const SECTION_HEADER_MARGIN_TOP = 16;
+
 /** B7 `.rail`: `padding: 4px 16px` on the canvas, as margins here since the scroll has no gutter. */
 export const ACCOUNTS_LIST_RAIL_STYLE: Readonly<ViewStyle> = Object.freeze({
   marginHorizontal: Spacing.md,
@@ -146,3 +151,12 @@ export const ACCOUNTS_LIST_EDGE_SCROLL: Readonly<{ zoneHeight: number; maxRatePe
     zoneHeight: Size.accountListRowMinHeight,
     maxRatePerSecond: Size.accountListRowMinHeight * EDGE_SCROLL_ROWS_PER_SECOND,
   });
+
+/** The type rail's trigger slop from its shortest track: the whole gap to the header line above and to the section title below. */
+export const ACCOUNTS_LIST_TYPE_TRIGGER_HIT_SLOP: TabsTriggerHitSlop = touchFloorHitSlopWithin(
+  Size.compactSegmentTrack,
+  {
+    top: Spacing.xxs + TABS_LIST_PADDING,
+    bottom: Spacing.xxs + TABS_LIST_PADDING + SECTION_HEADER_MARGIN_TOP,
+  },
+);

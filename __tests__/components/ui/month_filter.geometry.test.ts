@@ -4,7 +4,7 @@ import {
   resolveMonthStepHitSlop,
 } from '@/components/ui/month_filter.geometry';
 import { scaledFontSize } from '@/components/ui/text_scale.geometry';
-import { Type, lineHeightFor } from '@/constants/theme';
+import { Spacing, Type, lineHeightFor, touchFloorHitSlop } from '@/constants/theme';
 
 describe('resolveMonthPillGeometry', () => {
   it('at font scale 1 draws the pill at 32 with the Type.micro label', () => {
@@ -22,17 +22,41 @@ describe('resolveMonthPillGeometry', () => {
 });
 
 describe('resolveMonthStepHitSlop', () => {
-  it('MA-109: without a row slop a step button keeps the shipped 8 on every side', () => {
-    expect(MONTH_STEP_HIT_SLOP).toBe(8);
-    expect(resolveMonthStepHitSlop(undefined)).toBe(MONTH_STEP_HIT_SLOP);
+  const pillHeight = resolveMonthPillGeometry(1).height;
+  const floor = touchFloorHitSlop(pillHeight).top;
+  const inward = Spacing.xxs / 2;
+
+  it('MA-236: without a row slop a step takes the touch-floor slop at the pill height, and half the row gap toward the pill', () => {
+    expect(resolveMonthStepHitSlop(undefined, pillHeight, 'previous')).toEqual({
+      top: touchFloorHitSlop(pillHeight).top,
+      bottom: touchFloorHitSlop(pillHeight).bottom,
+      left: floor,
+      right: inward,
+    });
+    expect(resolveMonthStepHitSlop(undefined, pillHeight, 'next')).toEqual({
+      top: touchFloorHitSlop(pillHeight).top,
+      bottom: touchFloorHitSlop(pillHeight).bottom,
+      left: inward,
+      right: floor,
+    });
   });
 
-  it('MA-109: a row slop sets the top and bottom and leaves the shipped slop left and right', () => {
-    expect(resolveMonthStepHitSlop({ top: 9, bottom: 5 })).toEqual({
+  it('MA-236: a row slop sets the top and bottom, and the sides still come from the touch-floor rule', () => {
+    expect(resolveMonthStepHitSlop({ top: 9, bottom: 5 }, pillHeight, 'previous')).toEqual({
       top: 9,
       bottom: 5,
-      left: MONTH_STEP_HIT_SLOP,
-      right: MONTH_STEP_HIT_SLOP,
+      left: floor,
+      right: inward,
     });
+    expect(resolveMonthStepHitSlop({ top: 9, bottom: 5 }, pillHeight, 'next')).toEqual({
+      top: 9,
+      bottom: 5,
+      left: inward,
+      right: floor,
+    });
+  });
+
+  it('MA-236: the year arrows keep MONTH_STEP_HIT_SLOP at 8', () => {
+    expect(MONTH_STEP_HIT_SLOP).toBe(8);
   });
 });

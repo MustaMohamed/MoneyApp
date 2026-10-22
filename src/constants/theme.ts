@@ -163,8 +163,10 @@ export const Size = {
   typeTabsTrack: 36,
   // Raw 36 for the same reason: every header action's and back button's box, formerly `h-9 w-9`, at scale 1.
   headerActionTrack: 36,
-  // Raw 8, never ms(): the tap band past each side of that box.
-  headerActionSlop: 8,
+  // Raw 8, never ms(): the native back button's drawn padding past each side of that box.
+  headerBackPadding: 8,
+  // Raw 24, never ms(): HeroUI's search clear button, `w-6 h-6` (search-field.css).
+  searchClearTrack: 24,
   // Raw 40 for the same reason: the spending plan sheet's name and total fields, formerly `h-10`, at scale 1.
   spendingPlanFieldTrack: 40,
   // Raw 36 for the same reason: the spending plan sheet's per-category field, formerly `h-9`, at scale 1.
@@ -304,6 +306,26 @@ export function touchFloorHitSlop(height: number): TouchFloorHitSlop {
   const slop = touchFloorSlop(height) + TOUCH_SLOP_PIXEL_MARGIN;
   return { top: slop, bottom: slop };
 }
+
+/** The room a slop may take toward the neighbour on each side: half the gap to a control, the whole gap to a label, a card or text. An absent side has no neighbour. */
+export interface TouchFloorRoom {
+  top?: number;
+  bottom?: number;
+}
+
+/** The floor slop held inside each side's room; a side stopped short hands its shortfall to the other, which stops at its own room. */
+export function touchFloorHitSlopWithin(height: number, room: TouchFloorRoom): TouchFloorHitSlop {
+  const slop = touchFloorHitSlop(height).top;
+  const roomTop = room.top ?? Infinity;
+  const roomBottom = room.bottom ?? Infinity;
+  return {
+    top: Math.min(roomTop, slop + Math.max(0, slop - roomBottom)),
+    bottom: Math.min(roomBottom, slop + Math.max(0, slop - roomTop)),
+  };
+}
+
+/** HeroUI's pressable root clips, and RNGH drops a slop outside a clipping view on Android (MA-122). */
+export const HIT_SLOP_UNCLIPPED_STYLE = { overflow: 'visible' } as const;
 
 export const CategoryColors = [
   '#5C7FC4',

@@ -1,11 +1,12 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { PressableFeedback } from 'heroui-native';
-import { type Insets, View, useWindowDimensions } from 'react-native';
+import { type Insets, View, type ViewStyle, useWindowDimensions } from 'react-native';
 
 import { Strings } from '@/constants/strings';
-import { Colors, Size, Spacing } from '@/constants/theme';
+import { Colors, HIT_SLOP_UNCLIPPED_STYLE, Size, Spacing } from '@/constants/theme';
 
 import {
+  MONTH_ROW_GAP,
   MONTH_STEP_HIT_SLOP,
   resolveMonthPillGeometry,
   resolveMonthStepHitSlop,
@@ -21,6 +22,7 @@ interface IconButtonProps {
   testID?: string;
   size: number;
   hitSlop?: number | Insets;
+  style?: ViewStyle;
 }
 
 function IconButton({
@@ -30,6 +32,7 @@ function IconButton({
   testID,
   size,
   hitSlop = MONTH_STEP_HIT_SLOP,
+  style,
 }: IconButtonProps) {
   return (
     <PressableFeedback
@@ -39,7 +42,7 @@ function IconButton({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       className="bg-default/60 items-center justify-center rounded-full"
-      style={{ height: size, width: size }}
+      style={[{ height: size, width: size }, style]}
     >
       <MaterialCommunityIcons name={icon} size={20} color={Colors.dark.text1} />
     </PressableFeedback>
@@ -50,11 +53,10 @@ export function MonthFilter(props: MonthFilterProps) {
   const monthFilter = useMonthFilter(props);
   const showStepButtons = props.showStepButtons ?? true;
   const pill = resolveMonthPillGeometry(useWindowDimensions().fontScale);
-  const stepHitSlop = resolveMonthStepHitSlop(props.rowHitSlop);
 
   return (
     <>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: MONTH_ROW_GAP }}>
         {showStepButtons && (
           <IconButton
             testID="month-filter-previous"
@@ -62,7 +64,8 @@ export function MonthFilter(props: MonthFilterProps) {
             accessibilityLabel={Strings.monthFilterPreviousA11y}
             onPress={monthFilter.onPreviousMonth}
             size={pill.height}
-            hitSlop={stepHitSlop}
+            hitSlop={resolveMonthStepHitSlop(props.rowHitSlop, pill.height, 'previous')}
+            style={HIT_SLOP_UNCLIPPED_STYLE}
           />
         )}
         <PressableFeedback
@@ -97,7 +100,8 @@ export function MonthFilter(props: MonthFilterProps) {
             accessibilityLabel={Strings.monthFilterNextA11y}
             onPress={monthFilter.onNextMonth}
             size={pill.height}
-            hitSlop={stepHitSlop}
+            hitSlop={resolveMonthStepHitSlop(props.rowHitSlop, pill.height, 'next')}
+            style={HIT_SLOP_UNCLIPPED_STYLE}
           />
         )}
       </View>

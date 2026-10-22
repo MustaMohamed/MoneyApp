@@ -1,12 +1,80 @@
+import { CHIP_ROW_ROOM_BELOW } from '@/components/ui/account_chips.geometry';
 import { DISPLAY_HEADLINE_MAX_FONT_SCALE } from '@/components/ui/display_headline.geometry';
 import {
   FILTER_BADGE_MAX_FONT_SCALE,
+  SEARCH_CLEAR_INSET_END,
   SEARCH_INPUT_MAX_FONT_SCALE,
+  SEARCH_ROW_GAP,
+  SEARCH_ROW_MARGIN_BOTTOM,
   resolveSearchFilterRowGeometry,
+  resolveSearchRowHitSlop,
 } from '@/components/ui/search_filter_row.geometry';
 import { scaledFontSize } from '@/components/ui/text_scale.geometry';
-import { Radius, Spacing, Type, lineHeightFor } from '@/constants/theme';
+import {
+  HIT_SLOP_UNCLIPPED_STYLE,
+  Radius,
+  Size,
+  Spacing,
+  TouchSize,
+  Type,
+  lineHeightFor,
+  touchFloorHitSlop,
+} from '@/constants/theme';
+import { SUMMARY_HEADER_MARGIN_BOTTOM } from '@/modules/commitments/screens/commitments/components/summary_header.geometry';
 import { ms } from '@/utils/responsive';
+
+describe('resolveSearchRowHitSlop', () => {
+  const cases = [1, 2].flatMap((fontScale) => [
+    { fontScale, list: 'transactions', room: CHIP_ROW_ROOM_BELOW },
+    { fontScale, list: 'commitments', room: SUMMARY_HEADER_MARGIN_BOTTOM },
+  ]);
+
+  it.each(cases)(
+    'MA-236: on $list at font scale $fontScale the Filter button reaches the floor inside the room above and the row margin below',
+    ({ fontScale, room }) => {
+      const height = resolveSearchFilterRowGeometry(fontScale).input.height;
+      const { filter } = resolveSearchRowHitSlop(height, room);
+
+      expect(filter.top).toBeLessThanOrEqual(room);
+      expect(filter.bottom).toBeLessThanOrEqual(SEARCH_ROW_MARGIN_BOTTOM);
+      expect(height + filter.top + filter.bottom).toBeGreaterThanOrEqual(TouchSize.min);
+      expect(filter.left).toBe(SEARCH_ROW_GAP / 2);
+    },
+  );
+
+  it.each(cases)(
+    'MA-236: on $list at font scale $fontScale the clear button reaches the floor inside its inset plus each room, and stops at half the gap to Filter',
+    ({ fontScale, room }) => {
+      const height = resolveSearchFilterRowGeometry(fontScale).input.height;
+      const inset = (height - Size.searchClearTrack) / 2;
+      const { clear } = resolveSearchRowHitSlop(height, room);
+
+      expect(clear.top).toBeLessThanOrEqual(inset + room);
+      expect(clear.bottom).toBeLessThanOrEqual(inset + SEARCH_ROW_MARGIN_BOTTOM);
+      expect(Size.searchClearTrack + clear.top + clear.bottom).toBeGreaterThanOrEqual(
+        TouchSize.min,
+      );
+      expect(clear.right).toBe((SEARCH_CLEAR_INSET_END + SEARCH_ROW_GAP) / 2);
+      expect(clear.left).toBe(touchFloorHitSlop(Size.searchClearTrack).top);
+    },
+  );
+
+  it.each([
+    { label: 'the summary card margin', room: SUMMARY_HEADER_MARGIN_BOTTOM },
+    { label: 'half the clamped chips padding', room: 5.5 },
+  ])(
+    'MA-236: Rule 1 gives a card its whole gap, so at a 31 dp input under $label Filter and clear each reach the floor, where half the card gap, 4, leaves both at 43',
+    ({ room }) => {
+      const inputHeight = 31;
+      const { filter, clear } = resolveSearchRowHitSlop(inputHeight, room);
+
+      expect(inputHeight + filter.top + filter.bottom).toBeGreaterThanOrEqual(TouchSize.min);
+      expect(Size.searchClearTrack + clear.top + clear.bottom).toBeGreaterThanOrEqual(
+        TouchSize.min,
+      );
+    },
+  );
+});
 
 describe('resolveSearchFilterRowGeometry', () => {
   it('caps the search input text at the app-wide 1.3 font scale', () => {
@@ -23,7 +91,12 @@ describe('resolveSearchFilterRowGeometry', () => {
       paddingTop: 0,
       paddingBottom: 0,
     });
-    expect(g.filterButton).toEqual({ height: ms(36), width: ms(36), borderRadius: Radius.md });
+    expect(g.filterButton).toEqual({
+      height: ms(36),
+      width: ms(36),
+      borderRadius: Radius.md,
+      ...HIT_SLOP_UNCLIPPED_STYLE,
+    });
     expect(g.badge).toEqual({
       top: ms(2),
       right: ms(2),

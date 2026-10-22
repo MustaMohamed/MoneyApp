@@ -15,6 +15,7 @@ export interface BackButtonProps {
 export function BackButton({ onPress }: BackButtonProps) {
   return (
     <HeaderIconAction
+      edge="leading"
       icon="chevron-left"
       iconSize={Size.iconBack}
       iconColor={CoreTokens.text2}

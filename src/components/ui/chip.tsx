@@ -16,7 +16,14 @@ import {
 } from '@/components/ui/chip.geometry';
 import { SOLID_GOLD_SELECTED_RADIUS } from '@/components/ui/tabs.geometry';
 import { resolveOneLineTextProps } from '@/components/ui/text_scale.geometry';
-import { Colors, Radius, Spacing, Type, lineHeightFor } from '@/constants/theme';
+import {
+  Colors,
+  HIT_SLOP_UNCLIPPED_STYLE,
+  Radius,
+  Spacing,
+  Type,
+  lineHeightFor,
+} from '@/constants/theme';
 import { CoreTokens, GoldTokens } from '@/constants/theme_tokens';
 import { ms } from '@/utils/responsive';
 
@@ -86,7 +93,11 @@ export function SelectablePill({
       accessibilityState={{ selected, disabled }}
       accessibilityLabel={accessibilityLabel ?? label}
       accessibilityHint={accessibilityHint}
-      style={[{ borderRadius: SOLID_GOLD_SELECTED_RADIUS }, style]}
+      style={[
+        { borderRadius: SOLID_GOLD_SELECTED_RADIUS },
+        hitSlop === undefined ? undefined : HIT_SLOP_UNCLIPPED_STYLE,
+        style,
+      ]}
       hitSlop={hitSlop}
       onLayout={onLayout}
       className={cn(
