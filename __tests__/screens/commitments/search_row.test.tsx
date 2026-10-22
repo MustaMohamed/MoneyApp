@@ -3,8 +3,27 @@ import { Dimensions } from 'react-native';
 
 import { resolveSearchFilterRowGeometry } from '@/components/ui/search_filter_row.geometry';
 import { CommitmentSearchRow } from '@/modules/commitments/screens/commitments/components/search_row';
+import { SUMMARY_HEADER_MARGIN_BOTTOM } from '@/modules/commitments/screens/commitments/components/summary_header.geometry';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
+jest.mock('@/components/ui/search_filter_row', () => {
+  const ReactLocal = jest.requireActual<typeof import('react')>('react');
+  const actual = jest.requireActual<typeof import('@/components/ui/search_filter_row')>(
+    '@/components/ui/search_filter_row',
+  );
+  const searchFilterRowProps: { last: { topRoom: number } | undefined } = { last: undefined };
+  return {
+    searchFilterRowProps,
+    SearchFilterRow: (props: Parameters<typeof actual.SearchFilterRow>[0]) => {
+      searchFilterRowProps.last = props;
+      return ReactLocal.createElement(actual.SearchFilterRow, props);
+    },
+  };
+});
+
+const { searchFilterRowProps } = jest.requireMock<{
+  searchFilterRowProps: { last: { topRoom: number } | undefined };
+}>('@/components/ui/search_filter_row');
 
 const geometry = resolveSearchFilterRowGeometry(Dimensions.get('window').fontScale);
 
@@ -81,5 +100,18 @@ describe('CommitmentSearchRow', () => {
 
     await fireEvent.press(getByLabelText('Filter, 1 active'));
     expect(onOpenFilter).toHaveBeenCalled();
+  });
+
+  it('MA-236: passes the summary card gap as the room above the search row', async () => {
+    await render(
+      <CommitmentSearchRow
+        value=""
+        onChange={jest.fn()}
+        onOpenFilter={jest.fn()}
+        activeFilterCount={0}
+      />,
+    );
+
+    expect(searchFilterRowProps.last?.topRoom).toBe(SUMMARY_HEADER_MARGIN_BOTTOM);
   });
 });

@@ -9,6 +9,7 @@ import {
   resolveMonthStepHitSlop,
 } from '@/components/ui/month_filter.geometry';
 import { Strings } from '@/constants/strings';
+import { HIT_SLOP_UNCLIPPED_STYLE } from '@/constants/theme';
 
 const ROW_HIT_SLOP = { top: 9, bottom: 5 };
 
@@ -108,6 +109,8 @@ describe('MonthFilter', () => {
     expect(getByTestId('month-filter-next').props.hitSlop).toEqual(
       resolveMonthStepHitSlop(undefined, pillHeight, 'next'),
     );
+    expect(getByTestId('month-filter-previous')).toHaveStyle(HIT_SLOP_UNCLIPPED_STYLE);
+    expect(getByTestId('month-filter-next')).toHaveStyle(HIT_SLOP_UNCLIPPED_STYLE);
 
     await rerender(
       <MonthFilter
@@ -124,6 +127,8 @@ describe('MonthFilter', () => {
     expect(getByTestId('month-filter-next').props.hitSlop).toEqual(
       resolveMonthStepHitSlop(ROW_HIT_SLOP, pillHeight, 'next'),
     );
+    expect(getByTestId('month-filter-previous')).toHaveStyle(HIT_SLOP_UNCLIPPED_STYLE);
+    expect(getByTestId('month-filter-next')).toHaveStyle(HIT_SLOP_UNCLIPPED_STYLE);
 
     await fireEvent.press(getByLabelText(Strings.monthFilterOpenA11y('August 2026')));
 
@@ -131,5 +136,9 @@ describe('MonthFilter', () => {
       MONTH_STEP_HIT_SLOP,
     );
     expect(getByLabelText(Strings.monthPickerNextYearA11y).props.hitSlop).toBe(MONTH_STEP_HIT_SLOP);
+    for (const label of [Strings.monthPickerPreviousYearA11y, Strings.monthPickerNextYearA11y]) {
+      expect(getByLabelText(label)).toHaveStyle({ width: expect.any(Number) });
+      expect(getByLabelText(label)).not.toHaveStyle({ overflow: expect.anything() });
+    }
   });
 });

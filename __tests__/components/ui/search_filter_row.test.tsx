@@ -3,7 +3,12 @@ import { Dimensions } from 'react-native';
 
 import { CHIP_ROW_ROOM_BELOW } from '@/components/ui/account_chips.geometry';
 import { SearchFilterRow } from '@/components/ui/search_filter_row';
-import { resolveSearchFilterRowGeometry } from '@/components/ui/search_filter_row.geometry';
+import {
+  resolveSearchFilterRowGeometry,
+  resolveSearchRowHitSlop,
+} from '@/components/ui/search_filter_row.geometry';
+import { HIT_SLOP_UNCLIPPED_STYLE } from '@/constants/theme';
+import { SUMMARY_HEADER_MARGIN_BOTTOM } from '@/modules/commitments/screens/commitments/components/summary_header.geometry';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
 
@@ -101,4 +106,31 @@ describe('SearchFilterRow', () => {
     await fireEvent.press(getByLabelText('Filter, 1 active'));
     expect(onOpenFilter).toHaveBeenCalled();
   });
+
+  it.each([
+    ['no room above the row', 0],
+    ['the summary card gap above the row', SUMMARY_HEADER_MARGIN_BOTTOM],
+  ])(
+    'MA-236: Filter and clear take the touch-floor slop for %s, unclipped, and the clear presses by scale',
+    async (_room, topRoom) => {
+      const { getByLabelText } = await render(
+        <SearchFilterRow
+          value="rent"
+          placeholder="Search items..."
+          onChangeText={jest.fn()}
+          onOpenFilter={jest.fn()}
+          activeFilterCount={0}
+          filterBadgeTestID="shared-filter-badge"
+          topRoom={topRoom}
+        />,
+      );
+
+      const slop = resolveSearchRowHitSlop(geometry.input.height, topRoom);
+      expect(getByLabelText('Filter').props.hitSlop).toEqual(slop.filter);
+      expect(getByLabelText('Filter')).toHaveStyle(HIT_SLOP_UNCLIPPED_STYLE);
+      expect(getByLabelText('Clear search').props.hitSlop).toEqual(slop.clear);
+      expect(getByLabelText('Clear search')).toHaveStyle(HIT_SLOP_UNCLIPPED_STYLE);
+      expect(getByLabelText('Clear search')).toHaveProp('feedbackVariant', 'scale');
+    },
+  );
 });

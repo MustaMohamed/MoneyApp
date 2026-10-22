@@ -1,18 +1,24 @@
 import { fireEvent, render } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 import { Dimensions } from 'react-native';
+import type { Insets, LayoutChangeEvent, StyleProp, ViewStyle } from 'react-native';
 
+import { FILTER_OPTION_PILL_GAP, WRAPPING_PILL_STYLE } from '@/components/ui/chip.geometry';
 import {
   AmountRangeFilterContent,
   FilterAccordionShell,
   FilterOptionPillList,
 } from '@/components/ui/filter_accordion';
-import { resolveFilterAmountSlotStyle } from '@/components/ui/filter_accordion.geometry';
+import {
+  FILTER_OPTION_LIST_EDGE,
+  resolveFilterAmountSlotStyle,
+} from '@/components/ui/filter_accordion.geometry';
 import { FilterAccountAccordion } from '@/components/ui/filter_account_accordion';
 import { FilterAmountAccordion } from '@/components/ui/filter_amount_accordion';
 import { FilterCategoryAccordion } from '@/components/ui/filter_category_accordion';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { HIT_SLOP_UNCLIPPED_STYLE, touchFloorHitSlopInGap } from '@/constants/theme';
 import { makeTestAccount, makeTestCategory } from '@/test_helpers/transaction';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
@@ -51,11 +57,17 @@ jest.mock('@/components/ui/chip', () => ({
     selected,
     onPress,
     accessibilityLabel,
+    hitSlop,
+    onLayout,
+    style,
   }: {
     label: string;
     selected: boolean;
     onPress: () => void;
     accessibilityLabel: string;
+    hitSlop?: Insets;
+    onLayout?: (event: LayoutChangeEvent) => void;
+    style?: StyleProp<ViewStyle>;
   }) => {
     const { Pressable, Text } = jest.requireActual<typeof import('react-native')>('react-native');
     return (
@@ -63,6 +75,9 @@ jest.mock('@/components/ui/chip', () => ({
         accessibilityLabel={accessibilityLabel}
         accessibilityState={{ selected }}
         onPress={onPress}
+        hitSlop={hitSlop}
+        onLayout={onLayout}
+        style={style}
       >
         <Text>{label}</Text>
       </Pressable>
@@ -171,6 +186,48 @@ describe('FilterOptionPillList', () => {
 
     await fireEvent.press(getByLabelText('Food category filter'));
     expect(onToggle).toHaveBeenCalledWith('food');
+  });
+
+  it('MA-236: each pill takes half the gap before layout, the list edge on its outer rows after, and wraps unclipped', async () => {
+    const pillHeight = 29.33;
+    const { getByLabelText } = await render(
+      <FilterOptionPillList
+        options={[
+          { id: 'food', label: 'Food', selected: false, accessibilityLabel: 'Food filter' },
+          { id: 'rent', label: 'Rent', selected: false, accessibilityLabel: 'Rent filter' },
+        ]}
+        onToggle={jest.fn()}
+      />,
+    );
+
+    const unmeasured = touchFloorHitSlopInGap(0, FILTER_OPTION_PILL_GAP);
+    for (const label of ['Food filter', 'Rent filter']) {
+      expect(getByLabelText(label).props.hitSlop).toEqual(unmeasured);
+      expect(getByLabelText(label)).toHaveStyle(WRAPPING_PILL_STYLE);
+      expect(getByLabelText(label)).toHaveStyle(HIT_SLOP_UNCLIPPED_STYLE);
+    }
+
+    await fireEvent(getByLabelText('Food filter'), 'layout', {
+      nativeEvent: { layout: { x: 0, y: 0, width: 60, height: pillHeight } },
+    });
+    await fireEvent(getByLabelText('Rent filter'), 'layout', {
+      nativeEvent: { layout: { x: 0, y: 35, width: 60, height: pillHeight } },
+    });
+
+    expect(getByLabelText('Food filter')).toHaveProp(
+      'hitSlop',
+      expect.objectContaining({
+        top: FILTER_OPTION_LIST_EDGE.top,
+        bottom: FILTER_OPTION_PILL_GAP / 2,
+      }),
+    );
+    expect(getByLabelText('Rent filter')).toHaveProp(
+      'hitSlop',
+      expect.objectContaining({
+        top: FILTER_OPTION_PILL_GAP / 2,
+        bottom: FILTER_OPTION_LIST_EDGE.bottom,
+      }),
+    );
   });
 });
 
