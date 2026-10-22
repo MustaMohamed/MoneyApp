@@ -7,6 +7,7 @@ import type { CommitmentPayment } from '@/modules/commitments/entities/commitmen
 import CommitmentsScreen from '@/modules/commitments/screens/commitments';
 import { useCommitments } from '@/modules/commitments/screens/commitments/commitments.hook';
 import { resolveCommitmentRowHeight } from '@/modules/commitments/screens/commitments/components/commitment_row.helpers';
+import { buildCommitmentsHeroModel } from '@/modules/commitments/screens/commitments/components/commitments_hero.helpers';
 import { makeTestPayment } from '@/test_helpers/commitment';
 
 jest.mock('@/modules/commitments/screens/commitments/commitments.hook', () => ({
@@ -173,6 +174,13 @@ const baseCommitmentsState: CommitmentsScreenState = {
   categoriesById: new Map(),
   accountsById: new Map(),
   commitmentsById: new Map(),
+  hero: buildCommitmentsHeroModel({
+    mode: 'skeleton',
+    aggregate: undefined,
+    rate: 50,
+    yearMonth: '2026-08',
+    today: '2026-05-08',
+  }),
 };
 
 const mockedUseCommitments = jest.mocked(useCommitments);

@@ -1,5 +1,9 @@
 import { AmountType, Currency, DurationType, RecurrencePeriod } from '@/constants/enums';
 import type { AccountCommitmentRef } from '@/modules/commitments/database/commitments';
+import type {
+  CommitmentHeldBucket,
+  CommitmentMonthAggregate,
+} from '@/modules/commitments/domain/commitment_month_totals';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 
@@ -62,6 +66,28 @@ export function makeTestPayment(overrides: Partial<CommitmentPayment> = {}): Com
     notes: null,
     created_at: TEST_TIMESTAMP,
     updated_at: TEST_TIMESTAMP,
+    ...overrides,
+  };
+}
+
+/** A month-aggregate bucket of unpaid or skipped rows, all zero unless overridden. */
+export function makeTestHeldBucket(
+  overrides: Partial<CommitmentHeldBucket> = {},
+): CommitmentHeldBucket {
+  return { egp: 0, usd: 0, count: 0, hasVariable: false, ...overrides };
+}
+
+/** A month aggregate with no rows in any bucket unless overridden. */
+export function makeTestMonthAggregate(
+  overrides: Partial<CommitmentMonthAggregate> = {},
+): CommitmentMonthAggregate {
+  return {
+    paid: { egp: 0, count: 0 },
+    skipped: makeTestHeldBucket(),
+    overdue: makeTestHeldBucket(),
+    due: makeTestHeldBucket(),
+    upcoming: makeTestHeldBucket(),
+    carried: makeTestHeldBucket(),
     ...overrides,
   };
 }

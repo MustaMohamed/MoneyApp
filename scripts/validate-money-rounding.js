@@ -56,6 +56,7 @@ const PERMITTED = {
     'src/modules/budget/screens/budget/budget_buckets.helpers.ts',
     'src/modules/budget/screens/budget/spending_plans.helpers.ts',
     'src/modules/budget/screens/budget/spending_plans_summary.helpers.ts',
+    'src/modules/commitments/screens/commitments/components/commitments_hero.helpers.ts',
     'src/modules/dashboard/screens/dashboard/components/budget_card.tsx',
     'src/modules/dashboard/screens/dashboard/dashboard.helpers.ts',
     'src/utils/money.ts',

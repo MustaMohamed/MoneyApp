@@ -1,4 +1,5 @@
 import { AmountType, Currency, DurationType, RecurrencePeriod } from '@/constants/enums';
+import type { CommitmentMonthAggregate } from '@/modules/commitments/domain/commitment_month_totals';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import type {
@@ -8,10 +9,18 @@ import type {
   PaymentDetails,
   UpdateCommitmentInput,
 } from '@/modules/commitments/repositories/commitment.repository';
-import { createCommitmentStore } from '@/modules/commitments/store/commitment.store';
+import {
+  createCommitmentStore,
+  monthAggregateKey,
+} from '@/modules/commitments/store/commitment.store';
 import type { CommitmentPaymentAmounts } from '@/modules/transactions/domain/transaction_amounts';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
-import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
+import {
+  makeTestCommitment,
+  makeTestHeldBucket,
+  makeTestMonthAggregate,
+  makeTestPayment,
+} from '@/test_helpers/commitment';
 import { deferred } from '@/test_helpers/deferred';
 
 const MAY = '2026-05';
@@ -762,7 +771,7 @@ describe('commitment store selectors', () => {
     return store;
   }
 
-  it('reads the five states from the dates against today and skips skipped rows in total count', async () => {
+  it('reads the five states from the dates against today', async () => {
     const overdue = payment({ id: 'overdue', due_date: '2026-05-07' });
     const due = payment({ id: 'due', due_date: MAY_8 });
     const upcoming = payment({ id: 'upcoming', due_date: '2026-05-09' });
@@ -775,21 +784,14 @@ describe('commitment store selectors', () => {
     expect(store.getState().getUpcoming()).toEqual([upcoming]);
     expect(store.getState().getPaid()).toEqual([paid]);
     expect(store.getState().getSkipped()).toEqual([skipped]);
-    expect(store.getState().getPaidCount()).toBe(1);
-    expect(store.getState().getTotalCount()).toBe(4);
   });
 
-  it('preserves active fixed totals and treats variable amounts as zero', async () => {
-    const store = await loadedStore(
-      [],
-      [
-        commitment({ id: 'fixed', amount: 250 }),
-        commitment({ id: 'variable', amount: null }),
-        commitment({ id: 'inactive', amount: 500, is_active: 0 }),
-      ],
-    );
+  it('does not expose counts or totals folded over loaded rows', () => {
+    const state = createCommitmentStore(makeRepository()).getState();
 
-    expect(store.getState().getTotalMonthlyCommitted()).toBe(250);
+    expect(state).not.toHaveProperty('getPaidCount');
+    expect(state).not.toHaveProperty('getTotalCount');
+    expect(state).not.toHaveProperty('getTotalMonthlyCommitted');
   });
 });
 
@@ -851,5 +853,311 @@ describe('commitment store undoSkip', () => {
     expect(repository.undoSkip).not.toHaveBeenCalled();
     payRequest.resolve(paymentAmounts());
     await payAction;
+  });
+});
+
+describe('commitment store month aggregate', () => {
+  const JUNE = '2026-06';
+  const LOCAL_DATE = /^\d{4}-\d{2}-\d{2}$/;
+  type Store = ReturnType<typeof createCommitmentStore>;
+
+  function monthAggregate(paidEgp = 1200): CommitmentMonthAggregate {
+    return makeTestMonthAggregate({
+      paid: { egp: paidEgp, count: 1 },
+      due: makeTestHeldBucket({ egp: 250, count: 1 }),
+    });
+  }
+
+  function flushTasks() {
+    return new Promise((resolve) => setTimeout(resolve, 0));
+  }
+
+  let consoleSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    jest.useRealTimers();
+    consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleSpy.mockRestore();
+  });
+
+  it('keys the slot by month and account', () => {
+    expect(monthAggregateKey(MAY, undefined)).toBe('2026-05|');
+    expect(monthAggregateKey(MAY, 'account')).toBe('2026-05|account');
+  });
+
+  it('runs housekeeping, reads the aggregate for the local today and publishes the slot', async () => {
+    const aggregate = monthAggregate();
+    const repository = makeRepository({
+      getMonthAggregate: jest.fn().mockResolvedValue(aggregate),
+    });
+    const store = createCommitmentStore(repository);
+
+    await store.getState().loadMonthAggregate(MAY, undefined, MAY_8_LOCAL);
+
+    expect(repository.runHousekeeping).toHaveBeenCalledWith(MAY_8_LOCAL);
+    expect(repository.getMonthAggregate).toHaveBeenCalledWith(MAY, MAY_8, undefined);
+    expect((repository.runHousekeeping as jest.Mock).mock.invocationCallOrder[0]).toBeLessThan(
+      (repository.getMonthAggregate as jest.Mock).mock.invocationCallOrder[0],
+    );
+    expect(store.getState().monthAggregate).toEqual({
+      key: monthAggregateKey(MAY, undefined),
+      aggregate,
+    });
+    expect(store.getState().monthAggregateErrorKey).toBeUndefined();
+  });
+
+  it('reads and keys the slot by the one account passed', async () => {
+    const aggregate = monthAggregate();
+    const repository = makeRepository({
+      getMonthAggregate: jest.fn().mockResolvedValue(aggregate),
+    });
+    const store = createCommitmentStore(repository);
+
+    await store.getState().loadMonthAggregate(MAY, 'account', MAY_8_LOCAL);
+
+    expect(repository.getMonthAggregate).toHaveBeenCalledWith(MAY, MAY_8, 'account');
+    expect(store.getState().monthAggregate).toEqual({
+      key: monthAggregateKey(MAY, 'account'),
+      aggregate,
+    });
+  });
+
+  it('resolves a failed first load with the error key set, while the rows still publish', async () => {
+    const repository = makeRepository({
+      getMonthAggregate: jest.fn().mockRejectedValue(new Error('aggregate failed')),
+    });
+    const store = createCommitmentStore(repository);
+
+    await expect(
+      Promise.all([
+        store.getState().loadMonthAggregate(MAY, undefined, MAY_8_LOCAL),
+        store.getState().loadMonthSnapshot(MAY, MAY_8_LOCAL),
+      ]),
+    ).resolves.toEqual([undefined, undefined]);
+
+    expect(store.getState().monthAggregateErrorKey).toBe(monthAggregateKey(MAY, undefined));
+    expect(store.getState().monthAggregate).toBeUndefined();
+    expect(store.getState().payments).toEqual([payment()]);
+    expect(store.getState().paymentsLoaded).toBe(true);
+    expect(store.getState().loadError).toBe(false);
+    expect(consoleSpy).toHaveBeenCalled();
+  });
+
+  it('keeps the error key and no slot while the same month and account load again', async () => {
+    const retry = deferred<CommitmentMonthAggregate>();
+    const aggregate = monthAggregate();
+    const repository = makeRepository({
+      getMonthAggregate: jest
+        .fn()
+        .mockRejectedValueOnce(new Error('aggregate failed'))
+        .mockReturnValueOnce(retry.promise),
+    });
+    const store = createCommitmentStore(repository);
+    await store.getState().loadMonthAggregate(MAY, undefined, MAY_8_LOCAL);
+
+    const reload = store.getState().loadMonthAggregate(MAY, undefined, MAY_8_LOCAL);
+    await flushTasks();
+
+    expect(repository.getMonthAggregate).toHaveBeenCalledTimes(2);
+    expect(store.getState().monthAggregateErrorKey).toBe(monthAggregateKey(MAY, undefined));
+    expect(store.getState().monthAggregate).toBeUndefined();
+
+    retry.resolve(aggregate);
+    await reload;
+
+    expect(store.getState().monthAggregate).toEqual({
+      key: monthAggregateKey(MAY, undefined),
+      aggregate,
+    });
+    expect(store.getState().monthAggregateErrorKey).toBeUndefined();
+  });
+
+  it('keeps the held slot while a reload runs', async () => {
+    const reloadRequest = deferred<CommitmentMonthAggregate>();
+    const next = monthAggregate(1500);
+    const repository = makeRepository({
+      getMonthAggregate: jest
+        .fn()
+        .mockResolvedValueOnce(monthAggregate())
+        .mockReturnValueOnce(reloadRequest.promise),
+    });
+    const store = createCommitmentStore(repository);
+    await store.getState().loadMonthAggregate(MAY, undefined, MAY_8_LOCAL);
+    const held = store.getState().monthAggregate;
+
+    const reload = store.getState().loadMonthAggregate(MAY, undefined, MAY_8_LOCAL);
+    await flushTasks();
+
+    expect(repository.getMonthAggregate).toHaveBeenCalledTimes(2);
+    expect(held).toBeDefined();
+    expect(store.getState().monthAggregate).toBe(held);
+
+    reloadRequest.resolve(next);
+    await reload;
+
+    expect(store.getState().monthAggregate).toEqual({
+      key: monthAggregateKey(MAY, undefined),
+      aggregate: next,
+    });
+  });
+
+  it('keeps the held slot when a reload fails, and a later success clears the error key', async () => {
+    const next = monthAggregate(1500);
+    const repository = makeRepository({
+      getMonthAggregate: jest
+        .fn()
+        .mockResolvedValueOnce(monthAggregate())
+        .mockRejectedValueOnce(new Error('reload failed'))
+        .mockResolvedValueOnce(next),
+    });
+    const store = createCommitmentStore(repository);
+    await store.getState().loadMonthAggregate(MAY, undefined, MAY_8_LOCAL);
+    const held = store.getState().monthAggregate;
+
+    await store.getState().loadMonthAggregate(MAY, undefined, MAY_8_LOCAL);
+
+    expect(held).toBeDefined();
+    expect(store.getState().monthAggregate).toBe(held);
+    expect(store.getState().monthAggregateErrorKey).toBe(monthAggregateKey(MAY, undefined));
+
+    await store.getState().loadMonthAggregate(MAY, undefined, MAY_8_LOCAL);
+
+    expect(store.getState().monthAggregate).toEqual({
+      key: monthAggregateKey(MAY, undefined),
+      aggregate: next,
+    });
+    expect(store.getState().monthAggregateErrorKey).toBeUndefined();
+  });
+
+  it('drops a stale month that resolves after the newer month', async () => {
+    const may = deferred<CommitmentMonthAggregate>();
+    const june = deferred<CommitmentMonthAggregate>();
+    const juneAggregate = monthAggregate(900);
+    const repository = makeRepository({
+      getMonthAggregate: jest.fn((month: string) => (month === MAY ? may.promise : june.promise)),
+    });
+    const store = createCommitmentStore(repository);
+
+    const mayLoad = store.getState().loadMonthAggregate(MAY, undefined, MAY_8_LOCAL);
+    const juneLoad = store.getState().loadMonthAggregate(JUNE, undefined, MAY_8_LOCAL);
+    await flushTasks();
+    june.resolve(juneAggregate);
+    await juneLoad;
+    may.resolve(monthAggregate(100));
+    await mayLoad;
+
+    expect(store.getState().monthAggregate).toEqual({
+      key: monthAggregateKey(JUNE, undefined),
+      aggregate: juneAggregate,
+    });
+  });
+
+  const writes: [string, (store: Store) => Promise<void>][] = [
+    ['markAsPaid', (store) => store.getState().markAsPaid('payment', paymentDetails)],
+    ['skipPayment', (store) => store.getState().skipPayment('payment', MAY_8_LOCAL)],
+    ['undoSkip', (store) => store.getState().undoSkip('payment', MAY_8_LOCAL)],
+    ['addCommitment', (store) => store.getState().addCommitment(newInput)],
+    ['deactivateCommitment', (store) => store.getState().deactivateCommitment('commitment')],
+    ['updateCommitment', (store) => store.getState().updateCommitment('commitment', updateInput)],
+  ];
+
+  it.each(writes)(
+    'reads the aggregate again after %s once a load has set the scope, and not before',
+    async (_name, write) => {
+      const repository = makeRepository({
+        getMonthAggregate: jest.fn().mockResolvedValue(monthAggregate()),
+      });
+      const store = createCommitmentStore(repository);
+      await store.getState().setSelectedMonth(MAY);
+
+      await write(store);
+      await flushTasks();
+      expect(repository.getMonthAggregate).not.toHaveBeenCalled();
+
+      await store.getState().loadMonthAggregate(MAY, 'account', MAY_8_LOCAL);
+      (repository.getMonthAggregate as jest.Mock).mockClear();
+
+      await write(store);
+      await flushTasks();
+
+      expect(repository.getMonthAggregate).toHaveBeenCalledTimes(1);
+      expect(repository.getMonthAggregate).toHaveBeenCalledWith(
+        MAY,
+        expect.stringMatching(LOCAL_DATE),
+        'account',
+      );
+    },
+  );
+
+  it('clears the slot and the error key on reset, and forgets the scope', async () => {
+    const repository = makeRepository({
+      getMonthAggregate: jest
+        .fn()
+        .mockResolvedValueOnce(monthAggregate())
+        .mockRejectedValueOnce(new Error('aggregate failed')),
+    });
+    const store = createCommitmentStore(repository);
+    await store.getState().loadMonthAggregate(MAY, undefined, MAY_8_LOCAL);
+    await store.getState().loadMonthAggregate(JUNE, undefined, MAY_8_LOCAL);
+    expect(store.getState().monthAggregate).toBeDefined();
+    expect(store.getState().monthAggregateErrorKey).toBe(monthAggregateKey(JUNE, undefined));
+
+    store.getState().reset();
+
+    expect(store.getState().monthAggregate).toBeUndefined();
+    expect(store.getState().monthAggregateErrorKey).toBeUndefined();
+
+    (repository.getMonthAggregate as jest.Mock).mockClear();
+    await store.getState().markAsPaid('payment', paymentDetails);
+    await flushTasks();
+    expect(repository.getMonthAggregate).not.toHaveBeenCalled();
+  });
+
+  it("discards a read made before a write, through the write's aggregate reload", async () => {
+    const beforeWrite = deferred<CommitmentMonthAggregate>();
+    const afterWrite = deferred<CommitmentMonthAggregate>();
+    const repository = makeRepository({
+      getMonthAggregate: jest
+        .fn()
+        .mockReturnValueOnce(beforeWrite.promise)
+        .mockReturnValueOnce(afterWrite.promise),
+    });
+    const store = createCommitmentStore(repository);
+    await store.getState().setSelectedMonth(MAY);
+
+    const load = store.getState().loadMonthAggregate(MAY, undefined, MAY_8_LOCAL);
+    await flushTasks();
+    expect(repository.getMonthAggregate).toHaveBeenCalledTimes(1);
+
+    await store.getState().markAsPaid('payment', paymentDetails);
+    await flushTasks();
+    expect(repository.getMonthAggregate).toHaveBeenCalledTimes(2);
+
+    beforeWrite.resolve(monthAggregate());
+    await load;
+
+    expect(store.getState().monthAggregate).toBeUndefined();
+    expect(store.getState().monthAggregateErrorKey).toBeUndefined();
+  });
+
+  it('publishes nothing from a load that was in flight at reset', async () => {
+    const request = deferred<CommitmentMonthAggregate>();
+    const repository = makeRepository({
+      getMonthAggregate: jest.fn().mockReturnValue(request.promise),
+    });
+    const store = createCommitmentStore(repository);
+
+    const load = store.getState().loadMonthAggregate(MAY, undefined, MAY_8_LOCAL);
+    await flushTasks();
+    expect(repository.getMonthAggregate).toHaveBeenCalledTimes(1);
+
+    store.getState().reset();
+    request.resolve(monthAggregate());
+    await load;
+
+    expect(store.getState().monthAggregate).toBeUndefined();
   });
 });

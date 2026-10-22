@@ -25,6 +25,7 @@ import { toLocalDateString } from '@/utils/format_date';
 import { groupTransactionsByDate } from '@/utils/group_transactions_by_date';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
 import { useDebouncedValue } from '@/utils/use_debounced_value.hook';
+import { fullMonthName } from '@/utils/year_month';
 
 import {
   countActiveFilters,
@@ -42,7 +43,6 @@ import {
   buildDaySections,
   buildSearchTally,
   buildTransactionsHeroModel,
-  fullMonthName,
   previousPeriod,
   resolvePeriod,
   resolveSearchTallyFiguresMode,

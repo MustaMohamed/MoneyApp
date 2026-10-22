@@ -42,3 +42,17 @@ export function shiftYearMonth(yearMonth: string, delta: number): string {
   const nextMonth = (total % 12) + 1;
   return toYearMonth(nextYear, nextMonth);
 }
+
+export function fullMonthName(yearMonth: string): string {
+  return new Date(`${yearMonth}-01T12:00:00`).toLocaleDateString('en-US', { month: 'long' });
+}
+
+export function daysLeftInMonth(yearMonth: string, today: string): number | undefined {
+  if (today.slice(0, 7) !== yearMonth) return undefined;
+  const lastDay = new Date(
+    yearFromYearMonth(yearMonth),
+    monthNumberFromYearMonth(yearMonth),
+    0,
+  ).getDate();
+  return Math.max(lastDay - Number(today.slice(8, 10)), 0);
+}
