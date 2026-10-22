@@ -91,7 +91,7 @@ beforeAll(async () => {
 
 beforeEach(() => {
   connections.inspect.exec(`
-    DELETE FROM transactions; DELETE FROM commitment_payments; DELETE FROM commitments;
+    DELETE FROM commitment_payments; DELETE FROM transactions; DELETE FROM commitments;
     DELETE FROM budget_month_category_groups; DELETE FROM budget_month_settings;
     DELETE FROM budgets; DELETE FROM lock_holder; DELETE FROM categories WHERE id <> 'cat';
   `);

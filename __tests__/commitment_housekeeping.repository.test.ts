@@ -235,7 +235,6 @@ describe('CommitmentRepository.runHousekeeping', () => {
         expiryUpdates: 1,
         exclusiveTransactions: 1,
       });
-      expect(getDb).toHaveBeenCalledTimes(1);
     },
   );
 

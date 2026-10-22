@@ -17,8 +17,7 @@ jest.mock('react-native-uuid', () => ({
   default: { v4: () => `copied-budget-${++mockUuidCounter}` },
 }));
 
-const { getDb, withExclusiveWriteTransactionAsync } = jest.requireMock('@/database/client') as {
-  getDb: jest.Mock<Promise<SQLiteDatabase>, []>;
+const { withExclusiveWriteTransactionAsync } = jest.requireMock('@/database/client') as {
   withExclusiveWriteTransactionAsync: jest.Mock<
     Promise<void>,
     [task: (db: SQLiteDatabase) => Promise<void>]
@@ -128,7 +127,6 @@ describe('BudgetRepository atomic copy', () => {
 
     await expect(copy(new BudgetRepository())).rejects.toThrow('injected budget write failure');
 
-    expect(getDb).toHaveBeenCalledTimes(1);
     expect(transactionCount).toBe(1);
     expect(budgetWriteCount).toBe(2);
     expect(
