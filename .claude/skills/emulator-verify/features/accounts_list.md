@@ -48,6 +48,7 @@ Route `/accounts`. Screen `src/modules/accounts/screens/accounts/list/index.tsx`
 | unarchive name clash, large font | no frame, MA-163 | the `unarchive name clash` force, an active account with the archived account's name, then `Unarchive` on the archived row, shot last or followed by a cold launch, since the store logs the failure with `console.error` and the dev error banner then takes the taps near the screen's bottom (README, Source force); the `Font scale` force (README) at 1.0 and 2.0 | `An active account already has this name. Rename it first.` whole under the row, every word in the crop and its last line ending `first.`, no `…`; its box inside the archived card and under the row's; the `Button proof` (README) on `Unarchive`; one crop of the row and the message at 2.0 |
 
 Per-type captions (MA-024) are one row each in B1; a caption check is `mqa ui`, not a shot.
+| type rail hit areas | no frame, MA-236 | the `populated, all five types` seed; `mqa bounds` on the `All`, `Bank` and `Smart Wallet` segments, the header's `Go back` and the section title, at 1.0 and under the `Font scale` force (README) at 2.0; each tap a `tapxy` at dp × 2.625 rounded from those bounds | the segments read 28 ± 1 dp at 1.0 and 34.29 at 2.0; each takes `ACCOUNTS_LIST_TYPE_TRIGGER_HIT_SLOP`, 7 dp above, the rail's `Spacing.xxs` margin and the list padding to the header line, and 11 below at both scales, so a tap 1 dp inside each edge selects the segment and one 1 dp past it does not; the segment reaches 46 dp at 1.0 and 52 at 2.0 |
 
 ## Outbound
 
