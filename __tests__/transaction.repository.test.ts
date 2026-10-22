@@ -69,15 +69,8 @@ beforeAll(() => {
     return realDb.prepare(sql).all(...params);
   });
 
-  mocked.withTransactionAsync.mockImplementation(async (fn: () => Promise<void>) => {
-    realDb.exec('BEGIN');
-    try {
-      await fn();
-      realDb.exec('COMMIT');
-    } catch (error) {
-      realDb.exec('ROLLBACK');
-      throw error;
-    }
+  mocked.execAsync.mockImplementation(async (sql: string) => {
+    realDb.exec(sql);
   });
 });
 

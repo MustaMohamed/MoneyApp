@@ -18,9 +18,10 @@ jest.mock('@/database/client', () => {
   const mockWithExclusiveTransactionAsync = jest.fn(
     async (task: (db: SQLiteDatabase) => Promise<void>) => task(mockTransactionDb),
   );
-  const mockDb = { withExclusiveTransactionAsync: mockWithExclusiveTransactionAsync };
+  const mockDb = { connection: 'main' } as unknown as SQLiteDatabase;
   return {
     getDb: jest.fn().mockResolvedValue(mockDb),
+    withExclusiveWriteTransactionAsync: mockWithExclusiveTransactionAsync,
     mockDb,
     mockTransactionDb,
     mockWithExclusiveTransactionAsync,

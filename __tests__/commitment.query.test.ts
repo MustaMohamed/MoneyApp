@@ -53,7 +53,7 @@ beforeAll(() => {
       __fakeDb: {
         runAsync: jest.Mock;
         getAllAsync: jest.Mock;
-        withTransactionAsync: jest.Mock;
+        execAsync: jest.Mock;
       };
     }
   ).__fakeDb;
@@ -69,8 +69,8 @@ beforeAll(() => {
     return realDb.prepare(sql).all(...(params as never[]));
   });
 
-  mocked.withTransactionAsync.mockImplementation(async (fn: () => Promise<void>) => {
-    await fn();
+  mocked.execAsync.mockImplementation(async (sql: string) => {
+    realDb.exec(sql);
   });
 });
 

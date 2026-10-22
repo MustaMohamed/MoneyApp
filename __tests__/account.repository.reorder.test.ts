@@ -170,22 +170,15 @@ beforeAll(() => {
   realDb.exec(MIGRATIONS.map((m) => m.up).join('\n'));
 
   bridgeBetterSQLite(sqlite, realDb);
-  sqlite.withTransactionAsync.mockImplementation(async (task: () => Promise<void>) => {
-    realDb.exec('BEGIN');
-    try {
-      await task();
-      realDb.exec('COMMIT');
-    } catch (error) {
-      realDb.exec('ROLLBACK');
-      throw error;
-    }
+  sqlite.execAsync.mockImplementation(async (sql: string) => {
+    realDb.exec(sql);
   });
 });
 
 beforeEach(() => {
   realDb.exec('DELETE FROM accounts');
   seed();
-  sqlite.withTransactionAsync.mockClear();
+  sqlite.execAsync.mockClear();
   sqlite.runAsync.mockClear();
 });
 
@@ -262,7 +255,7 @@ describe('AccountRepository.reorder — the current order writes nothing', () =>
 
     await expect(repo.reorder(['a', 'b', 'c', 'e'])).resolves.toBeUndefined();
 
-    expect(sqlite.withTransactionAsync).not.toHaveBeenCalled();
+    expect(sqlite.execAsync).not.toHaveBeenCalledWith('BEGIN IMMEDIATE');
     expect(sqlite.runAsync).not.toHaveBeenCalled();
     expect(allRows()).toEqual(before);
   });
@@ -281,7 +274,7 @@ describe('AccountRepository.reorder — a bad order is refused before any write'
 
     await expect(repo.reorder(orderedIds)).rejects.toThrow(AccountReorderInvalidError);
 
-    expect(sqlite.withTransactionAsync).not.toHaveBeenCalled();
+    expect(sqlite.execAsync).not.toHaveBeenCalledWith('BEGIN IMMEDIATE');
     expect(allRows()).toEqual(before);
   });
 });

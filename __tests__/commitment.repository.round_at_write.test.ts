@@ -3,7 +3,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import uuid from 'react-native-uuid';
 
 import { AmountType, Currency, DurationType, RecurrencePeriod } from '@/constants/enums';
-import { getDb } from '@/database/client';
+import { getDb, withExclusiveWriteTransactionAsync } from '@/database/client';
 import { MIGRATIONS } from '@/database/migrations';
 import {
   CommitmentRepository,
@@ -11,7 +11,10 @@ import {
   type UpdateCommitmentInput,
 } from '@/modules/commitments/repositories/commitment.repository';
 
-jest.mock('@/database/client', () => ({ getDb: jest.fn() }));
+jest.mock('@/database/client', () => ({
+  getDb: jest.fn(),
+  withExclusiveWriteTransactionAsync: jest.fn(),
+}));
 jest.mock('react-native-uuid', () => ({ v4: jest.fn() }));
 
 const NOW_ISO = '2026-05-08T10:11:12.000Z';
@@ -56,7 +59,10 @@ beforeAll(() => {
       const result = realDb.prepare(sql).run(...(params as never[]));
       return { changes: result.changes, lastInsertRowId: Number(result.lastInsertRowid) };
     }),
-    withExclusiveTransactionAsync: jest.fn(async (work: (db: SQLiteDatabase) => Promise<void>) => {
+  } as unknown as SQLiteDatabase;
+  jest
+    .mocked(withExclusiveWriteTransactionAsync)
+    .mockImplementation(async (work: (db: SQLiteDatabase) => Promise<void>) => {
       realDb.exec('BEGIN IMMEDIATE');
       try {
         await work(fakeDb);
@@ -65,8 +71,7 @@ beforeAll(() => {
         realDb.exec('ROLLBACK');
         throw error;
       }
-    }),
-  } as unknown as SQLiteDatabase;
+    });
 });
 
 beforeEach(() => {

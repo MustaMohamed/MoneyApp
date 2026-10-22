@@ -8,7 +8,12 @@ import { MIGRATIONS } from '@/database/migrations';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import { CommitmentRepository } from '@/modules/commitments/repositories/commitment.repository';
 
-jest.mock('@/database/client', () => ({ getDb: jest.fn() }));
+jest.mock('@/database/client', () => ({
+  getDb: jest.fn(),
+  withWriteTransactionAsync:
+    jest.requireActual<typeof import('@/database/client')>('@/database/client')
+      .withWriteTransactionAsync,
+}));
 jest.mock('react-native-uuid', () => ({ v4: jest.fn() }));
 
 const NOW_ISO = '2026-05-08T10:11:12.000Z';
@@ -125,15 +130,8 @@ beforeAll(() => {
       const result = realDb.prepare(sql).run(...(params as never[]));
       return { changes: result.changes, lastInsertRowId: Number(result.lastInsertRowid) };
     }),
-    withTransactionAsync: jest.fn(async (work: () => Promise<void>) => {
-      realDb.exec('BEGIN');
-      try {
-        await work();
-        realDb.exec('COMMIT');
-      } catch (error) {
-        realDb.exec('ROLLBACK');
-        throw error;
-      }
+    execAsync: jest.fn(async (sql: string) => {
+      realDb.exec(sql);
     }),
   } as unknown as SQLiteDatabase;
 });

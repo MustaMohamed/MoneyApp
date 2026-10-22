@@ -74,7 +74,7 @@ beforeAll(() => {
       __fakeDb: {
         runAsync: jest.Mock;
         getAllAsync: jest.Mock;
-        withTransactionAsync: jest.Mock;
+        execAsync: jest.Mock;
       };
     }
   ).__fakeDb;
@@ -90,8 +90,8 @@ beforeAll(() => {
     return realDb.prepare(sql).all(...(params as never[]));
   });
 
-  mocked.withTransactionAsync.mockImplementation(async (fn: () => Promise<void>) => {
-    await fn();
+  mocked.execAsync.mockImplementation(async (sql: string) => {
+    realDb.exec(sql);
   });
 });
 
@@ -303,10 +303,8 @@ describe('addPayments', () => {
         calls.push(String(params[0]));
         return { changes: 1, lastInsertRowId: 1 };
       }),
-      withTransactionAsync: jest.fn(async (work: () => Promise<void>) => {
-        calls.push('transaction:start');
-        await work();
-        calls.push('transaction:end');
+      execAsync: jest.fn(async (sql: string) => {
+        calls.push(sql);
       }),
     } as unknown as Parameters<typeof addPayments>[0];
     const payments = [
@@ -317,8 +315,7 @@ describe('addPayments', () => {
 
     await addPayments(db, payments);
 
-    expect(db.withTransactionAsync).toHaveBeenCalledTimes(1);
-    expect(calls).toEqual(['transaction:start', 'serial-1', 'transaction:end']);
+    expect(calls).toEqual(['BEGIN IMMEDIATE', 'serial-1', 'COMMIT']);
     expect(db.runAsync).toHaveBeenCalledTimes(1);
     expect((db.runAsync as jest.Mock).mock.calls[0][1]).toEqual(
       expect.arrayContaining(['serial-1', 'serial-2', 'serial-3']),
@@ -335,7 +332,8 @@ describe('insertPaymentRows', () => {
       .mockReturnValueOnce(first.promise)
       .mockReturnValueOnce(second.promise);
     const withTransactionAsync = jest.fn();
-    const db = { runAsync, withTransactionAsync } as unknown as Parameters<
+    const execAsync = jest.fn();
+    const db = { runAsync, withTransactionAsync, execAsync } as unknown as Parameters<
       typeof insertPaymentRows
     >[0];
     const payments = Array.from({ length: 61 }, (_, index) =>
@@ -355,6 +353,7 @@ describe('insertPaymentRows', () => {
 
     expect(runAsync.mock.calls.map((call) => call[1][0])).toEqual(['chunked-0', 'chunked-60']);
     expect(withTransactionAsync).not.toHaveBeenCalled();
+    expect(execAsync).not.toHaveBeenCalled();
   });
 });
 

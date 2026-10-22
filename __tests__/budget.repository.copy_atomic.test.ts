@@ -10,14 +10,19 @@ let mockUuidCounter = 0;
 
 jest.mock('@/database/client', () => ({
   getDb: jest.fn(async () => mockRepositoryDb),
+  withExclusiveWriteTransactionAsync: jest.fn(),
 }));
 jest.mock('react-native-uuid', () => ({
   __esModule: true,
   default: { v4: () => `copied-budget-${++mockUuidCounter}` },
 }));
 
-const { getDb } = jest.requireMock('@/database/client') as {
+const { getDb, withExclusiveWriteTransactionAsync } = jest.requireMock('@/database/client') as {
   getDb: jest.Mock<Promise<SQLiteDatabase>, []>;
+  withExclusiveWriteTransactionAsync: jest.Mock<
+    Promise<void>,
+    [task: (db: SQLiteDatabase) => Promise<void>]
+  >;
 };
 
 const NOW = '2026-07-01T00:00:00.000Z';
@@ -61,7 +66,11 @@ beforeAll(() => {
       const result = realDb.prepare(sql).run(...getSQLiteParams(rest));
       return { changes: result.changes, lastInsertRowId: Number(result.lastInsertRowid) };
     },
-    withExclusiveTransactionAsync: async <T>(task: (db: SQLiteDatabase) => Promise<T>) => {
+  };
+  mockRepositoryDb = bridge as unknown as SQLiteDatabase;
+  jest
+    .mocked(withExclusiveWriteTransactionAsync)
+    .mockImplementation(async (task: (db: SQLiteDatabase) => Promise<void>) => {
       transactionCount += 1;
       realDb.exec('BEGIN EXCLUSIVE');
       try {
@@ -72,9 +81,7 @@ beforeAll(() => {
         realDb.exec('ROLLBACK');
         throw error;
       }
-    },
-  };
-  mockRepositoryDb = bridge as unknown as SQLiteDatabase;
+    });
 });
 
 beforeEach(() => {
