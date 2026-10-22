@@ -7,10 +7,16 @@ import {
 import {
   type CommitmentHeldBucket,
   type CommitmentMonthAggregate,
+  computeCommitmentMonthTotals,
   HELD_BUCKETS,
   type HeldBucketName,
 } from '@/modules/commitments/domain/commitment_month_totals';
-import { carriedDueBound, resolvePaymentState } from '@/modules/commitments/domain/payment_state';
+import { sumCommitmentRowsEgp } from '@/modules/commitments/domain/commitment_section_sums';
+import {
+  carriedDueBound,
+  isDueInMonth,
+  resolvePaymentState,
+} from '@/modules/commitments/domain/payment_state';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
@@ -683,6 +689,72 @@ describe('getPaymentMonthAggregate — agreement with resolvePaymentState', () =
         due: legsOf(CommitmentPaymentStatus.Due),
         upcoming: legsOf(CommitmentPaymentStatus.Upcoming),
       });
+    },
+  );
+
+  it.each([
+    ['2026-04', '2026-05-15'],
+    ['2026-05', '2026-05-15'],
+    ['2026-07', '2026-05-15'],
+    ['2026-03', '2026-03-12'],
+  ])(
+    '%s with today %s: the section sums of the loaded paid and skipped rows match the hero figures',
+    async (yearMonth, today) => {
+      const rate = 50.5;
+      seed(
+        rows(
+          skipped({
+            id: 'may_skipped_variable',
+            commitment_id: 'c_var',
+            due_date: '2026-05-06',
+            amount_due: 600,
+          }),
+          skipped({
+            id: 'may_skipped_usd',
+            commitment_id: 'c_usd',
+            currency: Currency.USD,
+            due_date: '2026-05-07',
+            amount_due: 10,
+          }),
+          paid({
+            id: 'may_paid_usd',
+            dueDate: '2026-05-03',
+            paidDate: '2026-05-03',
+            commitmentId: 'c_usd',
+            currency: Currency.USD,
+            amountDue: 10,
+            amountPaid: 10,
+            accountId: 'acc_usd',
+            transaction: {
+              currency: Currency.USD,
+              amount: 10,
+              egp_amount: 505.25,
+              exchange_rate: 50.525,
+            },
+          }),
+        ),
+      );
+      const variableIds = new Set(
+        COMMITMENTS.filter((item) => item.amount_type === AmountType.Variable).map(
+          (item) => item.id,
+        ),
+      );
+      const loaded = await getPaymentsByMonth(db, yearMonth, carriedDueBound(yearMonth, today));
+      const sumOf = (state: CommitmentPaymentStatus) => {
+        const total = sumCommitmentRowsEgp(
+          loaded
+            .filter((row) => resolvePaymentState(row, today) === state)
+            .filter((row) => isDueInMonth(row, yearMonth))
+            .map((row) => ({ payment: row, isVariable: variableIds.has(row.commitment_id) })),
+          rate,
+        );
+        return { egp: total?.egp, showTilde: total?.showTilde };
+      };
+
+      const totals = computeCommitmentMonthTotals(await aggregateFor(yearMonth, today), rate);
+
+      expect(sumOf(CommitmentPaymentStatus.Paid)).toEqual(totals.paid);
+      expect(sumOf(CommitmentPaymentStatus.Skipped)).toEqual(totals.skipped);
     },
   );
 });

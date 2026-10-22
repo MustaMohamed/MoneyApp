@@ -2,8 +2,6 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useDeferredValue, useMemo, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
-import { CommitmentPaymentStatus } from '@/constants/enums';
-import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
@@ -12,16 +10,11 @@ import { runAfterInteractions } from '@/utils/run_after_interactions';
 import { useDebouncedValue } from '@/utils/use_debounced_value.hook';
 import { shiftYearMonth } from '@/utils/year_month';
 
-import {
-  isDueInMonth,
-  isPaidPayment,
-  isSkippedPayment,
-  resolvePaymentState,
-} from '../../domain/payment_state';
 import { emptyMonthPaymentSummary, summarizeMonthPayments } from '../../domain/payment_summary';
 import type { Commitment } from '../../entities/commitment.entity';
-import type { CommitmentPayment } from '../../entities/commitment_payment.entity';
+import type { CommitmentMonthPayment } from '../../entities/commitment_payment.entity';
 import { monthAggregateKey, useCommitmentStore } from '../../store/commitment.store';
+import { buildCommitmentSections } from './commitments.helpers';
 import { useCommitmentsScreenState } from './commitments.state';
 import {
   buildCommitmentsHeroModel,
@@ -36,15 +29,10 @@ import {
 import { useCommitmentFilterState } from './filter/filter.state';
 import { EMPTY_COMMITMENT_FILTERS, useCommitmentFilterStore } from './filter/filter.store';
 
-export type CommitmentsSection = {
-  title: string;
-  data: CommitmentPayment[];
-};
-
 export type CommitmentsPresentation = 'coldLoading' | 'coldError' | 'content' | 'contentWithError';
 
 const EMPTY_COMMITMENTS: Commitment[] = [];
-const EMPTY_PAYMENTS: CommitmentPayment[] = [];
+const EMPTY_PAYMENTS: CommitmentMonthPayment[] = [];
 
 function resolveCommitmentsPresentation({
   hasMatchingSnapshot,
@@ -96,6 +84,7 @@ export function useCommitments() {
   const { rate, hasLoaded: rateLoaded } = useCurrencyStore(
     useShallow((s) => ({ rate: s.rate, hasLoaded: s.hasLoaded })),
   );
+  const liveRate = rateLoaded ? rate : undefined;
   const { refreshing, statusFilter, searchQuery, appliedFilters } = useCommitmentsScreenState(
     useShallow((s) => ({
       refreshing: s.refreshing,
@@ -126,15 +115,9 @@ export function useCommitments() {
     [activeCommitments],
   );
 
-  const sections: CommitmentsSection[] = useMemo(() => {
-    if (today === undefined) return [];
-    const stateOf = (payment: CommitmentPayment) => resolvePaymentState(payment, today);
-    const filter = deferredStatusFilter;
-    const allPayments =
-      filter === 'all'
-        ? activePayments
-        : activePayments.filter((payment) => stateOf(payment) === filter);
-    const filteredPayments = allPayments.filter((payment) => {
+  const { sections, tally } = useMemo((): ReturnType<typeof buildCommitmentSections> => {
+    if (today === undefined) return { sections: [], tally: undefined };
+    const filteredPayments = activePayments.filter((payment) => {
       const commitment = commitmentsById.get(payment.commitment_id);
       const accountId = payment.account_id ?? commitment?.account_id;
       const candidate = {
@@ -148,23 +131,14 @@ export function useCommitments() {
         commitmentMatchesAdvancedFilters(candidate, appliedFilters)
       );
     });
-    const result: CommitmentsSection[] = [];
-    const overdue = filteredPayments.filter((p) => stateOf(p) === CommitmentPaymentStatus.Overdue);
-    const dueToday = filteredPayments.filter((p) => stateOf(p) === CommitmentPaymentStatus.Due);
-    const upcoming = filteredPayments.filter(
-      (p) => stateOf(p) === CommitmentPaymentStatus.Upcoming,
-    );
-    // A row settled after it carried belongs to its due month alone.
-    const paid = filteredPayments.filter((p) => isPaidPayment(p) && isDueInMonth(p, selectedMonth));
-    const skipped = filteredPayments.filter(
-      (p) => isSkippedPayment(p) && isDueInMonth(p, selectedMonth),
-    );
-    if (overdue.length > 0) result.push({ title: Strings.commitmentsOverdue, data: overdue });
-    if (dueToday.length > 0) result.push({ title: Strings.commitmentsDueToday, data: dueToday });
-    if (upcoming.length > 0) result.push({ title: Strings.commitmentsUpcoming, data: upcoming });
-    if (paid.length > 0) result.push({ title: Strings.commitmentsPaid, data: paid });
-    if (skipped.length > 0) result.push({ title: Strings.commitmentsSkipped, data: skipped });
-    return result;
+    return buildCommitmentSections({
+      rows: filteredPayments,
+      statusFilter: deferredStatusFilter,
+      commitmentsById,
+      yearMonth: selectedMonth,
+      today,
+      liveRate,
+    });
   }, [
     accountsById,
     appliedFilters,
@@ -173,6 +147,7 @@ export function useCommitments() {
     debouncedSearch,
     deferredStatusFilter,
     activePayments,
+    liveRate,
     selectedMonth,
     today,
   ]);
@@ -311,6 +286,8 @@ export function useCommitments() {
   return {
     state: {
       sections,
+      tally,
+      liveRate,
       selectedMonth,
       today,
       counts,

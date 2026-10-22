@@ -5,7 +5,10 @@ import type {
   CommitmentMonthAggregate,
 } from '@/modules/commitments/domain/commitment_month_totals';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
-import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
+import type {
+  CommitmentMonthPayment,
+  CommitmentPayment,
+} from '@/modules/commitments/entities/commitment_payment.entity';
 
 const TEST_TIMESTAMP = '2026-07-22T12:00:00.000Z';
 
@@ -68,6 +71,13 @@ export function makeTestPayment(overrides: Partial<CommitmentPayment> = {}): Com
     updated_at: TEST_TIMESTAMP,
     ...overrides,
   };
+}
+
+/** `makeTestPayment`'s row as the month read returns it, with no transaction EGP amount. */
+export function makeTestMonthPayment(
+  overrides: Partial<CommitmentMonthPayment> = {},
+): CommitmentMonthPayment {
+  return { ...makeTestPayment(), paid_egp_amount: null, ...overrides };
 }
 
 /** A month-aggregate bucket of unpaid or skipped rows, all zero unless overridden. */

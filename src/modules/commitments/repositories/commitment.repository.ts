@@ -49,7 +49,10 @@ import {
   resolveUndoSkip,
 } from '../domain/payment_state';
 import type { Commitment } from '../entities/commitment.entity';
-import type { CommitmentPayment } from '../entities/commitment_payment.entity';
+import type {
+  CommitmentMonthPayment,
+  CommitmentPayment,
+} from '../entities/commitment_payment.entity';
 import {
   CommitmentNotFoundError,
   CommitmentPaymentNotFoundError,
@@ -88,7 +91,7 @@ export interface CommitmentMonthSnapshot {
   loadedMonth: string;
   today: string;
   commitments: Commitment[];
-  payments: CommitmentPayment[];
+  payments: CommitmentMonthPayment[];
 }
 
 export interface ICommitmentRepository {
@@ -98,7 +101,7 @@ export interface ICommitmentRepository {
   update(id: string, data: UpdateCommitmentInput, now?: Date): Promise<void>;
   deactivate(id: string): Promise<void>;
 
-  getPaymentsForMonth(yearMonth: string, today: string): Promise<CommitmentPayment[]>;
+  getPaymentsForMonth(yearMonth: string, today: string): Promise<CommitmentMonthPayment[]>;
   getPaymentsByCommitment(commitmentId: string): Promise<CommitmentPayment[]>;
   getPaymentById(id: string): Promise<CommitmentPayment | undefined>;
   getLastPaidPayment(commitmentId: string): Promise<CommitmentPayment | undefined>;
@@ -167,7 +170,7 @@ export class CommitmentRepository implements ICommitmentRepository {
     });
   }
 
-  async getPaymentsForMonth(yearMonth: string, today: string): Promise<CommitmentPayment[]> {
+  async getPaymentsForMonth(yearMonth: string, today: string): Promise<CommitmentMonthPayment[]> {
     const db = await getDb();
     return getPaymentsByMonth(db, yearMonth, carriedDueBound(yearMonth, today));
   }

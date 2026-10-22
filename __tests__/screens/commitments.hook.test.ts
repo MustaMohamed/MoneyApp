@@ -15,7 +15,10 @@ import type { Category } from '@/modules/categories/entities/category.entity';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import type { CommitmentMonthAggregate } from '@/modules/commitments/domain/commitment_month_totals';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
-import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
+import type {
+  CommitmentMonthPayment,
+  CommitmentPayment,
+} from '@/modules/commitments/entities/commitment_payment.entity';
 import { useCommitments } from '@/modules/commitments/screens/commitments/commitments.hook';
 import type { CommitmentStatusFilter } from '@/modules/commitments/screens/commitments/commitments.state';
 import { useCommitmentsScreenState } from '@/modules/commitments/screens/commitments/commitments.state';
@@ -29,7 +32,7 @@ import {
   makeTestCommitment,
   makeTestHeldBucket,
   makeTestMonthAggregate,
-  makeTestPayment,
+  makeTestMonthPayment,
 } from '@/test_helpers/commitment';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
@@ -143,9 +146,9 @@ const DATES_BY_STATE: Record<CommitmentPaymentStatus, PaymentDates> = {
 function makePayment(
   id: string,
   state: CommitmentPaymentStatus,
-  overrides: Partial<CommitmentPayment> = {},
-): CommitmentPayment {
-  return makeTestPayment({
+  overrides: Partial<CommitmentMonthPayment> = {},
+): CommitmentMonthPayment {
+  return makeTestMonthPayment({
     id,
     commitment_id: `commitment-${id}`,
     ...DATES_BY_STATE[state],
@@ -156,8 +159,8 @@ function makePayment(
   });
 }
 
-function sectionIds(sections: { title: string; data: CommitmentPayment[] }[]) {
-  return sections.map((section) => [section.title, section.data.map((payment) => payment.id)]);
+function sectionIds(sections: { label: string; data: CommitmentMonthPayment[] }[]) {
+  return sections.map((section) => [section.label, section.data.map((payment) => payment.id)]);
 }
 
 function makeCommitment(id: string, overrides: Partial<Commitment> = {}): Commitment {
@@ -233,7 +236,7 @@ function setup({
 }: {
   selectedMonth?: string;
   commitments?: Commitment[];
-  payments?: CommitmentPayment[];
+  payments?: CommitmentMonthPayment[];
   statusFilter?: CommitmentStatusFilter;
   searchQuery?: string;
   accounts?: Account[];
@@ -615,7 +618,7 @@ describe('useCommitments', () => {
 
     expect(sectionIds(result.current.state.sections)).toEqual([
       [Strings.commitmentsOverdue, ['overdue']],
-      [Strings.commitmentsDueToday, ['due']],
+      ['Due today', ['due']],
       [Strings.commitmentsUpcoming, ['upcoming']],
       [Strings.commitmentsPaid, ['paid']],
       [Strings.commitmentsSkipped, ['skipped']],
@@ -669,6 +672,103 @@ describe('useCommitments', () => {
       [Strings.commitmentsUpcoming, ['may']],
     ]);
     expect(result.current.state.counts).toMatchObject({ paid: 0, skipped: 0, total: 1 });
+  });
+
+  it('publishes each section’s figures and spoken label, and the tally, under a search', async () => {
+    setup({
+      searchQuery: 'internet',
+      commitments: [
+        makeCommitment('commitment-home', { name: 'Home internet' }),
+        makeCommitment('commitment-mobile', {
+          name: 'Mobile internet',
+          currency: Currency.USD,
+          amount: 10,
+        }),
+        makeCommitment('commitment-gym', { name: 'Gym' }),
+      ],
+      payments: [
+        makePayment('home', CommitmentPaymentStatus.Overdue, { amount_due: 300 }),
+        makePayment('mobile', CommitmentPaymentStatus.Upcoming, {
+          currency: Currency.USD,
+          amount_due: 10,
+        }),
+        makePayment('gym', CommitmentPaymentStatus.Upcoming, { amount_due: 700 }),
+      ],
+    });
+
+    const { result } = await renderHook(() => useCommitments());
+
+    expect(
+      result.current.state.sections.map(({ label, figures, accessibilityLabel }) => ({
+        label,
+        figures,
+        accessibilityLabel,
+      })),
+    ).toEqual([
+      {
+        label: Strings.commitmentsOverdue,
+        figures: { mode: 'figures', net: '300 EGP', count: '1' },
+        accessibilityLabel: 'Overdue, 300 EGP, 1 payment',
+      },
+      {
+        label: Strings.commitmentsUpcoming,
+        figures: { mode: 'figures', net: '500 EGP', count: '1' },
+        accessibilityLabel: 'Upcoming, 500 EGP, 1 payment',
+      },
+    ]);
+    expect(result.current.state.tally).toEqual({ egp: 800, count: 2, showTilde: false });
+  });
+
+  it('a section sum follows a change of the live rate', async () => {
+    setup({
+      commitments: [makeCommitment('commitment-mobile', { currency: Currency.USD, amount: 10 })],
+      payments: [
+        makePayment('mobile', CommitmentPaymentStatus.Upcoming, {
+          currency: Currency.USD,
+          amount_due: 10,
+        }),
+      ],
+    });
+    const hook = await renderHook(() => useCommitments());
+    expect(hook.result.current.state.liveRate).toBe(50);
+    expect(hook.result.current.state.sections[0]?.figures).toEqual({
+      mode: 'figures',
+      net: '500 EGP',
+      count: '1',
+    });
+
+    currencyRate = 48;
+    await hook.rerender({});
+
+    expect(hook.result.current.state.liveRate).toBe(48);
+    expect(hook.result.current.state.sections[0]?.figures).toEqual({
+      mode: 'figures',
+      net: '480 EGP',
+      count: '1',
+    });
+  });
+
+  it('holds a USD unpaid row’s section in its skeleton until the rate has loaded', async () => {
+    currencyRateLoaded = false;
+    setup({
+      commitments: [makeCommitment('commitment-mobile', { currency: Currency.USD, amount: 10 })],
+      payments: [
+        makePayment('mobile', CommitmentPaymentStatus.Upcoming, {
+          currency: Currency.USD,
+          amount_due: 10,
+        }),
+      ],
+    });
+
+    const { result } = await renderHook(() => useCommitments());
+
+    expect(result.current.state.liveRate).toBeUndefined();
+    expect(result.current.state.sections[0]).toMatchObject({
+      label: Strings.commitmentsUpcoming,
+      figures: { mode: 'skeleton' },
+      accessibilityLabel: 'Upcoming, loading',
+    });
+    expect(result.current.state.tally).toBeUndefined();
   });
 
   it('filters by the state the dates derive', async () => {

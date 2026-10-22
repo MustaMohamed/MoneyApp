@@ -3,7 +3,9 @@ import { useCallback, useMemo } from 'react';
 import { RefreshControl, SectionList, View } from 'react-native';
 import type { SectionListData, SectionListRenderItemInfo } from 'react-native';
 
-import { DateHeader } from '@/components/ui/date_header';
+import { DayCardRow } from '@/components/ui/day_card_row';
+import { resolveDayCardSwipeCorners } from '@/components/ui/day_card_row.helpers';
+import { DayHeader } from '@/components/ui/day_header';
 import { EmptyState } from '@/components/ui/empty_state';
 import { FilterRail, type FilterRailOption } from '@/components/ui/filter_rail';
 import { LoadErrorAlert } from '@/components/ui/load_error_alert';
@@ -13,7 +15,7 @@ import { CommitmentPaymentStatus } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, Size } from '@/constants/theme';
 import { GoldTokens } from '@/constants/theme_tokens';
-import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
+import type { CommitmentMonthPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import {
   STATUS_COLORS,
   STATUS_ICONS,
@@ -21,6 +23,7 @@ import {
 } from '@/modules/commitments/utils/commitment_status';
 import { useConfirmAction } from '@/utils/use_confirm_action.hook';
 
+import type { CommitmentsSection } from './commitments.helpers';
 import { useCommitments } from './commitments.hook';
 import type { CommitmentStatusFilter } from './commitments.state';
 import { CommitmentDeleteConfirmSheet } from './components/commitment_delete_confirm_sheet';
@@ -32,8 +35,6 @@ import { CommitmentSearchRow } from './components/search_row';
 import { SummaryHeader } from './components/summary_header';
 import { SkipConfirmSheet } from './detail/components/skip_confirm_sheet';
 import { CommitmentFilterSheet } from './filter';
-
-type CommitmentSection = { title: string; data: CommitmentPayment[] };
 
 const COMMITMENT_FILTERS: FilterRailOption<CommitmentStatusFilter>[] = [
   {
@@ -126,30 +127,41 @@ export default function CommitmentsScreen() {
   );
 
   const renderSectionHeader = useCallback(
-    ({ section }: { section: SectionListData<CommitmentPayment, CommitmentSection> }) => (
-      <DateHeader label={section.title} />
+    ({ section }: { section: SectionListData<CommitmentMonthPayment, CommitmentsSection> }) => (
+      <DayHeader section={section} />
     ),
     [],
   );
 
   const renderItem = useCallback(
-    ({ item }: SectionListRenderItemInfo<CommitmentPayment, CommitmentSection>) => {
+    ({
+      item,
+      index,
+      section,
+    }: SectionListRenderItemInfo<CommitmentMonthPayment, CommitmentsSection>) => {
       if (state.today === undefined) return null;
       const commitment = state.commitmentsById.get(item.commitment_id);
       const category = commitment ? state.categoriesById.get(commitment.category_id) : undefined;
       const accountId = resolveCommitmentRowAccountId(item, commitment);
+      const isFirst = index === 0;
+      const isLast = index === section.data.length - 1;
       return (
-        <CommitmentRow
-          payment={item}
-          today={state.today}
-          commitment={commitment}
-          category={category}
-          account={accountId === undefined ? undefined : state.accountsById.get(accountId)}
-          onPress={goToDetail}
-          onSkip={requestSkip}
-          onEdit={goToEdit}
-          onDelete={requestCommitmentDelete}
-        />
+        <DayCardRow isFirst={isFirst} isLast={isLast} tone={section.tone}>
+          <CommitmentRow
+            payment={item}
+            today={state.today}
+            liveRate={state.liveRate}
+            commitment={commitment}
+            category={category}
+            account={accountId === undefined ? undefined : state.accountsById.get(accountId)}
+            onPress={goToDetail}
+            onSkip={requestSkip}
+            onEdit={goToEdit}
+            onDelete={requestCommitmentDelete}
+            showSeparator={!isLast}
+            swipeContainerStyle={resolveDayCardSwipeCorners(isFirst, isLast)}
+          />
+        </DayCardRow>
       );
     },
     [
@@ -160,6 +172,7 @@ export default function CommitmentsScreen() {
       state.accountsById,
       state.categoriesById,
       state.commitmentsById,
+      state.liveRate,
       state.today,
     ],
   );

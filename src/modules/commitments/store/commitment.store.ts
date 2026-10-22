@@ -9,7 +9,10 @@ import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 import type { CommitmentMonthAggregate } from '../domain/commitment_month_totals';
 import { isPaidPayment, isSkippedPayment, resolvePaymentState } from '../domain/payment_state';
 import type { Commitment } from '../entities/commitment.entity';
-import type { CommitmentPayment } from '../entities/commitment_payment.entity';
+import type {
+  CommitmentMonthPayment,
+  CommitmentPayment,
+} from '../entities/commitment_payment.entity';
 import {
   CommitmentRepository,
   type CommitmentMonthSnapshot,
@@ -29,7 +32,7 @@ export type {
 
 interface CommitmentStoreState {
   commitments: Commitment[];
-  payments: CommitmentPayment[];
+  payments: CommitmentMonthPayment[];
   transitioningPaymentIds: string[];
   selectedMonth: string;
   commitmentsLoaded: boolean;
@@ -328,6 +331,7 @@ export function createCommitmentStore(
                       paid_date: details.paid_date,
                       skipped_date: null,
                       amount_paid: amounts.paymentAmount,
+                      paid_egp_amount: amounts.egpAmount,
                       account_id: details.account_id,
                       exchange_rate_snapshot:
                         details.exchange_rate_snapshot ?? candidate.exchange_rate_snapshot,

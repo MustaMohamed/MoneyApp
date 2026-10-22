@@ -47,8 +47,22 @@ export class CommitmentMonthTotalsError extends Error {
   }
 }
 
-function heldEgp(bucket: CommitmentHeldBucket, rate: number): number {
+/** `rate` is EGP per USD; a USD leg needs it finite and positive. */
+export function assertUsdLegRate(rate: number | undefined): asserts rate is number {
+  if (rate === undefined || !Number.isFinite(rate) || rate <= 0) {
+    throw new CommitmentMonthTotalsError(
+      `Rate must be finite and positive with a USD leg: ${rate}`,
+    );
+  }
+}
+
+/** The EGP leg plus the USD leg converted once at `rate`, rounded once. */
+export function heldEgp(
+  bucket: Pick<CommitmentHeldBucket, 'egp' | 'usd'>,
+  rate: number | undefined,
+): number {
   if (bucket.usd === 0) return roundMoney(bucket.egp);
+  assertUsdLegRate(rate);
   return roundMoney(
     bucket.egp +
       convertCurrency({ amount: bucket.usd, from: Currency.USD, to: Currency.EGP, rate }),
@@ -61,11 +75,7 @@ export function computeCommitmentMonthTotals(
   rate: number,
 ): CommitmentMonthTotals {
   const hasUsd = HELD_BUCKETS.map((name) => aggregate[name]).some((bucket) => bucket.usd !== 0);
-  if (hasUsd && (!Number.isFinite(rate) || rate <= 0)) {
-    throw new CommitmentMonthTotalsError(
-      `Rate must be finite and positive with a USD leg: ${rate}`,
-    );
-  }
+  if (hasUsd) assertUsdLegRate(rate);
 
   const paid = roundMoney(aggregate.paid.egp);
   const committed = roundMoney(
