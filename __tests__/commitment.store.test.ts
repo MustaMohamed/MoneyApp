@@ -15,6 +15,7 @@ import {
 } from '@/modules/commitments/store/commitment.store';
 import type { CommitmentPaymentAmounts } from '@/modules/transactions/domain/transaction_amounts';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
+import { makeTestHeldBucket, makeTestMonthAggregate } from '@/test_helpers/commitment';
 import { deferred } from '@/test_helpers/deferred';
 
 const MAY = '2026-05';
@@ -872,19 +873,11 @@ describe('commitment store month aggregate', () => {
   const LOCAL_DATE = /^\d{4}-\d{2}-\d{2}$/;
   type Store = ReturnType<typeof createCommitmentStore>;
 
-  function heldBucket(egp = 0, count = 0) {
-    return { egp, usd: 0, count, hasVariable: false };
-  }
-
   function monthAggregate(paidEgp = 1200): CommitmentMonthAggregate {
-    return {
+    return makeTestMonthAggregate({
       paid: { egp: paidEgp, count: 1 },
-      skipped: heldBucket(),
-      overdue: heldBucket(),
-      due: heldBucket(250, 1),
-      upcoming: heldBucket(),
-      carried: heldBucket(),
-    };
+      due: makeTestHeldBucket({ egp: 250, count: 1 }),
+    });
   }
 
   function flushTasks() {
@@ -1133,6 +1126,33 @@ describe('commitment store month aggregate', () => {
     await store.getState().markAsPaid('payment', paymentDetails);
     await flushTasks();
     expect(repository.getMonthAggregate).not.toHaveBeenCalled();
+  });
+
+  it('publishes nothing from a read made before a write invalidated the data', async () => {
+    const beforeWrite = deferred<CommitmentMonthAggregate>();
+    const afterWrite = deferred<CommitmentMonthAggregate>();
+    const repository = makeRepository({
+      getMonthAggregate: jest
+        .fn()
+        .mockReturnValueOnce(beforeWrite.promise)
+        .mockReturnValueOnce(afterWrite.promise),
+    });
+    const store = createCommitmentStore(repository);
+    await store.getState().setSelectedMonth(MAY);
+
+    const load = store.getState().loadMonthAggregate(MAY, undefined, MAY_8_LOCAL);
+    await flushTasks();
+    expect(repository.getMonthAggregate).toHaveBeenCalledTimes(1);
+
+    await store.getState().markAsPaid('payment', paymentDetails);
+    await flushTasks();
+    expect(repository.getMonthAggregate).toHaveBeenCalledTimes(2);
+
+    beforeWrite.resolve(monthAggregate());
+    await load;
+
+    expect(store.getState().monthAggregate).toBeUndefined();
+    expect(store.getState().monthAggregateErrorKey).toBeUndefined();
   });
 
   it('publishes nothing from a load that was in flight at reset', async () => {

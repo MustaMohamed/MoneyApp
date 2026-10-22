@@ -15,10 +15,7 @@ import type { Account } from '@/modules/accounts/entities/account.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
-import type {
-  CommitmentHeldBucket,
-  CommitmentMonthAggregate,
-} from '@/modules/commitments/domain/commitment_month_totals';
+import type { CommitmentMonthAggregate } from '@/modules/commitments/domain/commitment_month_totals';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import { useCommitments } from '@/modules/commitments/screens/commitments/commitments.hook';
@@ -30,6 +27,7 @@ import {
   useCommitmentStore,
 } from '@/modules/commitments/store/commitment.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
+import { makeTestHeldBucket, makeTestMonthAggregate } from '@/test_helpers/commitment';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
 const mockUseDeferredValue = jest.fn((value: unknown) => value);
@@ -103,20 +101,14 @@ function aggregateFocusCallback() {
   return capturedFocusCallbacks.at(-1);
 }
 
-function held(overrides: Partial<CommitmentHeldBucket> = {}): CommitmentHeldBucket {
-  return { egp: 0, usd: 0, count: 0, hasVariable: false, ...overrides };
+function runAggregateFocusLoad() {
+  aggregateFocusCallback()?.();
+  mockInteractionTasks.at(-1)?.callback();
 }
 
 // Committed is the due row's 10 USD alone: 500 at rate 50, 480 at rate 48.
 function usdDueAggregate(): CommitmentMonthAggregate {
-  return {
-    paid: { egp: 0, count: 0 },
-    skipped: held(),
-    overdue: held(),
-    due: held({ usd: 10, count: 1 }),
-    upcoming: held(),
-    carried: held(),
-  };
+  return makeTestMonthAggregate({ due: makeTestHeldBucket({ usd: 10, count: 1 }) });
 }
 
 type PaymentDates = Pick<CommitmentPayment, 'due_date' | 'paid_date' | 'skipped_date'>;
@@ -724,7 +716,7 @@ describe('useCommitments', () => {
     await renderHook(() => useCommitments());
 
     await act(() => {
-      aggregateFocusCallback()?.();
+      runAggregateFocusLoad();
     });
 
     expect(loadMonthAggregateMock).toHaveBeenCalledTimes(1);
@@ -740,7 +732,7 @@ describe('useCommitments', () => {
     await renderHook(() => useCommitments());
 
     await act(() => {
-      aggregateFocusCallback()?.();
+      runAggregateFocusLoad();
     });
 
     expect(loadMonthAggregateMock).toHaveBeenCalledWith('2026-05', expected);
@@ -751,10 +743,45 @@ describe('useCommitments', () => {
     await renderHook(() => useCommitments());
 
     await act(() => {
-      aggregateFocusCallback()?.();
+      runAggregateFocusLoad();
     });
 
     expect(loadMonthAggregateMock).toHaveBeenCalledWith('2026-05', undefined);
+  });
+
+  it('keeps one applied account under a status filter, a search and a category', async () => {
+    setup({
+      statusFilter: CommitmentPaymentStatus.Paid,
+      searchQuery: 'internet',
+      appliedFilters: { ...EMPTY_COMMITMENT_FILTERS, accountIds: ['a'], categoryIds: ['c'] },
+    });
+    await renderHook(() => useCommitments());
+
+    await act(() => {
+      runAggregateFocusLoad();
+    });
+
+    expect(loadMonthAggregateMock).toHaveBeenCalledWith('2026-05', 'a');
+  });
+
+  it('defers the aggregate focus load until interactions finish and cancels it on cleanup', async () => {
+    await renderHook(() => useCommitments());
+    let cleanup: void | (() => void);
+
+    await act(() => {
+      cleanup = aggregateFocusCallback()?.();
+    });
+
+    expect(loadMonthAggregateMock).not.toHaveBeenCalled();
+    const task = mockInteractionTasks.at(-1);
+
+    await act(() => {
+      cleanup?.();
+      task?.callback();
+    });
+
+    expect(task?.cancel).toHaveBeenCalledTimes(1);
+    expect(loadMonthAggregateMock).not.toHaveBeenCalled();
   });
 
   it('the latest aggregate callback follows a month change', async () => {
@@ -763,7 +790,7 @@ describe('useCommitments', () => {
     await hook.rerender({});
 
     await act(() => {
-      aggregateFocusCallback()?.();
+      runAggregateFocusLoad();
     });
 
     expect(loadMonthAggregateMock).toHaveBeenCalledTimes(1);
@@ -776,7 +803,7 @@ describe('useCommitments', () => {
     await hook.rerender({});
 
     await act(() => {
-      aggregateFocusCallback()?.();
+      runAggregateFocusLoad();
     });
 
     expect(loadMonthAggregateMock).toHaveBeenCalledTimes(1);

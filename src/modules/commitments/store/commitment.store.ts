@@ -71,6 +71,20 @@ export function monthAggregateKey(yearMonth: string, accountId: string | undefin
   return `${yearMonth}|${accountId ?? ''}`;
 }
 
+function shareInFlight<T>(
+  map: Map<string, Promise<T>>,
+  key: string,
+  start: () => Promise<T>,
+): Promise<T> {
+  const existing = map.get(key);
+  if (existing) return existing;
+  const request = start().finally(() => {
+    if (map.get(key) === request) map.delete(key);
+  });
+  map.set(key, request);
+  return request;
+}
+
 function initialState(generation = 0): CommitmentStoreState {
   return {
     commitments: [],
@@ -106,42 +120,25 @@ export function createCommitmentStore(
   const inFlightSnapshots = new Map<string, Promise<CommitmentMonthSnapshot>>();
   const inFlightAggregates = new Map<string, Promise<CommitmentMonthAggregate>>();
 
-  const getHousekeepingRequest = (key: string, now: Date) => {
-    const existing = inFlightHousekeeping.get(key);
-    if (existing) return existing;
-    const request = repo.runHousekeeping(now).finally(() => {
-      if (inFlightHousekeeping.get(key) === request) inFlightHousekeeping.delete(key);
-    });
-    inFlightHousekeeping.set(key, request);
-    return request;
-  };
+  const getHousekeepingRequest = (key: string, now: Date) =>
+    shareInFlight(inFlightHousekeeping, key, () => repo.runHousekeeping(now));
 
-  const getSnapshotRequest = (month: string, today: string, generation: number) => {
-    const key = `${month}:${today}:${generation}`;
-    const existing = inFlightSnapshots.get(key);
-    if (existing) return existing;
-    const request = repo.getMonthSnapshot(month, today).finally(() => {
-      if (inFlightSnapshots.get(key) === request) inFlightSnapshots.delete(key);
-    });
-    inFlightSnapshots.set(key, request);
-    return request;
-  };
+  const getSnapshotRequest = (month: string, today: string, generation: number) =>
+    shareInFlight(inFlightSnapshots, `${month}:${today}:${generation}`, () =>
+      repo.getMonthSnapshot(month, today),
+    );
 
   const getAggregateRequest = (
     yearMonth: string,
     accountId: string | undefined,
     today: string,
     generation: number,
-  ) => {
-    const key = `${monthAggregateKey(yearMonth, accountId)}:${today}:${generation}`;
-    const existing = inFlightAggregates.get(key);
-    if (existing) return existing;
-    const request = repo.getMonthAggregate(yearMonth, today, accountId).finally(() => {
-      if (inFlightAggregates.get(key) === request) inFlightAggregates.delete(key);
-    });
-    inFlightAggregates.set(key, request);
-    return request;
-  };
+  ) =>
+    shareInFlight(
+      inFlightAggregates,
+      `${monthAggregateKey(yearMonth, accountId)}:${today}:${generation}`,
+      () => repo.getMonthAggregate(yearMonth, today, accountId),
+    );
 
   return createMoneyAppSelectors(
     create<CommitmentStore>((set, get) => {
@@ -261,10 +258,10 @@ export function createCommitmentStore(
 
           try {
             await get().ensureHousekeepingCurrent(now);
-            if (requestId !== latestAggregateRequest) return;
+            if (requestId !== latestAggregateRequest || generation !== dataGeneration) return;
 
             const aggregate = await getAggregateRequest(yearMonth, accountId, today, generation);
-            if (requestId !== latestAggregateRequest) return;
+            if (requestId !== latestAggregateRequest || generation !== dataGeneration) return;
             set((state) => ({
               monthAggregate: { key, aggregate },
               monthAggregateErrorKey:
@@ -272,7 +269,9 @@ export function createCommitmentStore(
             }));
           } catch (error) {
             console.error('[commitmentStore] loadMonthAggregate failed:', error);
-            if (requestId === latestAggregateRequest) set({ monthAggregateErrorKey: key });
+            if (requestId === latestAggregateRequest && generation === dataGeneration) {
+              set({ monthAggregateErrorKey: key });
+            }
           }
         },
 

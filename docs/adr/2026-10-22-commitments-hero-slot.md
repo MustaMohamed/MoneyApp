@@ -16,7 +16,7 @@ The store holds one slot, `monthAggregate: { key, aggregate } | undefined`, and 
 - A successful load publishes `{ key, aggregate }` in one `set` and clears `monthAggregateErrorKey` only when it equals that key.
 - A failed load sets `monthAggregateErrorKey` to its key and keeps the slot it holds. `loadMonthAggregate` logs the error and never rejects.
 - A load sets no state when it starts. A held slot and an error key stay as they are while a reload runs.
-- Each load takes a request id, and a response from an older id publishes nothing, so a month left behind never overwrites the month on screen.
+- Each load takes a request id and the store's data generation. A response from an older id, or one read before a write bumped the generation, publishes nothing and sets no error key, so a month left behind or a read from before a write never overwrites what is on screen.
 
 ## 2. When the slot loads
 
@@ -24,9 +24,11 @@ The store holds one slot, `monthAggregate: { key, aggregate } | undefined`, and 
 
 It runs:
 
-- on each focus of the list, from a second `useFocusEffect` in the screen hook. Its callback depends on the selected month and the hero's account, and expo-router runs a focus effect again when its callback changes while the screen is focused (`node_modules/expo-router/build/useFocusEffect.js:134-137,164`). That one effect covers focus, a month change and an account-scope change.
+- on each focus of the list, from a second `useFocusEffect` in the screen hook. Like the rows' focus load, it starts after interactions through `runAfterInteractions`, and its cleanup cancels a start still pending. Its callback depends on the selected month and the hero's account, and expo-router runs a focus effect again when its callback changes while the screen is focused (`node_modules/expo-router/build/useFocusEffect.js:134-137,164`). That one effect covers focus, a month change and an account-scope change.
 - on pull to refresh, beside the rows' reload.
 - after each of the six writes: Pay, Skip, Undo, Add and Stop through `revalidateAfterMutation`, and Edit in `updateCommitment` before it awaits the rows. The reload uses the selected month and the account of the latest load. Before the first `loadMonthAggregate`, a write reads no aggregate.
+
+The focus read has no freshness gate, because the ticket asks for the aggregate to be read again on each focus. A gate added later (audit M32) must also key on the accounts write that moves unpaid payments to a replacement account when an account is archived (`updateUnpaidPaymentsAccount`, `src/modules/accounts/repositories/account.repository.ts:163`). That write does not bump the commitments store's generation, so a gate keyed on that generation alone would hold stale figures.
 
 A failed aggregate load reaches the hero model alone. The rows' load and its `loadError` are separate, and `loadMonthSnapshot` is unchanged.
 

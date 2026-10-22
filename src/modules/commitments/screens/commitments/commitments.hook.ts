@@ -205,12 +205,12 @@ export function useCommitments() {
     () =>
       buildCommitmentsHeroModel({
         mode: heroMode,
-        aggregate: monthAggregate?.key === heroKeyOnScreen ? monthAggregate.aggregate : undefined,
+        aggregate: monthAggregate?.aggregate,
         rate,
         yearMonth: selectedMonth,
         today: heroToday,
       }),
-    [heroMode, monthAggregate, heroKeyOnScreen, rate, selectedMonth, heroToday],
+    [heroMode, monthAggregate, rate, selectedMonth, heroToday],
   );
 
   const selectedMonthRef = useRef(selectedMonth);
@@ -262,7 +262,8 @@ export function useCommitments() {
   // Expo-router reruns this on focus and on a month or hero-account change while focused.
   useFocusEffect(
     useCallback(() => {
-      void loadMonthAggregate(selectedMonth, heroAccountId);
+      const task = runAfterInteractions(() => loadMonthAggregate(selectedMonth, heroAccountId));
+      return () => task.cancel();
     }, [loadMonthAggregate, selectedMonth, heroAccountId]),
   );
 

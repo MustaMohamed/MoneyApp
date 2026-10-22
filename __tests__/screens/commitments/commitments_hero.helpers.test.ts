@@ -1,6 +1,5 @@
 import { CommitmentPaymentStatus } from '@/constants/enums';
 import {
-  type CommitmentHeldBucket,
   type CommitmentMonthAggregate,
   CommitmentMonthTotalsError,
 } from '@/modules/commitments/domain/commitment_month_totals';
@@ -10,36 +9,22 @@ import {
   resolveCommitmentsHeroAccountId,
   resolveCommitmentsHeroMode,
 } from '@/modules/commitments/screens/commitments/components/commitments_hero.helpers';
+import { makeTestHeldBucket, makeTestMonthAggregate } from '@/test_helpers/commitment';
 
 const DASH = '—';
 const KEY_OCT = '2026-10|';
 const KEY_SEP = '2026-09|';
 const KEY_OCT_ACCOUNT = '2026-10|a';
 
-function held(overrides: Partial<CommitmentHeldBucket> = {}): CommitmentHeldBucket {
-  return { egp: 0, usd: 0, count: 0, hasVariable: false, ...overrides };
-}
-
-function emptyAggregate(): CommitmentMonthAggregate {
-  return {
-    paid: { egp: 0, count: 0 },
-    skipped: held(),
-    overdue: held(),
-    due: held(),
-    upcoming: held(),
-    carried: held(),
-  };
-}
-
 // At rate 50: Committed 1,200 + 500 + (10 × 50) + (2,000 + 20 × 50) = 5,200; Paid 1,200 is 23%.
 function mixedAggregate(): CommitmentMonthAggregate {
   return {
     paid: { egp: 1200, count: 2 },
-    skipped: held({ egp: 300, count: 1 }),
-    overdue: held({ egp: 500, count: 1 }),
-    due: held({ usd: 10, count: 1 }),
-    upcoming: held({ egp: 2000, usd: 20, count: 3, hasVariable: true }),
-    carried: held({ egp: 400, count: 2, hasVariable: true }),
+    skipped: makeTestHeldBucket({ egp: 300, count: 1 }),
+    overdue: makeTestHeldBucket({ egp: 500, count: 1 }),
+    due: makeTestHeldBucket({ usd: 10, count: 1 }),
+    upcoming: makeTestHeldBucket({ egp: 2000, usd: 20, count: 3, hasVariable: true }),
+    carried: makeTestHeldBucket({ egp: 400, count: 2, hasVariable: true }),
   };
 }
 
@@ -215,7 +200,7 @@ describe('buildCommitmentsHeroModel', () => {
   });
 
   it('prints zeros and dashes for a month with no rows', () => {
-    const model = buildCommitmentsHeroModel(input({ aggregate: emptyAggregate() }));
+    const model = buildCommitmentsHeroModel(input({ aggregate: makeTestMonthAggregate() }));
 
     expect(model).toMatchObject({
       mode: 'figures',
@@ -238,7 +223,7 @@ describe('buildCommitmentsHeroModel', () => {
   });
 
   it("dashes Overdue at 0 carried rows and counts the month's own overdue rows", () => {
-    const aggregate = { ...mixedAggregate(), carried: held() };
+    const aggregate = { ...mixedAggregate(), carried: makeTestHeldBucket() };
 
     const model = buildCommitmentsHeroModel(input({ aggregate }));
 
@@ -252,7 +237,7 @@ describe('buildCommitmentsHeroModel', () => {
     expect(buildCommitmentsHeroModel(input({ today: '2026-10-31' })).daysLeft).toBe('0 days');
     expect(
       buildCommitmentsHeroModel(
-        input({ yearMonth: '2028-02', today: '2028-02-28', aggregate: emptyAggregate() }),
+        input({ yearMonth: '2028-02', today: '2028-02-28', aggregate: makeTestMonthAggregate() }),
       ).daysLeft,
     ).toBe('1 day');
     expect(
@@ -280,4 +265,22 @@ describe('buildCommitmentsHeroModel', () => {
       });
     },
   );
+
+  it('falls back to the skeleton with dashes when figures mode has no aggregate', () => {
+    expect(buildCommitmentsHeroModel(input({ mode: 'figures', aggregate: undefined }))).toEqual({
+      mode: 'skeleton',
+      monthLabel: 'October',
+      currencyCode: 'EGP',
+      leftToPay: DASH_FIGURE,
+      committed: DASH_FIGURE,
+      paid: DASH_FIGURE,
+      skipped: DASH_FIGURE,
+      overdue: DASH_FIGURE,
+      counts: DASH_COUNTS,
+      paidPct: undefined,
+      percent: DASH,
+      carried: undefined,
+      daysLeft: '11 days',
+    });
+  });
 });
