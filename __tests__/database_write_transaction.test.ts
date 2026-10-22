@@ -14,11 +14,11 @@ import {
   type SQLiteConnections,
 } from '@/test_helpers/sqlite_connections';
 
-jest.mock('@/database/write_lock', () => ({ WRITE_LOCK_WAIT_MS: 300 }));
+jest.mock('@/database/write_lock', () => ({ WRITE_LOCK_WAIT_MS: 1100 }));
 
-const WAIT_MS = 300;
+const WAIT_MS = 1100;
 const HOLD_WITHIN_BOUND_MS = 100;
-const HOLD_PAST_BOUND_MS = 1000;
+const HOLD_PAST_BOUND_MS = 2100;
 
 let connections: SQLiteConnections;
 let db: SQLiteDatabase;
@@ -125,6 +125,75 @@ describe('withWriteTransactionAsync', () => {
     ).rejects.toBe(failure);
 
     await expect(db.getAllAsync('SELECT id FROM lock_probe')).resolves.toEqual([]);
+  });
+
+  it('rejects with the task error when SQLite already rolled the transaction back', async () => {
+    const failure = new Error('task failed');
+
+    await expect(
+      withWriteTransactionAsync(db, async () => {
+        await insertProbe(db, 'rolled-back');
+        await db.execAsync('ROLLBACK');
+        throw failure;
+      }),
+    ).rejects.toBe(failure);
+
+    expect(committedProbeIds()).toEqual([]);
+  });
+});
+
+describe("while another caller's read is open on the main connection", () => {
+  const openReads: [string, (connection: SQLiteDatabase) => Promise<unknown>, unknown][] = [
+    [
+      'getAllAsync',
+      (connection) => connection.getAllAsync('SELECT id FROM lock_probe'),
+      [{ id: 'seeded' }],
+    ],
+    [
+      'getFirstAsync',
+      (connection) => connection.getFirstAsync('SELECT id FROM lock_probe'),
+      { id: 'seeded' },
+    ],
+  ];
+
+  beforeEach(() => {
+    connections.inspect.prepare('INSERT INTO lock_probe (id) VALUES (?)').run('seeded');
+  });
+
+  it.each(openReads)(
+    'a write transaction behind an open %s waits for the lock and commits',
+    async (_read, read, seen) => {
+      const lock = await connections.holdWriteLock(HOLD_WITHIN_BOUND_MS);
+      const reading = read(db);
+
+      await withWriteTransactionAsync(db, () => insertProbe(db, 'written').then(() => undefined));
+      await lock.released;
+
+      await expect(reading).resolves.toEqual(seen);
+      expect(committedProbeIds()).toEqual(['seeded', 'written']);
+    },
+  );
+
+  it.each(openReads)(
+    'an autocommit write behind an open %s waits for the lock and commits',
+    async (_read, read, seen) => {
+      const lock = await connections.holdWriteLock(HOLD_WITHIN_BOUND_MS);
+      const reading = read(db);
+
+      await insertProbe(db, 'written');
+      await lock.released;
+
+      await expect(reading).resolves.toEqual(seen);
+      expect(committedProbeIds()).toEqual(['seeded', 'written']);
+    },
+  );
+
+  it('a rejected call does not hold back the next one', async () => {
+    const failing = db.runAsync('INSERT INTO no_such_table (id) VALUES (1)');
+    const next = db.getFirstAsync('SELECT 1 AS one');
+
+    await expect(failing).rejects.toThrow('no such table');
+    await expect(next).resolves.toEqual({ one: 1 });
   });
 });
 

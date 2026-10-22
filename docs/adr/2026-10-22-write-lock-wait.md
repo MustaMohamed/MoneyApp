@@ -24,7 +24,11 @@ The same statement sets `PRAGMA foreign_keys = ON` and `PRAGMA journal_mode = WA
 
 Both begin with `BEGIN IMMEDIATE`, which takes the write lock before the task's first statement. SQLite calls no busy handler for a transaction that has already read: a plain `BEGIN`, a read, then a write fails `SQLITE_BUSY` at once, whatever the timeout. A `BEGIN IMMEDIATE` that gives up after the wait rejects with SQLite's busy error and runs no `ROLLBACK`, so the caller sees the busy error, not a no-transaction error. A task or `COMMIT` error rolls back and rethrows.
 
-`db.withTransactionAsync` and `db.withExclusiveTransactionAsync` begin a plain `BEGIN`, and the first rolls back even when its `BEGIN` failed (`node_modules/expo-sqlite/src/SQLiteDatabase.ts:141-149`, `:184`). No app code calls them.
+Both helpers live in `client.ts` beside `openConnection`. A suite that mocks `@/database/client` re-exports the helper it reaches through `jest.requireActual`.
+
+`db.withTransactionAsync` and `db.withExclusiveTransactionAsync` begin a plain `BEGIN`, and the first rolls back even when its `BEGIN` failed (`node_modules/expo-sqlite/src/SQLiteDatabase.ts:141-149`, `:184`). No app code calls them, and structural guard T5 (`scripts/validate-structural-guards.js`) keeps it so.
+
+The main connection runs `execAsync`, `runAsync`, `getFirstAsync` and `getAllAsync` one at a time. `getDb()` wraps the connection so each of these calls starts once the previous one has settled, fulfilled or rejected, and returns its own result. An expo read steps its first row in one native call and finalizes the statement one or two native calls later (`SQLiteDatabase.ts:379-389`, `:438-447`); Android leaves a `SQLITE_ROW` statement un-reset (`android/src/main/java/expo/modules/sqlite/SQLiteModule.kt:418-428`). Until then the connection holds a read transaction, and SQLite runs the busy handler only from no transaction (`vendor/sqlite3/sqlite3.c:75258-75259`), so a `BEGIN IMMEDIATE` or an autocommit write issued in that window failed at 0 ms. No transaction holds the queue between its statements, and no exclusive connection is queued. Guard T6 refuses the other connection methods in app code, so no call skips the queue.
 
 ## 4. No patch and no retry
 

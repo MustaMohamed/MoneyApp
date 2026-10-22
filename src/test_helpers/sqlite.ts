@@ -22,7 +22,7 @@ type ExpoSQLiteMockModule = typeof SQLite & {
   __reset: () => void;
 };
 
-function asSQLiteDatabase(methods: Omit<MockSQLiteDatabase, 'database'>): SQLiteDatabase {
+export function asSQLiteDatabase(methods: object): SQLiteDatabase {
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- one structural bridge for the Jest Expo SQLite facade; consumers remain fully typed
   return methods as unknown as SQLiteDatabase;
 }

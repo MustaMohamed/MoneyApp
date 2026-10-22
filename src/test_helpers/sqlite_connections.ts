@@ -10,7 +10,7 @@ import type { SQLiteDatabase, SQLiteOpenOptions, SQLiteRunResult } from 'expo-sq
 import { MIGRATIONS } from '@/database/migrations';
 
 import { deferred } from './deferred';
-import { getSQLiteParams } from './sqlite';
+import { asSQLiteDatabase, getSQLiteParams } from './sqlite';
 import type { RealSQLiteDatabase } from './sqlite_fixtures';
 
 export interface BridgedConnection {
@@ -23,7 +23,6 @@ export interface HeldWriteLock {
 }
 
 export interface SQLiteConnections {
-  path: string;
   /** A direct handle on the same file, for seeding and for reading committed rows. */
   inspect: RealSQLiteDatabase;
   /** Every connection `openDatabaseAsync` or a base-commit exclusive transaction opened, in order. */
@@ -46,9 +45,27 @@ db.exec('COMMIT');
 db.close();
 `;
 
-function asSQLiteDatabase(methods: object): SQLiteDatabase {
-  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- one structural bridge for the Jest Expo SQLite facade; consumers remain fully typed
-  return methods as unknown as SQLiteDatabase;
+// Steps the first row, then yields, as expo's separate native calls do; a synchronous read closes the window.
+async function readRows(
+  handle: RealSQLiteDatabase,
+  source: string,
+  rest: unknown[],
+  limit: number,
+): Promise<unknown[]> {
+  const rows = handle.prepare(source).iterate(...getSQLiteParams(rest));
+  try {
+    const first = rows.next();
+    await new Promise((resolve) => setImmediate(resolve));
+    if (first.done) return [];
+    const read: unknown[] = [first.value];
+    for (const next of rows) {
+      if (read.length >= limit) break;
+      read.push(next);
+    }
+    return read;
+  } finally {
+    rows.return?.();
+  }
 }
 
 function startHolder(path: string, holdMs: number, driver: string): Promise<HeldWriteLock> {
@@ -81,6 +98,7 @@ export function bridgeSQLiteConnections(): SQLiteConnections {
   function open(options?: SQLiteOpenOptions): SQLiteDatabase {
     const handle = new Database(path, { timeout: 0 });
     handle.pragma('foreign_keys = OFF');
+    handle.unsafeMode(true);
     handles.push(handle);
     const closeAsync = jest.fn(async () => {
       handle.close();
@@ -98,9 +116,9 @@ export function bridgeSQLiteConnections(): SQLiteConnections {
         return { changes: result.changes, lastInsertRowId: Number(result.lastInsertRowid) };
       },
       getAllAsync: async (source: string, ...rest: unknown[]) =>
-        handle.prepare(source).all(...getSQLiteParams(rest)),
+        readRows(handle, source, rest, Infinity),
       getFirstAsync: async (source: string, ...rest: unknown[]) =>
-        handle.prepare(source).get(...getSQLiteParams(rest)) ?? null,
+        (await readRows(handle, source, rest, 1))[0] ?? null,
       closeAsync,
       // As expo-sqlite SQLiteDatabase.ts:141-149: plain BEGIN, and ROLLBACK even when BEGIN failed.
       withTransactionAsync: async (task: () => Promise<void>): Promise<void> => {
@@ -139,7 +157,6 @@ export function bridgeSQLiteConnections(): SQLiteConnections {
     .mockImplementation(async (_name: string, options?: SQLiteOpenOptions) => open(options));
 
   return {
-    path,
     inspect,
     opened,
     holdWriteLock: async (holdMs: number) => {

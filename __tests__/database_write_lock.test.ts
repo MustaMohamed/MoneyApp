@@ -169,6 +169,21 @@ describe('a write on the main connection while another connection holds the writ
     expect(row('commitment_payments', 'overdue-may')).toMatchObject({ skipped_date: TODAY });
   });
 
+  it("Skip, issued while another caller's read is open on the main connection, waits and writes the skip", async () => {
+    seed(COMMITMENT, [OVERDUE_MAY]);
+    const db = await getDb();
+    const lock = await connections.holdWriteLock(HOLD_MS);
+    const reading = db.getAllAsync(
+      "SELECT id FROM commitment_payments WHERE commitment_id = 'commitment'",
+    );
+
+    await commitmentRepository.markAsSkipped('overdue-may', TODAY, NOW_ISO);
+    await lock.released;
+
+    await expect(reading).resolves.toEqual([{ id: 'overdue-may' }]);
+    expect(row('commitment_payments', 'overdue-may')).toMatchObject({ skipped_date: TODAY });
+  });
+
   it('Pay waits and writes the payment, its transaction and the account delta in one go', async () => {
     seed(COMMITMENT, [OVERDUE_MAY]);
 

@@ -18,8 +18,44 @@ async function openConnection(options?: SQLite.SQLiteOpenOptions): Promise<SQLit
   return db;
 }
 
+const QUEUED_CALLS = new Set<PropertyKey>([
+  'execAsync',
+  'runAsync',
+  'getFirstAsync',
+  'getAllAsync',
+]);
+
+function callMember(target: object, key: PropertyKey, args: unknown[]): unknown {
+  const member: unknown = Reflect.get(target, key);
+  if (typeof member !== 'function') throw new TypeError(`${String(key)} is not a function`);
+  const result: unknown = Reflect.apply(member, target, args);
+  return result;
+}
+
+// A write issued beside another call's open read gets no busy wait, so the main connection runs one call at a time.
+function queueCalls(db: SQLite.SQLiteDatabase): SQLite.SQLiteDatabase {
+  let previous: Promise<unknown> = Promise.resolve();
+  return new Proxy(db, {
+    get(target, key) {
+      const member: unknown = Reflect.get(target, key);
+      if (typeof member !== 'function') return member;
+      if (!QUEUED_CALLS.has(key)) return (...args: unknown[]) => callMember(target, key, args);
+      return (...args: unknown[]) => {
+        const call = previous.then(() => callMember(target, key, args));
+        previous = call.catch(() => undefined);
+        return call;
+      };
+    },
+  });
+}
+
 export function getDb(): Promise<SQLite.SQLiteDatabase> {
-  dbPromise ??= openConnection();
+  dbPromise ??= openConnection()
+    .then(queueCalls)
+    .catch((error: unknown) => {
+      dbPromise = null;
+      throw error;
+    });
   return dbPromise;
 }
 
@@ -33,7 +69,8 @@ export async function withWriteTransactionAsync(
     await task();
     await db.execAsync('COMMIT');
   } catch (error) {
-    await db.execAsync('ROLLBACK');
+    // SQLite has already rolled back after some errors; the task's error is the one to report.
+    await db.execAsync('ROLLBACK').catch(() => undefined);
     throw error;
   }
 }
