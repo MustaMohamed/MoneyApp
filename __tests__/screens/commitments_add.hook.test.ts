@@ -3,9 +3,9 @@ import { act, renderHook } from '@testing-library/react-native';
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
-import { useAddCommitment } from '@/modules/commitments/screens/commitments/add_commitment/add_commitment.hook';
-import { useAddCommitmentState } from '@/modules/commitments/screens/commitments/add_commitment/add_commitment.state';
 import { COMMITMENT_AMOUNT_REFUSES_ZERO } from '@/modules/commitments/screens/commitments/commitment_form.shared';
+import { useAddCommitment } from '@/modules/commitments/screens/commitments/commitment_form/add_commitment.hook';
+import { useAddCommitmentState } from '@/modules/commitments/screens/commitments/commitment_form/add_commitment.state';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { deferred } from '@/test_helpers/deferred';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
@@ -25,13 +25,15 @@ jest.mock('@/modules/accounts/store/account.store', () => ({
   useAccountStore: jest.fn(),
 }));
 jest.mock('@/modules/categories/store/category.store', () => ({ useCategoryStore: jest.fn() }));
-jest.mock('@/modules/commitments/screens/commitments/add_commitment/add_commitment.state', () => ({
+jest.mock('@/modules/commitments/screens/commitments/commitment_form/add_commitment.state', () => ({
   useAddCommitmentState: jest.fn(),
 }));
 
 const addCommitmentMock = jest.fn().mockResolvedValue(undefined);
 const generatePaymentsMock = jest.fn().mockResolvedValue(undefined);
 const setSaveErrorMock = jest.fn();
+const resetStateMock = jest.fn();
+const onSaved = jest.fn();
 let saveErrorValue: string | undefined;
 
 function setup() {
@@ -52,7 +54,7 @@ function setup() {
     saveError: saveErrorValue,
     setSaving: jest.fn(),
     setSaveError: setSaveErrorMock,
-    reset: jest.fn(),
+    reset: resetStateMock,
   }));
 }
 
@@ -64,16 +66,16 @@ describe('useAddCommitment', () => {
   });
 
   it('renders without throwing', async () => {
-    await expect(renderHook(() => useAddCommitment())).resolves.toBeDefined();
+    await expect(renderHook(() => useAddCommitment({ onSaved }))).resolves.toBeDefined();
   });
 
   it('saving defaults to false', async () => {
-    const { result } = await renderHook(() => useAddCommitment());
+    const { result } = await renderHook(() => useAddCommitment({ onSaved }));
     expect(result.current.state.saving).toBe(false);
   });
 
   it('leaves payment generation to the commitment mutation owner', async () => {
-    const { result } = await renderHook(() => useAddCommitment());
+    const { result } = await renderHook(() => useAddCommitment({ onSaved }));
     await act(() => {
       result.current.form.setValue('name', 'Rent');
       result.current.form.setValue('amount', 5000);
@@ -86,7 +88,8 @@ describe('useAddCommitment', () => {
 
     expect(addCommitmentMock).toHaveBeenCalledTimes(1);
     expect(generatePaymentsMock).not.toHaveBeenCalled();
-    expect(mockRouterBack).toHaveBeenCalledTimes(1);
+    expect(onSaved).toHaveBeenCalledTimes(1);
+    expect(mockRouterBack).not.toHaveBeenCalled();
   });
 
   describe('MA-115 a half-typed amount after a refused Save', () => {
@@ -94,7 +97,7 @@ describe('useAddCommitment', () => {
       result.current.form.getFieldState('amount').error?.message;
 
     async function mountRefused() {
-      const { result } = await renderHook(() => useAddCommitment());
+      const { result } = await renderHook(() => useAddCommitment({ onSaved }));
       await act(async () => {
         await result.current.onSubmit();
       });
@@ -162,7 +165,7 @@ describe('useAddCommitment', () => {
   it('allows only one committed add while the first submit is in flight', async () => {
     const save = deferred<void>();
     addCommitmentMock.mockReturnValueOnce(save.promise);
-    const { result } = await renderHook(() => useAddCommitment());
+    const { result } = await renderHook(() => useAddCommitment({ onSaved }));
     await act(() => {
       result.current.form.setValue('name', 'Rent');
       result.current.form.setValue('amount', 5000);
@@ -187,12 +190,12 @@ describe('useAddCommitment', () => {
     });
 
     expect(addCommitmentMock).toHaveBeenCalledTimes(1);
-    expect(mockRouterBack).toHaveBeenCalledTimes(1);
+    expect(onSaved).toHaveBeenCalledTimes(1);
   });
 
   describe('a failed add', () => {
     async function mountFilled() {
-      const { result } = await renderHook(() => useAddCommitment());
+      const { result } = await renderHook(() => useAddCommitment({ onSaved }));
       await act(() => {
         result.current.form.setValue('name', 'Rent');
         result.current.form.setValue('amount', 5000);
@@ -211,7 +214,7 @@ describe('useAddCommitment', () => {
 
       expect(addCommitmentMock).toHaveBeenCalledTimes(1);
       expect(setSaveErrorMock).toHaveBeenLastCalledWith(Strings.commitmentsSaveError);
-      expect(mockRouterBack).not.toHaveBeenCalled();
+      expect(onSaved).not.toHaveBeenCalled();
       expect(result.current.form.getValues('name')).toBe('Rent');
       expect(result.current.form.getValues('amount')).toBe(5000);
     });
@@ -234,16 +237,50 @@ describe('useAddCommitment', () => {
       expect(setSaveErrorMock.mock.invocationCallOrder[0]).toBeLessThan(
         addCommitmentMock.mock.invocationCallOrder[0],
       );
-      expect(mockRouterBack).toHaveBeenCalledTimes(1);
+      expect(onSaved).toHaveBeenCalledTimes(1);
     });
 
     it('returns the state save error for the form to show', async () => {
       saveErrorValue = Strings.commitmentsSaveError;
       setup();
 
-      const { result } = await renderHook(() => useAddCommitment());
+      const { result } = await renderHook(() => useAddCommitment({ onSaved }));
 
       expect(result.current.state.saveError).toBe(Strings.commitmentsSaveError);
+    });
+  });
+
+  describe('resetDraft', () => {
+    beforeEach(() => {
+      jest.useFakeTimers({ now: new Date('2026-10-22T12:00:00') });
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('clears a failed draft to the add defaults of the day it runs on', async () => {
+      addCommitmentMock.mockRejectedValueOnce(new Error('insert failed'));
+      const { result } = await renderHook(() => useAddCommitment({ onSaved }));
+      expect(result.current.form.getValues('startDate')).toBe('2026-10-22');
+      await act(() => {
+        result.current.form.setValue('name', 'Rent');
+        result.current.form.setValue('amount', 5000);
+        result.current.form.setValue('categoryId', 'category-rent');
+      });
+      await act(async () => {
+        await result.current.onSubmit();
+      });
+      expect(setSaveErrorMock).toHaveBeenLastCalledWith(Strings.commitmentsSaveError);
+      resetStateMock.mockClear();
+
+      jest.setSystemTime(new Date('2026-10-23T12:00:00'));
+      await act(() => result.current.resetDraft());
+
+      expect(result.current.form.getValues('name')).toBe('');
+      expect(result.current.form.getValues('startDate')).toBe('2026-10-23');
+      expect(resetStateMock).toHaveBeenCalledTimes(1);
+      expect(onSaved).not.toHaveBeenCalled();
     });
   });
 });

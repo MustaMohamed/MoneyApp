@@ -446,6 +446,8 @@ const DELETED_PATHS = [
   `${COMMITMENTS}/components/commitment_header.tsx`,
   `${COMMITMENTS}/components/commitment_header.geometry.ts`,
   `${TRANSACTIONS}/transaction_form_v2`,
+  'src/app/(app)/(tabs)/commitments/add',
+  `${COMMITMENTS}/add_commitment`,
 ];
 
 /** @param {string} rel @returns {string[]} */

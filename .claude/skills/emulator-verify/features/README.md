@@ -30,7 +30,7 @@ Four sections, in this order: `Reach it` (route, user path, deep link), `States`
 | [add_account.md](add_account.md) | `/accounts/add_account` | not redesigned |
 | [dashboard.md](dashboard.md) | `/dashboard` | not redesigned |
 | [commitments.md](commitments.md) | `/commitments`, and its filter sheet | A1, A7Loading, A11PastMonth, B1, B2 (commitments canvas) |
-| [add_commitment.md](add_commitment.md) | `/commitments/add` | not redesigned |
+| [add_commitment.md](add_commitment.md) | the add sheet, over any tab; `/commitments/[id]/edit` and its stacked twin | not redesigned |
 | [commitment_detail.md](commitment_detail.md) | `/stacked/commitments/[id]` | not redesigned |
 | [transactions.md](transactions.md) | `/transactions`, and its filter sheet | B1, B2 (transactions canvas) |
 | [transaction_detail.md](transaction_detail.md) | `/transactions/detail/[id]` | C1 to C13 (transactions canvas), the hero and C5's amount rows |

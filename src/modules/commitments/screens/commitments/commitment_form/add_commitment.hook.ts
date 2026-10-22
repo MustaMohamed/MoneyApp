@@ -1,5 +1,4 @@
-import { useRouter } from 'expo-router';
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import { DurationType } from '@/constants/enums';
@@ -18,8 +17,7 @@ import { useAddCommitmentState } from './add_commitment.state';
 
 export type { CommitmentFormValues };
 
-export function useAddCommitment() {
-  const router = useRouter();
+export function useAddCommitment(options: { onSaved: () => void }) {
   const saveInFlightRef = useRef(false);
 
   const accounts = useAccountStore((s) => s.accounts);
@@ -41,6 +39,12 @@ export function useAddCommitment() {
   useEffect(() => {
     return () => reset();
   }, [reset]);
+
+  const resetForm = form.reset;
+  const resetDraft = useCallback(() => {
+    resetForm(buildAddDefaults());
+    reset();
+  }, [resetForm, reset]);
 
   async function onValid(data: CommitmentFormValues) {
     if (saveInFlightRef.current) return;
@@ -65,9 +69,7 @@ export function useAddCommitment() {
         end_after_count:
           data.durationType === DurationType.AfterCount ? (data.endAfterCount ?? null) : null,
       });
-      reset();
-      form.reset(buildAddDefaults());
-      router.back();
+      options.onSaved();
     } catch {
       setSaveError(Strings.commitmentsSaveError);
     } finally {
@@ -85,5 +87,6 @@ export function useAddCommitment() {
     },
     form,
     onSubmit: form.handleSubmit(onValid),
+    resetDraft,
   };
 }

@@ -1,3 +1,4 @@
+import type { BlurEvent } from 'react-native';
 import { z } from 'zod';
 
 import {
@@ -124,4 +125,15 @@ export function detectPreset(every: number, period: RecurrencePeriod): Recurrenc
   if (every === 1 && period === RecurrencePeriod.Weeks) return RecurrencePreset.Weekly;
   if (every === 1 && period === RecurrencePeriod.Years) return RecurrencePreset.Annually;
   return RecurrencePreset.Custom;
+}
+
+/** The sheet keyboard blur, then the form field's own. */
+export function composeFieldBlur(
+  onSheetBlur: (event: BlurEvent) => void,
+  onFieldBlur: () => void,
+): (event: BlurEvent) => void {
+  return (event) => {
+    onSheetBlur(event);
+    onFieldBlur();
+  };
 }

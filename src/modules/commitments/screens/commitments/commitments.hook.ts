@@ -14,6 +14,7 @@ import { emptyMonthPaymentSummary, summarizeMonthPayments } from '../../domain/p
 import type { Commitment } from '../../entities/commitment.entity';
 import type { CommitmentMonthPayment } from '../../entities/commitment_payment.entity';
 import { monthAggregateKey, useCommitmentStore } from '../../store/commitment.store';
+import { useCommitmentFormHostState } from '../../store/commitment_form_host.state';
 import { buildCommitmentSections } from './commitments.helpers';
 import { useCommitmentsScreenState } from './commitments.state';
 import {
@@ -261,7 +262,7 @@ export function useCommitments() {
   }, []);
 
   const goToAdd = useCallback(() => {
-    router.push('/commitments/add');
+    useCommitmentFormHostState.getState().openAdd();
   }, []);
 
   const goToEdit = useCallback((commitmentId: string | undefined) => {

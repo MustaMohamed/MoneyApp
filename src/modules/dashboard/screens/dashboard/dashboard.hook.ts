@@ -10,6 +10,7 @@ import {
   emptyMonthPaymentSummary,
   summarizeMonthPayments,
 } from '@/modules/commitments/domain/payment_summary';
+import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { useBaseCurrencyStore } from '@/modules/currency/store/base_currency.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import type { DashboardLoadInput } from '@/modules/dashboard/repositories/dashboard.repository';
@@ -54,6 +55,8 @@ export function useDashboard() {
   const transactionMutationVersion = useTransactionStore.useState.mutationVersion();
   const isFocusedRef = useRef(false);
   const handledTransactionMutationVersionRef = useRef(transactionMutationVersion);
+  const commitmentGeneration = useCommitmentStore.useState.generation();
+  const handledCommitmentGenerationRef = useRef(commitmentGeneration);
   const { snapshot, status, requestedKey } = useDashboardStore(
     useShallow((state) => ({
       snapshot: state.snapshot,
@@ -84,6 +87,7 @@ export function useDashboard() {
     useCallback(() => {
       isFocusedRef.current = true;
       handledTransactionMutationVersionRef.current = useTransactionStore.getState().mutationVersion;
+      handledCommitmentGenerationRef.current = useCommitmentStore.getState().generation;
       setSelectedSegmentState('overview');
       const task = runAfterInteractions(() =>
         useDashboardStore.getState().ensureSnapshot(createDashboardLoadInput()),
@@ -104,6 +108,20 @@ export function useDashboard() {
 
     void useDashboardStore.getState().revalidateAfterMutation(createDashboardLoadInput());
   }, [transactionMutationVersion]);
+
+  useEffect(() => {
+    if (handledCommitmentGenerationRef.current === commitmentGeneration) return;
+    handledCommitmentGenerationRef.current = commitmentGeneration;
+    if (!isFocusedRef.current) return;
+
+    // A rejected commitment reload still revalidates; the commitment store sets its own loadError.
+    const revalidate = () => {
+      if (!isFocusedRef.current) return;
+      void useDashboardStore.getState().revalidateAfterMutation(createDashboardLoadInput());
+    };
+    const commitments = useCommitmentStore.getState();
+    void commitments.loadMonthSnapshot(commitments.selectedMonth).then(revalidate, revalidate);
+  }, [commitmentGeneration]);
 
   const refresh = useCallback(
     () => useDashboardStore.getState().refresh(createDashboardLoadInput()),

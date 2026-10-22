@@ -5,13 +5,15 @@ import { Controller, useWatch, type UseFormReturn } from 'react-hook-form';
 import { Platform, View } from 'react-native';
 
 import { SelectablePill } from '@/components/ui/chip';
+import { useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { DurationType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { CoreTokens } from '@/constants/theme_tokens';
 import { formatLongDate, toLocalDateString } from '@/utils/format_date';
 
-import { type CommitmentFormValues, SET_OPTS } from '../commitment_form.shared';
+import { type CommitmentFormValues, SET_OPTS, composeFieldBlur } from '../commitment_form.shared';
+import { COMMITMENT_FORM_PILL_SLOP } from './commitment_form.geometry';
 
 interface Props {
   form: UseFormReturn<CommitmentFormValues>;
@@ -37,6 +39,7 @@ export function DurationPicker({
   const endDate = useWatch({ control: form.control, name: 'endDate' });
   const countError = form.formState.errors.endAfterCount?.message;
   const dateError = form.formState.errors.endDate?.message;
+  const { onFocus: onInputFocus, onBlur: onInputBlur } = useBottomSheetAwareHandlers();
 
   const endDateAsDate = endDate ? new Date(endDate + 'T00:00:00') : new Date();
   const formattedEndDate = endDate ? formatLongDate(endDate) : Strings.commitmentDateInputFormat;
@@ -64,6 +67,7 @@ export function DurationPicker({
             label={label}
             selected={durationType === key}
             onPress={() => onDurationTypeChange(key)}
+            hitSlop={COMMITMENT_FORM_PILL_SLOP}
           />
         ))}
       </View>
@@ -84,7 +88,8 @@ export function DurationPicker({
                     const n = parseInt(v, 10);
                     onChange(isNaN(n) ? undefined : n);
                   }}
-                  onBlur={onBlur}
+                  onFocus={onInputFocus}
+                  onBlur={composeFieldBlur(onInputBlur, onBlur)}
                   keyboardType="number-pad"
                   maxLength={4}
                   placeholder={Strings.commitmentsAfterCountPlaceholder}

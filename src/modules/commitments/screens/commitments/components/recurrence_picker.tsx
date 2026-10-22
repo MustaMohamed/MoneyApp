@@ -3,11 +3,13 @@ import { Controller, useWatch, type UseFormReturn } from 'react-hook-form';
 import { View } from 'react-native';
 
 import { SelectablePill } from '@/components/ui/chip';
+import { useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { RecurrencePeriod, RecurrencePreset } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 
-import { type CommitmentFormValues, SET_OPTS } from '../commitment_form.shared';
+import { type CommitmentFormValues, SET_OPTS, composeFieldBlur } from '../commitment_form.shared';
+import { COMMITMENT_FORM_PILL_SLOP } from './commitment_form.geometry';
 
 interface Props {
   form: UseFormReturn<CommitmentFormValues>;
@@ -31,6 +33,7 @@ const PERIODS: { key: RecurrencePeriod; label: string }[] = [
 export function RecurrencePicker({ form, recurrencePreset, onPresetChange }: Props) {
   const recurrencePeriod = useWatch({ control: form.control, name: 'recurrencePeriod' });
   const everyError = form.formState.errors.recurrenceEvery?.message;
+  const { onFocus: onInputFocus, onBlur: onInputBlur } = useBottomSheetAwareHandlers();
 
   return (
     <View className="bg-default gap-2 rounded-2xl px-3 py-3">
@@ -45,6 +48,7 @@ export function RecurrencePicker({ form, recurrencePreset, onPresetChange }: Pro
             label={label}
             selected={recurrencePreset === key}
             onPress={() => onPresetChange(key)}
+            hitSlop={COMMITMENT_FORM_PILL_SLOP}
           />
         ))}
       </View>
@@ -73,7 +77,8 @@ export function RecurrencePicker({ form, recurrencePreset, onPresetChange }: Pro
                     const n = parseInt(v, 10);
                     if (!isNaN(n)) onChange(n);
                   }}
-                  onBlur={onBlur}
+                  onFocus={onInputFocus}
+                  onBlur={composeFieldBlur(onInputBlur, onBlur)}
                   keyboardType="number-pad"
                   maxLength={3}
                   isInvalid={!!everyError}
@@ -89,6 +94,7 @@ export function RecurrencePicker({ form, recurrencePreset, onPresetChange }: Pro
                 label={label}
                 selected={recurrencePeriod === key}
                 onPress={() => form.setValue('recurrencePeriod', key, SET_OPTS)}
+                hitSlop={COMMITMENT_FORM_PILL_SLOP}
               />
             ))}
           </View>
