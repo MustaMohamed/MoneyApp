@@ -15,13 +15,21 @@ import type { Account } from '@/modules/accounts/entities/account.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
+import type {
+  CommitmentHeldBucket,
+  CommitmentMonthAggregate,
+} from '@/modules/commitments/domain/commitment_month_totals';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import { useCommitments } from '@/modules/commitments/screens/commitments/commitments.hook';
 import type { CommitmentStatusFilter } from '@/modules/commitments/screens/commitments/commitments.state';
 import { useCommitmentsScreenState } from '@/modules/commitments/screens/commitments/commitments.state';
 import { EMPTY_COMMITMENT_FILTERS } from '@/modules/commitments/screens/commitments/filter/filter.store';
-import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
+import {
+  monthAggregateKey,
+  useCommitmentStore,
+} from '@/modules/commitments/store/commitment.store';
+import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
 const mockUseDeferredValue = jest.fn((value: unknown) => value);
@@ -34,13 +42,13 @@ jest.mock('react', () => {
   };
 });
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
-let capturedFocusCallback: (() => void | (() => void)) | null = null;
+const capturedFocusCallbacks: Array<() => void | (() => void)> = [];
 const mockInteractionTasks: Array<{ callback: () => void; cancel: jest.Mock }> = [];
 
 jest.mock('expo-router', () => ({
   router: { push: jest.fn() },
   useFocusEffect: (cb: () => void | (() => void)) => {
-    capturedFocusCallback = cb;
+    capturedFocusCallbacks.push(cb);
   },
 }));
 jest.mock('@/utils/run_after_interactions', () => ({
@@ -61,7 +69,11 @@ jest.mock('@/utils/run_after_interactions', () => ({
 }));
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
   useCommitmentStore: jest.fn(),
+  monthAggregateKey: jest.requireActual<
+    typeof import('@/modules/commitments/store/commitment.store')
+  >('@/modules/commitments/store/commitment.store').monthAggregateKey,
 }));
+jest.mock('@/modules/currency/store/currency.store', () => ({ useCurrencyStore: jest.fn() }));
 jest.mock('@/modules/accounts/store/account.store', () => ({ useAccountStore: jest.fn() }));
 jest.mock('@/modules/categories/store/category.store', () => ({ useCategoryStore: jest.fn() }));
 jest.mock('@/modules/commitments/screens/commitments/commitments.state', () => ({
@@ -69,6 +81,9 @@ jest.mock('@/modules/commitments/screens/commitments/commitments.state', () => (
 }));
 
 const loadMonthSnapshotMock = jest.fn().mockResolvedValue(undefined);
+const loadMonthAggregateMock = jest.fn().mockResolvedValue(undefined);
+let currencyRate = 50;
+let currencyRateLoaded = true;
 const setSelectedMonthMock = jest.fn().mockResolvedValue(undefined);
 const setRefreshingMock = jest.fn();
 const setStatusFilterMock = jest.fn();
@@ -78,6 +93,31 @@ const setAppliedFiltersMock = jest.fn();
 const { runAfterInteractions } = jest.requireMock('@/utils/run_after_interactions');
 
 const TODAY = '2026-05-08';
+
+// Each render registers the rows load first, then the aggregate load.
+function rowsFocusCallback() {
+  return capturedFocusCallbacks.at(-2);
+}
+
+function aggregateFocusCallback() {
+  return capturedFocusCallbacks.at(-1);
+}
+
+function held(overrides: Partial<CommitmentHeldBucket> = {}): CommitmentHeldBucket {
+  return { egp: 0, usd: 0, count: 0, hasVariable: false, ...overrides };
+}
+
+// Committed is the due row's 10 USD alone: 500 at rate 50, 480 at rate 48.
+function usdDueAggregate(): CommitmentMonthAggregate {
+  return {
+    paid: { egp: 0, count: 0 },
+    skipped: held(),
+    overdue: held(),
+    due: held({ usd: 10, count: 1 }),
+    upcoming: held(),
+    carried: held(),
+  };
+}
 
 type PaymentDates = Pick<CommitmentPayment, 'due_date' | 'paid_date' | 'skipped_date'>;
 
@@ -208,6 +248,8 @@ function setup({
   loading = false,
   loadError = false,
   withoutToday = false,
+  monthAggregate = undefined,
+  monthAggregateErrorKey = undefined,
 }: {
   selectedMonth?: string;
   commitments?: Commitment[];
@@ -223,6 +265,8 @@ function setup({
   loading?: boolean;
   loadError?: boolean;
   withoutToday?: boolean;
+  monthAggregate?: { key: string; aggregate: CommitmentMonthAggregate };
+  monthAggregateErrorKey?: string;
 } = {}) {
   attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
     commitments,
@@ -236,11 +280,18 @@ function setup({
     today: withoutToday ? undefined : TODAY,
     setSelectedMonth: setSelectedMonthMock,
     loadMonthSnapshot: loadMonthSnapshotMock,
+    monthAggregate,
+    monthAggregateErrorKey,
+    loadMonthAggregate: loadMonthAggregateMock,
     skipPayment: jest.fn(),
     deactivateCommitment: jest.fn(),
   }));
   attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
     accounts,
+  }));
+  attachMockSelectorStore(useCurrencyStore as unknown as jest.Mock, () => ({
+    rate: currencyRate,
+    hasLoaded: currencyRateLoaded,
   }));
   attachMockSelectorStore(useCategoryStore as unknown as jest.Mock, () => ({
     categories,
@@ -260,9 +311,12 @@ function setup({
 
 describe('useCommitments', () => {
   beforeEach(() => {
-    capturedFocusCallback = null;
+    capturedFocusCallbacks.length = 0;
     mockInteractionTasks.length = 0;
     loadMonthSnapshotMock.mockReset().mockResolvedValue(undefined);
+    loadMonthAggregateMock.mockReset().mockResolvedValue(undefined);
+    currencyRate = 50;
+    currencyRateLoaded = true;
     setSelectedMonthMock.mockReset().mockResolvedValue(undefined);
     setRefreshingMock.mockClear();
     setStatusFilterMock.mockClear();
@@ -288,7 +342,7 @@ describe('useCommitments', () => {
 
     let cleanup: void | (() => void);
     await act(() => {
-      cleanup = capturedFocusCallback?.();
+      cleanup = rowsFocusCallback()?.();
     });
 
     expect(runAfterInteractions).toHaveBeenCalledTimes(1);
@@ -307,7 +361,7 @@ describe('useCommitments', () => {
     await renderHook(() => useCommitments());
 
     await act(() => {
-      capturedFocusCallback?.();
+      rowsFocusCallback()?.();
     });
     await act(async () => {
       mockInteractionTasks[0]?.callback();
@@ -664,5 +718,138 @@ describe('useCommitments', () => {
     expect(withoutToday.current.state.today).toBeUndefined();
     expect(withoutToday.current.state.hasLoaded).toBe(false);
     expect(withoutToday.current.state.sections).toEqual([]);
+  });
+
+  it('the aggregate focus callback loads the month on screen across every account', async () => {
+    await renderHook(() => useCommitments());
+
+    await act(() => {
+      aggregateFocusCallback()?.();
+    });
+
+    expect(loadMonthAggregateMock).toHaveBeenCalledTimes(1);
+    expect(loadMonthAggregateMock).toHaveBeenCalledWith('2026-05', undefined);
+    expect(loadMonthSnapshotMock).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { name: 'one applied account', accountIds: ['a'], expected: 'a' },
+    { name: 'two applied accounts', accountIds: ['a', 'b'], expected: undefined },
+  ])('scopes the aggregate load to $name', async ({ accountIds, expected }) => {
+    setup({ appliedFilters: { ...EMPTY_COMMITMENT_FILTERS, accountIds } });
+    await renderHook(() => useCommitments());
+
+    await act(() => {
+      aggregateFocusCallback()?.();
+    });
+
+    expect(loadMonthAggregateMock).toHaveBeenCalledWith('2026-05', expected);
+  });
+
+  it('leaves the aggregate load across every account under a status filter and a search', async () => {
+    setup({ statusFilter: CommitmentPaymentStatus.Paid, searchQuery: 'internet' });
+    await renderHook(() => useCommitments());
+
+    await act(() => {
+      aggregateFocusCallback()?.();
+    });
+
+    expect(loadMonthAggregateMock).toHaveBeenCalledWith('2026-05', undefined);
+  });
+
+  it('the latest aggregate callback follows a month change', async () => {
+    const hook = await renderHook(() => useCommitments());
+    setup({ selectedMonth: '2026-06' });
+    await hook.rerender({});
+
+    await act(() => {
+      aggregateFocusCallback()?.();
+    });
+
+    expect(loadMonthAggregateMock).toHaveBeenCalledTimes(1);
+    expect(loadMonthAggregateMock).toHaveBeenCalledWith('2026-06', undefined);
+  });
+
+  it('the latest aggregate callback follows an account-scope change', async () => {
+    const hook = await renderHook(() => useCommitments());
+    setup({ appliedFilters: { ...EMPTY_COMMITMENT_FILTERS, accountIds: ['a'] } });
+    await hook.rerender({});
+
+    await act(() => {
+      aggregateFocusCallback()?.();
+    });
+
+    expect(loadMonthAggregateMock).toHaveBeenCalledTimes(1);
+    expect(loadMonthAggregateMock).toHaveBeenCalledWith('2026-05', 'a');
+  });
+
+  it('pull-to-refresh reloads the aggregate beside the rows', async () => {
+    const { result } = await renderHook(() => useCommitments());
+
+    await act(async () => {
+      await result.current.onRefresh();
+    });
+
+    expect(loadMonthAggregateMock).toHaveBeenCalledWith('2026-05', undefined);
+    expect(loadMonthSnapshotMock).toHaveBeenCalledWith('2026-05');
+  });
+
+  it('shows figures for a slot held on the key on screen once the rate has loaded', async () => {
+    setup({
+      monthAggregate: {
+        key: monthAggregateKey('2026-05', undefined),
+        aggregate: usdDueAggregate(),
+      },
+    });
+
+    const { result } = await renderHook(() => useCommitments());
+
+    expect(result.current.state.hero.mode).toBe('figures');
+    expect(result.current.state.hero.committed.value).toBe('500');
+  });
+
+  it("holds the skeleton over another month's slot", async () => {
+    setup({
+      monthAggregate: {
+        key: monthAggregateKey('2026-04', undefined),
+        aggregate: usdDueAggregate(),
+      },
+    });
+
+    const { result } = await renderHook(() => useCommitments());
+
+    expect(result.current.state.hero.mode).toBe('skeleton');
+    expect(result.current.state.hero.committed.value).toBe(Strings.commitmentsHeroUnavailable);
+  });
+
+  it('prints dashes for an error on the key on screen while the rows still publish', async () => {
+    setup({
+      payments: [makePayment('due', CommitmentPaymentStatus.Due)],
+      monthAggregateErrorKey: monthAggregateKey('2026-05', undefined),
+    });
+
+    const { result } = await renderHook(() => useCommitments());
+
+    expect(result.current.state.hero.mode).toBe('dashes');
+    expect(result.current.state.hero.committed.value).toBe(Strings.commitmentsHeroUnavailable);
+    expect(result.current.state.presentation).toBe('content');
+    expect(result.current.state.loadError).toBe(false);
+    expect(result.current.state.sections[0]?.data[0]?.id).toBe('due');
+  });
+
+  it('the held figures follow a change of the live rate', async () => {
+    setup({
+      monthAggregate: {
+        key: monthAggregateKey('2026-05', undefined),
+        aggregate: usdDueAggregate(),
+      },
+    });
+    const hook = await renderHook(() => useCommitments());
+    expect(hook.result.current.state.hero.committed.value).toBe('500');
+
+    currencyRate = 48;
+    await hook.rerender({});
+
+    expect(hook.result.current.state.hero.committed.value).toBe('480');
   });
 });
