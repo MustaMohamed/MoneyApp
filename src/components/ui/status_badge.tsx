@@ -3,7 +3,7 @@ import { Typography } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
-import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
+import { scaledFontSize, scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Type, lineHeightFor } from '@/constants/theme';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -29,8 +29,12 @@ const PADDING_VERTICAL = {
   sm: STATUS_BADGE_PADDING_VERTICAL,
   md: STATUS_BADGE_PADDING_VERTICAL,
 } as const;
+// Raw, as above: A1 `.stag`'s horizontal chrome, read by `resolveStatusBadgeXsMinWidth`.
+const XS_ROOT_STYLE = { paddingLeft: 4, paddingRight: 6, gap: 3 } as const;
+// A scaled label's narrowest box, in ems of its size: one `…`.
+const ELLIPSIS_EM = 1;
 const ROOT_CLASS = {
-  xs: 'gap-0.75 rounded-full pl-1 pr-1.5',
+  xs: 'rounded-full',
   sm: 'gap-0.5 rounded-full px-1.5',
   md: 'gap-0.5 rounded-full px-1.5',
 } as const;
@@ -44,6 +48,17 @@ const LABEL_STYLE = {
   sm: { fontSize: Type.pillLabel, lineHeight: lineHeightFor(Type.pillLabel) },
   md: { fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) },
 } as const;
+
+/** The xs badge's narrowest box at `fontScale`: its chrome, its icon and a `…`. */
+export function resolveStatusBadgeXsMinWidth(fontScale: number): number {
+  return (
+    XS_ROOT_STYLE.paddingLeft +
+    XS_ROOT_STYLE.paddingRight +
+    XS_ROOT_STYLE.gap +
+    ICON_SIZE.xs +
+    scaledFontSize(STATUS_BADGE_XS_LABEL_FONT_SIZE, fontScale) * ELLIPSIS_EM
+  );
+}
 
 export function StatusBadge({
   label,
@@ -61,6 +76,8 @@ export function StatusBadge({
         flexDirection: 'row',
         alignItems: 'center',
         paddingVertical: PADDING_VERTICAL[size],
+        flexShrink: scaled ? 1 : 0,
+        ...(size === 'xs' ? XS_ROOT_STYLE : undefined),
       }}
       className={ROOT_CLASS[size]}
     >

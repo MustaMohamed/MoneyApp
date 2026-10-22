@@ -1,9 +1,8 @@
 import { Currency } from '@/constants/enums';
-import { convertCurrency } from '@/modules/accounts/domain/account_aggregation';
-import { roundMoney } from '@/utils/money';
+import { baseEquivalent } from '@/modules/accounts/domain/account_figures';
 
 import type { CommitmentMonthPayment } from '../entities/commitment_payment.entity';
-import { CommitmentMonthTotalsError } from './commitment_month_totals';
+import { assertUsdLegRate, heldEgp } from './commitment_month_totals';
 import { isPaidPayment } from './payment_state';
 
 /** `isVariable` is false when the row's commitment is not loaded. */
@@ -39,31 +38,23 @@ export function sumCommitmentRowsEgp(
     if (isVariable) showTilde = true;
   }
 
-  if (usd === 0) return { egp: roundMoney(egp), count: rows.length, showTilde };
-  if (rate === undefined) return undefined;
-  if (!Number.isFinite(rate) || rate <= 0) {
-    throw new CommitmentMonthTotalsError(
-      `Rate must be finite and positive with a USD leg: ${rate}`,
-    );
-  }
-  return {
-    egp: roundMoney(
-      egp + convertCurrency({ amount: usd, from: Currency.USD, to: Currency.EGP, rate }),
-    ),
-    count: rows.length,
-    showTilde,
-  };
+  if (usd !== 0 && rate === undefined) return undefined;
+  return { egp: heldEgp({ egp, usd }, rate), count: rows.length, showTilde };
 }
 
 /** `amount` is the amount the row prints; a paid row's leg is its transaction's EGP amount. */
 export function resolveCommitmentRowLegEgp(input: {
-  payment: Pick<CommitmentMonthPayment, 'paid_date' | 'currency' | 'paid_egp_amount'>;
+  payment: Pick<
+    CommitmentMonthPayment,
+    'paid_date' | 'skipped_date' | 'currency' | 'paid_egp_amount'
+  >;
   amount: number | undefined;
   rate: number | undefined;
 }): number | undefined {
   const { payment, amount, rate } = input;
   if (payment.currency !== Currency.USD) return undefined;
-  if (payment.paid_date !== null) return payment.paid_egp_amount ?? undefined;
+  if (isPaidPayment(payment)) return payment.paid_egp_amount ?? undefined;
   if (amount === undefined || rate === undefined) return undefined;
-  return roundMoney(convertCurrency({ amount, from: Currency.USD, to: Currency.EGP, rate }));
+  assertUsdLegRate(rate);
+  return baseEquivalent({ amount, from: Currency.USD, to: Currency.EGP, rate });
 }

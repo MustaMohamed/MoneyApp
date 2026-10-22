@@ -10,7 +10,6 @@ import { runAfterInteractions } from '@/utils/run_after_interactions';
 import { useDebouncedValue } from '@/utils/use_debounced_value.hook';
 import { shiftYearMonth } from '@/utils/year_month';
 
-import { resolvePaymentState } from '../../domain/payment_state';
 import { emptyMonthPaymentSummary, summarizeMonthPayments } from '../../domain/payment_summary';
 import type { Commitment } from '../../entities/commitment.entity';
 import type { CommitmentMonthPayment } from '../../entities/commitment_payment.entity';
@@ -118,12 +117,7 @@ export function useCommitments() {
 
   const { sections, tally } = useMemo((): ReturnType<typeof buildCommitmentSections> => {
     if (today === undefined) return { sections: [], tally: undefined };
-    const filter = deferredStatusFilter;
-    const allPayments =
-      filter === 'all'
-        ? activePayments
-        : activePayments.filter((payment) => resolvePaymentState(payment, today) === filter);
-    const filteredPayments = allPayments.filter((payment) => {
+    const filteredPayments = activePayments.filter((payment) => {
       const commitment = commitmentsById.get(payment.commitment_id);
       const accountId = payment.account_id ?? commitment?.account_id;
       const candidate = {
@@ -139,6 +133,7 @@ export function useCommitments() {
     });
     return buildCommitmentSections({
       rows: filteredPayments,
+      statusFilter: deferredStatusFilter,
       commitmentsById,
       yearMonth: selectedMonth,
       today,

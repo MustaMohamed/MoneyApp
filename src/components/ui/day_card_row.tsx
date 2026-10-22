@@ -12,7 +12,7 @@ interface Props {
 
 const TONE_CLASS: Record<DayCardTone, string> = {
   default: 'bg-surface border-separator',
-  danger: 'bg-surface border-danger/35',
+  danger: 'bg-surface border-danger-border',
 };
 
 // A plain View: ListCard and ListGroup wrap a whole day in one cell (ADR 2026-09-28 §9).

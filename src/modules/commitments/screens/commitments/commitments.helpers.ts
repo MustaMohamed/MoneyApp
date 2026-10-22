@@ -12,6 +12,7 @@ import {
 import { isDueInMonth, resolvePaymentState } from '../../domain/payment_state';
 import type { Commitment } from '../../entities/commitment.entity';
 import type { CommitmentMonthPayment } from '../../entities/commitment_payment.entity';
+import type { CommitmentStatusFilter } from './commitments.state';
 
 export interface CommitmentsSection extends DayHeaderSection {
   key: CommitmentPaymentStatus;
@@ -21,6 +22,7 @@ export interface CommitmentsSection extends DayHeaderSection {
 
 interface CommitmentSectionsInput {
   rows: readonly CommitmentMonthPayment[];
+  statusFilter: CommitmentStatusFilter;
   commitmentsById: ReadonlyMap<string, Commitment>;
   yearMonth: string;
   today: string;
@@ -32,13 +34,17 @@ interface CommitmentSectionsModel {
   tally: CommitmentRowsTotal | undefined;
 }
 
-const SECTION_ORDER: readonly CommitmentPaymentStatus[] = [
-  CommitmentPaymentStatus.Overdue,
-  CommitmentPaymentStatus.Due,
-  CommitmentPaymentStatus.Upcoming,
-  CommitmentPaymentStatus.Paid,
-  CommitmentPaymentStatus.Skipped,
-];
+const SECTION_RANK = {
+  [CommitmentPaymentStatus.Overdue]: 0,
+  [CommitmentPaymentStatus.Due]: 1,
+  [CommitmentPaymentStatus.Upcoming]: 2,
+  [CommitmentPaymentStatus.Paid]: 3,
+  [CommitmentPaymentStatus.Skipped]: 4,
+} satisfies Record<CommitmentPaymentStatus, number>;
+
+const SECTION_ORDER = Object.values(CommitmentPaymentStatus).sort(
+  (a, b) => SECTION_RANK[a] - SECTION_RANK[b],
+);
 
 const SECTION_LABELS: Record<CommitmentPaymentStatus, string> = {
   [CommitmentPaymentStatus.Overdue]: Strings.commitmentsOverdue,
@@ -57,17 +63,19 @@ function byDueDate(a: CommitmentMonthPayment, b: CommitmentMonthPayment): number
 function byPaidDateDescending(a: CommitmentMonthPayment, b: CommitmentMonthPayment): number {
   const aPaid = a.paid_date ?? '';
   const bPaid = b.paid_date ?? '';
-  if (aPaid === bPaid) return 0;
+  if (aPaid === bPaid) return byDueDate(a, b);
   return aPaid < bPaid ? 1 : -1;
 }
 
 /** Overdue takes every overdue row due by the month's end, carried rows included; the rest take the month's own rows. */
 function sectionKeyOf(
   payment: CommitmentMonthPayment,
+  statusFilter: CommitmentStatusFilter,
   yearMonth: string,
   today: string,
 ): CommitmentPaymentStatus | undefined {
   const state = resolvePaymentState(payment, today);
+  if (statusFilter !== 'all' && state !== statusFilter) return undefined;
   if (state === CommitmentPaymentStatus.Overdue) {
     return payment.due_date.slice(0, 7) <= yearMonth ? state : undefined;
   }
@@ -96,12 +104,12 @@ function sectionFigures(
   };
 }
 
-/** `rows` are the rows the status tab, search and filters matched, in any order; `liveRate` is EGP per USD once loaded. */
+/** `rows` are the rows the search and filters matched, in any order; `statusFilter` is the status tab; `liveRate` is EGP per USD once loaded. */
 export function buildCommitmentSections(input: CommitmentSectionsInput): CommitmentSectionsModel {
-  const { rows, commitmentsById, yearMonth, today, liveRate } = input;
+  const { rows, statusFilter, commitmentsById, yearMonth, today, liveRate } = input;
   const grouped = new Map<CommitmentPaymentStatus, CommitmentMonthPayment[]>();
   for (const payment of rows) {
-    const key = sectionKeyOf(payment, yearMonth, today);
+    const key = sectionKeyOf(payment, statusFilter, yearMonth, today);
     if (key === undefined) continue;
     const group = grouped.get(key);
     if (group === undefined) grouped.set(key, [payment]);
@@ -114,22 +122,24 @@ export function buildCommitmentSections(input: CommitmentSectionsInput): Commitm
   });
 
   const sections: CommitmentsSection[] = [];
+  const heldSumRows: CommitmentSumRow[] = [];
   for (const key of SECTION_ORDER) {
     const group = grouped.get(key);
     if (group === undefined) continue;
     const data = group.sort(
       key === CommitmentPaymentStatus.Paid ? byPaidDateDescending : byDueDate,
     );
+    const sumRows = data.map(toSumRow);
+    heldSumRows.push(...sumRows);
     const label = SECTION_LABELS[key];
     sections.push({
       key,
       label,
       tone: key === CommitmentPaymentStatus.Overdue ? 'danger' : 'default',
       data,
-      ...sectionFigures(label, sumCommitmentRowsEgp(data.map(toSumRow), liveRate)),
+      ...sectionFigures(label, sumCommitmentRowsEgp(sumRows, liveRate)),
     });
   }
 
-  const held = sections.flatMap((section) => section.data);
-  return { sections, tally: sumCommitmentRowsEgp(held.map(toSumRow), liveRate) };
+  return { sections, tally: sumCommitmentRowsEgp(heldSumRows, liveRate) };
 }

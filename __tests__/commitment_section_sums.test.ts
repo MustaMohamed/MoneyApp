@@ -154,6 +154,15 @@ describe('sumCommitmentRowsEgp — the rate', () => {
 describe('resolveCommitmentRowLegEgp', () => {
   const usd = { currency: Currency.USD } as const;
 
+  it.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY])(
+    'throws CommitmentMonthTotalsError at rate %p on an unpaid USD row',
+    (rate) => {
+      expect(() =>
+        resolveCommitmentRowLegEgp({ payment: makeTestMonthPayment(usd), amount: 15.5, rate }),
+      ).toThrow(CommitmentMonthTotalsError);
+    },
+  );
+
   it('gives no leg on an EGP row', () => {
     expect(
       resolveCommitmentRowLegEgp({ payment: makeTestMonthPayment(), amount: 8000, rate: RATE }),

@@ -4,15 +4,19 @@ import React, { useCallback, useMemo } from 'react';
 import { type StyleProp, View, type ViewStyle, useWindowDimensions } from 'react-native';
 
 import { AccountColorTile } from '@/components/ui/account_color_tile';
-import { StatusBadge } from '@/components/ui/status_badge';
+import { StatusBadge, resolveStatusBadgeXsMinWidth } from '@/components/ui/status_badge';
 import { SwipeableRow, type SwipeAction } from '@/components/ui/swipeable_row';
 import { Text } from '@/components/ui/text';
 import { resolveFitAmountTextProps, scaledTextStyle } from '@/components/ui/text_scale.geometry';
+import { YieldingSlot } from '@/components/ui/yielding_slot';
 import { Strings } from '@/constants/strings';
 import { Size } from '@/constants/theme';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
-import { resolveTransactionRowValueTrackMaxWidth } from '@/modules/transactions/components/transaction_row.helpers';
+import {
+  TRANSACTION_ROW_CAPTION_SEPARATOR,
+  resolveTransactionRowValueTrackMaxWidth,
+} from '@/modules/transactions/components/transaction_row.helpers';
 import { ms } from '@/utils/responsive';
 import { useDragCancelledPress } from '@/utils/use_drag_cancelled_press.hook';
 
@@ -64,6 +68,7 @@ function CommitmentRowComponent({
     [account, category, commitment, liveRate, payment, today],
   );
   const { fontScale } = useWindowDimensions();
+  const badgeShrinks = fontScale > 1;
   const amountProps = resolveFitAmountTextProps(COMMITMENT_ROW_AMOUNT_FONT_SIZE, fontScale);
   const rowHeight = useMemo(() => resolveCommitmentRowHeight(fontScale), [fontScale]);
   const valueTrackMaxWidth = useMemo(
@@ -146,28 +151,56 @@ function CommitmentRowComponent({
                 >
                   {row.name}
                 </Text>
-                <View style={{ marginLeft: ms(4) }}>
-                  <StatusBadge
-                    size="xs"
-                    fontScale={fontScale}
-                    label={row.statusLabel}
-                    icon={row.statusIcon}
-                    fill={row.statusFill}
-                    foreground={row.statusForeground}
-                  />
-                </View>
+                <YieldingSlot
+                  minWidth={
+                    badgeShrinks ? ms(4) + resolveStatusBadgeXsMinWidth(fontScale) : undefined
+                  }
+                >
+                  <View
+                    style={{
+                      marginLeft: ms(4),
+                      flexDirection: 'row',
+                      flexShrink: badgeShrinks ? 1 : 0,
+                    }}
+                  >
+                    <StatusBadge
+                      size="xs"
+                      fontScale={fontScale}
+                      label={row.statusLabel}
+                      icon={row.statusIcon}
+                      fill={row.statusFill}
+                      foreground={row.statusForeground}
+                    />
+                  </View>
+                </YieldingSlot>
               </View>
-              <Text
-                allowFontScaling={false}
-                className="font-inter text-content-secondary"
-                style={{
-                  ...scaledTextStyle(COMMITMENT_ROW_CAPTION_FONT_SIZE, fontScale),
-                  marginTop: COMMITMENT_ROW_LINE_GAP,
-                }}
-                numberOfLines={1}
-              >
-                {row.caption}
-              </Text>
+              {/* The due day clips first; the EGP leg never ellipsizes. */}
+              <View style={{ flexDirection: 'row', marginTop: COMMITMENT_ROW_LINE_GAP }}>
+                <Text
+                  allowFontScaling={false}
+                  className="font-inter text-content-secondary"
+                  style={{
+                    ...scaledTextStyle(COMMITMENT_ROW_CAPTION_FONT_SIZE, fontScale),
+                    flexShrink: 1,
+                  }}
+                  numberOfLines={1}
+                >
+                  {row.dueDay}
+                </Text>
+                {row.captionLeg === undefined ? null : (
+                  <Text
+                    allowFontScaling={false}
+                    className="font-inter text-content-secondary"
+                    style={{
+                      ...scaledTextStyle(COMMITMENT_ROW_CAPTION_FONT_SIZE, fontScale),
+                      flexShrink: 0,
+                    }}
+                    numberOfLines={1}
+                  >
+                    {`${TRANSACTION_ROW_CAPTION_SEPARATOR}${row.captionLeg}`}
+                  </Text>
+                )}
+              </View>
             </View>
             {/* Two sibling texts, never nested: RN Android drops margins on inline text. */}
             <View

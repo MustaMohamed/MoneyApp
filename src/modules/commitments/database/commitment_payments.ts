@@ -67,8 +67,8 @@ export function getActiveCommitmentDueDates(
   );
 }
 
-const MONTH_PAYMENT_COLUMNS_SQL = `payment.*, transaction_row.egp_amount AS paid_egp_amount
-       FROM commitment_payments payment
+const MONTH_PAYMENT_COLUMNS_SQL = 'payment.*, transaction_row.egp_amount AS paid_egp_amount';
+const MONTH_PAYMENT_SOURCE_SQL = `FROM commitment_payments payment
        LEFT JOIN transactions transaction_row ON transaction_row.id = payment.transaction_id`;
 
 /** `yearMonth` is `YYYY-MM`: the month's rows plus the unpaid rows due before `carriedBefore`. */
@@ -85,10 +85,10 @@ export async function getPaymentsByMonth(
   const nextMonthStr = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`;
 
   return db.getAllAsync<CommitmentMonthPayment>(
-    `SELECT ${MONTH_PAYMENT_COLUMNS_SQL}
+    `SELECT ${MONTH_PAYMENT_COLUMNS_SQL} ${MONTH_PAYMENT_SOURCE_SQL}
       WHERE payment.due_date >= ? AND payment.due_date < ?
      UNION ALL
-     SELECT ${MONTH_PAYMENT_COLUMNS_SQL}
+     SELECT ${MONTH_PAYMENT_COLUMNS_SQL} ${MONTH_PAYMENT_SOURCE_SQL}
       WHERE payment.due_date < ? AND ${unpaidPaymentSql('payment')}
      ORDER BY due_date ASC, id ASC`,
     [monthStart, nextMonthStr, carriedBefore],

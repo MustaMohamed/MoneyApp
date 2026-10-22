@@ -24,6 +24,7 @@ import {
   STATUS_ICONS,
   STATUS_LABELS,
   resolveDisplayAmount,
+  type DisplayAmount,
 } from '@/modules/commitments/utils/commitment_status';
 import {
   TRANSACTION_ROW_AMOUNT_FONT_SIZE,
@@ -145,8 +146,8 @@ export interface CommitmentRowPresentation {
   statusFill: string;
   statusForeground: string;
   dueDay: string;
-  /** The due day, then a USD row's `≈ n EGP` leg once it resolves. */
-  caption: string;
+  /** A USD row's `≈ n EGP` leg, drawn after the due day once it resolves. */
+  captionLeg: string | undefined;
   amountText: string;
   currencyCode: string;
   accessibilityLabel: string;
@@ -154,7 +155,7 @@ export interface CommitmentRowPresentation {
 
 function amountFor(
   payment: CommitmentPayment,
-  displayAmount: ReturnType<typeof resolveDisplayAmount>,
+  displayAmount: DisplayAmount,
   code: string,
 ): { text: string; spoken: string } {
   const { amount, showTilde } = displayAmount;
@@ -194,13 +195,10 @@ export function buildCommitmentRowPresentation({
   const displayAmount = resolveDisplayAmount(payment, commitment);
   const amount = amountFor(payment, displayAmount, currencyCode);
   const leg = resolveCommitmentRowLegEgp({ payment, amount: displayAmount.amount, rate: liveRate });
-  const caption =
+  const captionLeg =
     leg === undefined
-      ? dueDay
-      : Strings.commitmentRowDueDayWithLeg(
-          dueDay,
-          Strings.addTxConvertedAmount(formatDisplayAmount(leg, Currency.EGP)),
-        );
+      ? undefined
+      : Strings.addTxConvertedAmount(formatDisplayAmount(leg, Currency.EGP));
   // The tile carries no label, so the row speaks its account; a commitment with no account speaks none.
   const hasAccount = resolveCommitmentRowAccountId(payment, commitment) !== undefined;
 
@@ -213,14 +211,14 @@ export function buildCommitmentRowPresentation({
     statusFill: tagColors.fill,
     statusForeground: tagColors.foreground,
     dueDay,
-    caption,
+    captionLeg,
     amountText: amount.text,
     currencyCode,
     accessibilityLabel: [
       name,
       hasAccount ? resolveAccountName(account) : undefined,
       STATUS_LABELS[status],
-      caption,
+      captionLeg === undefined ? dueDay : Strings.commitmentRowDueDayWithLeg(dueDay, captionLeg),
       amount.spoken,
     ]
       .filter((part): part is string => part !== undefined)

@@ -5,6 +5,7 @@ import {
   buildCommitmentSections,
   type CommitmentsSection,
 } from '@/modules/commitments/screens/commitments/commitments.helpers';
+import type { CommitmentStatusFilter } from '@/modules/commitments/screens/commitments/commitments.state';
 import { makeTestCommitment, makeTestMonthPayment } from '@/test_helpers/commitment';
 
 const TODAY = '2026-10-22';
@@ -47,7 +48,12 @@ function pay(
 
 function build(
   rows: CommitmentMonthPayment[],
-  options: { yearMonth?: string; today?: string; liveRate?: number | undefined } = {},
+  options: {
+    yearMonth?: string;
+    today?: string;
+    liveRate?: number | undefined;
+    statusFilter?: CommitmentStatusFilter;
+  } = {},
 ) {
   return buildCommitmentSections({
     rows,
@@ -55,6 +61,7 @@ function build(
     yearMonth: options.yearMonth ?? MONTH,
     today: options.today ?? TODAY,
     liveRate: 'liveRate' in options ? options.liveRate : RATE,
+    statusFilter: options.statusFilter ?? 'all',
   });
 }
 
@@ -414,6 +421,36 @@ describe('buildCommitmentSections — section sums', () => {
     expect(sections.map((section) => section.accessibilityLabel)).toEqual([
       'Overdue, 8,000 EGP, 1 payment',
       'Upcoming, 9,000 EGP, 3 payments',
+    ]);
+  });
+});
+
+describe('buildCommitmentSections — status tab and ties', () => {
+  it('under a status tab holds that state’s rows alone, its sum and the tally over them', () => {
+    const { sections, tally } = build(OCTOBER_ROWS, {
+      statusFilter: CommitmentPaymentStatus.Overdue,
+    });
+
+    expect(ids(sections)).toEqual([[CommitmentPaymentStatus.Overdue, ['rent-sep', 'gym-oct']]]);
+    expect(sections[0]?.figures).toEqual({ mode: 'figures', net: '8,500 EGP', count: '2' });
+    expect(tally).toEqual({ egp: 8500, count: 2, showTilde: false });
+  });
+
+  it('breaks a tie on paid date by due date then id, whatever the input order', () => {
+    const paid = (id: string, dueDate: string) =>
+      pay(id, 'gym', {
+        due_date: dueDate,
+        paid_date: '2026-10-20',
+        amount_paid: 500,
+        paid_egp_amount: 500,
+      });
+    const rows = [paid('p-b', '2026-10-05'), paid('p-c', '2026-10-01'), paid('p-a', '2026-10-05')];
+
+    expect(ids(build(rows).sections)).toEqual([
+      [CommitmentPaymentStatus.Paid, ['p-c', 'p-a', 'p-b']],
+    ]);
+    expect(ids(build([...rows].reverse()).sections)).toEqual([
+      [CommitmentPaymentStatus.Paid, ['p-c', 'p-a', 'p-b']],
     ]);
   });
 });

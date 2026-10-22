@@ -13,6 +13,7 @@ import {
   scaledTextStyle,
 } from '@/components/ui/text_scale.geometry';
 import { TypeBadge, resolveTypeBadgeMinWidth } from '@/components/ui/type_badge';
+import { YieldingSlot } from '@/components/ui/yielding_slot';
 import { Strings } from '@/constants/strings';
 import { Radius, Size, Type } from '@/constants/theme';
 import type { Account } from '@/modules/accounts/entities/account.entity';
@@ -60,22 +61,6 @@ interface BodyProps {
 const DUAL_TILE_TOP = (Size.accountTile - Size.dualTile) / 2;
 // The budget-assigned label's narrowest box above 1.0, in ems of its size: its first glyph and a `…`.
 const OWNERSHIP_LABEL_MIN_EM = 1.7;
-
-// Above 1.0 a slot starts at its minimum and takes only the width the title leaves, so it yields before the title shrinks.
-function YieldingSlot({
-  minWidth,
-  children,
-}: {
-  minWidth?: number;
-  children: React.ReactElement;
-}): React.ReactElement {
-  if (minWidth === undefined) return children;
-  return (
-    <View style={{ flexDirection: 'row', flexGrow: 1, flexShrink: 0, flexBasis: minWidth }}>
-      {children}
-    </View>
-  );
-}
 
 function RowTiles({ tiles }: { tiles: RowTileSet }): React.ReactElement | null {
   if (tiles.length === 0) return null;
