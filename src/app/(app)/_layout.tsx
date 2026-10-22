@@ -1,6 +1,7 @@
 import { Stack } from 'expo-router';
 
 import { Colors } from '@/constants/theme';
+import { CommitmentFormHost } from '@/modules/commitments/screens/commitments/commitment_form';
 import { TransactionFormHost } from '@/modules/transactions/screens/transactions/transaction_form';
 import { useCategoryStore } from '@/store/category.store';
 import { useCurrencyStore } from '@/store/currency.store';
@@ -28,6 +29,7 @@ export default function AppLayout() {
         }}
       />
       <TransactionFormHost />
+      <CommitmentFormHost />
     </>
   );
 }

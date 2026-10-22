@@ -1,4 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { router } from 'expo-router';
 import { Input, PressableFeedback } from 'heroui-native';
@@ -10,6 +11,7 @@ import { TYPE_OPTIONS } from '@/components/account_type_pill';
 import { Button } from '@/components/ui/button';
 import { FormErrorText } from '@/components/ui/form_error_text';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
+import { useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { StackHeader } from '@/components/ui/stack_header';
 import { SegmentedTabs } from '@/components/ui/tabs';
 import { Text } from '@/components/ui/text';
@@ -40,35 +42,122 @@ import {
   SET_OPTS,
   detectPreset,
 } from '../commitment_form.shared';
+import { COMMITMENT_FORM_TABS_SLOP } from './commitment_form.geometry';
 import { useCommitmentFormBodyPickers } from './commitment_form_body.hook';
 import { DecimalAmountInput } from './decimal_amount_input';
 import { DurationPicker } from './duration_picker';
 import { RecurrencePicker } from './recurrence_picker';
 
-interface CommitmentFormBodyProps {
+type CommitmentFormPresentationProps =
+  | {
+      presentation?: 'screen';
+      title: string;
+      saving: boolean;
+      errorMessage?: string;
+      onSubmit: () => void;
+      /** Rendered between the scroll content and the CTA footer, inside the `Screen` layout. */
+      footerExtra?: React.ReactNode;
+    }
+  | { presentation: 'sheet' };
+
+type CommitmentFormBodyProps = {
   form: UseFormReturn<CommitmentFormValues>;
   categories: Category[];
   accounts: Account[];
-  saving: boolean;
-  errorMessage?: string;
-  onSubmit: () => void;
-  title: string;
   locked?: boolean;
-  /** Rendered between the scroll content and the CTA footer, inside the `Screen` layout. */
-  footerExtra?: React.ReactNode;
+} & CommitmentFormPresentationProps;
+
+const CONTENT_CONTAINER_STYLE = { gap: 8, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 16 };
+
+export function CommitmentFormFooter({
+  errorMessage,
+  saving,
+  onSubmit,
+}: {
+  errorMessage?: string;
+  saving: boolean;
+  onSubmit: () => void;
+}): React.ReactElement {
+  return (
+    <>
+      <View
+        style={{ minHeight: ms(16) }}
+        className="justify-center"
+        collapsable={false}
+        accessibilityLiveRegion="polite"
+      >
+        <FormErrorText
+          message={errorMessage}
+          numberOfLines={1}
+          disableAnimation
+          className="text-center"
+          style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
+        />
+      </View>
+      <Button
+        variant="primary"
+        label={Strings.commitmentsSave}
+        isLoading={saving}
+        onPress={onSubmit}
+      />
+    </>
+  );
 }
 
-export function CommitmentFormBody({
-  form,
-  categories,
-  accounts,
-  saving,
-  errorMessage,
-  onSubmit,
-  title,
-  locked,
-  footerExtra,
-}: CommitmentFormBodyProps) {
+function CommitmentFormFrame(
+  props: CommitmentFormPresentationProps & { children: React.ReactNode },
+): React.ReactElement {
+  if (props.presentation === 'sheet') return <>{props.children}</>;
+  return (
+    <Screen edges={['top', 'bottom']}>
+      <StackHeader title={props.title} onBack={() => router.back()} />
+      {props.children}
+      {props.footerExtra ?? null}
+      <View className="border-separator border-t px-4 pt-2 pb-6">
+        <CommitmentFormFooter
+          errorMessage={props.errorMessage}
+          saving={props.saving}
+          onSubmit={props.onSubmit}
+        />
+      </View>
+    </Screen>
+  );
+}
+
+function CommitmentFormScroll({
+  presentation,
+  children,
+}: {
+  presentation: 'screen' | 'sheet' | undefined;
+  children: React.ReactNode;
+}): React.ReactElement {
+  if (presentation === 'sheet') {
+    return (
+      <BottomSheetScrollView
+        testID="commitment-form-scroll"
+        style={{ flex: 1 }}
+        contentContainerStyle={CONTENT_CONTAINER_STYLE}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {children}
+      </BottomSheetScrollView>
+    );
+  }
+  return (
+    <ScreenScroll
+      contentContainerStyle={CONTENT_CONTAINER_STYLE}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
+    >
+      {children}
+    </ScreenScroll>
+  );
+}
+
+export function CommitmentFormBody(props: CommitmentFormBodyProps) {
+  const { form, categories, accounts, locked } = props;
+  const { onFocus: onInputFocus, onBlur: onInputBlur } = useBottomSheetAwareHandlers();
   const [
     amountType,
     currency,
@@ -180,14 +269,8 @@ export function CommitmentFormBody({
   }
 
   return (
-    <Screen edges={['top', 'bottom']}>
-      <StackHeader title={title} onBack={() => router.back()} />
-
-      <ScreenScroll
-        contentContainerStyle={{ gap: 8, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 16 }}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
+    <CommitmentFormFrame {...props}>
+      <CommitmentFormScroll presentation={props.presentation}>
         <View className="bg-default gap-1 rounded-2xl px-3 py-3">
           <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
             {Strings.commitmentsFieldName}
@@ -200,7 +283,11 @@ export function CommitmentFormBody({
                 // oxlint-disable-next-line typescript/no-unnecessary-condition -- RHF field value can be null at reset
                 value={value ?? ''}
                 onChangeText={onChange}
-                onBlur={onBlur}
+                onFocus={onInputFocus}
+                onBlur={(event) => {
+                  onInputBlur(event);
+                  onBlur();
+                }}
                 placeholder={Strings.commitmentsNamePlaceholder}
                 maxLength={50}
                 isDisabled={locked}
@@ -228,6 +315,7 @@ export function CommitmentFormBody({
             listClassName="w-full"
             isDisabled={locked}
             accessibilityLabel={Strings.commitmentsFieldAmountType}
+            triggerHitSlop={COMMITMENT_FORM_TABS_SLOP}
           />
         </View>
 
@@ -263,7 +351,11 @@ export function CommitmentFormBody({
                       );
                     if (!held) onChange(n);
                   }}
-                  onBlur={onBlur}
+                  onFocus={onInputFocus}
+                  onBlur={(event) => {
+                    onInputBlur(event);
+                    onBlur();
+                  }}
                   hasError={!!errors.amount}
                   placeholder={
                     amountType === AmountType.Variable
@@ -296,6 +388,7 @@ export function CommitmentFormBody({
               listClassName="w-full"
               isDisabled={locked}
               accessibilityLabel={Strings.commitmentsFieldCurrency}
+              triggerHitSlop={COMMITMENT_FORM_TABS_SLOP}
             />
           </View>
         </View>
@@ -437,7 +530,11 @@ export function CommitmentFormBody({
               <Input
                 value={value ?? ''}
                 onChangeText={(v) => onChange(v || undefined)}
-                onBlur={onBlur}
+                onFocus={onInputFocus}
+                onBlur={(event) => {
+                  onInputBlur(event);
+                  onBlur();
+                }}
                 placeholder={Strings.addTxNotePlaceholder}
                 multiline
                 numberOfLines={3}
@@ -446,32 +543,7 @@ export function CommitmentFormBody({
             )}
           />
         </View>
-      </ScreenScroll>
-
-      {footerExtra ?? null}
-
-      <View className="border-separator border-t px-4 pt-2 pb-6">
-        <View
-          style={{ minHeight: ms(16) }}
-          className="justify-center"
-          collapsable={false}
-          accessibilityLiveRegion="polite"
-        >
-          <FormErrorText
-            message={errorMessage}
-            numberOfLines={1}
-            disableAnimation
-            className="text-center"
-            style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
-          />
-        </View>
-        <Button
-          variant="primary"
-          label={Strings.commitmentsSave}
-          isLoading={saving}
-          onPress={onSubmit}
-        />
-      </View>
+      </CommitmentFormScroll>
 
       <CategoryPickerSheet
         isOpen={categoryPickerVisible}
@@ -489,6 +561,6 @@ export function CommitmentFormBody({
         onSelect={selectAccount}
         onOpenChange={() => setAccountPickerVisible(false)}
       />
-    </Screen>
+    </CommitmentFormFrame>
   );
 }

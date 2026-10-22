@@ -1,6 +1,6 @@
 # Add commitment
 
-Route `/commitments/add`. Screen `src/modules/commitments/screens/commitments/add_commitment/index.tsx`; the Recurrence and Duration groups (`components/recurrence_picker.tsx`, `components/duration_picker.tsx`) render the shared `SelectablePill` from `src/components/ui/chip.tsx`. Not redesigned by #378; drawn as it is today. This file carries only the pill states MA-087 needs — add the rest when a ticket reaches them.
+Route `/commitments/add`. Body `src/modules/commitments/screens/commitments/components/commitment_form_body.tsx`; the Recurrence and Duration groups (`components/recurrence_picker.tsx`, `components/duration_picker.tsx`) render the shared `SelectablePill` from `src/components/ui/chip.tsx`. Not redesigned by #378; drawn as it is today. This file carries only the pill states MA-087 needs — add the rest when a ticket reaches them.
 
 ## Reach it
 

@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { shouldHideGlobalFab } from '@/components/ui/fab_visibility';
 import { useAnySheetOpen } from '@/components/ui/sheet_visibility.state';
 import { holdToastClearance } from '@/components/ui/toast_clearance.state';
+import { useCommitmentFormHostState } from '@/modules/commitments/store/commitment_form_host.state';
 import {
   resolveTabLabelStyle,
   resolveTabsGeometry,
@@ -20,6 +21,9 @@ export function useTabsLayout() {
   const transactionFormVisible = useTransactionFormState(
     (state) => state.phase === 'open' || state.phase === 'closing',
   );
+  const commitmentFormVisible = useCommitmentFormHostState(
+    (state) => state.phase === 'open' || state.phase === 'closing',
+  );
 
   const pathHidesAddButton = shouldHideGlobalFab(pathname, false);
   const { fabBottomOffset, toastClearance } = resolveTabsGeometry(
@@ -31,16 +35,16 @@ export function useTabsLayout() {
   useFocusEffect(useCallback(() => holdToastClearance(toastClearance), [toastClearance]));
 
   const handleAddAccount = useCallback(() => router.push('/accounts/add_account'), [router]);
-  const handleAddCommitment = useCallback(() => router.push('/commitments/add'), [router]);
 
   return {
     state: {
-      fabHidden: transactionFormVisible || anySheetOpen || pathHidesAddButton,
+      fabHidden:
+        transactionFormVisible || commitmentFormVisible || anySheetOpen || pathHidesAddButton,
       fabBottomOffset,
     },
     handleAddTransaction: useTransactionFormState.getState().openAdd,
     handleAddAccount,
-    handleAddCommitment,
+    handleAddCommitment: useCommitmentFormHostState.getState().openAdd,
   };
 }
 
