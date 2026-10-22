@@ -1057,6 +1057,10 @@ export const Strings = {
   commitmentsUpcoming: 'Upcoming',
   commitmentsPaid: 'Paid',
   commitmentsSkipped: 'Skipped',
+  commitmentsHeroUnavailable: '—',
+  commitmentsHeroPercent: (pct: number) => `${pct}%`,
+  commitmentsHeroCarriedOverdue: (count: number) => `${count} overdue`,
+  commitmentsHeroDays: (days: number) => (days === 1 ? '1 day' : `${days} days`),
 
   // Commitments: Empty state
   commitmentsEmptyTitle: 'No commitments yet',

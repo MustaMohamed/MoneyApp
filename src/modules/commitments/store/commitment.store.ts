@@ -6,6 +6,7 @@ import { toLocalDateString } from '@/utils/format_date';
 import { currentYearMonth } from '@/utils/year_month';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
+import type { CommitmentMonthAggregate } from '../domain/commitment_month_totals';
 import { isPaidPayment, isSkippedPayment, resolvePaymentState } from '../domain/payment_state';
 import type { Commitment } from '../entities/commitment.entity';
 import type { CommitmentPayment } from '../entities/commitment_payment.entity';
@@ -38,11 +39,16 @@ interface CommitmentStoreState {
   loading: boolean;
   loadError: boolean;
   generation: number;
+  monthAggregate: { key: string; aggregate: CommitmentMonthAggregate } | undefined;
+  /** The key whose latest aggregate load failed; a success for that key clears it. */
+  monthAggregateErrorKey: string | undefined;
 }
 
 type CommitmentStore = CommitmentStoreState & {
   ensureHousekeepingCurrent(now?: Date): Promise<void>;
   loadMonthSnapshot(yearMonth: string, now?: Date): Promise<void>;
+  /** Never rejects: a failure sets `monthAggregateErrorKey` and keeps the held slot. */
+  loadMonthAggregate(yearMonth: string, accountId: string | undefined, now?: Date): Promise<void>;
   setSelectedMonth(yearMonth: string): Promise<void>;
 
   addCommitment(data: NewCommitmentInput): Promise<void>;
@@ -57,12 +63,13 @@ type CommitmentStore = CommitmentStoreState & {
   getUpcoming(): CommitmentPayment[];
   getPaid(): CommitmentPayment[];
   getSkipped(): CommitmentPayment[];
-  getPaidCount(): number;
-  getTotalCount(): number;
-  getTotalMonthlyCommitted(): number;
 
   reset(): void;
 };
+
+export function monthAggregateKey(yearMonth: string, accountId: string | undefined): string {
+  return `${yearMonth}|${accountId ?? ''}`;
+}
 
 function initialState(generation = 0): CommitmentStoreState {
   return {
@@ -77,6 +84,8 @@ function initialState(generation = 0): CommitmentStoreState {
     loading: false,
     loadError: false,
     generation,
+    monthAggregate: undefined,
+    monthAggregateErrorKey: undefined,
   };
 }
 
@@ -91,8 +100,11 @@ export function createCommitmentStore(
   let latestHousekeepingKey: string | undefined;
   let latestSnapshotRequest = 0;
   let latestRequestedMonth: string | undefined;
+  let latestAggregateRequest = 0;
+  let latestAggregateScope: { accountId: string | undefined } | undefined;
   const inFlightHousekeeping = new Map<string, Promise<void>>();
   const inFlightSnapshots = new Map<string, Promise<CommitmentMonthSnapshot>>();
+  const inFlightAggregates = new Map<string, Promise<CommitmentMonthAggregate>>();
 
   const getHousekeepingRequest = (key: string, now: Date) => {
     const existing = inFlightHousekeeping.get(key);
@@ -115,11 +127,32 @@ export function createCommitmentStore(
     return request;
   };
 
+  const getAggregateRequest = (
+    yearMonth: string,
+    accountId: string | undefined,
+    today: string,
+    generation: number,
+  ) => {
+    const key = `${monthAggregateKey(yearMonth, accountId)}:${today}:${generation}`;
+    const existing = inFlightAggregates.get(key);
+    if (existing) return existing;
+    const request = repo.getMonthAggregate(yearMonth, today, accountId).finally(() => {
+      if (inFlightAggregates.get(key) === request) inFlightAggregates.delete(key);
+    });
+    inFlightAggregates.set(key, request);
+    return request;
+  };
+
   return createMoneyAppSelectors(
     create<CommitmentStore>((set, get) => {
       const invalidateData = () => {
         dataGeneration += 1;
         set({ generation: dataGeneration });
+      };
+
+      const reloadMonthAggregate = () => {
+        if (latestAggregateScope === undefined) return;
+        void get().loadMonthAggregate(get().selectedMonth, latestAggregateScope.accountId);
       };
 
       const revalidateAfterMutation = () => {
@@ -129,6 +162,7 @@ export function createCommitmentStore(
           .catch((error: unknown) =>
             console.error('[commitmentStore] revalidation failed:', error),
           );
+        reloadMonthAggregate();
       };
 
       const beginPaymentTransition = (paymentId: string) => {
@@ -218,6 +252,30 @@ export function createCommitmentStore(
           }
         },
 
+        loadMonthAggregate: async (yearMonth, accountId, now = new Date()) => {
+          const requestId = ++latestAggregateRequest;
+          latestAggregateScope = { accountId };
+          const key = monthAggregateKey(yearMonth, accountId);
+          const generation = dataGeneration;
+          const today = toLocalDateString(now);
+
+          try {
+            await get().ensureHousekeepingCurrent(now);
+            if (requestId !== latestAggregateRequest) return;
+
+            const aggregate = await getAggregateRequest(yearMonth, accountId, today, generation);
+            if (requestId !== latestAggregateRequest) return;
+            set((state) => ({
+              monthAggregate: { key, aggregate },
+              monthAggregateErrorKey:
+                state.monthAggregateErrorKey === key ? undefined : state.monthAggregateErrorKey,
+            }));
+          } catch (error) {
+            console.error('[commitmentStore] loadMonthAggregate failed:', error);
+            if (requestId === latestAggregateRequest) set({ monthAggregateErrorKey: key });
+          }
+        },
+
         setSelectedMonth: async (yearMonth) => {
           set({ selectedMonth: yearMonth });
           await get().loadMonthSnapshot(yearMonth);
@@ -238,6 +296,7 @@ export function createCommitmentStore(
           try {
             await repo.update(id, data);
             invalidateData();
+            reloadMonthAggregate();
             await get().loadMonthSnapshot(get().selectedMonth);
           } catch (error) {
             console.error('[commitmentStore] updateCommitment failed:', error);
@@ -347,17 +406,6 @@ export function createCommitmentStore(
 
         getSkipped: () => get().payments.filter(isSkippedPayment),
 
-        getPaidCount: () => get().payments.filter(isPaidPayment).length,
-
-        getTotalCount: () => get().payments.filter((payment) => !isSkippedPayment(payment)).length,
-
-        getTotalMonthlyCommitted: () =>
-          get().commitments.reduce(
-            (total, commitment) =>
-              commitment.is_active === 1 ? total + (commitment.amount ?? 0) : total,
-            0,
-          ),
-
         reset: () => {
           dataGeneration += 1;
           lastSuccessfulHousekeepingKey = undefined;
@@ -365,8 +413,11 @@ export function createCommitmentStore(
           latestHousekeepingKey = undefined;
           latestSnapshotRequest += 1;
           latestRequestedMonth = undefined;
+          latestAggregateRequest += 1;
+          latestAggregateScope = undefined;
           inFlightHousekeeping.clear();
           inFlightSnapshots.clear();
+          inFlightAggregates.clear();
           set(initialState(dataGeneration));
         },
       };
