@@ -33,6 +33,8 @@ const TRANSACTION_CALL_FILE = 'src/modules/transactions/seeded_transaction_call.
 const HELPER_CALL_FILE = 'src/test_helpers/seeded_transaction_call.ts';
 const BARE_IDENTIFIER_FILE = 'src/modules/transactions/seeded_bare_identifier.ts';
 const MEMBER_FORMS_FILE = 'src/modules/transactions/seeded_member_forms.ts';
+const COMMENTED_FORM_FILE = 'src/modules/transactions/seeded_commented_form.ts';
+const COMMENTED_FORM = '/**\n * const { prepareAsync } = db;\n */\nexport const seeded = 1;\n';
 const MEMBER_FORMS = [
   'const { getEachAsync } = db;',
   "db['execSync'](source);",
@@ -525,6 +527,7 @@ describe('validate-structural-guards.js, banned tokens seeded together in one ru
     write(HELPER_CALL_FILE, TRANSACTION_CALLS);
     write(BARE_IDENTIFIER_FILE, 'const execSync = 1;\ndb.prepareAsync(source);\n');
     write(MEMBER_FORMS_FILE, MEMBER_FORMS);
+    write(COMMENTED_FORM_FILE, COMMENTED_FORM);
     result = runGuard();
     restoreTouched();
   });
@@ -582,6 +585,12 @@ describe('validate-structural-guards.js, banned tokens seeded together in one ru
     expect(
       stderrLines(result).filter((entry) => entry.startsWith(`${MEMBER_FORMS_FILE}:${line}:`)),
     ).toEqual([]);
+  });
+
+  it('T6: passes a destructuring pattern inside a multi-line comment', () => {
+    expect(stderrLines(result).filter((entry) => entry.startsWith(COMMENTED_FORM_FILE))).toEqual(
+      [],
+    );
   });
 
   it('ends stderr with one line that names the script and counts the violations', () => {

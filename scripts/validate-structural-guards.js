@@ -47,7 +47,7 @@ function bracketAccess(/** @type {string} */ name) {
   return new RegExp(`\\[\\s*(['"\`])${escapeRegExp(name)}\\1\\s*\\]`);
 }
 
-// The name in an object pattern, nested or not, closed before `=`, `:`, `of` or a parameter list; matched across lines for a wrapped one.
+// The name in an object pattern, nested or not, closed before `=`, `:`, `of` or a parameter list; matched across lines for a wrapped one; a shorthand object literal before the `:` of a ternary is refused too, rename the key or write `key: value`.
 function destructured(/** @type {string} */ name) {
   const key = escapeRegExp(name);
   const span = '[^{}();<>]*';
@@ -433,7 +433,7 @@ const TREE_ROWS = [
     matches: (/** @type {string} */ rel) => !rel.startsWith('src/test_helpers/'),
     banned: UNQUEUED_CALLS.flatMap((name) => [memberAccess(name), bracketAccess(name)]),
     bannedInSource: UNQUEUED_CALLS.map(destructured),
-    rule: 'skips the main connection queue; app code calls a connection through `execAsync`, `runAsync`, `getFirstAsync` and `getAllAsync` only',
+    rule: 'skips the main connection queue; app code calls a connection through `execAsync`, `runAsync`, `getFirstAsync` and `getAllAsync` only; a shorthand object literal before the `:` of a ternary is refused too, rename the key or write `key: value`',
   },
 ];
 
