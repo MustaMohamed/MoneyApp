@@ -14,6 +14,7 @@ import type { Commitment } from '@/modules/commitments/entities/commitment.entit
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import { CommitmentRepository } from '@/modules/commitments/repositories/commitment.repository';
 import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
+import { exclusiveWriteOnRealDb } from '@/test_helpers/sqlite';
 
 jest.mock('@/database/client', () => ({
   getDb: jest.fn(),
@@ -65,19 +66,11 @@ beforeAll(() => {
       return { changes: result.changes, lastInsertRowId: Number(result.lastInsertRowid) };
     }),
   } as unknown as SQLiteDatabase;
-  jest
-    .mocked(withExclusiveWriteTransactionAsync)
-    .mockImplementation(async (work: (db: SQLiteDatabase) => Promise<void>) => {
+  jest.mocked(withExclusiveWriteTransactionAsync).mockImplementation(
+    exclusiveWriteOnRealDb(realDb, fakeDb, () => {
       sqlCalls.push({ kind: 'exclusive', sql: 'BEGIN EXCLUSIVE' });
-      realDb.exec('BEGIN IMMEDIATE');
-      try {
-        await work(fakeDb);
-        realDb.exec('COMMIT');
-      } catch (error) {
-        realDb.exec('ROLLBACK');
-        throw error;
-      }
-    });
+    }),
+  );
 });
 
 beforeEach(() => {

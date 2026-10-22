@@ -76,7 +76,6 @@ beforeAll(() => {
       __fakeDb: {
         getAllAsync: jest.Mock;
         runAsync: jest.Mock;
-        withTransactionAsync: jest.Mock;
       };
     }
   ).__fakeDb;
@@ -88,9 +87,6 @@ beforeAll(() => {
     const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
     realDb.prepare(sql).run(...(params as never[]));
     return { changes: 1, lastInsertRowId: 1 };
-  });
-  fake.withTransactionAsync.mockImplementation(async (fn: () => Promise<void>) => {
-    await fn();
   });
 });
 

@@ -9,7 +9,7 @@ import {
   SpendingPlanValidationError,
 } from '@/modules/budget/repositories/budget.repository';
 import { validateAllocationText } from '@/modules/budget/screens/budget/spending_plan_sheet/spending_plan_sheet.helpers';
-import { getSQLiteParams } from '@/test_helpers/sqlite';
+import { exclusiveWriteOnRealDb, getSQLiteParams } from '@/test_helpers/sqlite';
 import { formatStoredMoneyText } from '@/utils/money_text';
 
 jest.mock('@/database/client', () => ({
@@ -43,17 +43,7 @@ beforeAll(() => {
   } as unknown as SQLiteDatabase;
   jest
     .mocked(withExclusiveWriteTransactionAsync)
-    .mockImplementation(async (task: (db: SQLiteDatabase) => Promise<void>) => {
-      realDb.exec('BEGIN EXCLUSIVE');
-      try {
-        const result = await task(fakeDb);
-        realDb.exec('COMMIT');
-        return result;
-      } catch (error) {
-        realDb.exec('ROLLBACK');
-        throw error;
-      }
-    });
+    .mockImplementation(exclusiveWriteOnRealDb(realDb, fakeDb));
 
   const { getDb } = jest.requireMock('@/database/client') as {
     getDb: jest.Mock<Promise<SQLiteDatabase>, []>;

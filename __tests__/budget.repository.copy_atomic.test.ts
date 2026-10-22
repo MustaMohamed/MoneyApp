@@ -3,7 +3,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 
 import { MIGRATIONS } from '@/database/migrations';
 import { BudgetRepository } from '@/modules/budget/repositories/budget.repository';
-import { getSQLiteParams } from '@/test_helpers/sqlite';
+import { exclusiveWriteOnRealDb, getSQLiteParams } from '@/test_helpers/sqlite';
 
 let mockRepositoryDb: SQLiteDatabase;
 let mockUuidCounter = 0;
@@ -67,20 +67,11 @@ beforeAll(() => {
     },
   };
   mockRepositoryDb = bridge as unknown as SQLiteDatabase;
-  jest
-    .mocked(withExclusiveWriteTransactionAsync)
-    .mockImplementation(async (task: (db: SQLiteDatabase) => Promise<void>) => {
+  jest.mocked(withExclusiveWriteTransactionAsync).mockImplementation(
+    exclusiveWriteOnRealDb(realDb, mockRepositoryDb, () => {
       transactionCount += 1;
-      realDb.exec('BEGIN EXCLUSIVE');
-      try {
-        const result = await task(mockRepositoryDb);
-        realDb.exec('COMMIT');
-        return result;
-      } catch (error) {
-        realDb.exec('ROLLBACK');
-        throw error;
-      }
-    });
+    }),
+  );
 });
 
 beforeEach(() => {

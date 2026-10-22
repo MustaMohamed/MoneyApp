@@ -7,6 +7,7 @@ import {
   CategoryRepository,
   type NewCategoryInput,
 } from '@/modules/categories/repositories/category.repository';
+import { bridgeBetterSQLite, getExpoSQLiteTestDatabase } from '@/test_helpers/sqlite';
 
 // The name must start with `mock` for jest to allow it inside the `jest.mock` factory.
 let mockUuidCounter = 0;
@@ -57,6 +58,7 @@ beforeAll(() => {
     }
   ).__fakeDb;
 
+  bridgeBetterSQLite(getExpoSQLiteTestDatabase(), realDb);
   mocked.runAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
     const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
     realDb.prepare(sql).run(...(params as never[]));
@@ -71,10 +73,6 @@ beforeAll(() => {
   mocked.getFirstAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
     const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
     return realDb.prepare(sql).get(...(params as never[])) ?? null;
-  });
-
-  mocked.execAsync.mockImplementation(async (sql: string) => {
-    realDb.exec(sql);
   });
 });
 

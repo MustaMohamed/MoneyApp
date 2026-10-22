@@ -1,6 +1,6 @@
 import uuid from 'react-native-uuid';
 
-import { Currency, TransactionType } from '@/constants/enums';
+import { AccountType, Currency, TransactionType } from '@/constants/enums';
 import { getDb } from '@/database/client';
 import { budgetRepository } from '@/modules/budget/repositories/budget.repository';
 import { CategoryRepository } from '@/modules/categories/repositories/category.repository';
@@ -14,6 +14,7 @@ import { transactionRepository } from '@/modules/transactions/repositories/trans
 import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
 import { bridgeSQLiteConnections, type SQLiteConnections } from '@/test_helpers/sqlite_connections';
 import { insertRecords } from '@/test_helpers/sqlite_fixtures';
+import { makeTestAccount, makeTestBudget, makeTestCategory } from '@/test_helpers/transaction';
 
 jest.mock('react-native-uuid', () => ({ v4: jest.fn() }));
 
@@ -55,36 +56,23 @@ const SKIPPED_APRIL = makeTestPayment({
 });
 
 function category(id: string, name: string) {
-  return {
-    id,
-    name,
-    type: 'expense',
-    icon: 'tag',
-    color: '#C9973A',
-    is_default: 0,
-    sort_order: 0,
-    created_at: SEEDED_AT,
-    updated_at: SEEDED_AT,
-  };
+  return makeTestCategory({ id, name, created_at: SEEDED_AT, updated_at: SEEDED_AT });
 }
 
 beforeAll(async () => {
   connections = bridgeSQLiteConnections();
   insertRecords(connections.inspect, 'categories', [category('cat', 'Bills')]);
   insertRecords(connections.inspect, 'accounts', [
-    {
+    makeTestAccount({
       id: 'account',
       name: 'Main',
-      type: 'bank',
-      currency: 'EGP',
+      type: AccountType.Bank,
+      currency: Currency.EGP,
       opening_balance: OPENING_BALANCE,
       current_balance: OPENING_BALANCE,
-      interest_tracking: 0,
-      is_archived: 0,
-      sort_order: 0,
       created_at: SEEDED_AT,
       updated_at: SEEDED_AT,
-    },
+    }),
   ]);
   await getDb();
 });
@@ -294,7 +282,7 @@ describe('an exclusive write while another connection holds the write lock', () 
 
   it('a budget edit, which reads the row first, waits and writes the new limit', async () => {
     insertRecords(connections.inspect, 'budgets', [
-      {
+      makeTestBudget({
         id: 'budget-1',
         category_id: 'cat',
         name: 'Groceries',
@@ -302,7 +290,7 @@ describe('an exclusive write while another connection holds the write lock', () 
         effective_from: '2026-05',
         created_at: SEEDED_AT,
         updated_at: SEEDED_AT,
-      },
+      }),
     ]);
 
     await whileLocked(() =>

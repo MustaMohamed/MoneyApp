@@ -8,6 +8,7 @@ import { MIGRATIONS } from '@/database/migrations';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import { CommitmentRepository } from '@/modules/commitments/repositories/commitment.repository';
 import { makeTestCommitment } from '@/test_helpers/commitment';
+import { bridgeBetterSQLite, createMockSQLiteDatabase } from '@/test_helpers/sqlite';
 
 jest.mock('@/database/client', () => ({
   getDb: jest.fn(),
@@ -113,20 +114,9 @@ beforeAll(() => {
     )
     .run(NOW_ISO, NOW_ISO, NOW_ISO, NOW_ISO);
 
-  fakeDb = {
-    getAllAsync: jest.fn(async (sql: string, ...rest: unknown[]) => {
-      const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
-      return realDb.prepare(sql).all(...(params as never[]));
-    }),
-    runAsync: jest.fn(async (sql: string, ...rest: unknown[]) => {
-      const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
-      const result = realDb.prepare(sql).run(...(params as never[]));
-      return { changes: result.changes, lastInsertRowId: Number(result.lastInsertRowid) };
-    }),
-    execAsync: jest.fn(async (sql: string) => {
-      realDb.exec(sql);
-    }),
-  } as unknown as SQLiteDatabase;
+  const sqlite = createMockSQLiteDatabase();
+  bridgeBetterSQLite(sqlite, realDb);
+  fakeDb = sqlite.database;
 });
 
 beforeEach(() => {

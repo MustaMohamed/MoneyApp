@@ -10,6 +10,7 @@ import {
   type NewCommitmentInput,
   type UpdateCommitmentInput,
 } from '@/modules/commitments/repositories/commitment.repository';
+import { exclusiveWriteOnRealDb } from '@/test_helpers/sqlite';
 
 jest.mock('@/database/client', () => ({
   getDb: jest.fn(),
@@ -62,16 +63,7 @@ beforeAll(() => {
   } as unknown as SQLiteDatabase;
   jest
     .mocked(withExclusiveWriteTransactionAsync)
-    .mockImplementation(async (work: (db: SQLiteDatabase) => Promise<void>) => {
-      realDb.exec('BEGIN IMMEDIATE');
-      try {
-        await work(fakeDb);
-        realDb.exec('COMMIT');
-      } catch (error) {
-        realDb.exec('ROLLBACK');
-        throw error;
-      }
-    });
+    .mockImplementation(exclusiveWriteOnRealDb(realDb, fakeDb));
 });
 
 beforeEach(() => {

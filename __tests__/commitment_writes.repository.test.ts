@@ -22,6 +22,7 @@ import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
 import {
   bridgeBetterSQLite,
   createMockSQLiteDatabase,
+  exclusiveWriteOnRealDb,
   getSQLiteParams,
 } from '@/test_helpers/sqlite';
 
@@ -82,22 +83,10 @@ beforeAll(() => {
     const result = realDb.prepare(sql).run(...getSQLiteParams(rest));
     return { changes: result.changes, lastInsertRowId: Number(result.lastInsertRowid) };
   });
-  sqlite.execAsync.mockImplementation(async (sql: string) => {
-    realDb.exec(sql);
-  });
   fakeDb = sqlite.database;
   jest
     .mocked(withExclusiveWriteTransactionAsync)
-    .mockImplementation(async (work: (db: SQLiteDatabase) => Promise<void>) => {
-      realDb.exec('BEGIN IMMEDIATE');
-      try {
-        await work(fakeDb);
-        realDb.exec('COMMIT');
-      } catch (error) {
-        realDb.exec('ROLLBACK');
-        throw error;
-      }
-    });
+    .mockImplementation(exclusiveWriteOnRealDb(realDb, fakeDb));
 });
 
 beforeEach(() => {

@@ -16,7 +16,11 @@ import {
   TransactionRepository,
   type NewTransactionInput,
 } from '@/modules/transactions/repositories/transaction.repository';
-import { getExpoSQLiteTestDatabase, getSQLiteParams } from '@/test_helpers/sqlite';
+import {
+  bridgeBetterSQLite,
+  getExpoSQLiteTestDatabase,
+  getSQLiteParams,
+} from '@/test_helpers/sqlite';
 import { toLocalDateString } from '@/utils/format_date';
 
 // Override global UUID mock with a counter so each add() gets a unique id
@@ -58,6 +62,7 @@ beforeAll(() => {
   realDb.exec(MIGRATIONS.map((m) => m.up).join('\n'));
   seedAccount();
 
+  bridgeBetterSQLite(mocked, realDb);
   mocked.runAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
     const params = getSQLiteParams(rest);
     const result = realDb.prepare(sql).run(...params);
@@ -67,10 +72,6 @@ beforeAll(() => {
   mocked.getAllAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
     const params = getSQLiteParams(rest);
     return realDb.prepare(sql).all(...params);
-  });
-
-  mocked.execAsync.mockImplementation(async (sql: string) => {
-    realDb.exec(sql);
   });
 });
 

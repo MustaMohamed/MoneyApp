@@ -170,9 +170,6 @@ beforeAll(() => {
   realDb.exec(MIGRATIONS.map((m) => m.up).join('\n'));
 
   bridgeBetterSQLite(sqlite, realDb);
-  sqlite.execAsync.mockImplementation(async (sql: string) => {
-    realDb.exec(sql);
-  });
 });
 
 beforeEach(() => {
