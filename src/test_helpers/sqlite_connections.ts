@@ -120,6 +120,7 @@ export function bridgeSQLiteConnections(): SQLiteConnections {
       getFirstAsync: async (source: string, ...rest: unknown[]) =>
         (await readRows(handle, source, rest, 1))[0] ?? null,
       closeAsync,
+      isInTransactionAsync: async () => handle.inTransaction,
       // As expo-sqlite SQLiteDatabase.ts:141-149: plain BEGIN, and ROLLBACK even when BEGIN failed.
       withTransactionAsync: async (task: () => Promise<void>): Promise<void> => {
         try {

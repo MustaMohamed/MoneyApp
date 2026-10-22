@@ -35,16 +35,25 @@ function callMember(target: object, key: PropertyKey, args: unknown[]): unknown 
 // A write issued beside another call's open read gets no busy wait, so the main connection runs one call at a time.
 function queueCalls(db: SQLite.SQLiteDatabase): SQLite.SQLiteDatabase {
   let previous: Promise<unknown> = Promise.resolve();
+  const wrappers = new Map<PropertyKey, (...args: unknown[]) => unknown>();
+  const wrap = (key: PropertyKey) => {
+    if (!QUEUED_CALLS.has(key)) return (...args: unknown[]) => callMember(db, key, args);
+    return (...args: unknown[]) => {
+      const call = previous.then(() => callMember(db, key, args));
+      previous = call.catch(() => undefined);
+      return call;
+    };
+  };
   return new Proxy(db, {
     get(target, key) {
       const member: unknown = Reflect.get(target, key);
       if (typeof member !== 'function') return member;
-      if (!QUEUED_CALLS.has(key)) return (...args: unknown[]) => callMember(target, key, args);
-      return (...args: unknown[]) => {
-        const call = previous.then(() => callMember(target, key, args));
-        previous = call.catch(() => undefined);
-        return call;
-      };
+      let wrapper = wrappers.get(key);
+      if (wrapper === undefined) {
+        wrapper = wrap(key);
+        wrappers.set(key, wrapper);
+      }
+      return wrapper;
     },
   });
 }
@@ -69,9 +78,21 @@ export async function withWriteTransactionAsync(
     await task();
     await db.execAsync('COMMIT');
   } catch (error) {
-    // SQLite has already rolled back after some errors; the task's error is the one to report.
-    await db.execAsync('ROLLBACK').catch(() => undefined);
+    await rollBack(db);
     throw error;
+  }
+}
+
+// SQLite has already rolled back after some errors; a ROLLBACK that fails with the transaction still open is the failure to report.
+async function rollBack(db: SQLite.SQLiteDatabase): Promise<void> {
+  try {
+    await db.execAsync('ROLLBACK');
+  } catch (rollbackError) {
+    if (await db.isInTransactionAsync()) {
+      throw new Error('ROLLBACK failed and the transaction is still open', {
+        cause: rollbackError,
+      });
+    }
   }
 }
 

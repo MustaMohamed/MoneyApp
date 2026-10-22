@@ -8,6 +8,7 @@ import {
   withWriteTransactionAsync,
 } from '@/database/client';
 import { makeTestPayment } from '@/test_helpers/commitment';
+import { asSQLiteDatabase } from '@/test_helpers/sqlite';
 import {
   bridgeSQLiteConnections,
   type BridgedConnection,
@@ -138,6 +139,30 @@ describe('withWriteTransactionAsync', () => {
       }),
     ).rejects.toBe(failure);
 
+    expect(committedProbeIds()).toEqual([]);
+  });
+
+  it('rejects with the rollback failure when ROLLBACK fails and the transaction stays open', async () => {
+    const failure = new Error('task failed');
+    const rollbackFailure = new Error('rollback failed');
+    const failingRollback = asSQLiteDatabase({
+      execAsync: (source: string) =>
+        source === 'ROLLBACK' ? Promise.reject(rollbackFailure) : db.execAsync(source),
+      isInTransactionAsync: () => db.isInTransactionAsync(),
+    });
+
+    try {
+      const rejection = withWriteTransactionAsync(failingRollback, async () => {
+        await insertProbe(db, 'left-open');
+        throw failure;
+      });
+
+      await expect(rejection).rejects.not.toBe(failure);
+      await expect(rejection).rejects.toMatchObject({ cause: rollbackFailure });
+      await expect(db.isInTransactionAsync()).resolves.toBe(true);
+    } finally {
+      await db.execAsync('ROLLBACK');
+    }
     expect(committedProbeIds()).toEqual([]);
   });
 });

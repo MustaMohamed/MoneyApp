@@ -37,6 +37,11 @@ function identifier(/** @type {string} */ name) {
   return new RegExp(`(?<![\\w$])${escapeRegExp(name)}(?![\\w$])`);
 }
 
+// The whole identifier as a member access only: `db.prepareAsync` matches, a bare `prepareAsync` does not.
+function memberAccess(/** @type {string} */ name) {
+  return new RegExp(`\\.${escapeRegExp(name)}(?![\\w$])`);
+}
+
 // `createMoneyAppSelectors` gives a store a `useState` accessor, so `x.useState.y()` is not the hook.
 const USE_STATE = /(?<![\w$])useState(?![\w$])(?!(?<=\.useState)\s*\.)/;
 
@@ -409,7 +414,7 @@ const TREE_ROWS = [
       'runSync',
       'getAllSync',
       'getFirstSync',
-    ].map(identifier),
+    ].map(memberAccess),
     rule: 'skips the main connection queue; app code calls a connection through `execAsync`, `runAsync`, `getFirstAsync` and `getAllAsync` only',
   },
 ];

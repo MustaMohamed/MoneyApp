@@ -31,6 +31,7 @@ const ACCOUNT_INFO_ROWS = 'src/modules/accounts/utils/account_info_rows.ts';
 const VERSIONED_FILE = 'src/modules/transactions/seeded_surface.ts';
 const TRANSACTION_CALL_FILE = 'src/modules/transactions/seeded_transaction_call.ts';
 const HELPER_CALL_FILE = 'src/test_helpers/seeded_transaction_call.ts';
+const BARE_IDENTIFIER_FILE = 'src/modules/transactions/seeded_bare_identifier.ts';
 const TRANSACTION_CALLS =
   'db.withTransactionAsync(task);\ndb.withExclusiveTransactionAsync(task);\ndb.getEachAsync(source);\n';
 const FIELD_MESSAGE_RAIL = 'src/modules/accounts/components/field_message_rail.tsx';
@@ -503,6 +504,7 @@ describe('validate-structural-guards.js, banned tokens seeded together in one ru
     write(VERSIONED_FILE, 'export const TransactionFormV2 = 1;\n');
     write(TRANSACTION_CALL_FILE, TRANSACTION_CALLS);
     write(HELPER_CALL_FILE, TRANSACTION_CALLS);
+    write(BARE_IDENTIFIER_FILE, 'const execSync = 1;\ndb.prepareAsync(source);\n');
     result = runGuard();
     restoreTouched();
   });
@@ -528,6 +530,13 @@ describe('validate-structural-guards.js, banned tokens seeded together in one ru
   it('T6: reports a connection method outside the four the queue runs, and none under src/test_helpers/', () => {
     expectReported(result, [lineAt(TRANSACTION_CALL_FILE, 3, 'getEachAsync')]);
     expect(stderrLines(result).filter((line) => line.startsWith(HELPER_CALL_FILE))).toEqual([]);
+  });
+
+  it('T6: reports a connection method as a member access, and passes a bare identifier of the same name', () => {
+    expectReported(result, [lineAt(BARE_IDENTIFIER_FILE, 2, 'prepareAsync')]);
+    expect(
+      stderrLines(result).filter((line) => line.startsWith(`${BARE_IDENTIFIER_FILE}:1:`)),
+    ).toEqual([]);
   });
 
   it('ends stderr with one line that names the script and counts the violations', () => {
