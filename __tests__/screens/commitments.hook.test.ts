@@ -24,6 +24,7 @@ import {
   monthAggregateKey,
   useCommitmentStore,
 } from '@/modules/commitments/store/commitment.store';
+import { useCommitmentFormHostState } from '@/modules/commitments/store/commitment_form_host.state';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import {
   makeTestCommitment,
@@ -92,6 +93,7 @@ const setSearchQueryMock = jest.fn();
 const clearSearchMock = jest.fn();
 const setAppliedFiltersMock = jest.fn();
 const { runAfterInteractions } = jest.requireMock('@/utils/run_after_interactions');
+const { router: mockRouter } = jest.requireMock<{ router: { push: jest.Mock } }>('expo-router');
 
 const TODAY = '2026-05-08';
 
@@ -310,6 +312,17 @@ describe('useCommitments', () => {
 
   it('renders without throwing', async () => {
     await expect(renderHook(() => useCommitments())).resolves.toBeDefined();
+  });
+
+  it('opens the add sheet from goToAdd without a push', async () => {
+    useCommitmentFormHostState.getState().reset();
+    mockRouter.push.mockClear();
+    const { result } = await renderHook(() => useCommitments());
+
+    await act(() => result.current.goToAdd());
+
+    expect(useCommitmentFormHostState.getState().phase).toBe('open');
+    expect(mockRouter.push).not.toHaveBeenCalled();
   });
 
   it('isEmpty is true when no payments', async () => {

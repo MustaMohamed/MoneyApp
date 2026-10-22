@@ -2,6 +2,7 @@ import { act, renderHook } from '@testing-library/react-native';
 
 import { AccountType, Currency } from '@/constants/enums';
 import type { DashboardNetWorth } from '@/modules/accounts/domain/account_aggregation';
+import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { useBaseCurrencyStore } from '@/modules/currency/store/base_currency.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import type {
@@ -13,6 +14,7 @@ import { useDashboardState } from '@/modules/dashboard/screens/dashboard/dashboa
 import { useDashboardStore } from '@/modules/dashboard/store/dashboard.store';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import { makeTestPayment } from '@/test_helpers/commitment';
+import { deferred } from '@/test_helpers/deferred';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
 
@@ -64,6 +66,9 @@ jest.mock('@/modules/currency/store/base_currency.store', () => ({
 jest.mock('@/modules/transactions/store/transaction.store', () => ({
   useTransactionStore: jest.fn(),
 }));
+jest.mock('@/modules/commitments/store/commitment.store', () => ({
+  useCommitmentStore: jest.fn(),
+}));
 
 function amountNetWorth(
   netWorth: DashboardNetWorth,
@@ -79,6 +84,7 @@ const refreshSnapshot = jest.fn<Promise<void>, [DashboardLoadInput]>();
 const retrySnapshot = jest.fn<Promise<void>, [DashboardLoadInput]>();
 const revalidateAfterMutation = jest.fn<Promise<void>, [DashboardLoadInput]>();
 const invalidate = jest.fn();
+const ensureHousekeepingCurrent = jest.fn<Promise<void>, [Date?]>();
 const setBreakdownVisible = jest.fn();
 const setSelectedSegment = jest.fn();
 
@@ -208,6 +214,11 @@ let transactionStoreState: {
   mutationVersion: number;
 };
 
+let commitmentStoreState: {
+  generation: number;
+  ensureHousekeepingCurrent: typeof ensureHousekeepingCurrent;
+};
+
 beforeEach(() => {
   jest.useFakeTimers({ now: new Date('2026-07-23T10:00:00.000Z') });
   mockCapturedFocusCallback = undefined;
@@ -218,6 +229,7 @@ beforeEach(() => {
   refreshSnapshot.mockResolvedValue(undefined);
   retrySnapshot.mockResolvedValue(undefined);
   revalidateAfterMutation.mockResolvedValue(undefined);
+  ensureHousekeepingCurrent.mockResolvedValue(undefined);
   dashboardStoreState = {
     snapshot: populatedSnapshot(),
     status: 'ready',
@@ -249,12 +261,17 @@ beforeEach(() => {
   transactionStoreState = {
     mutationVersion: 0,
   };
+  commitmentStoreState = {
+    generation: 0,
+    ensureHousekeepingCurrent,
+  };
 
   attachMockSelectorStore(useDashboardStore, () => dashboardStoreState);
   attachMockSelectorStore(useDashboardState, () => dashboardUiState);
   attachMockSelectorStore(useCurrencyStore, () => currencyState);
   attachMockSelectorStore(useBaseCurrencyStore, () => baseCurrencyState);
   attachMockSelectorStore(useTransactionStore, () => transactionStoreState);
+  attachMockSelectorStore(useCommitmentStore, () => commitmentStoreState);
 });
 
 afterEach(() => {
@@ -340,6 +357,115 @@ describe('useDashboard', () => {
 
     expect(ensureSnapshot).toHaveBeenCalledTimes(1);
     expect(revalidateAfterMutation).not.toHaveBeenCalled();
+  });
+
+  describe('after a commitment write', () => {
+    const LOAD_INPUT = {
+      yearMonth: '2026-07',
+      now: new Date('2026-07-23T10:00:00.000Z'),
+    };
+
+    async function settle(): Promise<void> {
+      await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve();
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+    }
+
+    it('revalidates once the housekeeping pass lands while Dashboard stays focused', async () => {
+      const housekeeping = deferred<void>();
+      ensureHousekeepingCurrent.mockReturnValueOnce(housekeeping.promise);
+      const { rerender } = await renderHook(() => useDashboard());
+      await act(() => {
+        mockCapturedFocusCallback?.();
+      });
+
+      commitmentStoreState.generation += 1;
+      await rerender({});
+      await settle();
+
+      expect(ensureHousekeepingCurrent).toHaveBeenCalledTimes(1);
+      expect(revalidateAfterMutation).not.toHaveBeenCalled();
+
+      housekeeping.resolve();
+      await settle();
+
+      expect(revalidateAfterMutation).toHaveBeenCalledTimes(1);
+      expect(revalidateAfterMutation).toHaveBeenCalledWith(LOAD_INPUT);
+    });
+
+    it('skips the revalidation when Dashboard blurs during the housekeeping pass', async () => {
+      const housekeeping = deferred<void>();
+      ensureHousekeepingCurrent.mockReturnValueOnce(housekeeping.promise);
+      const { rerender } = await renderHook(() => useDashboard());
+      let cleanup: void | (() => void);
+      await act(() => {
+        cleanup = mockCapturedFocusCallback?.();
+      });
+
+      commitmentStoreState.generation += 1;
+      await rerender({});
+      await settle();
+      expect(ensureHousekeepingCurrent).toHaveBeenCalledTimes(1);
+
+      await act(() => {
+        cleanup?.();
+      });
+      housekeeping.resolve();
+      await settle();
+
+      expect(revalidateAfterMutation).not.toHaveBeenCalled();
+    });
+
+    it('still revalidates when the housekeeping pass rejects while focused', async () => {
+      const housekeeping = deferred<void>();
+      ensureHousekeepingCurrent.mockReturnValueOnce(housekeeping.promise);
+      const { rerender } = await renderHook(() => useDashboard());
+      await act(() => {
+        mockCapturedFocusCallback?.();
+      });
+
+      commitmentStoreState.generation += 1;
+      await rerender({});
+      await settle();
+      expect(ensureHousekeepingCurrent).toHaveBeenCalledTimes(1);
+
+      housekeeping.reject(new Error('housekeeping failed'));
+      await settle();
+
+      expect(revalidateAfterMutation).toHaveBeenCalledTimes(1);
+      expect(revalidateAfterMutation).toHaveBeenCalledWith(LOAD_INPUT);
+    });
+
+    it('does nothing for a write after blur, and revalidates for the next write once focused again', async () => {
+      const { rerender } = await renderHook(() => useDashboard());
+      let cleanup: void | (() => void);
+      await act(() => {
+        cleanup = mockCapturedFocusCallback?.();
+      });
+      await act(() => {
+        cleanup?.();
+      });
+
+      commitmentStoreState.generation += 1;
+      await rerender({});
+      await settle();
+
+      expect(ensureHousekeepingCurrent).not.toHaveBeenCalled();
+      expect(revalidateAfterMutation).not.toHaveBeenCalled();
+
+      await act(() => {
+        mockCapturedFocusCallback?.();
+      });
+      commitmentStoreState.generation += 1;
+      await rerender({});
+      await settle();
+
+      expect(ensureHousekeepingCurrent).toHaveBeenCalledTimes(1);
+      expect(revalidateAfterMutation).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('derives every Dashboard section from one matching snapshot', async () => {

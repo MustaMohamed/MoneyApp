@@ -21,6 +21,7 @@ jest.mock('@/components/ui/sheet_visibility.state', () => ({
 
 import { useToastClearanceState } from '@/components/ui/toast_clearance.state';
 import { Size, Spacing } from '@/constants/theme';
+import { useCommitmentFormHostState } from '@/modules/commitments/store/commitment_form_host.state';
 import { useTabsLayout } from '@/modules/navigation/screens/tabs/tabs.hook';
 import { useTransactionFormState } from '@/modules/transactions/store/transaction_form_host.state';
 
@@ -35,6 +36,7 @@ describe('useTabsLayout', () => {
     mockPathname = '/dashboard';
     mockAnySheetOpen = false;
     useTransactionFormState.getState().reset();
+    useCommitmentFormHostState.getState().reset();
     useToastClearanceState.getState().reset();
   });
 
@@ -54,6 +56,28 @@ describe('useTabsLayout', () => {
       mode: 'add',
       phase: 'open',
     });
+    expect(result.current.state.fabHidden).toBe(true);
+  });
+
+  it('opens the add commitment sheet over the current tab without a push, hiding the + button', async () => {
+    const { result } = await renderHook(() => useTabsLayout());
+
+    await act(() => result.current.handleAddCommitment());
+
+    expect(mockPush).not.toHaveBeenCalled();
+    expect(useCommitmentFormHostState.getState().phase).toBe('open');
+    expect(result.current.state.fabHidden).toBe(true);
+  });
+
+  it('keeps the + button hidden while the commitment sheet closes', async () => {
+    const { result } = await renderHook(() => useTabsLayout());
+
+    await act(() => {
+      useCommitmentFormHostState.getState().openAdd();
+      useCommitmentFormHostState.getState().requestClose();
+    });
+
+    expect(useCommitmentFormHostState.getState().phase).toBe('closing');
     expect(result.current.state.fabHidden).toBe(true);
   });
 
