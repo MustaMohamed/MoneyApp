@@ -2,6 +2,7 @@ import {
   formatShortDate,
   formatLongDate,
   formatMonthYear,
+  formatShortWeekdayDate,
   formatWeekdayDate,
   nextDueDate,
   toLocalDateString,
@@ -43,6 +44,27 @@ describe('formatWeekdayDate', () => {
   });
   it('prints the first of a year with the day unpadded', () => {
     expect(formatWeekdayDate('2027-01-01')).toBe('Fri 1 Jan 2027');
+  });
+});
+
+describe('formatShortWeekdayDate', () => {
+  it('drops the year when the date falls in the year of today', () => {
+    expect(formatShortWeekdayDate('2026-10-01', '2026-10-22')).toBe('Thu 1 Oct');
+  });
+  it('prints the year when the date falls in the year before today', () => {
+    expect(formatShortWeekdayDate('2025-12-28', '2026-01-05')).toBe('Sun 28 Dec 2025');
+  });
+  it('prints the year when the date falls in the year after today', () => {
+    expect(formatShortWeekdayDate('2027-01-01', '2026-12-20')).toBe('Fri 1 Jan 2027');
+  });
+  it('prints a leap day', () => {
+    expect(formatShortWeekdayDate('2028-02-29', '2028-03-01')).toBe('Tue 29 Feb');
+  });
+  it('prints a month end that is today', () => {
+    expect(formatShortWeekdayDate('2026-10-31', '2026-10-31')).toBe('Sat 31 Oct');
+  });
+  it('prints the weekday from the local calendar date', () => {
+    expect(formatShortWeekdayDate('2026-04-24', '2026-10-22')).toBe('Fri 24 Apr');
   });
 });
 

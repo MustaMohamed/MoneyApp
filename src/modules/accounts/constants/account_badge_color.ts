@@ -15,8 +15,18 @@ const FILL_BACKDROP = HERO_GRADIENT_COLORS[1];
 // The frames' badge foreground: 55% account colour into the text colour, stepped down until it clears.
 const FOREGROUND_COLOR_SHARE = 0.55;
 const FOREGROUND_SHARE_STEP = 0.05;
-const FOREGROUND_STEP_COUNT = Math.ceil(FOREGROUND_COLOR_SHARE / FOREGROUND_SHARE_STEP);
-const MIN_CONTRAST_RATIO = 4.5;
+export const BADGE_TEXT_MIN_CONTRAST = 4.5;
+
+export interface BadgeColorsInput {
+  tone: string;
+  /** What the badge sits on; the fill is composited over it. */
+  backdrop: string;
+  fillShare: number;
+  /** The foreground's colour before it steps toward the text colour; the tone when omitted. */
+  ink?: string;
+  /** The ink's share of the foreground at the first step. */
+  inkShare: number;
+}
 
 function channels(hex: string): [number, number, number] {
   const n = Number.parseInt(hex.slice(1), 16);
@@ -34,13 +44,30 @@ export function mixHex(a: string, b: string, shareOfA: number): string {
   return `#${blend(ar, br)}${blend(ag, bg)}${blend(ab, bb)}`.toUpperCase();
 }
 
-/** The type badge's opaque fill and the foreground that clears 4.5:1 on it, for any account colour. */
-export function resolveAccountBadgeColors(color: string): AccountBadgeColors {
-  const fill = mixHex(color, FILL_BACKDROP, FILL_ALPHA);
-  for (let step = 0; step <= FOREGROUND_STEP_COUNT; step += 1) {
-    const share = Math.max(0, FOREGROUND_COLOR_SHARE - step * FOREGROUND_SHARE_STEP);
-    const foreground = mixHex(color, CoreTokens.text1, share);
-    if (contrastRatio(fill, foreground) >= MIN_CONTRAST_RATIO) return { fill, foreground };
+/** An opaque badge fill and the foreground that clears 4.5:1 on it, the ink stepped toward the text colour. */
+export function resolveBadgeColors({
+  tone,
+  backdrop,
+  fillShare,
+  ink = tone,
+  inkShare,
+}: BadgeColorsInput): AccountBadgeColors {
+  const fill = mixHex(tone, backdrop, fillShare);
+  const stepCount = Math.ceil(inkShare / FOREGROUND_SHARE_STEP);
+  for (let step = 0; step <= stepCount; step += 1) {
+    const share = Math.max(0, inkShare - step * FOREGROUND_SHARE_STEP);
+    const foreground = mixHex(ink, CoreTokens.text1, share);
+    if (contrastRatio(fill, foreground) >= BADGE_TEXT_MIN_CONTRAST) return { fill, foreground };
   }
   return { fill, foreground: CoreTokens.text1 };
+}
+
+/** The type badge's opaque fill and the foreground that clears 4.5:1 on it, for any account colour. */
+export function resolveAccountBadgeColors(color: string): AccountBadgeColors {
+  return resolveBadgeColors({
+    tone: color,
+    backdrop: FILL_BACKDROP,
+    fillShare: FILL_ALPHA,
+    inkShare: FOREGROUND_COLOR_SHARE,
+  });
 }

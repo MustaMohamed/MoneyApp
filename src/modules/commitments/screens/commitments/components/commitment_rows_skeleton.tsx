@@ -3,16 +3,22 @@ import { View, useWindowDimensions } from 'react-native';
 
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { Strings } from '@/constants/strings';
+import { Radius, Size, lineHeightFor } from '@/constants/theme';
+
+import {
+  COMMITMENT_ROW_AMOUNT_FONT_SIZE,
+  COMMITMENT_ROW_CAPTION_FONT_SIZE,
+  COMMITMENT_ROW_LINE_GAP,
+  COMMITMENT_ROW_TITLE_FONT_SIZE,
+  resolveCommitmentRowHeight,
+} from './commitment_row.helpers';
 
 const ROWS = [0, 1, 2, 3, 4];
-// Raw px: ms() would move the bars' 1.0 heights.
-const TITLE_BAR_HEIGHT = 16;
-const CAPTION_BAR_HEIGHT = 12;
-const AMOUNT_BAR_HEIGHT = 16;
-const STATUS_PILL_HEIGHT = 20;
 
 export function CommitmentRowsSkeleton(): React.ReactElement {
   const { fontScale } = useWindowDimensions();
+  const lineBar = (fontSize: number): number =>
+    resolveSkeletonBarHeight(lineHeightFor(fontSize), fontScale);
   return (
     <View testID="commitment-row-skeletons" accessibilityLabel={Strings.loadingCommitmentsA11y}>
       <SkeletonGroup isLoading isSkeletonOnly>
@@ -20,28 +26,34 @@ export function CommitmentRowsSkeleton(): React.ReactElement {
           <View
             key={row}
             testID="commitment-row-skeleton"
-            style={{ flexDirection: 'row', alignItems: 'center' }}
-            className="border-separator min-h-[48px] gap-2 border-b px-4 py-2"
+            style={{ height: resolveCommitmentRowHeight(fontScale), justifyContent: 'center' }}
+            className="border-separator border-b px-4"
           >
-            <SkeletonGroup.Item className="h-9 w-9 rounded-md" />
-            <View style={{ flex: 1 }} className="gap-1.5">
+            <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-3">
               <SkeletonGroup.Item
-                className={row % 2 === 0 ? 'w-36 rounded-md' : 'w-28 rounded-md'}
-                style={{ height: resolveSkeletonBarHeight(TITLE_BAR_HEIGHT, fontScale) }}
+                testID="commitment-row-skeleton-tile"
+                style={{
+                  width: Size.accountTile,
+                  height: Size.accountTile,
+                  borderRadius: Radius.sm,
+                }}
               />
-              <SkeletonGroup.Item
-                className="w-20 rounded-md"
-                style={{ height: resolveSkeletonBarHeight(CAPTION_BAR_HEIGHT, fontScale) }}
-              />
-            </View>
-            <View style={{ alignItems: 'flex-end' }} className="gap-1.5">
+              <View style={{ flex: 1 }}>
+                <SkeletonGroup.Item
+                  className={row % 2 === 0 ? 'w-36 rounded-md' : 'w-28 rounded-md'}
+                  style={{ height: lineBar(COMMITMENT_ROW_TITLE_FONT_SIZE) }}
+                />
+                <SkeletonGroup.Item
+                  className="w-20 rounded-md"
+                  style={{
+                    height: lineBar(COMMITMENT_ROW_CAPTION_FONT_SIZE),
+                    marginTop: COMMITMENT_ROW_LINE_GAP,
+                  }}
+                />
+              </View>
               <SkeletonGroup.Item
                 className={row % 2 === 0 ? 'w-24 rounded-md' : 'w-20 rounded-md'}
-                style={{ height: resolveSkeletonBarHeight(AMOUNT_BAR_HEIGHT, fontScale) }}
-              />
-              <SkeletonGroup.Item
-                className="w-16 rounded-full"
-                style={{ height: resolveSkeletonBarHeight(STATUS_PILL_HEIGHT, fontScale) }}
+                style={{ height: lineBar(COMMITMENT_ROW_AMOUNT_FONT_SIZE) }}
               />
             </View>
           </View>

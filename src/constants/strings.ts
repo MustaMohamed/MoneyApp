@@ -1179,6 +1179,12 @@ export const Strings = {
   commitmentsStatusUpcoming: 'Upcoming',
   commitmentsStatusPaid: 'Paid',
   commitmentsStatusSkipped: 'Skipped',
+  commitmentRowEstimate: (amount: string) => `~ ${amount}`,
+  commitmentRowNoName: '—',
+  commitmentRowNoEstimate: '~',
+  commitmentRowNoEstimateLabel: (code: string) => `~ ${code}`,
+  commitmentRowUnavailable: '—',
+  commitmentRowUnavailableLabel: (code: string) => `— ${code}`,
 
   // Commitments: recurrence / duration labels
   commitmentsRecurrenceEveryN: (n: number, period: string) =>

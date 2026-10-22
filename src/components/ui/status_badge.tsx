@@ -14,15 +14,33 @@ export interface StatusBadgeProps {
   fill: string;
   foreground: string;
   icon?: IconName;
-  size?: 'sm' | 'md';
+  size?: 'xs' | 'sm' | 'md';
   /** Given, the label draws at this app scale on one line; omitted, the OS scales it. */
   fontScale?: number;
 }
 
 // Raw, never ms(): the detail hero's geometry adds it above and below the label.
 export const STATUS_BADGE_PADDING_VERTICAL = 2;
-const ICON_SIZE = { sm: 10, md: 12 } as const;
+// Raw, as above: A1 `.stag`, the commitment row's tag; its geometry adds it around the label.
+export const STATUS_BADGE_XS_PADDING_VERTICAL = 1;
+export const STATUS_BADGE_XS_LABEL_FONT_SIZE = Type.compactBadge;
+const PADDING_VERTICAL = {
+  xs: STATUS_BADGE_XS_PADDING_VERTICAL,
+  sm: STATUS_BADGE_PADDING_VERTICAL,
+  md: STATUS_BADGE_PADDING_VERTICAL,
+} as const;
+const ROOT_CLASS = {
+  xs: 'gap-0.75 rounded-full pl-1 pr-1.5',
+  sm: 'gap-0.5 rounded-full px-1.5',
+  md: 'gap-0.5 rounded-full px-1.5',
+} as const;
+const LABEL_CLASS = { xs: 'font-inter-bold', sm: 'font-inter', md: 'font-inter' } as const;
+const ICON_SIZE = { xs: 11, sm: 10, md: 12 } as const;
 const LABEL_STYLE = {
+  xs: {
+    fontSize: STATUS_BADGE_XS_LABEL_FONT_SIZE,
+    lineHeight: lineHeightFor(STATUS_BADGE_XS_LABEL_FONT_SIZE),
+  },
   sm: { fontSize: Type.pillLabel, lineHeight: lineHeightFor(Type.pillLabel) },
   md: { fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) },
 } as const;
@@ -42,9 +60,9 @@ export function StatusBadge({
         backgroundColor: fill,
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: STATUS_BADGE_PADDING_VERTICAL,
+        paddingVertical: PADDING_VERTICAL[size],
       }}
-      className="gap-0.5 rounded-full px-1.5"
+      className={ROOT_CLASS[size]}
     >
       {icon != null ? (
         <MaterialCommunityIcons name={icon} size={ICON_SIZE[size]} color={foreground} />
@@ -52,7 +70,7 @@ export function StatusBadge({
       <Typography
         allowFontScaling={!scaled}
         numberOfLines={scaled ? 1 : undefined}
-        className="font-inter"
+        className={LABEL_CLASS[size]}
         style={{
           color: foreground,
           ...(scaled
