@@ -1,52 +1,32 @@
-import { AmountType, Currency, DurationType, RecurrencePeriod } from '@/constants/enums';
+import { AmountType, Currency } from '@/constants/enums';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import {
   formatCommitmentAmount,
   resolveDisplayAmount,
 } from '@/modules/commitments/utils/commitment_status';
+import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
 
 function mkPayment(over: Partial<CommitmentPayment>): CommitmentPayment {
-  return {
-    id: 'p1',
-    commitment_id: 'c1',
+  return makeTestPayment({
     due_date: '2026-05-01',
-    paid_date: null,
-    skipped_date: null,
     amount_due: 100,
-    amount_paid: null,
-    currency: Currency.EGP,
-    exchange_rate_snapshot: null,
-    account_id: null,
-    transaction_id: null,
-    notes: null,
     created_at: '2026-05-01T00:00:00.000Z',
     updated_at: '2026-05-01T00:00:00.000Z',
     ...over,
-  };
+  });
 }
 
 function mkCommitment(over: Partial<Commitment>): Commitment {
-  return {
-    id: 'c1',
-    name: 'Rent',
-    amount_type: AmountType.Fixed,
+  return makeTestCommitment({
     amount: 250,
-    currency: Currency.EGP,
     category_id: 'cat1',
-    recurrence_every: 1,
-    recurrence_period: RecurrencePeriod.Months,
     start_date: '2026-05-01',
     account_id: null,
-    notes: null,
-    duration_type: DurationType.Forever,
-    end_date: null,
-    end_after_count: null,
-    is_active: 1,
     created_at: '2026-05-01T00:00:00.000Z',
     updated_at: '2026-05-01T00:00:00.000Z',
     ...over,
-  };
+  });
 }
 
 describe('resolveDisplayAmount', () => {

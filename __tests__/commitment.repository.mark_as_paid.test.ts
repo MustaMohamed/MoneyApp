@@ -2,11 +2,12 @@ import Database from 'better-sqlite3';
 import type { SQLiteDatabase } from 'expo-sqlite';
 import uuid from 'react-native-uuid';
 
-import { AmountType, Currency, DurationType, RecurrencePeriod } from '@/constants/enums';
+import { Currency } from '@/constants/enums';
 import { getDb } from '@/database/client';
 import { MIGRATIONS } from '@/database/migrations';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import { CommitmentRepository } from '@/modules/commitments/repositories/commitment.repository';
+import { makeTestCommitment } from '@/test_helpers/commitment';
 
 jest.mock('@/database/client', () => ({
   getDb: jest.fn(),
@@ -22,25 +23,17 @@ let fakeDb: SQLiteDatabase;
 let generatedId = 0;
 
 function commitmentRow(id: string, currency: Currency, amount: number): Commitment {
-  return {
+  return makeTestCommitment({
     id,
     name: id,
-    amount_type: AmountType.Fixed,
     amount,
     currency,
     category_id: 'cat',
-    recurrence_every: 1,
-    recurrence_period: RecurrencePeriod.Months,
     start_date: '2026-05-01',
     account_id: null,
-    notes: null,
-    duration_type: DurationType.Forever,
-    end_date: null,
-    end_after_count: null,
-    is_active: 1,
     created_at: NOW_ISO,
     updated_at: NOW_ISO,
-  };
+  });
 }
 
 function insertCommitment(c: Commitment) {

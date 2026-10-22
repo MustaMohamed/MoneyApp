@@ -1,11 +1,4 @@
-import {
-  AccountType,
-  AmountType,
-  CommitmentPaymentStatus,
-  Currency,
-  DurationType,
-  RecurrencePeriod,
-} from '@/constants/enums';
+import { AccountType, AmountType, CommitmentPaymentStatus, Currency } from '@/constants/enums';
 import {
   getPaymentMonthAggregate,
   getPaymentsByMonth,
@@ -21,6 +14,7 @@ import { carriedDueBound, resolvePaymentState } from '@/modules/commitments/doma
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
+import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
 import { bridgeBetterSQLite, getExpoSQLiteTestDatabase } from '@/test_helpers/sqlite';
 import {
   createSeededDatabase,
@@ -45,25 +39,15 @@ const ACCOUNTS = [
 ];
 
 function commitment(overrides: Partial<Commitment> & Pick<Commitment, 'id'>): Commitment {
-  return {
+  return makeTestCommitment({
     name: overrides.id,
-    amount_type: AmountType.Fixed,
     amount: 200,
-    currency: Currency.EGP,
     category_id: 'cat_housing',
-    recurrence_every: 1,
-    recurrence_period: RecurrencePeriod.Months,
-    start_date: '2026-01-01',
     account_id: 'acc_a',
-    notes: null,
-    duration_type: DurationType.Forever,
-    end_date: null,
-    end_after_count: null,
-    is_active: 1,
     created_at: NOW,
     updated_at: NOW,
     ...overrides,
-  };
+  });
 }
 
 const COMMITMENTS: Commitment[] = [
@@ -76,21 +60,13 @@ const COMMITMENTS: Commitment[] = [
 function payment(
   overrides: Partial<CommitmentPayment> & Pick<CommitmentPayment, 'id' | 'due_date'>,
 ): CommitmentPayment {
-  return {
+  return makeTestPayment({
     commitment_id: 'c_egp',
-    paid_date: null,
-    skipped_date: null,
     amount_due: 200,
-    amount_paid: null,
-    currency: Currency.EGP,
-    exchange_rate_snapshot: null,
-    account_id: null,
-    transaction_id: null,
-    notes: null,
     created_at: NOW,
     updated_at: NOW,
     ...overrides,
-  };
+  });
 }
 
 function usdPayment(

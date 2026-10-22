@@ -2,13 +2,7 @@ import Database from 'better-sqlite3';
 import type { SQLiteDatabase } from 'expo-sqlite';
 import uuid from 'react-native-uuid';
 
-import {
-  AmountType,
-  CommitmentPaymentStatus,
-  Currency,
-  DurationType,
-  RecurrencePeriod,
-} from '@/constants/enums';
+import { CommitmentPaymentStatus, DurationType } from '@/constants/enums';
 import { getDb, withExclusiveWriteTransactionAsync } from '@/database/client';
 import { MIGRATIONS } from '@/database/migrations';
 import { deactivateExpiredCommitments } from '@/modules/commitments/database/commitments';
@@ -24,6 +18,7 @@ import {
   CommitmentRepository,
   type UpdateCommitmentInput,
 } from '@/modules/commitments/repositories/commitment.repository';
+import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
 import {
   bridgeBetterSQLite,
   createMockSQLiteDatabase,
@@ -123,26 +118,16 @@ afterAll(() => {
 });
 
 function commitment(overrides: Partial<Commitment> = {}): Commitment {
-  return {
+  return makeTestCommitment({
     id: 'commitment',
-    name: 'Rent',
-    amount_type: AmountType.Fixed,
     amount: 100,
-    currency: Currency.EGP,
     category_id: 'cat',
-    recurrence_every: 1,
-    recurrence_period: RecurrencePeriod.Months,
     start_date: '2026-03-01',
     account_id: 'account',
-    notes: null,
-    duration_type: DurationType.Forever,
-    end_date: null,
-    end_after_count: null,
-    is_active: 1,
     created_at: SEEDED_AT,
     updated_at: SEEDED_AT,
     ...overrides,
-  };
+  });
 }
 
 function payment(
@@ -150,23 +135,16 @@ function payment(
   dueDate: string,
   overrides: Partial<CommitmentPayment> = {},
 ): CommitmentPayment {
-  return {
+  return makeTestPayment({
     id,
     commitment_id: 'commitment',
     due_date: dueDate,
-    paid_date: null,
-    skipped_date: null,
     amount_due: 100,
-    amount_paid: null,
-    currency: Currency.EGP,
-    exchange_rate_snapshot: null,
     account_id: 'account',
-    transaction_id: null,
-    notes: null,
     created_at: SEEDED_AT,
     updated_at: SEEDED_AT,
     ...overrides,
-  };
+  });
 }
 
 function seed(row: Commitment, payments: CommitmentPayment[]) {

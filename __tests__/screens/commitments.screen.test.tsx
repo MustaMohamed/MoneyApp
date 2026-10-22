@@ -7,6 +7,8 @@ import type { CommitmentPayment } from '@/modules/commitments/entities/commitmen
 import CommitmentsScreen from '@/modules/commitments/screens/commitments';
 import { useCommitments } from '@/modules/commitments/screens/commitments/commitments.hook';
 import { resolveCommitmentRowHeight } from '@/modules/commitments/screens/commitments/components/commitment_row.helpers';
+import { buildCommitmentsHeroModel } from '@/modules/commitments/screens/commitments/components/commitments_hero.helpers';
+import { makeTestPayment } from '@/test_helpers/commitment';
 
 jest.mock('@/modules/commitments/screens/commitments/commitments.hook', () => ({
   useCommitments: jest.fn(),
@@ -172,6 +174,13 @@ const baseCommitmentsState: CommitmentsScreenState = {
   categoriesById: new Map(),
   accountsById: new Map(),
   commitmentsById: new Map(),
+  hero: buildCommitmentsHeroModel({
+    mode: 'skeleton',
+    aggregate: undefined,
+    rate: 50,
+    yearMonth: '2026-08',
+    today: '2026-05-08',
+  }),
 };
 
 const mockedUseCommitments = jest.mocked(useCommitments);
@@ -181,23 +190,15 @@ const openFilterMock = jest.fn();
 const resetFiltersMock = jest.fn();
 
 function makePayment(overrides: Partial<CommitmentPayment> = {}): CommitmentPayment {
-  return {
+  return makeTestPayment({
     id: 'payment-1',
     commitment_id: 'commitment-1',
     due_date: '2026-08-05',
-    paid_date: null,
-    skipped_date: null,
     amount_due: 5000,
-    amount_paid: null,
-    currency: Currency.EGP,
-    exchange_rate_snapshot: null,
-    account_id: null,
-    transaction_id: null,
-    notes: null,
     created_at: '2026-08-01T00:00:00.000Z',
     updated_at: '2026-08-01T00:00:00.000Z',
     ...overrides,
-  };
+  });
 }
 
 function mockUseCommitments(state: Partial<CommitmentsScreenState> = {}) {
