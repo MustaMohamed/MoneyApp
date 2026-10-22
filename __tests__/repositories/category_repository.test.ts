@@ -7,6 +7,7 @@ import {
   CategoryRepository,
   type NewCategoryInput,
 } from '@/modules/categories/repositories/category.repository';
+import { bridgeBetterSQLite, getExpoSQLiteTestDatabase } from '@/test_helpers/sqlite';
 
 // The name must start with `mock` for jest to allow it inside the `jest.mock` factory.
 let mockUuidCounter = 0;
@@ -52,11 +53,12 @@ beforeAll(() => {
         runAsync: jest.Mock;
         getAllAsync: jest.Mock;
         getFirstAsync: jest.Mock;
-        withTransactionAsync: jest.Mock;
+        execAsync: jest.Mock;
       };
     }
   ).__fakeDb;
 
+  bridgeBetterSQLite(getExpoSQLiteTestDatabase(), realDb);
   mocked.runAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
     const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
     realDb.prepare(sql).run(...(params as never[]));
@@ -72,10 +74,6 @@ beforeAll(() => {
     const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
     return realDb.prepare(sql).get(...(params as never[])) ?? null;
   });
-
-  mocked.withTransactionAsync.mockImplementation(async (fn: () => Promise<void>) => {
-    await fn();
-  });
 });
 
 beforeEach(() => {
@@ -88,11 +86,8 @@ beforeEach(() => {
   realDb.exec('DELETE FROM categories WHERE is_default = 0');
 
   // Clears the call count, so `toHaveBeenCalledTimes` assertions stay per-test.
-  const mocked = (SQLite as unknown as { __fakeDb: { withTransactionAsync: jest.Mock } }).__fakeDb;
-  mocked.withTransactionAsync.mockClear();
-  mocked.withTransactionAsync.mockImplementation(async (fn: () => Promise<void>) => {
-    await fn();
-  });
+  const mocked = (SQLite as unknown as { __fakeDb: { execAsync: jest.Mock } }).__fakeDb;
+  mocked.execAsync.mockClear();
 });
 
 afterAll(() => {
@@ -388,25 +383,34 @@ describe('CategoryRepository.reassignAndDelete — TC-02 (commitment cascade)', 
 });
 
 describe('CategoryRepository.reassignAndDelete — TC-09 (atomicity)', () => {
-  it('wraps all SQL in a single withTransactionAsync call', async () => {
-    const mocked = (SQLite as unknown as { __fakeDb: { withTransactionAsync: jest.Mock } })
-      .__fakeDb;
+  const fake = (SQLite as unknown as { __fakeDb: { execAsync: jest.Mock; runAsync: jest.Mock } })
+    .__fakeDb;
 
+  function failOnceOn(prefix: string, error: Error): void {
+    const bridged = fake.runAsync.getMockImplementation();
+    fake.runAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
+      if (!sql.startsWith(prefix)) return bridged?.(sql, ...rest);
+      fake.runAsync.mockImplementation(bridged);
+      throw error;
+    });
+  }
+
+  it('wraps all SQL in a single transaction that takes the write lock at BEGIN', async () => {
     insertFromCategory('from-cat-09a');
     insertTransaction('from-cat-09a', 'tc09-tx-1');
 
     await repo.reassignAndDelete('from-cat-09a', 'cat_food');
 
-    expect(mocked.withTransactionAsync).toHaveBeenCalledTimes(1);
+    const boundaries = fake.execAsync.mock.calls
+      .map(([sql]) => String(sql))
+      .filter((sql) => /^(BEGIN|COMMIT|ROLLBACK)\b/.test(sql));
+    expect(boundaries).toEqual(['BEGIN IMMEDIATE', 'COMMIT']);
   });
 
-  it('when withTransactionAsync rejects, the error propagates', async () => {
-    const mocked = (SQLite as unknown as { __fakeDb: { withTransactionAsync: jest.Mock } })
-      .__fakeDb;
-
+  it('when a statement inside the transaction fails, the error propagates', async () => {
     insertFromCategory('from-cat-09b');
 
-    mocked.withTransactionAsync.mockRejectedValueOnce(new Error('DB write failed'));
+    failOnceOn('UPDATE commitments', new Error('DB write failed'));
 
     await expect(repo.reassignAndDelete('from-cat-09b', 'cat_food')).rejects.toThrow(
       'DB write failed',
@@ -421,11 +425,8 @@ describe('CategoryRepository.reassignAndDelete — TC-09 (atomicity)', () => {
     expect(countTransactions('from-cat-09c')).toBe(47);
     expect(countCategories('from-cat-09c')).toBe(1);
 
-    const mocked = (SQLite as unknown as { __fakeDb: { withTransactionAsync: jest.Mock } })
-      .__fakeDb;
-
-    // The mock rejects without running the callback, so no statement is applied at all.
-    mocked.withTransactionAsync.mockRejectedValueOnce(new Error('Simulated DB failure'));
+    // The category delete runs last, after the 47 transactions were moved.
+    failOnceOn('DELETE FROM categories', new Error('Simulated DB failure'));
 
     await expect(repo.reassignAndDelete('from-cat-09c', 'cat_food')).rejects.toThrow();
 

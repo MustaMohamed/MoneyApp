@@ -1,6 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 import { AmountType, Currency } from '@/constants/enums';
+import { withWriteTransactionAsync } from '@/database/client';
 import { applyAccountDelta } from '@/modules/accounts/database/accounts';
 import { insertTransactionRow } from '@/modules/transactions/database/transactions';
 import type { AccountDelta } from '@/modules/transactions/domain/transaction_policy';
@@ -231,7 +232,7 @@ export async function addPayments(
   db: SQLiteDatabase,
   payments: CommitmentPayment[],
 ): Promise<void> {
-  await db.withTransactionAsync(async () => {
+  await withWriteTransactionAsync(db, async () => {
     await insertPaymentRows(db, payments);
   });
 }
@@ -367,7 +368,7 @@ export async function markCommitmentAsPaid(
 ): Promise<void> {
   const now = new Date().toISOString();
 
-  await db.withTransactionAsync(async () => {
+  await withWriteTransactionAsync(db, async () => {
     const paymentResult = await db.runAsync(
       `UPDATE commitment_payments SET
         paid_date = ?,

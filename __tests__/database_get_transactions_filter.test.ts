@@ -56,10 +56,6 @@ beforeAll(() => {
     const params = getSQLiteParams(rest);
     return realDb.prepare(sql).all(...params);
   });
-
-  mocked.withTransactionAsync.mockImplementation(async (fn: () => Promise<void>) => {
-    await fn();
-  });
 });
 
 beforeEach(() => {

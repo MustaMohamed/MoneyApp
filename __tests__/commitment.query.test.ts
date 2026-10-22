@@ -20,6 +20,7 @@ import { settledPaymentSql } from '@/modules/commitments/database/payment_state_
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
+import { bridgeBetterSQLite, getExpoSQLiteTestDatabase } from '@/test_helpers/sqlite';
 
 const sqlite = SQLite as unknown as { __reset: () => void };
 let realDb: ReturnType<typeof Database>;
@@ -54,11 +55,12 @@ beforeAll(() => {
       __fakeDb: {
         runAsync: jest.Mock;
         getAllAsync: jest.Mock;
-        withTransactionAsync: jest.Mock;
+        execAsync: jest.Mock;
       };
     }
   ).__fakeDb;
 
+  bridgeBetterSQLite(getExpoSQLiteTestDatabase(), realDb);
   mocked.runAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
     const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
     const result = realDb.prepare(sql).run(...(params as never[]));
@@ -68,10 +70,6 @@ beforeAll(() => {
   mocked.getAllAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
     const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
     return realDb.prepare(sql).all(...(params as never[]));
-  });
-
-  mocked.withTransactionAsync.mockImplementation(async (fn: () => Promise<void>) => {
-    await fn();
   });
 });
 

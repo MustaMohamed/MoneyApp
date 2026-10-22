@@ -162,16 +162,6 @@ describe('runMigrations — the runner lands 022 on a real database', () => {
     sqlite.execAsync.mockImplementation(async (sql: string) => {
       realDb.exec(sql);
     });
-    sqlite.withTransactionAsync.mockImplementation(async (task: () => Promise<void>) => {
-      realDb.exec('BEGIN');
-      try {
-        await task();
-        realDb.exec('COMMIT');
-      } catch (error) {
-        realDb.exec('ROLLBACK');
-        throw error;
-      }
-    });
   }
 
   afterEach(() => {

@@ -24,7 +24,7 @@ beforeAll(() => {
   realDb.exec(MIGRATIONS.map((m) => m.up).join('\n'));   // fast schema build — see caveat below
   sqlite.runAsync.mockImplementation(async (sql: string, ...rest: unknown[]) =>
     realDb.prepare(sql).run(...getSQLiteParams(rest)));
-  // …same for getAllAsync / getFirstAsync; withTransactionAsync maps to real BEGIN/COMMIT
+  // …same for getAllAsync / getFirstAsync; execAsync too, so BEGIN IMMEDIATE/COMMIT/ROLLBACK reach realDb
 });
 ```
 
@@ -46,7 +46,7 @@ A test that settles a promise by hand takes `deferred<T>()` from `@/test_helpers
 | Layer | Mock? |
 |---|---|
 | expo-sqlite surface | Bridge to real better-sqlite3 (above) — never hand-stub SQL results for repository/query tests |
-| `withTransactionAsync` / `withExclusiveTransactionAsync` | **Never pass-through-mock in a test that claims atomicity** — map to real BEGIN/COMMIT so a mid-sequence throw actually rolls back (M33) |
+| `withWriteTransactionAsync` / `withExclusiveWriteTransactionAsync` | **Never pass-through-mock in a test that claims atomicity** — bridge `execAsync` to the real db, or mock the client helper with the real `BEGIN IMMEDIATE`/`COMMIT`/`ROLLBACK` mapping, so a mid-sequence throw actually rolls back (M33) |
 | Time | Fix it: pass explicit ISO strings (`NOW = '2026-05-01T12:00:00.000Z'`); month-end (31st), leap-year, and DST dates are required cases for anything date-arithmetic |
 | `react-native-uuid` | Counter mock for deterministic ids |
 | Zustand stores in hook tests | `@/test_helpers/mock_zustand_selectors` (`makeMockSelectorStore`) |

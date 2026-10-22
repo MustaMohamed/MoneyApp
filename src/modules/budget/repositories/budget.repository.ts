@@ -1,9 +1,8 @@
-import type { SQLiteDatabase } from 'expo-sqlite';
 import uuid from 'react-native-uuid';
 
 import { BudgetGroup, CategoryType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { getDb } from '@/database/client';
+import { getDb, withExclusiveWriteTransactionAsync } from '@/database/client';
 import {
   copyBudgetMonthCategoryGroups,
   getBudgetMonthCategoryGroups,
@@ -194,14 +193,13 @@ function buildBudgetCopyWrites({
 }
 
 async function copyRowsInExclusiveTransaction(
-  db: SQLiteDatabase,
   sourceMonth: string,
   targetMonth: string,
   selectedIds: ReadonlySet<string>,
   copyMode: BudgetCopyMode,
   now: string,
 ): Promise<void> {
-  await db.withExclusiveTransactionAsync(async (transactionDb) => {
+  await withExclusiveWriteTransactionAsync(async (transactionDb) => {
     const rows = await getBudgetRowsForMonths(transactionDb, [sourceMonth, targetMonth]);
     const { sourceRows, writes } = buildBudgetCopyWrites({
       rows,
@@ -316,8 +314,7 @@ export class BudgetRepository implements IBudgetRepository {
 
   async setExpectedIncome(yearMonth: string, amount: number): Promise<void> {
     const income = roundMoney(amount);
-    const db = await getDb();
-    await db.withExclusiveTransactionAsync(async (tx) => {
+    await withExclusiveWriteTransactionAsync(async (tx) => {
       await setBudgetMonthIncome(tx, yearMonth, income);
       await snapshotBudgetMonthCategoryGroups(tx, yearMonth);
     });
@@ -325,12 +322,11 @@ export class BudgetRepository implements IBudgetRepository {
 
   async setBudget(input: SetBudgetInput): Promise<void> {
     const limit = roundMoney(input.limit);
-    const db = await getDb();
     const now = new Date().toISOString();
     const yearMonth = input.yearMonth ?? currentYearMonth();
     const id = input.id ?? String(uuid.v4());
 
-    await db.withExclusiveTransactionAsync(async (tx) => {
+    await withExclusiveWriteTransactionAsync(async (tx) => {
       const existing = input.id ? await getBudgetRowById(tx, input.id) : undefined;
       await setBudgetRow(tx, {
         id,
@@ -362,10 +358,8 @@ export class BudgetRepository implements IBudgetRepository {
     targetMonth: string,
     budgetIds: string[],
   ): Promise<void> {
-    const db = await getDb();
     const now = new Date().toISOString();
     await copyRowsInExclusiveTransaction(
-      db,
       sourceMonth,
       targetMonth,
       new Set(budgetIds),
@@ -379,10 +373,8 @@ export class BudgetRepository implements IBudgetRepository {
     targetMonth: string,
     categoryIds: string[],
   ): Promise<void> {
-    const db = await getDb();
     const now = new Date().toISOString();
     await copyRowsInExclusiveTransaction(
-      db,
       sourceMonth,
       targetMonth,
       new Set(categoryIds),
@@ -437,9 +429,8 @@ export class BudgetRepository implements IBudgetRepository {
       })),
     };
     validateSpendingPlanInput(input);
-    const db = await getDb();
     const now = new Date().toISOString();
-    await db.withExclusiveTransactionAsync(async (tx) => {
+    await withExclusiveWriteTransactionAsync(async (tx) => {
       const expenseCategories = await getCategoriesByType(tx, CategoryType.Expense);
       const expenseCategoryById = new Map(
         expenseCategories.map((category) => [category.id, category]),

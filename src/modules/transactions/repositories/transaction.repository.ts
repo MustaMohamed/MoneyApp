@@ -2,7 +2,7 @@ import uuid from 'react-native-uuid';
 
 import { CategoryType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { getDb } from '@/database/client';
+import { getDb, withWriteTransactionAsync } from '@/database/client';
 import {
   applyAccountDelta,
   getAccountByIdIncludingArchived,
@@ -361,7 +361,7 @@ export class TransactionRepository implements ITransactionRepository, ITransacti
       updated_at: now,
     };
 
-    await db.withTransactionAsync(async () => {
+    await withWriteTransactionAsync(db, async () => {
       if ((await insertTransactionRow(db, transaction)) !== 1) {
         throw new TransactionValidationError('Transaction was not inserted');
       }
@@ -393,7 +393,7 @@ export class TransactionRepository implements ITransactionRepository, ITransacti
     const deltas = resolvePolicy(() => resolveDeleteDeltas(command));
     const now = new Date().toISOString();
 
-    await db.withTransactionAsync(async () => {
+    await withWriteTransactionAsync(db, async () => {
       if ((await deleteTransactionRow(db, id)) !== 1) throw new TransactionNotFoundError();
       for (const delta of deltas) await applyAccountDelta(db, delta, now);
     });
@@ -455,7 +455,7 @@ export class TransactionRepository implements ITransactionRepository, ITransacti
     const effect = resolvePolicy(() => resolveUpdateEffect(oldCommand, newCommand));
     const now = new Date().toISOString();
 
-    await db.withTransactionAsync(async () => {
+    await withWriteTransactionAsync(db, async () => {
       const changes = await updateTransactionRow(
         db,
         id,

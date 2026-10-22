@@ -1,3 +1,5 @@
+import type { SQLiteDatabase } from 'expo-sqlite';
+
 import {
   AmountType,
   AccountType,
@@ -6,7 +8,7 @@ import {
   RecurrencePeriod,
   TransactionType,
 } from '@/constants/enums';
-import { getDb } from '@/database/client';
+import { getDb, withExclusiveWriteTransactionAsync } from '@/database/client';
 import { getAccountByIdIncludingArchived } from '@/modules/accounts/database/accounts';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import {
@@ -52,16 +54,15 @@ jest.mock('@/modules/accounts/database/accounts');
 jest.mock('@/database/client');
 jest.mock('react-native-uuid', () => ({ v4: jest.fn(() => 'test-uuid-1234') }));
 
-const transactionDb = {};
-const mockDb = {
-  withExclusiveTransactionAsync: jest.fn(async (work: (db: unknown) => Promise<void>) => {
-    await work(transactionDb);
-  }),
-};
+const transactionDb = { connection: 'exclusive' } as unknown as SQLiteDatabase;
+const mockDb = { connection: 'main' };
 
 beforeEach(() => {
   jest.clearAllMocks();
   (getDb as jest.Mock).mockResolvedValue(mockDb);
+  jest.mocked(withExclusiveWriteTransactionAsync).mockImplementation(async (work) => {
+    await work(transactionDb);
+  });
   (getCommitments as jest.Mock).mockResolvedValue([]);
   (getCommitmentsForMonthSnapshot as jest.Mock).mockResolvedValue([]);
   (getCommitmentById as jest.Mock).mockResolvedValue(null);
@@ -235,7 +236,7 @@ describe('CommitmentRepository.update', () => {
 
     await repo.update('c-1', updateData, new Date('2026-05-08T10:00:00.000Z'));
 
-    expect(mockDb.withExclusiveTransactionAsync).toHaveBeenCalledTimes(1);
+    expect(withExclusiveWriteTransactionAsync).toHaveBeenCalledTimes(1);
     expect(updateCommitment).toHaveBeenCalledWith(transactionDb, 'c-1', updateData);
     expect(deleteUnpaidPaymentsByCommitment).toHaveBeenCalledWith(transactionDb, 'c-1');
     expect(getCommitmentById).toHaveBeenCalledWith(transactionDb, 'c-1');
@@ -272,7 +273,7 @@ describe('CommitmentRepository.update', () => {
       ),
     ).rejects.toThrow(CommitmentNotFoundError);
 
-    expect(mockDb.withExclusiveTransactionAsync).toHaveBeenCalledTimes(1);
+    expect(withExclusiveWriteTransactionAsync).toHaveBeenCalledTimes(1);
     expect(insertPaymentRows).not.toHaveBeenCalled();
   });
 });
@@ -281,7 +282,7 @@ describe('CommitmentRepository.deactivate', () => {
   it('marks the commitment inactive and deletes its unpaid rows in one exclusive transaction', async () => {
     await repo.deactivate('c-1');
 
-    expect(mockDb.withExclusiveTransactionAsync).toHaveBeenCalledTimes(1);
+    expect(withExclusiveWriteTransactionAsync).toHaveBeenCalledTimes(1);
     expect(deactivateCommitment).toHaveBeenCalledWith(transactionDb, 'c-1');
     expect(deleteUnpaidPaymentsByCommitment).toHaveBeenCalledWith(transactionDb, 'c-1');
   });
@@ -373,8 +374,7 @@ describe('CommitmentRepository.runHousekeeping', () => {
 
     await repo.runHousekeeping(new Date('2026-05-08T10:11:12.000Z'));
 
-    expect(getDb).toHaveBeenCalledTimes(1);
-    expect(mockDb.withExclusiveTransactionAsync).toHaveBeenCalledTimes(1);
+    expect(withExclusiveWriteTransactionAsync).toHaveBeenCalledTimes(1);
     expect(getCommitments).toHaveBeenCalledWith(transactionDb);
     expect(getActiveCommitmentDueDates).toHaveBeenCalledWith(transactionDb);
     expect(insertPaymentRows).toHaveBeenCalledWith(transactionDb, [

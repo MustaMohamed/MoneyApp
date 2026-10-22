@@ -18,9 +18,10 @@ jest.mock('@/database/client', () => {
   const mockWithExclusiveTransactionAsync = jest.fn(
     async (task: (db: SQLiteDatabase) => Promise<void>) => task(mockTransactionDb),
   );
-  const mockDb = { withExclusiveTransactionAsync: mockWithExclusiveTransactionAsync };
+  const mockDb = { connection: 'main' } as unknown as SQLiteDatabase;
   return {
     getDb: jest.fn().mockResolvedValue(mockDb),
+    withExclusiveWriteTransactionAsync: mockWithExclusiveTransactionAsync,
     mockDb,
     mockTransactionDb,
     mockWithExclusiveTransactionAsync,
@@ -383,7 +384,6 @@ describe('BudgetRepository.copyBudgetsToMonth', () => {
     await new BudgetRepository().copyBudgetsToMonth('2026-07', '2026-08', ['budget-food']);
 
     expect(mockWithExclusiveTransactionAsync).toHaveBeenCalledTimes(1);
-    expect(getDb).toHaveBeenCalledTimes(1);
     expect(getBudgetRowsForMonths).toHaveBeenCalledWith(mockTransactionDb, ['2026-07', '2026-08']);
     expect(getBudgetRows).not.toHaveBeenCalled();
     expect(setBudgetRow).toHaveBeenCalledTimes(1);
@@ -484,7 +484,6 @@ describe('BudgetRepository.copyLimitsToMonth', () => {
 
     await new BudgetRepository().copyLimitsToMonth('2026-07', '2026-08', ['food', 'food']);
 
-    expect(getDb).toHaveBeenCalledTimes(1);
     expect(mockWithExclusiveTransactionAsync).toHaveBeenCalledTimes(1);
     expect(getBudgetRowsForMonths).toHaveBeenCalledWith(mockTransactionDb, ['2026-07', '2026-08']);
     expect(getBudgetRows).not.toHaveBeenCalled();

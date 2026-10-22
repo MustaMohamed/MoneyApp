@@ -8,14 +8,18 @@ import {
   DurationType,
   RecurrencePeriod,
 } from '@/constants/enums';
-import { getDb } from '@/database/client';
+import { getDb, withExclusiveWriteTransactionAsync } from '@/database/client';
 import { MIGRATIONS } from '@/database/migrations';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import { CommitmentRepository } from '@/modules/commitments/repositories/commitment.repository';
 import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
+import { exclusiveWriteOnRealDb } from '@/test_helpers/sqlite';
 
-jest.mock('@/database/client', () => ({ getDb: jest.fn() }));
+jest.mock('@/database/client', () => ({
+  getDb: jest.fn(),
+  withExclusiveWriteTransactionAsync: jest.fn(),
+}));
 jest.mock('react-native-uuid', () => ({ v4: jest.fn() }));
 
 const NOW = new Date('2026-05-08T10:11:12.000Z');
@@ -61,18 +65,12 @@ beforeAll(() => {
       const result = realDb.prepare(sql).run(...(params as never[]));
       return { changes: result.changes, lastInsertRowId: Number(result.lastInsertRowid) };
     }),
-    withExclusiveTransactionAsync: jest.fn(async (work: (db: SQLiteDatabase) => Promise<void>) => {
-      sqlCalls.push({ kind: 'exclusive', sql: 'BEGIN EXCLUSIVE' });
-      realDb.exec('BEGIN IMMEDIATE');
-      try {
-        await work(fakeDb);
-        realDb.exec('COMMIT');
-      } catch (error) {
-        realDb.exec('ROLLBACK');
-        throw error;
-      }
-    }),
   } as unknown as SQLiteDatabase;
+  jest.mocked(withExclusiveWriteTransactionAsync).mockImplementation(
+    exclusiveWriteOnRealDb(realDb, fakeDb, () => {
+      sqlCalls.push({ kind: 'exclusive', sql: 'BEGIN EXCLUSIVE' });
+    }),
+  );
 });
 
 beforeEach(() => {
@@ -218,7 +216,6 @@ describe('CommitmentRepository.runHousekeeping', () => {
         expiryUpdates: 1,
         exclusiveTransactions: 1,
       });
-      expect(getDb).toHaveBeenCalledTimes(1);
     },
   );
 

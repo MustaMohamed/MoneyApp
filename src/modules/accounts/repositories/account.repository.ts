@@ -1,6 +1,6 @@
 import uuid from 'react-native-uuid';
 
-import { getDb } from '@/database/client';
+import { getDb, withWriteTransactionAsync } from '@/database/client';
 import { updateUnpaidPaymentsAccount } from '@/modules/commitments/database/commitment_payments';
 import {
   clearCommitmentAccount,
@@ -138,7 +138,7 @@ export class AccountRepository implements IAccountRepository {
     }
     if (orderedIds.every((id, index) => id === active[index].id)) return;
 
-    await db.withTransactionAsync(async () => {
+    await withWriteTransactionAsync(db, async () => {
       for (const [index, id] of orderedIds.entries()) {
         if ((await setAccountSortOrder(db, id, index)) !== 1) {
           throw new AccountReorderInvalidError();
@@ -154,7 +154,7 @@ export class AccountRepository implements IAccountRepository {
     if (existing.is_archived !== 1) throw new AccountNotArchivedError();
 
     const now = new Date().toISOString();
-    await db.withTransactionAsync(async () => {
+    await withWriteTransactionAsync(db, async () => {
       if (replacementAccountId !== undefined) {
         const replacement = await getAccountByIdIncludingArchived(db, replacementAccountId);
         if (!replacement || replacement.is_deleted === 1) throw new AccountNotFoundError();
