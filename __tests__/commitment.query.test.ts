@@ -89,7 +89,7 @@ const mockDb = (SQLite as unknown as { __fakeDb: unknown }).__fakeDb as Paramete
   typeof getCommitments
 >[0];
 
-function makeCommitment(overrides: Partial<Commitment> = {}): Commitment {
+function makeCommitment(overrides: Partial<Commitment> & Pick<Commitment, 'id'>): Commitment {
   return makeTestCommitment({
     name: 'Netflix',
     amount: 200,

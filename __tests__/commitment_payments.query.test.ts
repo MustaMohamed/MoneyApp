@@ -114,7 +114,9 @@ const mockDb = (SQLite as unknown as { __fakeDb: unknown }).__fakeDb as Paramete
   typeof getPaymentsByMonth
 >[0];
 
-function makePayment(overrides: Partial<CommitmentPayment> = {}): CommitmentPayment {
+function makePayment(
+  overrides: Partial<CommitmentPayment> & Pick<CommitmentPayment, 'id'>,
+): CommitmentPayment {
   return makeTestPayment({
     commitment_id: 'commitment1',
     due_date: '2026-05-01',

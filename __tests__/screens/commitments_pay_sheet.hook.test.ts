@@ -100,6 +100,7 @@ const egpAccount = { id: 'acc-egp', currency: Currency.EGP } as unknown as Accou
 const usdAccount = { id: 'acc-usd', currency: Currency.USD } as unknown as Account;
 
 const duePayment = makeTestPayment({
+  commitment_id: fixedCommitment.id,
   due_date: '2026-05-01',
   amount_due: 15,
   currency: Currency.USD,

@@ -114,6 +114,7 @@ const variableCommitment = makeTestCommitment({
 });
 
 const duePayment = makeTestPayment({
+  commitment_id: variableCommitment.id,
   due_date: '2026-05-01',
   amount_due: null,
   currency: Currency.USD,

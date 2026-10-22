@@ -53,6 +53,7 @@ const egpAccount = { id: 'acc-egp', currency: Currency.EGP } as unknown as Accou
 const ACCOUNTS: Account[] = [egpAccount];
 
 const p1 = makeTestPayment({
+  commitment_id: commitment.id,
   due_date: '2026-05-01',
   amount_due: 15,
   created_at: '2026-01-01T00:00:00.000Z',
