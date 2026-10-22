@@ -4,30 +4,24 @@ import {
   planMissingCommitmentPayments,
   type ActiveCommitmentDueDate,
 } from '@/modules/commitments/repositories/commitment_housekeeping.helpers';
+import { makeTestCommitment } from '@/test_helpers/commitment';
 
 const NOW = new Date('2026-05-08T10:11:12.000Z');
 
 function commitment(overrides: Partial<Commitment> = {}): Commitment {
-  return {
+  return makeTestCommitment({
     id: 'fixed',
     name: 'Monthly bill',
-    amount_type: AmountType.Fixed,
     amount: 200,
-    currency: Currency.EGP,
     category_id: 'cat',
-    recurrence_every: 1,
-    recurrence_period: RecurrencePeriod.Months,
     start_date: '2026-04-08',
     account_id: 'account',
-    notes: null,
     duration_type: DurationType.AfterCount,
-    end_date: null,
     end_after_count: 3,
-    is_active: 1,
     created_at: '2026-01-01T00:00:00.000Z',
     updated_at: '2026-01-01T00:00:00.000Z',
     ...overrides,
-  };
+  });
 }
 
 describe('planMissingCommitmentPayments', () => {
