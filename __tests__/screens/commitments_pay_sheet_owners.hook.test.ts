@@ -1,10 +1,9 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 
-import { AmountType, Currency, DurationType, RecurrencePeriod } from '@/constants/enums';
+import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/database/entities/account.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
-import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import { usePaySheet } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.hook';
 import {
@@ -13,6 +12,7 @@ import {
 } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.state';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
+import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
 import { deferred } from '@/test_helpers/deferred';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 import { formatStoredMoneyText } from '@/utils/money_text';
@@ -40,45 +40,24 @@ const OWNER_A = 'owner-a';
 const OWNER_B = 'owner-b';
 
 // No account on the commitment, so every prefill that runs queries the last paid payment.
-const commitment: Commitment = {
-  id: 'c1',
+const commitment = makeTestCommitment({
   name: 'Internet',
-  amount_type: AmountType.Fixed,
   amount: 15,
-  currency: Currency.EGP,
   category_id: 'cat1',
-  recurrence_every: 1,
-  recurrence_period: RecurrencePeriod.Months,
-  start_date: '2026-01-01',
   account_id: null,
-  notes: null,
-  duration_type: DurationType.Forever,
-  end_date: null,
-  end_after_count: null,
-  is_active: 1,
   created_at: '2026-01-01T00:00:00.000Z',
   updated_at: '2026-01-01T00:00:00.000Z',
-};
+});
 
 const egpAccount = { id: 'acc-egp', currency: Currency.EGP } as unknown as Account;
 const ACCOUNTS: Account[] = [egpAccount];
 
-const p1: CommitmentPayment = {
-  id: 'p1',
-  commitment_id: commitment.id,
+const p1 = makeTestPayment({
   due_date: '2026-05-01',
   amount_due: 15,
-  amount_paid: null,
-  currency: Currency.EGP,
-  paid_date: null,
-  skipped_date: null,
-  account_id: null,
-  exchange_rate_snapshot: null,
-  transaction_id: null,
-  notes: null,
   created_at: '2026-01-01T00:00:00.000Z',
   updated_at: '2026-01-01T00:00:00.000Z',
-};
+});
 const p2: CommitmentPayment = { ...p1, id: 'p2', due_date: '2026-06-01' };
 
 const entries = () => usePaySheetState.getState().entries;

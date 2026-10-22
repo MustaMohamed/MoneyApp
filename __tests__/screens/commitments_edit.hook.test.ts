@@ -13,6 +13,7 @@ import { useEditCommitment } from '@/modules/commitments/screens/commitments/edi
 import { useEditCommitmentState } from '@/modules/commitments/screens/commitments/edit_commitment/edit_commitment.state';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { TABBED_ORIGIN } from '@/modules/navigation/domain/stacked_route';
+import { makeTestCommitment } from '@/test_helpers/commitment';
 import { deferred } from '@/test_helpers/deferred';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 import { holdStillTypingDecimal } from '@/utils/use_zod_form.hook';
@@ -44,25 +45,14 @@ jest.mock('@/modules/accounts/store/account.store', () => ({
 }));
 jest.mock('@/modules/categories/store/category.store', () => ({ useCategoryStore: jest.fn() }));
 
-const commitment: Commitment = {
+const commitment = makeTestCommitment({
   id: 'com-1',
-  name: 'Rent',
-  amount_type: AmountType.Fixed,
   amount: 5000,
-  currency: Currency.EGP,
   category_id: 'category-rent',
-  recurrence_every: 1,
-  recurrence_period: RecurrencePeriod.Months,
-  start_date: '2026-01-01',
   account_id: null,
-  notes: null,
-  duration_type: DurationType.Forever,
-  end_date: null,
-  end_after_count: null,
-  is_active: 1,
   created_at: '2026-01-01T00:00:00.000Z',
   updated_at: '2026-01-01T00:00:00.000Z',
-};
+});
 
 let commitments: Commitment[] = [commitment];
 
@@ -412,7 +402,7 @@ describe('useEditCommitment', () => {
   });
 
   describe('MA-188 the route opens on a second commitment on the mounted screen', () => {
-    const second: Commitment = {
+    const second = makeTestCommitment({
       id: 'com-2',
       name: 'Cloud storage',
       amount_type: AmountType.Variable,
@@ -427,10 +417,9 @@ describe('useEditCommitment', () => {
       duration_type: DurationType.AfterCount,
       end_date: '2026-12-31',
       end_after_count: 12,
-      is_active: 1,
       created_at: '2026-03-31T00:00:00.000Z',
       updated_at: '2026-03-31T00:00:00.000Z',
-    };
+    });
 
     const settles: [string, (pending: Pending) => void][] = [
       ['resolves', (pending) => pending.resolve()],
