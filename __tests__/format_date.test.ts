@@ -63,7 +63,7 @@ describe('formatShortWeekdayDate', () => {
   it('prints a month end that is today', () => {
     expect(formatShortWeekdayDate('2026-10-31', '2026-10-31')).toBe('Sat 31 Oct');
   });
-  it('prints the weekday of a daylight-saving start on the local calendar', () => {
+  it('prints the weekday from the local calendar date', () => {
     expect(formatShortWeekdayDate('2026-04-24', '2026-10-22')).toBe('Fri 24 Apr');
   });
 });

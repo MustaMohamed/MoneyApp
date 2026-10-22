@@ -23,10 +23,24 @@ export interface StatusBadgeProps {
 export const STATUS_BADGE_PADDING_VERTICAL = 2;
 // Raw, as above: A1 `.stag`, the commitment row's tag; its geometry adds it around the label.
 export const STATUS_BADGE_XS_PADDING_VERTICAL = 1;
-const XS_CHROME = { paddingLeft: 4, paddingRight: 6, gap: 3 } as const;
+export const STATUS_BADGE_XS_LABEL_FONT_SIZE = Type.compactBadge;
+const PADDING_VERTICAL = {
+  xs: STATUS_BADGE_XS_PADDING_VERTICAL,
+  sm: STATUS_BADGE_PADDING_VERTICAL,
+  md: STATUS_BADGE_PADDING_VERTICAL,
+} as const;
+const ROOT_CLASS = {
+  xs: 'gap-0.75 rounded-full pl-1 pr-1.5',
+  sm: 'gap-0.5 rounded-full px-1.5',
+  md: 'gap-0.5 rounded-full px-1.5',
+} as const;
+const LABEL_CLASS = { xs: 'font-inter-bold', sm: 'font-inter', md: 'font-inter' } as const;
 const ICON_SIZE = { xs: 11, sm: 10, md: 12 } as const;
 const LABEL_STYLE = {
-  xs: { fontSize: Type.compactBadge, lineHeight: lineHeightFor(Type.compactBadge) },
+  xs: {
+    fontSize: STATUS_BADGE_XS_LABEL_FONT_SIZE,
+    lineHeight: lineHeightFor(STATUS_BADGE_XS_LABEL_FONT_SIZE),
+  },
   sm: { fontSize: Type.pillLabel, lineHeight: lineHeightFor(Type.pillLabel) },
   md: { fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) },
 } as const;
@@ -40,17 +54,15 @@ export function StatusBadge({
   fontScale,
 }: StatusBadgeProps) {
   const scaled = fontScale !== undefined;
-  const xs = size === 'xs';
   return (
     <View
       style={{
         backgroundColor: fill,
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: xs ? STATUS_BADGE_XS_PADDING_VERTICAL : STATUS_BADGE_PADDING_VERTICAL,
-        ...(xs ? XS_CHROME : undefined),
+        paddingVertical: PADDING_VERTICAL[size],
       }}
-      className={xs ? 'rounded-full' : 'gap-0.5 rounded-full px-1.5'}
+      className={ROOT_CLASS[size]}
     >
       {icon != null ? (
         <MaterialCommunityIcons name={icon} size={ICON_SIZE[size]} color={foreground} />
@@ -58,7 +70,7 @@ export function StatusBadge({
       <Typography
         allowFontScaling={!scaled}
         numberOfLines={scaled ? 1 : undefined}
-        className={xs ? 'font-inter-bold' : 'font-inter'}
+        className={LABEL_CLASS[size]}
         style={{
           color: foreground,
           ...(scaled

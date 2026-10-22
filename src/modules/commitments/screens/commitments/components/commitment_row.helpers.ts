@@ -2,25 +2,36 @@ import type MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIco
 import type React from 'react';
 import { PixelRatio } from 'react-native';
 
-import { STATUS_BADGE_XS_PADDING_VERTICAL } from '@/components/ui/status_badge';
+import {
+  STATUS_BADGE_XS_LABEL_FONT_SIZE,
+  STATUS_BADGE_XS_PADDING_VERTICAL,
+} from '@/components/ui/status_badge';
 import { scaledFontSize } from '@/components/ui/text_scale.geometry';
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { CommitmentPaymentStatus } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Type, lineHeightFor } from '@/constants/theme';
-import { AcctTokens, CoreTokens, GoldTokens, SemanticTokens } from '@/constants/theme_tokens';
-import { mixHex } from '@/modules/accounts/constants/account_badge_color';
-import { contrastRatio } from '@/modules/accounts/constants/account_palette';
+import { lineHeightFor } from '@/constants/theme';
+import { AcctTokens, CoreTokens } from '@/constants/theme_tokens';
+import {
+  BADGE_TEXT_MIN_CONTRAST,
+  resolveBadgeColors,
+  type AccountBadgeColors,
+} from '@/modules/accounts/constants/account_badge_color';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import {
+  STATUS_COLORS,
   STATUS_ICONS,
   STATUS_LABELS,
   resolveDisplayAmount,
 } from '@/modules/commitments/utils/commitment_status';
 import {
+  TRANSACTION_ROW_AMOUNT_FONT_SIZE,
+  TRANSACTION_ROW_CAPTION_FONT_SIZE,
+  TRANSACTION_ROW_CODE_FONT_SIZE,
   TRANSACTION_ROW_HEIGHT,
   TRANSACTION_ROW_LINE_GAP,
+  TRANSACTION_ROW_TITLE_FONT_SIZE,
   resolveCategoryGlyph,
   resolveRowTile,
   type RowTile,
@@ -35,17 +46,14 @@ import type { CommitmentPayment } from '../../../entities/commitment_payment.ent
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
-export const COMMITMENT_ROW_TITLE_FONT_SIZE = Type.bodyStrong;
-export const COMMITMENT_ROW_CAPTION_FONT_SIZE = Type.micro;
-export const COMMITMENT_ROW_AMOUNT_FONT_SIZE = Type.bodyStrong;
-export const COMMITMENT_ROW_CODE_FONT_SIZE = Type.micro;
-export const COMMITMENT_ROW_TAG_FONT_SIZE = Type.compactBadge;
+export const COMMITMENT_ROW_TITLE_FONT_SIZE = TRANSACTION_ROW_TITLE_FONT_SIZE;
+export const COMMITMENT_ROW_CAPTION_FONT_SIZE = TRANSACTION_ROW_CAPTION_FONT_SIZE;
+export const COMMITMENT_ROW_AMOUNT_FONT_SIZE = TRANSACTION_ROW_AMOUNT_FONT_SIZE;
+export const COMMITMENT_ROW_CODE_FONT_SIZE = TRANSACTION_ROW_CODE_FONT_SIZE;
 export const COMMITMENT_ROW_LINE_GAP = TRANSACTION_ROW_LINE_GAP;
-export const COMMITMENT_STATUS_TAG_TEXT_MIN_CONTRAST = 4.5;
+export const COMMITMENT_STATUS_TAG_TEXT_MIN_CONTRAST = BADGE_TEXT_MIN_CONTRAST;
 
 const LABEL_SEPARATOR = ', ';
-const INK_SHARE_STEP = 0.05;
-const INK_STEP_COUNT = Math.round(1 / INK_SHARE_STEP);
 
 function rowLineBox(fontSize: number, fontScale: number): number {
   return lineHeightFor(scaledFontSize(fontSize, fontScale));
@@ -54,7 +62,7 @@ function rowLineBox(fontSize: number, fontScale: number): number {
 function rowTallerColumn(fontScale: number): number {
   const nameLine = Math.max(
     rowLineBox(COMMITMENT_ROW_TITLE_FONT_SIZE, fontScale),
-    rowLineBox(COMMITMENT_ROW_TAG_FONT_SIZE, fontScale) + 2 * STATUS_BADGE_XS_PADDING_VERTICAL,
+    rowLineBox(STATUS_BADGE_XS_LABEL_FONT_SIZE, fontScale) + 2 * STATUS_BADGE_XS_PADDING_VERTICAL,
   );
   const content =
     nameLine + COMMITMENT_ROW_LINE_GAP + rowLineBox(COMMITMENT_ROW_CAPTION_FONT_SIZE, fontScale);
@@ -73,43 +81,36 @@ export function resolveCommitmentRowHeight(fontScale: number): number {
   );
 }
 
-export interface CommitmentStatusTagColors {
-  fill: string;
-  foreground: string;
-}
-
-/** A1 `.stag`: the tone over the card surface, its ink stepped toward the text colour until it clears 4.5:1. */
-function resolveStatusTagColors(
-  tone: string,
-  fillShare: number,
-  ink: string = tone,
-): CommitmentStatusTagColors {
-  const fill = mixHex(tone, CoreTokens.surface, fillShare);
-  for (let step = 0; step <= INK_STEP_COUNT; step += 1) {
-    const foreground = mixHex(ink, CoreTokens.text1, Math.max(0, 1 - step * INK_SHARE_STEP));
-    if (contrastRatio(fill, foreground) >= COMMITMENT_STATUS_TAG_TEXT_MIN_CONTRAST) {
-      return { fill, foreground };
-    }
-  }
-  return { fill, foreground: CoreTokens.text1 };
-}
-
-export const COMMITMENT_STATUS_TAG_COLORS: Record<
-  CommitmentPaymentStatus,
-  CommitmentStatusTagColors
-> = {
-  [CommitmentPaymentStatus.Overdue]: resolveStatusTagColors(SemanticTokens.negative, 0.15),
-  [CommitmentPaymentStatus.Due]: resolveStatusTagColors(GoldTokens[500], 0.15),
-  [CommitmentPaymentStatus.Upcoming]: resolveStatusTagColors(CoreTokens.text2, 0.18),
-  [CommitmentPaymentStatus.Paid]: resolveStatusTagColors(SemanticTokens.positive, 0.15),
-  [CommitmentPaymentStatus.Skipped]: resolveStatusTagColors(
-    CoreTokens.text3,
-    0.3,
-    AcctTokens.graphite.soft,
-  ),
+// A1 `.stag`: each tone's share of the fill over the card surface the rows sit on.
+const TAG_FILL_SHARE: Record<CommitmentPaymentStatus, number> = {
+  [CommitmentPaymentStatus.Overdue]: 0.15,
+  [CommitmentPaymentStatus.Due]: 0.15,
+  [CommitmentPaymentStatus.Upcoming]: 0.18,
+  [CommitmentPaymentStatus.Paid]: 0.15,
+  [CommitmentPaymentStatus.Skipped]: 0.3,
+};
+const TAG_INK: Partial<Record<CommitmentPaymentStatus, string>> = {
+  [CommitmentPaymentStatus.Skipped]: AcctTokens.graphite.soft,
 };
 
-/** A paid row shows the account it was paid from; any other, the commitment's preferred one. */
+function tagColors(status: CommitmentPaymentStatus): AccountBadgeColors {
+  return resolveBadgeColors({
+    tone: STATUS_COLORS[status],
+    backdrop: CoreTokens.surface,
+    fillShare: TAG_FILL_SHARE[status],
+    ink: TAG_INK[status],
+    inkShare: 1,
+  });
+}
+
+export const COMMITMENT_STATUS_TAG_COLORS: Record<CommitmentPaymentStatus, AccountBadgeColors> = {
+  [CommitmentPaymentStatus.Overdue]: tagColors(CommitmentPaymentStatus.Overdue),
+  [CommitmentPaymentStatus.Due]: tagColors(CommitmentPaymentStatus.Due),
+  [CommitmentPaymentStatus.Upcoming]: tagColors(CommitmentPaymentStatus.Upcoming),
+  [CommitmentPaymentStatus.Paid]: tagColors(CommitmentPaymentStatus.Paid),
+  [CommitmentPaymentStatus.Skipped]: tagColors(CommitmentPaymentStatus.Skipped),
+};
+
 export function resolveCommitmentRowAccountId(
   payment: CommitmentPayment,
   commitment: Commitment | undefined,
@@ -176,7 +177,7 @@ export function buildCommitmentRowPresentation({
   account,
   today,
 }: CommitmentRowPresentationInput): CommitmentRowPresentation {
-  const name = commitment?.name ?? Strings.commitmentRowUnavailable;
+  const name = commitment?.name ?? Strings.commitmentRowNoName;
   const status = resolvePaymentState(payment, today);
   const tagColors = COMMITMENT_STATUS_TAG_COLORS[status];
   const dueDay = formatShortWeekdayDate(payment.due_date, today);

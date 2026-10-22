@@ -1,7 +1,6 @@
 import { Strings } from '@/constants/strings';
 import type { Transaction } from '@/database/entities/transaction.entity';
-import { formatWeekdayDate } from '@/utils/format_date';
-import { MONTHS_SHORT, WEEKDAYS_SHORT } from '@/utils/year_month';
+import { formatShortWeekdayDate } from '@/utils/format_date';
 
 export interface TransactionDateGroup {
   /** The rows' `transaction_date`, `YYYY-MM-DD`. */
@@ -20,12 +19,11 @@ export function groupTransactionsByDate(
 
   const today = ymd(now);
   const yesterday = ymd(addDays(now, -1));
-  const thisYear = now.getFullYear();
 
   for (const t of txs) {
     const key = t.transaction_date;
     if (key !== currentKey) {
-      sections.push({ key, label: labelFor(key, today, yesterday, thisYear), data: [] });
+      sections.push({ key, label: labelFor(key, today, yesterday), data: [] });
       currentKey = key;
     }
     sections[sections.length - 1].data.push(t);
@@ -33,13 +31,10 @@ export function groupTransactionsByDate(
   return sections;
 }
 
-function labelFor(date: string, today: string, yesterday: string, thisYear: number): string {
+function labelFor(date: string, today: string, yesterday: string): string {
   if (date === today) return Strings.todayLabel;
   if (date === yesterday) return Strings.yesterdayLabel;
-  const [year, month, day] = date.split('-').map(Number);
-  if (year !== thisYear) return formatWeekdayDate(date);
-  const weekday = WEEKDAYS_SHORT[new Date(year, month - 1, day).getDay()];
-  return `${weekday} ${day} ${MONTHS_SHORT[month - 1]}`;
+  return formatShortWeekdayDate(date, today);
 }
 
 function ymd(d: Date): string {

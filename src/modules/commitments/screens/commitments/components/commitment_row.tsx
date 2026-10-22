@@ -33,7 +33,6 @@ interface CommitmentRowProps {
   today: string;
   commitment: Commitment | undefined;
   category: Category | undefined;
-  /** The row's account, from `resolveCommitmentRowAccountId`; `undefined` when unresolved or absent. */
   account: Account | undefined;
   onPress: (paymentId: string) => void;
   onSkip: (paymentId: string) => void;
@@ -58,6 +57,11 @@ function CommitmentRowComponent({
   );
   const { fontScale } = useWindowDimensions();
   const amountProps = resolveFitAmountTextProps(COMMITMENT_ROW_AMOUNT_FONT_SIZE, fontScale);
+  const rowHeight = useMemo(() => resolveCommitmentRowHeight(fontScale), [fontScale]);
+  const valueTrackMaxWidth = useMemo(
+    () => resolveTransactionRowValueTrackMaxWidth(fontScale),
+    [fontScale],
+  );
 
   const handlePress = useCallback(() => onPress(payment.id), [onPress, payment.id]);
   const handleSkip = useCallback(() => onSkip(payment.id), [onSkip, payment.id]);
@@ -105,7 +109,7 @@ function CommitmentRowComponent({
       >
         <View
           testID="commitment-row"
-          style={{ height: resolveCommitmentRowHeight(fontScale), justifyContent: 'center' }}
+          style={{ height: rowHeight, justifyContent: 'center' }}
           className="border-separator border-b px-4"
         >
           <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-3">
@@ -164,7 +168,7 @@ function CommitmentRowComponent({
                 flexDirection: 'row',
                 alignItems: 'baseline',
                 gap: ms(4),
-                maxWidth: resolveTransactionRowValueTrackMaxWidth(fontScale),
+                maxWidth: valueTrackMaxWidth,
               }}
             >
               <Text

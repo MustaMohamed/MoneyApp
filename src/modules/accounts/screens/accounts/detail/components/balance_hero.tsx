@@ -1,9 +1,10 @@
 import { Typography } from 'heroui-native';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
 import { AccountColorTile } from '@/components/ui/account_color_tile';
 import { HeroShell } from '@/components/ui/hero_shell';
 import { StatusBadge } from '@/components/ui/status_badge';
+import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { ACCOUNT_TYPE_ICONS } from '@/constants/account_type_icons';
 import { ACCOUNT_TYPE_LABELS } from '@/constants/account_type_labels';
 import { Strings } from '@/constants/strings';
@@ -30,6 +31,7 @@ export function BalanceHero({ account }: BalanceHeroProps) {
   const badge = resolveAccountBadgeColors(color);
   const balance = formatAccountBalanceParts(account.current_balance, account.currency);
   const balanceColorClass = resolveAccountBalanceColorClass(account.type);
+  const { fontScale } = useWindowDimensions();
 
   return (
     <HeroShell
@@ -47,8 +49,9 @@ export function BalanceHero({ account }: BalanceHeroProps) {
           />
           <View style={{ flex: 1 }}>
             <Typography
+              allowFontScaling={false}
               numberOfLines={1}
-              style={{ fontSize: Type.subhead, lineHeight: lineHeightFor(Type.subhead) }}
+              style={scaledTextStyle(Type.subhead, fontScale)}
               className="font-sora-semibold text-foreground"
             >
               {resolveAccountName(account)}

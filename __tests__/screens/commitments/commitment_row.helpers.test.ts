@@ -1,11 +1,4 @@
-import {
-  AccountType,
-  AmountType,
-  CommitmentPaymentStatus,
-  Currency,
-  DurationType,
-  RecurrencePeriod,
-} from '@/constants/enums';
+import { AccountType, AmountType, CommitmentPaymentStatus, Currency } from '@/constants/enums';
 import { AcctTokens, CoreTokens, GoldTokens } from '@/constants/theme_tokens';
 import {
   contrastRatio,
@@ -24,54 +17,12 @@ import {
 } from '@/modules/commitments/screens/commitments/components/commitment_row.helpers';
 import { STATUS_ICONS, STATUS_LABELS } from '@/modules/commitments/utils/commitment_status';
 import { TRANSACTION_ROW_HEIGHT } from '@/modules/transactions/components/transaction_row.helpers';
+import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
 import { makeTestAccount, makeTestCategory } from '@/test_helpers/transaction';
 
 const TODAY = '2026-10-22';
 const HEX = /^#[0-9A-F]{6}$/i;
 const ALL_STATUSES = Object.values(CommitmentPaymentStatus);
-
-function mkPayment(over: Partial<CommitmentPayment> = {}): CommitmentPayment {
-  return {
-    id: 'p1',
-    commitment_id: 'c1',
-    due_date: '2026-09-01',
-    paid_date: null,
-    skipped_date: null,
-    amount_due: 8000,
-    amount_paid: null,
-    currency: Currency.EGP,
-    exchange_rate_snapshot: null,
-    account_id: null,
-    transaction_id: null,
-    notes: null,
-    created_at: '2026-09-01T00:00:00.000Z',
-    updated_at: '2026-09-01T00:00:00.000Z',
-    ...over,
-  };
-}
-
-function mkCommitment(over: Partial<Commitment> = {}): Commitment {
-  return {
-    id: 'c1',
-    name: 'Rent',
-    amount_type: AmountType.Fixed,
-    amount: 8000,
-    currency: Currency.EGP,
-    category_id: 'housing',
-    recurrence_every: 1,
-    recurrence_period: RecurrencePeriod.Months,
-    start_date: '2026-01-01',
-    account_id: 'cib',
-    notes: null,
-    duration_type: DurationType.Forever,
-    end_date: null,
-    end_after_count: null,
-    is_active: 1,
-    created_at: '2026-01-01T00:00:00.000Z',
-    updated_at: '2026-01-01T00:00:00.000Z',
-    ...over,
-  };
-}
 
 const cib = makeTestAccount({
   id: 'cib',
@@ -109,8 +60,8 @@ function present(over: {
   today?: string;
 }) {
   return buildCommitmentRowPresentation({
-    payment: over.payment ?? mkPayment(),
-    commitment: 'commitment' in over ? over.commitment : mkCommitment(),
+    payment: over.payment ?? makeTestPayment(),
+    commitment: 'commitment' in over ? over.commitment : makeTestCommitment(),
     category: 'category' in over ? over.category : housing,
     account: 'account' in over ? over.account : cib,
     today: over.today ?? TODAY,
@@ -168,40 +119,46 @@ describe('COMMITMENT_STATUS_TAG_COLORS', () => {
 
 describe('resolveCommitmentRowAccountId', () => {
   it('takes the paid-from account on a paid row though the commitment names another', () => {
-    const payment = mkPayment({ paid_date: '2026-09-02', account_id: 'nbe' });
+    const payment = makeTestPayment({ paid_date: '2026-09-02', account_id: 'nbe' });
 
-    expect(resolveCommitmentRowAccountId(payment, mkCommitment({ account_id: 'cib' }))).toBe('nbe');
+    expect(resolveCommitmentRowAccountId(payment, makeTestCommitment({ account_id: 'cib' }))).toBe(
+      'nbe',
+    );
   });
 
   it('takes the commitment account on an unpaid row though the payment names another', () => {
-    const payment = mkPayment({ account_id: 'nbe' });
+    const payment = makeTestPayment({ account_id: 'nbe' });
 
-    expect(resolveCommitmentRowAccountId(payment, mkCommitment({ account_id: 'cib' }))).toBe('cib');
+    expect(resolveCommitmentRowAccountId(payment, makeTestCommitment({ account_id: 'cib' }))).toBe(
+      'cib',
+    );
   });
 
   it('takes the commitment account on a skipped row though the payment names another', () => {
-    const payment = mkPayment({ skipped_date: '2026-09-02', account_id: 'nbe' });
+    const payment = makeTestPayment({ skipped_date: '2026-09-02', account_id: 'nbe' });
 
-    expect(resolveCommitmentRowAccountId(payment, mkCommitment({ account_id: 'cib' }))).toBe('cib');
+    expect(resolveCommitmentRowAccountId(payment, makeTestCommitment({ account_id: 'cib' }))).toBe(
+      'cib',
+    );
   });
 
   it('gives no id for a paid row with no paid-from account', () => {
-    const payment = mkPayment({ paid_date: '2026-09-02', account_id: null });
+    const payment = makeTestPayment({ paid_date: '2026-09-02', account_id: null });
 
-    expect(resolveCommitmentRowAccountId(payment, mkCommitment())).toBeUndefined();
+    expect(resolveCommitmentRowAccountId(payment, makeTestCommitment())).toBeUndefined();
   });
 
   it('gives no id for an unpaid row whose commitment has no account', () => {
-    const payment = mkPayment({ account_id: 'nbe' });
+    const payment = makeTestPayment({ account_id: 'nbe' });
 
     expect(
-      resolveCommitmentRowAccountId(payment, mkCommitment({ account_id: null })),
+      resolveCommitmentRowAccountId(payment, makeTestCommitment({ account_id: null })),
     ).toBeUndefined();
   });
 
   it('gives no id for an unpaid row with no commitment', () => {
     expect(
-      resolveCommitmentRowAccountId(mkPayment({ account_id: 'nbe' }), undefined),
+      resolveCommitmentRowAccountId(makeTestPayment({ account_id: 'nbe' }), undefined),
     ).toBeUndefined();
   });
 });
@@ -216,7 +173,11 @@ describe('buildCommitmentRowPresentation tile', () => {
   });
 
   it('fills the tile in the paid-from account colour on a paid row', () => {
-    const payment = mkPayment({ paid_date: '2026-09-02', amount_paid: 8000, account_id: 'nbe' });
+    const payment = makeTestPayment({
+      paid_date: '2026-09-02',
+      amount_paid: 8000,
+      account_id: 'nbe',
+    });
 
     expect(present({ payment, account: nbe }).tile).toEqual({
       color: AcctTokens.jade.rich,
@@ -238,7 +199,7 @@ describe('buildCommitmentRowPresentation tile', () => {
   });
 
   it('draws a commitment with no account as the hollow graphite tile', () => {
-    const commitment = mkCommitment({ account_id: null });
+    const commitment = makeTestCommitment({ account_id: null });
 
     expect(present({ commitment, account: undefined }).tile).toEqual(hollowBank);
   });
@@ -262,7 +223,7 @@ describe('buildCommitmentRowPresentation label', () => {
   });
 
   it('speaks no account when the commitment has none', () => {
-    const commitment = mkCommitment({ account_id: null });
+    const commitment = makeTestCommitment({ account_id: null });
 
     expect(present({ commitment, account: undefined }).accessibilityLabel).toBe(
       'Rent, Overdue, Tue 1 Sep, 8,000 EGP',
@@ -270,7 +231,11 @@ describe('buildCommitmentRowPresentation label', () => {
   });
 
   it('speaks the paid-from account on a paid row', () => {
-    const payment = mkPayment({ paid_date: '2026-09-02', amount_paid: 8000, account_id: 'nbe' });
+    const payment = makeTestPayment({
+      paid_date: '2026-09-02',
+      amount_paid: 8000,
+      account_id: 'nbe',
+    });
 
     expect(present({ payment, account: nbe }).accessibilityLabel).toBe(
       'Rent, NBE, Paid, Tue 1 Sep, 8,000 EGP',
@@ -289,7 +254,7 @@ describe('buildCommitmentRowPresentation name and glyph', () => {
 });
 
 describe('buildCommitmentRowPresentation amount', () => {
-  const variable = mkCommitment({ amount_type: AmountType.Variable, amount: 600 });
+  const variable = makeTestCommitment({ amount_type: AmountType.Variable, amount: 600 });
 
   it('shows an EGP amount at 0 dp beside its code', () => {
     const row = present({});
@@ -299,8 +264,8 @@ describe('buildCommitmentRowPresentation amount', () => {
   });
 
   it('shows a USD amount at 2 dp beside its code', () => {
-    const payment = mkPayment({ amount_due: 15, currency: Currency.USD });
-    const commitment = mkCommitment({ amount: 15, currency: Currency.USD });
+    const payment = makeTestPayment({ amount_due: 15, currency: Currency.USD });
+    const commitment = makeTestCommitment({ amount: 15, currency: Currency.USD });
     const row = present({ payment, commitment });
 
     expect(row.amountText).toBe('15.00');
@@ -308,7 +273,7 @@ describe('buildCommitmentRowPresentation amount', () => {
   });
 
   it('shows the amount paid with no tilde on a paid variable row', () => {
-    const payment = mkPayment({
+    const payment = makeTestPayment({
       paid_date: '2026-09-02',
       amount_due: 600,
       amount_paid: 640,
@@ -321,7 +286,7 @@ describe('buildCommitmentRowPresentation amount', () => {
   });
 
   it('shows a tilde and a space before the estimate on an unpaid variable row', () => {
-    const row = present({ payment: mkPayment({ amount_due: 600 }), commitment: variable });
+    const row = present({ payment: makeTestPayment({ amount_due: 600 }), commitment: variable });
 
     expect(row.amountText).toBe('~ 600');
     expect(row.currencyCode).toBe('EGP');
@@ -329,7 +294,7 @@ describe('buildCommitmentRowPresentation amount', () => {
   });
 
   it('shows a tilde and a space before the estimate on a skipped variable row', () => {
-    const payment = mkPayment({ skipped_date: '2026-09-02', amount_due: 600 });
+    const payment = makeTestPayment({ skipped_date: '2026-09-02', amount_due: 600 });
     const row = present({ payment, commitment: variable });
 
     expect(row.amountText).toBe('~ 600');
@@ -337,8 +302,8 @@ describe('buildCommitmentRowPresentation amount', () => {
   });
 
   it('shows the tilde alone beside its code on a variable row with no estimate', () => {
-    const payment = mkPayment({ amount_due: null });
-    const commitment = mkCommitment({ amount_type: AmountType.Variable, amount: null });
+    const payment = makeTestPayment({ amount_due: null });
+    const commitment = makeTestCommitment({ amount_type: AmountType.Variable, amount: null });
     const row = present({ payment, commitment });
 
     expect(row.amountText).toBe('~');
@@ -357,13 +322,16 @@ describe('buildCommitmentRowPresentation status tag', () => {
 
   it('reads Overdue for an unpaid row due before today', () => {
     expectTag(
-      present({ payment: mkPayment({ due_date: '2026-10-21' }) }),
+      present({ payment: makeTestPayment({ due_date: '2026-10-21' }) }),
       CommitmentPaymentStatus.Overdue,
     );
   });
 
   it('reads Due for an unpaid row due today at a month end', () => {
-    const row = present({ payment: mkPayment({ due_date: '2026-10-31' }), today: '2026-10-31' });
+    const row = present({
+      payment: makeTestPayment({ due_date: '2026-10-31' }),
+      today: '2026-10-31',
+    });
 
     expectTag(row, CommitmentPaymentStatus.Due);
     expect(row.dueDay).toBe('Sat 31 Oct');
@@ -371,20 +339,24 @@ describe('buildCommitmentRowPresentation status tag', () => {
 
   it('reads Upcoming for an unpaid row due after today', () => {
     expectTag(
-      present({ payment: mkPayment({ due_date: '2026-10-23' }) }),
+      present({ payment: makeTestPayment({ due_date: '2026-10-23' }) }),
       CommitmentPaymentStatus.Upcoming,
     );
   });
 
   it('reads Paid for a paid row due before today', () => {
-    const payment = mkPayment({ paid_date: '2026-09-02', amount_paid: 8000, account_id: 'cib' });
+    const payment = makeTestPayment({
+      paid_date: '2026-09-02',
+      amount_paid: 8000,
+      account_id: 'cib',
+    });
 
     expectTag(present({ payment }), CommitmentPaymentStatus.Paid);
   });
 
   it('reads Skipped for a skipped row due before today', () => {
     expectTag(
-      present({ payment: mkPayment({ skipped_date: '2026-09-02' }) }),
+      present({ payment: makeTestPayment({ skipped_date: '2026-09-02' }) }),
       CommitmentPaymentStatus.Skipped,
     );
   });
@@ -396,7 +368,10 @@ describe('buildCommitmentRowPresentation due day', () => {
   });
 
   it('prints a due day in another year with its year', () => {
-    const row = present({ payment: mkPayment({ due_date: '2025-12-28' }), today: '2026-01-05' });
+    const row = present({
+      payment: makeTestPayment({ due_date: '2025-12-28' }),
+      today: '2026-01-05',
+    });
 
     expect(row.dueDay).toBe('Sun 28 Dec 2025');
   });

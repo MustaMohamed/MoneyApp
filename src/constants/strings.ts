@@ -1180,6 +1180,7 @@ export const Strings = {
   commitmentsStatusPaid: 'Paid',
   commitmentsStatusSkipped: 'Skipped',
   commitmentRowEstimate: (amount: string) => `~ ${amount}`,
+  commitmentRowNoName: '—',
   commitmentRowNoEstimate: '~',
   commitmentRowNoEstimateLabel: (code: string) => `~ ${code}`,
   commitmentRowUnavailable: '—',
