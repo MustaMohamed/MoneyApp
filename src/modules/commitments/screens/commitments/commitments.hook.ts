@@ -6,6 +6,8 @@ import { CommitmentPaymentStatus } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
+import { useCurrencyStore } from '@/modules/currency/store/currency.store';
+import { toLocalDateString } from '@/utils/format_date';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
 import { useDebouncedValue } from '@/utils/use_debounced_value.hook';
 import { shiftYearMonth } from '@/utils/year_month';
@@ -19,8 +21,13 @@ import {
 import { emptyMonthPaymentSummary, summarizeMonthPayments } from '../../domain/payment_summary';
 import type { Commitment } from '../../entities/commitment.entity';
 import type { CommitmentPayment } from '../../entities/commitment_payment.entity';
-import { useCommitmentStore } from '../../store/commitment.store';
+import { monthAggregateKey, useCommitmentStore } from '../../store/commitment.store';
 import { useCommitmentsScreenState } from './commitments.state';
+import {
+  buildCommitmentsHeroModel,
+  resolveCommitmentsHeroAccountId,
+  resolveCommitmentsHeroMode,
+} from './components/commitments_hero.helpers';
 import {
   commitmentMatchesAdvancedFilters,
   commitmentMatchesSearch,
@@ -61,6 +68,8 @@ export function useCommitments() {
     today,
     loading,
     loadError,
+    monthAggregate,
+    monthAggregateErrorKey,
   } = useCommitmentStore(
     useShallow((s) => ({
       commitments: s.commitments,
@@ -72,15 +81,21 @@ export function useCommitments() {
       today: s.today,
       loading: s.loading,
       loadError: s.loadError,
+      monthAggregate: s.monthAggregate,
+      monthAggregateErrorKey: s.monthAggregateErrorKey,
     })),
   );
   const setSelectedMonth = useCommitmentStore.getState().setSelectedMonth;
   const loadMonthSnapshot = useCommitmentStore.getState().loadMonthSnapshot;
+  const loadMonthAggregate = useCommitmentStore.getState().loadMonthAggregate;
   const skipPayment = useCommitmentStore.getState().skipPayment;
   const deactivateCommitment = useCommitmentStore.getState().deactivateCommitment;
 
   const accounts = useAccountStore((s) => s.accounts);
   const categories = useCategoryStore.useState.categories();
+  const { rate, hasLoaded: rateLoaded } = useCurrencyStore(
+    useShallow((s) => ({ rate: s.rate, hasLoaded: s.hasLoaded })),
+  );
   const { refreshing, statusFilter, searchQuery, appliedFilters } = useCommitmentsScreenState(
     useShallow((s) => ({
       refreshing: s.refreshing,
@@ -177,6 +192,27 @@ export function useCommitments() {
   const hasListFilters =
     statusFilter !== 'all' || searchQuery.trim().length > 0 || activeFilterCount > 0;
 
+  const heroAccountId = resolveCommitmentsHeroAccountId(appliedFilters.accountIds);
+  const heroKeyOnScreen = monthAggregateKey(selectedMonth, heroAccountId);
+  const heroMode = resolveCommitmentsHeroMode({
+    heldKey: monthAggregate?.key,
+    errorKey: monthAggregateErrorKey,
+    keyOnScreen: heroKeyOnScreen,
+    rateLoaded,
+  });
+  const heroToday = toLocalDateString(new Date());
+  const hero = useMemo(
+    () =>
+      buildCommitmentsHeroModel({
+        mode: heroMode,
+        aggregate: monthAggregate?.key === heroKeyOnScreen ? monthAggregate.aggregate : undefined,
+        rate,
+        yearMonth: selectedMonth,
+        today: heroToday,
+      }),
+    [heroMode, monthAggregate, heroKeyOnScreen, rate, selectedMonth, heroToday],
+  );
+
   const selectedMonthRef = useRef(selectedMonth);
   selectedMonthRef.current = selectedMonth;
 
@@ -223,16 +259,26 @@ export function useCommitments() {
     }, [reloadSelectedMonth]),
   );
 
+  // Expo-router reruns this on focus and on a month or hero-account change while focused.
+  useFocusEffect(
+    useCallback(() => {
+      void loadMonthAggregate(selectedMonth, heroAccountId);
+    }, [loadMonthAggregate, selectedMonth, heroAccountId]),
+  );
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await reloadSelectedMonth(selectedMonth);
+      await Promise.all([
+        reloadSelectedMonth(selectedMonth),
+        loadMonthAggregate(selectedMonth, heroAccountId),
+      ]);
     } catch {
       // The store owns loadError; event boundaries contain the rejected operation.
     } finally {
       setRefreshing(false);
     }
-  }, [setRefreshing, reloadSelectedMonth, selectedMonth]);
+  }, [setRefreshing, reloadSelectedMonth, loadMonthAggregate, selectedMonth, heroAccountId]);
 
   const goToDetail = useCallback((paymentId: string) => {
     router.push(`/commitments/${paymentId}`);
@@ -268,6 +314,7 @@ export function useCommitments() {
       today,
       counts,
       totalsByCurrency,
+      hero,
       refreshing,
       isEmpty,
       commitmentsLoaded,
