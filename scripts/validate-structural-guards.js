@@ -391,6 +391,27 @@ const TREE_ROWS = [
     ],
     needs: KEEPS_LIVE_REGION,
   },
+  {
+    name: 'T5, every .ts and .tsx under src/ outside src/test_helpers/',
+    matches: (/** @type {string} */ rel) => !rel.startsWith('src/test_helpers/'),
+    banned: ['withTransactionAsync', 'withExclusiveTransactionAsync'].map(identifier),
+    rule: 'begins a plain `BEGIN`; atomic writes go through `withWriteTransactionAsync` or `withExclusiveWriteTransactionAsync` from `@/database/client`',
+  },
+  {
+    name: 'T6, every .ts and .tsx under src/ outside src/test_helpers/',
+    matches: (/** @type {string} */ rel) => !rel.startsWith('src/test_helpers/'),
+    banned: [
+      'prepareAsync',
+      'prepareSync',
+      'getEachAsync',
+      'getEachSync',
+      'execSync',
+      'runSync',
+      'getAllSync',
+      'getFirstSync',
+    ].map(identifier),
+    rule: 'skips the main connection queue; app code calls a connection through `execAsync`, `runAsync`, `getFirstAsync` and `getAllAsync` only',
+  },
 ];
 
 const CSS_IMPORT = /^\s*import\s+['"]([^'"]*global\.css)['"]/;

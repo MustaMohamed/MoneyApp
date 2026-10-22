@@ -29,6 +29,10 @@ const DASHBOARD_INDEX = 'src/modules/dashboard/screens/dashboard/index.tsx';
 const GOALS_INDEX = 'src/modules/goals/screens/goals/index.tsx';
 const ACCOUNT_INFO_ROWS = 'src/modules/accounts/utils/account_info_rows.ts';
 const VERSIONED_FILE = 'src/modules/transactions/seeded_surface.ts';
+const TRANSACTION_CALL_FILE = 'src/modules/transactions/seeded_transaction_call.ts';
+const HELPER_CALL_FILE = 'src/test_helpers/seeded_transaction_call.ts';
+const TRANSACTION_CALLS =
+  'db.withTransactionAsync(task);\ndb.withExclusiveTransactionAsync(task);\ndb.getEachAsync(source);\n';
 const FIELD_MESSAGE_RAIL = 'src/modules/accounts/components/field_message_rail.tsx';
 const ACCOUNT_COLOR_SHEET = 'src/modules/accounts/components/account_form/account_color_sheet.tsx';
 const COMMITMENT_FORM_BODY = `${COMMITMENTS}/components/commitment_form_body.tsx`;
@@ -497,6 +501,8 @@ describe('validate-structural-guards.js, banned tokens seeded together in one ru
       seeded.set(guard, { rel, line: appendLine(rel, text) });
     }
     write(VERSIONED_FILE, 'export const TransactionFormV2 = 1;\n');
+    write(TRANSACTION_CALL_FILE, TRANSACTION_CALLS);
+    write(HELPER_CALL_FILE, TRANSACTION_CALLS);
     result = runGuard();
     restoreTouched();
   });
@@ -509,6 +515,19 @@ describe('validate-structural-guards.js, banned tokens seeded together in one ru
 
   it('T3: reports TransactionFormV2 in a new file under src/', () => {
     expectReported(result, [lineAt(VERSIONED_FILE, 1, 'TransactionFormV2')]);
+  });
+
+  it('T5: reports both expo transaction methods under src/, and none under src/test_helpers/', () => {
+    expectReported(result, [
+      lineAt(TRANSACTION_CALL_FILE, 1, 'withTransactionAsync'),
+      lineAt(TRANSACTION_CALL_FILE, 2, 'withExclusiveTransactionAsync'),
+    ]);
+    expect(stderrLines(result).filter((line) => line.startsWith(HELPER_CALL_FILE))).toEqual([]);
+  });
+
+  it('T6: reports a connection method outside the four the queue runs, and none under src/test_helpers/', () => {
+    expectReported(result, [lineAt(TRANSACTION_CALL_FILE, 3, 'getEachAsync')]);
+    expect(stderrLines(result).filter((line) => line.startsWith(HELPER_CALL_FILE))).toEqual([]);
   });
 
   it('ends stderr with one line that names the script and counts the violations', () => {
