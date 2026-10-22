@@ -12,6 +12,7 @@ import { useDashboard } from '@/modules/dashboard/screens/dashboard/dashboard.ho
 import { useDashboardState } from '@/modules/dashboard/screens/dashboard/dashboard.state';
 import { useDashboardStore } from '@/modules/dashboard/store/dashboard.store';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
+import { makeTestPayment } from '@/test_helpers/commitment';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
 
@@ -148,22 +149,17 @@ function populatedSnapshot(): DashboardSnapshot {
       categoryCount: 2,
     },
     commitmentPayments: [
-      {
+      makeTestPayment({
         id: 'paid',
         commitment_id: 'commitment',
         due_date: '2026-07-10',
         paid_date: '2026-07-09',
-        skipped_date: null,
         amount_due: 100,
         amount_paid: 90,
-        currency: Currency.EGP,
-        exchange_rate_snapshot: null,
         account_id: 'usd-bank',
-        transaction_id: null,
-        notes: null,
         created_at: '2026-01-01T00:00:00.000Z',
         updated_at: '2026-07-09T00:00:00.000Z',
-      },
+      }),
     ],
     today: '2026-07-23',
     loadedAt: new Date('2026-07-23T10:00:00.000Z').getTime(),
