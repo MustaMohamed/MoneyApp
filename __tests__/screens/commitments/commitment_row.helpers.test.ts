@@ -7,7 +7,7 @@ import {
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
-import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
+import type { CommitmentMonthPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import {
   buildCommitmentRowPresentation,
   COMMITMENT_STATUS_TAG_COLORS,
@@ -17,10 +17,11 @@ import {
 } from '@/modules/commitments/screens/commitments/components/commitment_row.helpers';
 import { STATUS_ICONS, STATUS_LABELS } from '@/modules/commitments/utils/commitment_status';
 import { TRANSACTION_ROW_HEIGHT } from '@/modules/transactions/components/transaction_row.helpers';
-import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
+import { makeTestCommitment, makeTestMonthPayment } from '@/test_helpers/commitment';
 import { makeTestAccount, makeTestCategory } from '@/test_helpers/transaction';
 
 const TODAY = '2026-10-22';
+const RATE = 50.5;
 const HEX = /^#[0-9A-F]{6}$/i;
 const ALL_STATUSES = Object.values(CommitmentPaymentStatus);
 
@@ -53,18 +54,20 @@ const housing = makeTestCategory({
 const hollowBank = { color: AcctTokens.graphite.rich, type: AccountType.Bank, hollow: true };
 
 function present(over: {
-  payment?: CommitmentPayment;
+  payment?: CommitmentMonthPayment;
   commitment?: Commitment | undefined;
   category?: Category | undefined;
   account?: Account | undefined;
   today?: string;
+  liveRate?: number | undefined;
 }) {
   return buildCommitmentRowPresentation({
-    payment: over.payment ?? makeTestPayment(),
+    payment: over.payment ?? makeTestMonthPayment(),
     commitment: 'commitment' in over ? over.commitment : makeTestCommitment(),
     category: 'category' in over ? over.category : housing,
     account: 'account' in over ? over.account : cib,
     today: over.today ?? TODAY,
+    liveRate: 'liveRate' in over ? over.liveRate : RATE,
   });
 }
 
@@ -119,7 +122,7 @@ describe('COMMITMENT_STATUS_TAG_COLORS', () => {
 
 describe('resolveCommitmentRowAccountId', () => {
   it('takes the paid-from account on a paid row though the commitment names another', () => {
-    const payment = makeTestPayment({ paid_date: '2026-09-02', account_id: 'nbe' });
+    const payment = makeTestMonthPayment({ paid_date: '2026-09-02', account_id: 'nbe' });
 
     expect(resolveCommitmentRowAccountId(payment, makeTestCommitment({ account_id: 'cib' }))).toBe(
       'nbe',
@@ -127,7 +130,7 @@ describe('resolveCommitmentRowAccountId', () => {
   });
 
   it('takes the commitment account on an unpaid row though the payment names another', () => {
-    const payment = makeTestPayment({ account_id: 'nbe' });
+    const payment = makeTestMonthPayment({ account_id: 'nbe' });
 
     expect(resolveCommitmentRowAccountId(payment, makeTestCommitment({ account_id: 'cib' }))).toBe(
       'cib',
@@ -135,7 +138,7 @@ describe('resolveCommitmentRowAccountId', () => {
   });
 
   it('takes the commitment account on a skipped row though the payment names another', () => {
-    const payment = makeTestPayment({ skipped_date: '2026-09-02', account_id: 'nbe' });
+    const payment = makeTestMonthPayment({ skipped_date: '2026-09-02', account_id: 'nbe' });
 
     expect(resolveCommitmentRowAccountId(payment, makeTestCommitment({ account_id: 'cib' }))).toBe(
       'cib',
@@ -143,13 +146,13 @@ describe('resolveCommitmentRowAccountId', () => {
   });
 
   it('gives no id for a paid row with no paid-from account', () => {
-    const payment = makeTestPayment({ paid_date: '2026-09-02', account_id: null });
+    const payment = makeTestMonthPayment({ paid_date: '2026-09-02', account_id: null });
 
     expect(resolveCommitmentRowAccountId(payment, makeTestCommitment())).toBeUndefined();
   });
 
   it('gives no id for an unpaid row whose commitment has no account', () => {
-    const payment = makeTestPayment({ account_id: 'nbe' });
+    const payment = makeTestMonthPayment({ account_id: 'nbe' });
 
     expect(
       resolveCommitmentRowAccountId(payment, makeTestCommitment({ account_id: null })),
@@ -158,7 +161,7 @@ describe('resolveCommitmentRowAccountId', () => {
 
   it('gives no id for an unpaid row with no commitment', () => {
     expect(
-      resolveCommitmentRowAccountId(makeTestPayment({ account_id: 'nbe' }), undefined),
+      resolveCommitmentRowAccountId(makeTestMonthPayment({ account_id: 'nbe' }), undefined),
     ).toBeUndefined();
   });
 });
@@ -173,7 +176,7 @@ describe('buildCommitmentRowPresentation tile', () => {
   });
 
   it('fills the tile in the paid-from account colour on a paid row', () => {
-    const payment = makeTestPayment({
+    const payment = makeTestMonthPayment({
       paid_date: '2026-09-02',
       amount_paid: 8000,
       account_id: 'nbe',
@@ -231,7 +234,7 @@ describe('buildCommitmentRowPresentation label', () => {
   });
 
   it('speaks the paid-from account on a paid row', () => {
-    const payment = makeTestPayment({
+    const payment = makeTestMonthPayment({
       paid_date: '2026-09-02',
       amount_paid: 8000,
       account_id: 'nbe',
@@ -264,7 +267,7 @@ describe('buildCommitmentRowPresentation amount', () => {
   });
 
   it('shows a USD amount at 2 dp beside its code', () => {
-    const payment = makeTestPayment({ amount_due: 15, currency: Currency.USD });
+    const payment = makeTestMonthPayment({ amount_due: 15, currency: Currency.USD });
     const commitment = makeTestCommitment({ amount: 15, currency: Currency.USD });
     const row = present({ payment, commitment });
 
@@ -273,7 +276,7 @@ describe('buildCommitmentRowPresentation amount', () => {
   });
 
   it('shows the amount paid with no tilde on a paid variable row', () => {
-    const payment = makeTestPayment({
+    const payment = makeTestMonthPayment({
       paid_date: '2026-09-02',
       amount_due: 600,
       amount_paid: 640,
@@ -286,7 +289,10 @@ describe('buildCommitmentRowPresentation amount', () => {
   });
 
   it('shows a tilde and a space before the estimate on an unpaid variable row', () => {
-    const row = present({ payment: makeTestPayment({ amount_due: 600 }), commitment: variable });
+    const row = present({
+      payment: makeTestMonthPayment({ amount_due: 600 }),
+      commitment: variable,
+    });
 
     expect(row.amountText).toBe('~ 600');
     expect(row.currencyCode).toBe('EGP');
@@ -294,7 +300,7 @@ describe('buildCommitmentRowPresentation amount', () => {
   });
 
   it('shows a tilde and a space before the estimate on a skipped variable row', () => {
-    const payment = makeTestPayment({ skipped_date: '2026-09-02', amount_due: 600 });
+    const payment = makeTestMonthPayment({ skipped_date: '2026-09-02', amount_due: 600 });
     const row = present({ payment, commitment: variable });
 
     expect(row.amountText).toBe('~ 600');
@@ -302,7 +308,7 @@ describe('buildCommitmentRowPresentation amount', () => {
   });
 
   it('shows the tilde alone beside its code on a variable row with no estimate', () => {
-    const payment = makeTestPayment({ amount_due: null });
+    const payment = makeTestMonthPayment({ amount_due: null });
     const commitment = makeTestCommitment({ amount_type: AmountType.Variable, amount: null });
     const row = present({ payment, commitment });
 
@@ -322,14 +328,14 @@ describe('buildCommitmentRowPresentation status tag', () => {
 
   it('reads Overdue for an unpaid row due before today', () => {
     expectTag(
-      present({ payment: makeTestPayment({ due_date: '2026-10-21' }) }),
+      present({ payment: makeTestMonthPayment({ due_date: '2026-10-21' }) }),
       CommitmentPaymentStatus.Overdue,
     );
   });
 
   it('reads Due for an unpaid row due today at a month end', () => {
     const row = present({
-      payment: makeTestPayment({ due_date: '2026-10-31' }),
+      payment: makeTestMonthPayment({ due_date: '2026-10-31' }),
       today: '2026-10-31',
     });
 
@@ -339,13 +345,13 @@ describe('buildCommitmentRowPresentation status tag', () => {
 
   it('reads Upcoming for an unpaid row due after today', () => {
     expectTag(
-      present({ payment: makeTestPayment({ due_date: '2026-10-23' }) }),
+      present({ payment: makeTestMonthPayment({ due_date: '2026-10-23' }) }),
       CommitmentPaymentStatus.Upcoming,
     );
   });
 
   it('reads Paid for a paid row due before today', () => {
-    const payment = makeTestPayment({
+    const payment = makeTestMonthPayment({
       paid_date: '2026-09-02',
       amount_paid: 8000,
       account_id: 'cib',
@@ -356,7 +362,7 @@ describe('buildCommitmentRowPresentation status tag', () => {
 
   it('reads Skipped for a skipped row due before today', () => {
     expectTag(
-      present({ payment: makeTestPayment({ skipped_date: '2026-09-02' }) }),
+      present({ payment: makeTestMonthPayment({ skipped_date: '2026-09-02' }) }),
       CommitmentPaymentStatus.Skipped,
     );
   });
@@ -369,10 +375,72 @@ describe('buildCommitmentRowPresentation due day', () => {
 
   it('prints a due day in another year with its year', () => {
     const row = present({
-      payment: makeTestPayment({ due_date: '2025-12-28' }),
+      payment: makeTestMonthPayment({ due_date: '2025-12-28' }),
       today: '2026-01-05',
     });
 
     expect(row.dueDay).toBe('Sun 28 Dec 2025');
+  });
+});
+
+describe('buildCommitmentRowPresentation USD leg', () => {
+  const usdCommitment = makeTestCommitment({ currency: Currency.USD, amount: 15.5 });
+  const usdRow = (overrides: Partial<CommitmentMonthPayment> = {}) =>
+    makeTestMonthPayment({ currency: Currency.USD, amount_due: 15.5, ...overrides });
+
+  it('prints the due day alone on an EGP row', () => {
+    const row = present({});
+
+    expect(row.caption).toBe(row.dueDay);
+  });
+
+  it.each<[string, Partial<CommitmentMonthPayment>]>([
+    ['unpaid', {}],
+    ['skipped', { skipped_date: '2026-09-02' }],
+  ])(
+    'appends the live-rate EGP leg at 0 dp after the due day on a %s USD row',
+    (_state, overrides) => {
+      const row = present({ payment: usdRow(overrides), commitment: usdCommitment });
+
+      expect(row.caption).toBe(`${row.dueDay} · ≈ 783 EGP`);
+    },
+  );
+
+  it.each([RATE, 99, undefined])(
+    'appends a paid USD row’s transaction EGP amount at live rate %p',
+    (liveRate) => {
+      const row = present({
+        payment: usdRow({ paid_date: '2026-09-02', amount_paid: 15.5, paid_egp_amount: 760.25 }),
+        commitment: usdCommitment,
+        liveRate,
+      });
+
+      expect(row.caption).toBe(`${row.dueDay} · ≈ 760 EGP`);
+    },
+  );
+
+  it('draws no leg on an unpaid USD row before the live rate loads', () => {
+    const row = present({ payment: usdRow(), commitment: usdCommitment, liveRate: undefined });
+
+    expect(row.caption).toBe(row.dueDay);
+  });
+
+  it('draws no leg on a USD row with no amount', () => {
+    const row = present({
+      payment: usdRow({ amount_due: null }),
+      commitment: makeTestCommitment({
+        currency: Currency.USD,
+        amount_type: AmountType.Variable,
+        amount: null,
+      }),
+    });
+
+    expect(row.caption).toBe(row.dueDay);
+  });
+
+  it('speaks the leg with the due day', () => {
+    const row = present({ payment: usdRow(), commitment: usdCommitment });
+
+    expect(row.accessibilityLabel).toContain(`${row.dueDay} · ≈ 783 EGP`);
   });
 });
