@@ -1,12 +1,37 @@
 import {
   TABS_LIST_PADDING,
   TABS_TRIGGER_PADDING_BLOCK,
+  resolveDefaultTriggerHeight,
   resolveGrownScrollRadii,
   resolveSegmentedTabsGeometry,
   resolveTabsScrollSlopInset,
 } from '@/components/ui/tabs.geometry';
-import { scaledFontSize, scaledTextStyle } from '@/components/ui/text_scale.geometry';
+import {
+  HEROUI_TEXT_TYPE,
+  scaledFontSize,
+  scaledTextStyle,
+} from '@/components/ui/text_scale.geometry';
 import { Radius, Type, lineHeightFor } from '@/constants/theme';
+
+describe('resolveDefaultTriggerHeight', () => {
+  it('MA-236: at font scale 1 is the HeroUI base line inside the trigger padding', () => {
+    expect(resolveDefaultTriggerHeight(1)).toBe(
+      lineHeightFor(HEROUI_TEXT_TYPE.base) + 2 * TABS_TRIGGER_PADDING_BLOCK,
+    );
+  });
+
+  it.each([
+    { fontScale: 2, maxFontScale: undefined },
+    { fontScale: 2, maxFontScale: 1.3 },
+  ])(
+    'MA-236: at font scale $fontScale capped at $maxFontScale the default list is the trigger inside the list padding',
+    ({ fontScale, maxFontScale }) => {
+      expect(resolveSegmentedTabsGeometry(fontScale, maxFontScale).defaultListHeight).toBe(
+        resolveDefaultTriggerHeight(fontScale, maxFontScale) + 2 * TABS_LIST_PADDING,
+      );
+    },
+  );
+});
 
 describe('resolveSegmentedTabsGeometry', () => {
   it('at font scale 1 draws the compact trigger at 28 with the Type.micro label', () => {

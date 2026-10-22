@@ -1,5 +1,5 @@
 import { TABS_LIST_PADDING, resolveSegmentedTabsGeometry } from '@/components/ui/tabs.geometry';
-import { Size, Spacing, TouchSize } from '@/constants/theme';
+import { Size, Spacing, TOUCH_SLOP_PIXEL_MARGIN, TouchSize } from '@/constants/theme';
 import {
   TRANSACTIONS_RAIL,
   resolveTransactionsRailGeometry,
@@ -16,15 +16,14 @@ describe('resolveTransactionsRailGeometry', () => {
     expect(resolveTransactionsRailGeometry(scaledSpace).space).toBe(space);
   });
 
-  it.each(SCALED_SPACES)(
-    'at a scaled space of %d the month row reaches the touch floor with a margin on each side',
-    (scaledSpace) => {
+  it('MA-236: at every scaled space the month row reads the touch floor plus a margin on each side, no more', () => {
+    const totals = SCALED_SPACES.map((scaledSpace) => {
       const { monthRowHitSlop } = resolveTransactionsRailGeometry(scaledSpace);
-      expect(
-        Size.monthPillTrack + monthRowHitSlop.top + monthRowHitSlop.bottom,
-      ).toBeGreaterThanOrEqual(TouchSize.min + 2 * Spacing.xxxxs);
-    },
-  );
+      return Size.monthPillTrack + monthRowHitSlop.top + monthRowHitSlop.bottom;
+    });
+
+    expect(totals).toEqual(SCALED_SPACES.map(() => TouchSize.min + 2 * TOUCH_SLOP_PIXEL_MARGIN));
+  });
 
   it.each(SCALED_SPACES)(
     'at a scaled space of %d a type tab reaches the touch floor with its margin',
