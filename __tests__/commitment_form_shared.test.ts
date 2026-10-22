@@ -6,7 +6,6 @@ import {
   RecurrencePreset,
 } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import {
   COMMITMENT_AMOUNT_REFUSES_ZERO,
   COMMITMENT_SCHEMA,
@@ -14,6 +13,7 @@ import {
   buildEditDefaults,
   detectPreset,
 } from '@/modules/commitments/screens/commitments/commitment_form.shared';
+import { makeTestCommitment } from '@/test_helpers/commitment';
 
 const VALID_BASE = {
   amountType: AmountType.Fixed,
@@ -27,25 +27,15 @@ const VALID_BASE = {
   durationType: DurationType.Forever,
 };
 
-const MOCK_COMMITMENT: Commitment = {
+const MOCK_COMMITMENT = makeTestCommitment({
   id: 'c-1',
-  name: 'Rent',
-  amount_type: AmountType.Fixed,
   amount: 5000,
-  currency: Currency.EGP,
   category_id: 'cat-1',
-  recurrence_every: 1,
-  recurrence_period: RecurrencePeriod.Months,
   start_date: '2024-01-01',
   account_id: null,
-  notes: null,
-  duration_type: DurationType.Forever,
-  end_date: null,
-  end_after_count: null,
-  is_active: 1,
   created_at: '2024-01-01T00:00:00.000Z',
   updated_at: '2024-01-01T00:00:00.000Z',
-};
+});
 
 describe('COMMITMENT_SCHEMA', () => {
   it('passes for valid Fixed commitment', () => {

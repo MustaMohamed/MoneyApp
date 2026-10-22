@@ -11,6 +11,7 @@ import type {
 import { createCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import type { CommitmentPaymentAmounts } from '@/modules/transactions/domain/transaction_amounts';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
+import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
 import { deferred } from '@/test_helpers/deferred';
 
 const MAY = '2026-05';
@@ -18,46 +19,29 @@ const DAY_ONE = new Date('2026-05-08T23:30:00.000Z');
 const DAY_TWO = new Date('2026-05-09T00:30:00.000Z');
 
 function commitment(overrides: Partial<Commitment> = {}): Commitment {
-  return {
+  return makeTestCommitment({
     id: 'commitment',
     name: 'Netflix',
-    amount_type: AmountType.Fixed,
     amount: 250,
-    currency: Currency.EGP,
     category_id: 'category',
-    recurrence_every: 1,
-    recurrence_period: RecurrencePeriod.Months,
-    start_date: '2026-01-01',
     account_id: 'account',
-    notes: null,
-    duration_type: DurationType.Forever,
-    end_date: null,
-    end_after_count: null,
-    is_active: 1,
     created_at: '2026-01-01T00:00:00.000Z',
     updated_at: '2026-01-01T00:00:00.000Z',
     ...overrides,
-  };
+  });
 }
 
 function payment(overrides: Partial<CommitmentPayment> = {}): CommitmentPayment {
-  return {
+  return makeTestPayment({
     id: 'payment',
     commitment_id: 'commitment',
     due_date: '2026-05-08',
-    paid_date: null,
-    skipped_date: null,
     amount_due: 250,
-    amount_paid: null,
-    currency: Currency.EGP,
-    exchange_rate_snapshot: null,
     account_id: 'account',
-    transaction_id: null,
-    notes: null,
     created_at: '2026-01-01T00:00:00.000Z',
     updated_at: '2026-01-01T00:00:00.000Z',
     ...overrides,
-  };
+  });
 }
 
 const MAY_8 = '2026-05-08';
