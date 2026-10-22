@@ -1,5 +1,6 @@
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
+import { hasAmountFilter, sameStringSet } from '@/modules/transactions/utils/filter_selection';
 
 import { isPaidPayment } from '../../../domain/payment_state';
 import { detectPreset } from '../commitment_form.shared';
@@ -10,19 +11,6 @@ export interface CommitmentFilterCandidate {
   commitment?: Commitment;
   accountName?: string;
   categoryName?: string;
-}
-
-type NamedEntity = { name: string };
-
-function sameStringSet<T extends string>(a: T[], b: T[]): boolean {
-  if (a.length !== b.length) return false;
-  const left = [...a].sort();
-  const right = [...b].sort();
-  return left.every((id, index) => id === right[index]);
-}
-
-function hasAmountFilter(filters: CommitmentAdvancedFilters): boolean {
-  return filters.amountMin !== undefined || filters.amountMax !== undefined;
 }
 
 export function countActiveCommitmentFilters(filters: CommitmentAdvancedFilters): number {
@@ -108,15 +96,4 @@ export function commitmentMatchesSearch(
     candidate.categoryName,
   ];
   return values.some((value) => value?.toLowerCase().includes(query));
-}
-
-export function formatCommitmentSelectionSummary(names: string[], allLabel: string): string {
-  if (names.length === 0) return allLabel;
-  if (names.length === 1) return names[0];
-  if (names.length === 2) return `${names[0]}, ${names[1]}`;
-  return `${names[0]}, ${names[1]} +${names.length - 2}`;
-}
-
-export function selectedNames(ids: string[], source: ReadonlyMap<string, NamedEntity>): string[] {
-  return ids.map((id) => source.get(id)?.name).filter((name): name is string => name !== undefined);
 }

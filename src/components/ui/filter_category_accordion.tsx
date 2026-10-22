@@ -3,7 +3,7 @@ import React from 'react';
 
 import { FilterAccordionShell, FilterOptionPillList } from '@/components/ui/filter_accordion';
 import { Strings } from '@/constants/strings';
-import type { Category } from '@/database/entities/category.entity';
+import type { Category } from '@/modules/categories/entities/category.entity';
 import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
 
@@ -15,9 +15,10 @@ interface Props {
   expanded: boolean;
   onToggleSection: () => void;
   onToggleId: (id: string) => void;
+  optionAccessibilityLabel: (name: string) => string;
 }
 
-export function CommitmentCategoryAccordion({
+export function FilterCategoryAccordion({
   categories,
   selectedIds,
   selectedCount,
@@ -25,12 +26,13 @@ export function CommitmentCategoryAccordion({
   expanded,
   onToggleSection,
   onToggleId,
+  optionAccessibilityLabel,
 }: Props): React.ReactElement {
   const options = categories.map((category) => ({
     id: category.id,
     label: category.name,
     selected: selectedIds.includes(category.id),
-    accessibilityLabel: Strings.commitmentFilterCategoryAccessibility(category.name),
+    accessibilityLabel: optionAccessibilityLabel(category.name),
     startIcon: (
       <MaterialCommunityIcons
         name={toIconName(category.icon, 'tag')}

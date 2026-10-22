@@ -7,9 +7,10 @@ import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { useTransactionsScreenStore } from '@/modules/transactions/store/transactions.store';
 import { resolveAmountRangeDraft } from '@/modules/transactions/utils/amount_range_filter';
+import { formatSelectionSummary } from '@/modules/transactions/utils/filter_selection';
 import { resolveAccountName } from '@/utils/account_name';
 
-import { advancedFiltersEqual, countActiveFilters, formatSelectionSummary } from './filter.helpers';
+import { advancedFiltersEqual, countActiveFilters } from './filter.helpers';
 import { useFilterState } from './filter.state';
 import { useFilterStore } from './filter.store';
 

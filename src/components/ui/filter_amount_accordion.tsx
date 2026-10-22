@@ -12,15 +12,16 @@ interface Props {
   active: boolean;
   expanded: boolean;
   onToggleSection: () => void;
-  onChangeCurrency: (c: Currency) => void;
+  onChangeCurrency: (currency: Currency) => void;
   onChangeMinText: (value: string) => void;
   onChangeMaxText: (value: string) => void;
-  minError?: string;
-  maxError?: string;
-  rangeError?: string;
+  currencyAccessibilityLabel: string;
+  minError: string | undefined;
+  maxError: string | undefined;
+  rangeError: string | undefined;
 }
 
-export function AmountAccordion({
+export function FilterAmountAccordion({
   amountCurrency,
   minValue,
   maxValue,
@@ -31,6 +32,7 @@ export function AmountAccordion({
   onChangeCurrency,
   onChangeMinText,
   onChangeMaxText,
+  currencyAccessibilityLabel,
   minError,
   maxError,
   rangeError,
@@ -50,7 +52,7 @@ export function AmountAccordion({
         onChangeCurrency={onChangeCurrency}
         onChangeMinText={onChangeMinText}
         onChangeMaxText={onChangeMaxText}
-        accessibilityLabel={Strings.filterAmountCurrencyAccessibility}
+        accessibilityLabel={currencyAccessibilityLabel}
         minError={minError}
         maxError={maxError}
         rangeError={rangeError}

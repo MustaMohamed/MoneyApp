@@ -4,8 +4,8 @@ import React from 'react';
 import { TYPE_OPTIONS } from '@/components/account_type_pill';
 import { FilterAccordionShell, FilterOptionPillList } from '@/components/ui/filter_accordion';
 import { Strings } from '@/constants/strings';
-import type { Account } from '@/database/entities/account.entity';
 import { resolveAccountGlyphColor } from '@/modules/accounts/constants/account_glyph_color';
+import type { Account } from '@/modules/accounts/entities/account.entity';
 import { resolveAccountName } from '@/utils/account_name';
 import { ms } from '@/utils/responsive';
 
@@ -17,9 +17,10 @@ interface Props {
   expanded: boolean;
   onToggleSection: () => void;
   onToggleId: (id: string) => void;
+  optionAccessibilityLabel: (name: string) => string;
 }
 
-export function CommitmentAccountAccordion({
+export function FilterAccountAccordion({
   accounts,
   selectedIds,
   selectedCount,
@@ -27,20 +28,24 @@ export function CommitmentAccountAccordion({
   expanded,
   onToggleSection,
   onToggleId,
+  optionAccessibilityLabel,
 }: Props): React.ReactElement {
-  const options = accounts.map((account) => ({
-    id: account.id,
-    label: resolveAccountName(account),
-    selected: selectedIds.includes(account.id),
-    accessibilityLabel: Strings.commitmentFilterAccountAccessibility(resolveAccountName(account)),
-    startIcon: (
-      <MaterialCommunityIcons
-        name={TYPE_OPTIONS.find((option) => option.type === account.type)?.icon ?? 'bank'}
-        size={ms(13)}
-        color={resolveAccountGlyphColor(account.color)}
-      />
-    ),
-  }));
+  const options = accounts.map((account) => {
+    const label = resolveAccountName(account);
+    return {
+      id: account.id,
+      label,
+      selected: selectedIds.includes(account.id),
+      accessibilityLabel: optionAccessibilityLabel(label),
+      startIcon: (
+        <MaterialCommunityIcons
+          name={TYPE_OPTIONS.find((option) => option.type === account.type)?.icon ?? 'bank'}
+          size={ms(13)}
+          color={resolveAccountGlyphColor(account.color)}
+        />
+      ),
+    };
+  });
 
   return (
     <FilterAccordionShell

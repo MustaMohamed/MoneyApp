@@ -8,8 +8,12 @@ import {
   FilterOptionPillList,
 } from '@/components/ui/filter_accordion';
 import { resolveFilterAmountSlotStyle } from '@/components/ui/filter_accordion.geometry';
+import { FilterAccountAccordion } from '@/components/ui/filter_account_accordion';
+import { FilterAmountAccordion } from '@/components/ui/filter_amount_accordion';
+import { FilterCategoryAccordion } from '@/components/ui/filter_category_accordion';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { makeTestAccount, makeTestCategory } from '@/test_helpers/transaction';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
 jest.mock('heroui-native', () => {
@@ -184,6 +188,9 @@ describe('AmountRangeFilterContent', () => {
         onChangeMinText={onChangeMinText}
         onChangeMaxText={onChangeMaxText}
         accessibilityLabel="Amount currency"
+        minError={undefined}
+        maxError={undefined}
+        rangeError={undefined}
       />,
     );
 
@@ -210,6 +217,9 @@ describe('AmountRangeFilterContent', () => {
       onChangeMinText: jest.fn(),
       onChangeMaxText: jest.fn(),
       accessibilityLabel: 'Amount currency',
+      minError: undefined,
+      maxError: undefined,
+      rangeError: undefined,
     };
     const { fontScale } = Dimensions.get('window');
     expect(fontScale).toBeGreaterThan(1);
@@ -230,5 +240,69 @@ describe('AmountRangeFilterContent', () => {
     expect(screen.getAllByTestId('amount-field-error-slot')).toHaveLength(2);
     expect(screen.getByTestId('amount-range-error-slot')).toHaveStyle(rangeSlot);
     expect(screen.getByText('Minimum cannot exceed maximum')).toBeTruthy();
+  });
+});
+
+describe('FilterAmountAccordion', () => {
+  it('labels the currency tabs with the label its sheet passes', async () => {
+    const { getByLabelText } = await render(
+      <FilterAmountAccordion
+        amountCurrency={Currency.EGP}
+        minValue=""
+        maxValue=""
+        summary={Strings.filterSummaryAmountEmpty}
+        active={false}
+        expanded
+        onToggleSection={jest.fn()}
+        onChangeCurrency={jest.fn()}
+        onChangeMinText={jest.fn()}
+        onChangeMaxText={jest.fn()}
+        currencyAccessibilityLabel={Strings.commitmentFilterAmountCurrencyAccessibility}
+        minError={undefined}
+        maxError={undefined}
+        rangeError={undefined}
+      />,
+    );
+
+    expect(getByLabelText('Commitment amount currency')).toBeTruthy();
+  });
+});
+
+describe('FilterAccountAccordion', () => {
+  it('labels each account option through the label function its sheet passes', async () => {
+    const { getByLabelText } = await render(
+      <FilterAccountAccordion
+        accounts={[makeTestAccount({ name: 'Cash' })]}
+        selectedIds={[]}
+        selectedCount={0}
+        summary={Strings.filterSummaryAccountsEmpty}
+        expanded
+        onToggleSection={jest.fn()}
+        onToggleId={jest.fn()}
+        optionAccessibilityLabel={(name) => `${name}, x`}
+      />,
+    );
+
+    expect(getByLabelText('Cash, x')).toBeTruthy();
+  });
+});
+
+describe('FilterCategoryAccordion', () => {
+  it('labels each category option through the label function its sheet passes', async () => {
+    const category = makeTestCategory({ name: 'Groceries' });
+    const { getByLabelText } = await render(
+      <FilterCategoryAccordion
+        categories={[category]}
+        selectedIds={[]}
+        selectedCount={0}
+        summary={Strings.filterSummaryCategoriesEmpty}
+        expanded
+        onToggleSection={jest.fn()}
+        onToggleId={jest.fn()}
+        optionAccessibilityLabel={(name) => `${name}, x`}
+      />,
+    );
+
+    expect(getByLabelText(`${category.name}, x`)).toBeTruthy();
   });
 });

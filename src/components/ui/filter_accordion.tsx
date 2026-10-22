@@ -1,5 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Accordion } from 'heroui-native';
+import { Accordion, cn } from 'heroui-native';
 import React, { type ReactNode } from 'react';
 import { View, useWindowDimensions } from 'react-native';
 
@@ -45,9 +45,9 @@ interface AmountRangeFilterContentProps {
   onChangeMinText: (value: string) => void;
   onChangeMaxText: (value: string) => void;
   accessibilityLabel: string;
-  minError?: string;
-  maxError?: string;
-  rangeError?: string;
+  minError: string | undefined;
+  maxError: string | undefined;
+  rangeError: string | undefined;
 }
 
 export function FilterAccordionShell({
@@ -62,14 +62,18 @@ export function FilterAccordionShell({
   const summaryLine = resolveOneLineTextProps(scaledTextStyleAboveOne(Type.micro, fontScale));
 
   return (
-    <View className="border-separator bg-surface mb-2 rounded-xl border p-3.5">
+    <View className="border-separator bg-surface mb-2 rounded-xl border px-3.5">
       <Accordion
         selectionMode="single"
         value={expanded ? 'section' : ''}
         onValueChange={(_value: string | undefined) => onToggle()}
       >
         <Accordion.Item value="section">
-          <Accordion.Trigger className="gap-0 px-0 py-0" style={{ padding: 0, gap: 0 }}>
+          {/* The trigger holds the card's vertical padding and the gap above the body, so its box clears TouchSize.min. */}
+          <Accordion.Trigger
+            className={cn('gap-0 px-0 pt-3.5', expanded ? 'pb-3' : 'pb-3.5')}
+            style={{ paddingHorizontal: 0, gap: 0 }}
+          >
             <View className="flex-row items-center justify-between gap-2" style={{ flex: 1 }}>
               <View className="flex-row items-center gap-2" style={{ flexShrink: 0 }}>
                 <Text className="font-inter-semibold text-[13px]">{title}</Text>
@@ -104,7 +108,7 @@ export function FilterAccordionShell({
               </View>
             </View>
           </Accordion.Trigger>
-          <Accordion.Content className="px-0 pb-0" style={{ padding: 0 }}>
+          <Accordion.Content className="px-0 pt-0 pb-3.5" style={{ paddingHorizontal: 0 }}>
             {children}
           </Accordion.Content>
         </Accordion.Item>
@@ -118,7 +122,7 @@ export function FilterOptionPillList<T extends string = string>({
   onToggle,
 }: FilterOptionPillListProps<T>): React.ReactElement {
   return (
-    <View className="mt-3 flex-row flex-wrap gap-1.5">
+    <View className="flex-row flex-wrap gap-1.5">
       {options.map((option) => (
         <SelectablePill
           key={option.id}
@@ -150,7 +154,7 @@ export function AmountRangeFilterContent({
   const slot = resolveFilterAmountSlotStyle(fontScale);
 
   return (
-    <View className="mt-3">
+    <View>
       <SegmentedTabs<Currency>
         segments={[
           { value: Currency.EGP, label: Currency.EGP },

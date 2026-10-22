@@ -1,6 +1,13 @@
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { TransactionListFilters } from '@/modules/transactions/store/transaction.store';
 import { formatAmountSummary } from '@/modules/transactions/utils/amount_range_filter';
+import {
+  type NamedEntity,
+  formatSelectionSummary,
+  hasAmountFilter,
+  sameStringSet,
+  selectedNames,
+} from '@/modules/transactions/utils/filter_selection';
 import { resolveAccountName } from '@/utils/account_name';
 
 import type { AdvancedFilters } from './filter.store';
@@ -9,7 +16,7 @@ export function countActiveFilters(f: AdvancedFilters): number {
   let n = 0;
   if (f.accountIds.length > 0) n++;
   if (f.categoryIds.length > 0) n++;
-  if (f.amountMin !== undefined || f.amountMax !== undefined) n++;
+  if (hasAmountFilter(f)) n++;
   return n;
 }
 
@@ -42,30 +49,10 @@ export function toQueryFilters(applied: AdvancedFilters): Partial<TransactionLis
   if (applied.categoryIds.length > 0) out.categoryIds = applied.categoryIds;
   if (applied.amountMin !== undefined) out.amountMin = applied.amountMin;
   if (applied.amountMax !== undefined) out.amountMax = applied.amountMax;
-  if (applied.amountMin !== undefined || applied.amountMax !== undefined) {
+  if (hasAmountFilter(applied)) {
     out.amountCurrency = applied.amountCurrency;
   }
   return out;
-}
-
-export function formatSelectionSummary(names: string[], allLabel: string): string {
-  if (names.length === 0) return allLabel;
-  if (names.length === 1) return names[0];
-  if (names.length === 2) return `${names[0]}, ${names[1]}`;
-  return `${names[0]}, ${names[1]} +${names.length - 2}`;
-}
-
-type NamedEntity = { name: string };
-
-function sameStringSet(a: string[], b: string[]): boolean {
-  if (a.length !== b.length) return false;
-  const left = [...a].sort();
-  const right = [...b].sort();
-  return left.every((id, index) => id === right[index]);
-}
-
-function hasAmountFilter(f: AdvancedFilters): boolean {
-  return f.amountMin !== undefined || f.amountMax !== undefined;
 }
 
 export function advancedFiltersEqual(a: AdvancedFilters, b: AdvancedFilters): boolean {
@@ -77,10 +64,6 @@ export function advancedFiltersEqual(a: AdvancedFilters, b: AdvancedFilters): bo
     a.amountMax === b.amountMax &&
     (!amountActive || a.amountCurrency === b.amountCurrency)
   );
-}
-
-function selectedNames(ids: string[], source: ReadonlyMap<string, NamedEntity>): string[] {
-  return ids.map((id) => source.get(id)?.name).filter((name): name is string => name !== undefined);
 }
 
 export function labelAccountsById(

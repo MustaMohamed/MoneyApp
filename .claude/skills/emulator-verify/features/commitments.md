@@ -1,6 +1,6 @@
 # Commitments
 
-Route `/commitments`, a tab. Screen `src/modules/commitments/screens/commitments/index.tsx`, summary `components/summary_header.tsx`, search and filter row `components/search_row.tsx`, filter sheet `filter/index.tsx` over the shared `src/components/ui/filter_accordion.tsx`, month pill from `src/components/ui/filter_rail.tsx`. Not redesigned by #378; drawn as it is today. This file carries only the pill states MA-086 needs — add the rest when a ticket reaches them.
+Route `/commitments`, a tab. Screen `src/modules/commitments/screens/commitments/index.tsx`, summary `components/summary_header.tsx`, search and filter row `components/search_row.tsx`, filter sheet `filter/index.tsx` in the shared `src/components/ui/filter_sheet_frame.tsx`, with the shared Accounts, Categories and Amount sections `filter_account_accordion.tsx`, `filter_category_accordion.tsx` and `filter_amount_accordion.tsx` over the shared `src/components/ui/filter_accordion.tsx`, month pill from `src/components/ui/filter_rail.tsx`. Not redesigned by #378; drawn as it is today. This file carries only the pill states MA-086 needs — add the rest when a ticket reaches them.
 
 ## Reach it
 
@@ -45,7 +45,7 @@ Route `/commitments`, a tab. Screen `src/modules/commitments/screens/commitments
 | filter sheet footer, flat | B1, B2, MA-212 | open the filter sheet, expand `Accounts`, select two options | the Reset and Apply button nodes' bounds ÷ 2.625 read 48 ± 1 high (HeroUI `md`, not `Size.ctaHeight` 52); Apply reads `Apply (1)` (the count is `countActiveCommitmentFilters`, one per active dimension, so two accounts count once) on a single accent fill with no gradient stop, Reset a foreground label on the secondary fill; each button's four corners whole at `Radius.cta`, none cut by `sheet-footer`'s edge; the gap between the two buttons reads 8 dp (`gap-2`), the built footer's, which stands over B1's 12 px under the ticket's last Rules line; one shot of the footer |
 | filter sheet footer, disabled | B1, MA-212 | open the filter sheet with an empty draft | Reset and Apply nodes read `enabled=false` at 48 ± 1 high; Apply is the flat accent fill under HeroUI's disabled opacity, no gradient; one shot of the footer |
 | filter sheet sections | B1, MA-212 | open the filter sheet with an empty draft and no section expanded | the five section headers in order, `Accounts` · `All accounts`, `Categories` · `All categories`, `Amount` · `Any amount`, `Amount type` · `All types`, `Repeats` · `All`, with no count pill; one shot |
-| filter sheet, amount errors, large font | no frame, MA-212 | the force of `transactions.md` § States, `filter sheet, amount errors, large font`, on `/commitments` | the proofs of that row with its 2.0 figures, since both sheets draw the shared `AmountRangeFilterContent`; the `Amount` summary reads `Fix amount range` on one line while either error shows; the last card's bottom sits above `sheet-footer`'s top (probe: about 555 against 651.0) |
+| filter sheet, amount errors, large font | no frame, MA-212 | the force of `transactions.md` § States, `filter sheet, amount errors, large font`, on `/commitments` | the proofs of that row with its 2.0 figures, since both sheets draw the shared `FilterAmountAccordion`; the `Amount` summary reads `Fix amount range` on one line while either error shows; the last card's bottom sits above `sheet-footer`'s top (probe: about 555 against 651.0) |
 
 ## Outbound
 
@@ -61,6 +61,10 @@ Route `/commitments`, a tab. Screen `src/modules/commitments/screens/commitments
 
 - The count pill draws only at `count > 0`: an accordion with nothing selected has no pill to measure.
 - `filter_accordion.tsx` is shared with the transactions filter sheet; a height read here holds there, and a divergence is a caller override.
+- `filter_sheet_frame.tsx` and the Accounts, Categories and Amount sections are shared with the transactions filter sheet (MA-233); a read of the frame or a section here holds there, and a divergence is a caller override.
+- With a section open, `label="<Title>"` matches two nodes, the header button and its title `TextView`. A walk closes an open section with `tapxy` on the title's centre, which lies inside the button (MA-233).
+- A section header's button box holds the card's vertical padding, and the 12 dp gap above the body while open: 47.24 to 47.62 dp closed and 45.71 open at 1.0, 64.38 to 64.76 and 62.86 at 2.0. Its title `TextView` sits 14 dp under the button's top (MA-233).
+- At 2.0 with the filter sheet at its 45% snap, the lower option pills sit under `sheet-footer`, and a tap on one lands on Reset. Drag the sheet to 92% before a pick (MA-233).
 - The accordion pill has no vertical padding, so its height is the line box alone — 14, not 18 like the padded pills.
 - The month pill in the rail is the shared `month_filter.tsx`, measured once as `month filter pill` in `transactions.md` § States; that read holds here, so do not re-measure it — a divergence is a caller override.
 - This list's group headers are `DateHeader`, not the shared `section_header.tsx` (`index.tsx:127-131`), and read 14 — the `section title` state belongs to `dashboard.md` and `accounts_list.md`.
