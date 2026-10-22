@@ -5,10 +5,20 @@ import { View, useWindowDimensions } from 'react-native';
 
 import { TYPE_OPTIONS } from '@/components/account_type_pill';
 import { AccountColorTile } from '@/components/ui/account_color_tile';
+import { AccountStrip } from '@/components/ui/account_strip';
+import { DangerRing } from '@/components/ui/danger_ring';
+import { DateRow } from '@/components/ui/date_row';
 import { FactRow } from '@/components/ui/fact_row';
 import { FormErrorText } from '@/components/ui/form_error_text';
+import { FormPickerRow } from '@/components/ui/form_picker_row';
+import {
+  ACCOUNT_STRIP_WRAPPER_PADDING_Y,
+  AMOUNT_MESSAGE_TEXT_STYLE,
+} from '@/components/ui/form_sheet.geometry';
+import type { AccountStripChip } from '@/components/ui/form_sheet.helpers';
 import { INPUT_NO_FOCUS_BORDER_COLOR } from '@/components/ui/input';
 import { ListCard } from '@/components/ui/list_card';
+import { RateRow } from '@/components/ui/rate_row';
 import { useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import {
@@ -27,27 +37,18 @@ import { isRateStale } from '@/modules/currency/store/currency.helpers';
 import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
 
-import { AccountStrip } from './components/account_strip';
-import { AmountHero } from './components/amount_hero';
-import { ConvertedAmountLine } from './components/converted_amount_line';
-import { DangerRing } from './components/danger_ring';
-import { DateRow } from './components/date_row';
-import { FormPickerRow } from './components/form_picker_row';
-import { TransactionRateEditor } from './components/rate_editor_sheet';
-import { RateRow } from './components/rate_row';
+import { TransactionAmountHero } from './components/transaction_amount_hero';
 import {
-  ACCOUNT_STRIP_WRAPPER_PADDING_Y,
-  AMOUNT_MESSAGE_TEXT_STYLE,
   resolveNoteInputGeometry,
   TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
 } from './components/transaction_form.geometry';
+import {
+  TransactionConvertedAmountLine,
+  TransactionRateEditor,
+} from './components/transaction_rate_preview';
 import type { RatePreviewInput } from './components/transaction_rate_preview.hook';
 import { TypeTabs } from './components/type_tabs';
-import {
-  type AccountStripChip,
-  resolveBudgetFieldError,
-  resolveToRowFace,
-} from './transaction_form.helpers';
+import { resolveBudgetFieldError, resolveToRowFace } from './transaction_form.helpers';
 import type { TransactionFormMode } from './transaction_form.types';
 import { useTransactionFormNoteReveal } from './transaction_form_note_reveal.hook';
 
@@ -185,7 +186,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
   const { fontScale } = useWindowDimensions();
   const supportingLine = resolveOneLineTextProps(scaledTextStyleAboveOne(Type.micro, fontScale));
   const noteGeometry = resolveNoteInputGeometry(fontScale);
-  const ratePreview: Omit<RatePreviewInput, 'exchangeRate'> = {
+  const ratePreview: RatePreviewInput = {
     mode: formMode,
     type,
     sourceCurrency: selectedAccount?.currency,
@@ -226,11 +227,11 @@ export function TransactionFormBody(props: Props): React.ReactElement {
         style={{ paddingVertical: ACCOUNT_STRIP_WRAPPER_PADDING_Y }}
       >
         {props.locked ? (
-          <AccountStrip chips={props.lockedChips} type={type} caption={stripCaption} />
+          <AccountStrip chips={props.lockedChips} revealKey={type} caption={stripCaption} />
         ) : (
           <AccountStrip
             chips={props.stripChips}
-            type={type}
+            revealKey={type}
             onSelect={props.onSelectStripChip}
             caption={stripCaption}
             error={accountError}
@@ -245,7 +246,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
         )}
       </View>
 
-      <AmountHero
+      <TransactionAmountHero
         onChange={setAmountStr}
         type={type}
         currency={currency}
@@ -258,7 +259,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
         message={amountError}
       >
         {requiresRate && amountError === undefined ? (
-          <ConvertedAmountLine {...ratePreview} exchangeRate={exchangeRate} />
+          <TransactionConvertedAmountLine {...ratePreview} exchangeRate={exchangeRate} />
         ) : null}
       </ValidationSlot>
 

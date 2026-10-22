@@ -166,3 +166,49 @@ describe('planMissingCommitmentPayments', () => {
     expect(createId).not.toHaveBeenCalled();
   });
 });
+
+describe('planMissingCommitmentPayments — after-N keeps N rows in all', () => {
+  function plannedDates(overrides: Partial<Commitment>, heldDates: string[]): string[] {
+    return planMissingCommitmentPayments({
+      commitments: [commitment(overrides)],
+      dueDates: heldDates.map((due_date) => ({ commitment_id: 'fixed', due_date })),
+      now: NOW,
+      createId: () => 'generated',
+    }).map((row) => row.due_date);
+  }
+
+  it('plans only the rows the held dates leave of N on a moved schedule', () => {
+    expect(
+      plannedDates({ start_date: '2026-01-15', end_after_count: 3 }, ['2026-01-01', '2026-02-01']),
+    ).toEqual(['2026-01-15']);
+  });
+
+  it('plans nothing when N dates are already held off the new schedule', () => {
+    expect(
+      plannedDates({ start_date: '2026-01-15', end_after_count: 3 }, [
+        '2026-01-01',
+        '2026-02-01',
+        '2026-03-01',
+      ]),
+    ).toEqual([]);
+  });
+
+  it('clamps a 31st start to each month end and stops at N rows', () => {
+    expect(
+      plannedDates({ start_date: '2026-01-31', end_after_count: 4 }, ['2026-01-31', '2026-01-15']),
+    ).toEqual(['2026-02-28', '2026-03-31']);
+  });
+
+  it('clamps a leap-day yearly start to 28 February and stops at N rows', () => {
+    expect(
+      plannedDates(
+        {
+          start_date: '2024-02-29',
+          recurrence_period: RecurrencePeriod.Years,
+          end_after_count: 3,
+        },
+        ['2023-06-01'],
+      ),
+    ).toEqual(['2024-02-29', '2025-02-28']);
+  });
+});

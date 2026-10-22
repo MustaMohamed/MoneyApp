@@ -50,6 +50,7 @@ type CommitmentStore = CommitmentStoreState & {
   deactivateCommitment(id: string): Promise<void>;
   markAsPaid(paymentId: string, details: PaymentDetails): Promise<void>;
   skipPayment(paymentId: string, now?: Date): Promise<void>;
+  undoSkip(paymentId: string, now?: Date): Promise<void>;
 
   getOverdue(): CommitmentPayment[];
   getDueToday(): CommitmentPayment[];
@@ -236,7 +237,6 @@ export function createCommitmentStore(
         updateCommitment: async (id, data) => {
           try {
             await repo.update(id, data);
-            await repo.deleteUnpaidPayments(id);
             invalidateData();
             await get().loadMonthSnapshot(get().selectedMonth);
           } catch (error) {
@@ -259,12 +259,7 @@ export function createCommitmentStore(
         markAsPaid: async (paymentId, details) => {
           beginPaymentTransition(paymentId);
           try {
-            const payment = get().payments.find((candidate) => candidate.id === paymentId);
-            const commitment = payment
-              ? get().commitments.find((candidate) => candidate.id === payment.commitment_id)
-              : undefined;
-            if (!commitment) throw new Error(`Commitment not found for payment ${paymentId}`);
-            const amounts = await repo.markAsPaid(paymentId, details, commitment);
+            const amounts = await repo.markAsPaid(paymentId, details);
             announceTransactionWrite();
             const updatedAt = new Date().toISOString();
             set((state) => ({
@@ -314,6 +309,28 @@ export function createCommitmentStore(
             revalidateAfterMutation();
           } catch (error) {
             console.error('[commitmentStore] skipPayment failed:', error);
+            throw error;
+          } finally {
+            endPaymentTransition(paymentId);
+          }
+        },
+
+        undoSkip: async (paymentId, now = new Date()) => {
+          beginPaymentTransition(paymentId);
+          try {
+            const updatedAt = now.toISOString();
+            await repo.undoSkip(paymentId, toLocalDateString(now), updatedAt);
+            set((state) => ({
+              payments: state.payments.map((candidate) =>
+                candidate.id === paymentId
+                  ? { ...candidate, skipped_date: null, updated_at: updatedAt }
+                  : candidate,
+              ),
+            }));
+            invalidateData();
+            revalidateAfterMutation();
+          } catch (error) {
+            console.error('[commitmentStore] undoSkip failed:', error);
             throw error;
           } finally {
             endPaymentTransition(paymentId);

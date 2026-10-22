@@ -56,6 +56,16 @@ beforeAll(() => {
       const result = realDb.prepare(sql).run(...(params as never[]));
       return { changes: result.changes, lastInsertRowId: Number(result.lastInsertRowid) };
     }),
+    withExclusiveTransactionAsync: jest.fn(async (work: (db: SQLiteDatabase) => Promise<void>) => {
+      realDb.exec('BEGIN IMMEDIATE');
+      try {
+        await work(fakeDb);
+        realDb.exec('COMMIT');
+      } catch (error) {
+        realDb.exec('ROLLBACK');
+        throw error;
+      }
+    }),
   } as unknown as SQLiteDatabase;
 });
 

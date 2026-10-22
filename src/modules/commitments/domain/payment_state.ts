@@ -1,5 +1,6 @@
-import { CommitmentPaymentStatus } from '@/constants/enums';
+import { CommitmentPaymentStatus, DurationType } from '@/constants/enums';
 
+import type { Commitment } from '../entities/commitment.entity';
 import type { CommitmentPayment } from '../entities/commitment_payment.entity';
 
 type PaymentDates = Pick<CommitmentPayment, 'paid_date' | 'skipped_date'>;
@@ -39,4 +40,25 @@ export function isDueInMonth(
   yearMonth: string,
 ): boolean {
   return payment.due_date.slice(0, 7) === yearMonth;
+}
+
+/** `settledCount` counts the skipped row itself; `today` is the local calendar date `YYYY-MM-DD`. */
+export function resolveUndoSkip(
+  commitment: Pick<Commitment, 'is_active' | 'duration_type' | 'end_date' | 'end_after_count'>,
+  settledCount: number,
+  today: string,
+): 'clear' | 'reactivate' | 'refuse' {
+  if (commitment.is_active === 1) return 'clear';
+  const { duration_type, end_after_count, end_date } = commitment;
+  if (
+    duration_type === DurationType.AfterCount &&
+    end_after_count !== null &&
+    settledCount >= end_after_count
+  ) {
+    return settledCount - 1 < end_after_count ? 'reactivate' : 'clear';
+  }
+  if (duration_type === DurationType.UntilDate && end_date !== null && end_date < today) {
+    return 'clear';
+  }
+  return 'refuse';
 }

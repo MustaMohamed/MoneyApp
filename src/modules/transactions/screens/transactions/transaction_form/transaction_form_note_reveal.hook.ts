@@ -2,7 +2,7 @@ import type { BottomSheetScrollViewMethods } from '@gorhom/bottom-sheet';
 import { type RefObject, useCallback, useRef } from 'react';
 import type { LayoutChangeEvent } from 'react-native';
 
-import { usePendingFrame } from './pending_frame.hook';
+import { usePendingFrame } from '@/components/ui/pending_frame.hook';
 
 interface TransactionFormNoteReveal {
   scrollRef: RefObject<BottomSheetScrollViewMethods | null>;

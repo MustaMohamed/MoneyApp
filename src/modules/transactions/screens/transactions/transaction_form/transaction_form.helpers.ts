@@ -1,3 +1,9 @@
+import type { AmountHeroTone } from '@/components/ui/amount_hero';
+import {
+  type AccountStripChip,
+  type ConvertedAmount,
+  resolveRateCommit,
+} from '@/components/ui/form_sheet.helpers';
 import { AccountType, CategoryType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/modules/accounts/entities/account.entity';
@@ -12,12 +18,9 @@ import {
   TransactionAmountError,
 } from '@/modules/transactions/domain/transaction_amounts';
 import { TransactionAccountArchivedError } from '@/modules/transactions/repositories/transaction.errors';
-import { formatStoredRateLine } from '@/modules/transactions/utils/stored_rate_line';
 import { resolveAccountName } from '@/utils/account_name';
-import { formatDisplayAmount, formatRateDisplayMagnitude } from '@/utils/format_amount';
 import { toLocalDateString } from '@/utils/format_date';
 import { MIN_MONEY_AMOUNT } from '@/utils/money';
-import { formatStoredMoneyText } from '@/utils/money_text';
 import { parsePositiveDecimal, parseRateText } from '@/utils/parse_decimal';
 
 export interface TransactionFormSemantics {
@@ -82,6 +85,13 @@ export function resolveTransactionFormSemantics(
   };
 }
 
+export const AMOUNT_HERO_TONE: Record<TransactionType, AmountHeroTone> = {
+  [TransactionType.Expense]: 'danger',
+  [TransactionType.Income]: 'success',
+  [TransactionType.Transfer]: 'info',
+  [TransactionType.CCPayment]: 'accentCc',
+};
+
 export function resolveEligibleFromAccounts(type: TransactionType, accounts: Account[]): Account[] {
   if (type === TransactionType.Transfer || type === TransactionType.CCPayment) {
     return accounts.filter((account) => account.type !== AccountType.CreditCard);
@@ -101,15 +111,6 @@ export function resolveEligibleToAccounts(type: TransactionType, accounts: Accou
 
 export function resolveStripSelectedId(eligible: Account[], accountId: string): string | undefined {
   return eligible.some((account) => account.id === accountId) ? accountId : undefined;
-}
-
-export interface AccountStripChip {
-  id: string;
-  name: string;
-  tile: RowTile;
-  selected: boolean;
-  locked: boolean;
-  dimmed: boolean;
 }
 
 function toStripChip(
@@ -227,11 +228,6 @@ export function resolveDestinationFloorError(input: {
   }
 }
 
-export interface ConvertedAmount {
-  amount: number;
-  currency: Currency;
-}
-
 /** The leg in the rate's direction, from the resolver the save runs; `undefined` with no USD side or nothing to convert yet. */
 export function resolveConvertedAmount(input: {
   type: TransactionType;
@@ -272,40 +268,6 @@ export function resolveConvertedAmount(input: {
   }
 }
 
-/** The editor's line: the stored rate's line only while the draft parses to the stored rate, the equality Done commits by. */
-export function resolveRateEditorSource(input: {
-  draftText: string;
-  storedRate: number;
-  rateUpdatedAt: string | null;
-}): { usesStoredRate: boolean; line: string } {
-  const usesStoredRate =
-    resolveRateCommit({ text: input.draftText, storedRate: input.storedRate })?.override === false;
-  return {
-    usesStoredRate,
-    line: usesStoredRate
-      ? formatStoredRateLine(input.rateUpdatedAt)
-      : Strings.addTxRateSourceCustomPerUsd,
-  };
-}
-
-/** The rate as every rate prints; the rounding is display only, and text the formatter refuses prints as typed. */
-export function formatRateRowValue(rateText: string): string {
-  const rate = parseRateText(rateText);
-  return rate === undefined ? rateText : formatRateDisplayMagnitude(rate).text;
-}
-
-/** The editor's Done: a rate that parses commits as typed, unless it is the stored rate, which commits as stored. */
-export function resolveRateCommit(input: {
-  text: string;
-  storedRate: number;
-}): { exchangeRate: string; override: boolean } | undefined {
-  const { text, storedRate } = input;
-  const parsed = parseRateText(text);
-  if (parsed === undefined) return undefined;
-  const override = parsed !== storedRate;
-  return { exchangeRate: override ? text : formatStoredMoneyText(storedRate), override };
-}
-
 /** Both form hooks' `commitExchangeRate`: a refused rate writes nothing; an accepted one clears the save error, then sets the override when given and the rate. */
 export function applyRateCommit(input: {
   text: string;
@@ -320,12 +282,6 @@ export function applyRateCommit(input: {
   input.setRateOverride?.(commit.override);
   input.setExchangeRate(commit.exchangeRate);
   return true;
-}
-
-export function formatConvertedAmount(converted: ConvertedAmount | undefined): string {
-  return converted === undefined
-    ? Strings.addTxConvertedAmountNone
-    : Strings.addTxConvertedAmount(formatDisplayAmount(converted.amount, converted.currency));
 }
 
 function resolveArchivedAccountLine(error: unknown): string | undefined {

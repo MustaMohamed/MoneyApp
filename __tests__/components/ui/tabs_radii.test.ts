@@ -1,8 +1,5 @@
-import {
-  SOLID_GOLD_SELECTED_RADIUS,
-  SOLID_GOLD_TRACK_RADIUS,
-  resolveSolidGoldRadii,
-} from '@/components/ui/tabs';
+import { resolveSolidGoldRadii } from '@/components/ui/tabs';
+import { SOLID_GOLD_SELECTED_RADIUS, SOLID_GOLD_TRACK_RADIUS } from '@/components/ui/tabs.geometry';
 import { Radius } from '@/constants/theme';
 
 describe('resolveSolidGoldRadii', () => {

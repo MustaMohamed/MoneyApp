@@ -2,10 +2,8 @@ import type { BottomSheetScrollViewMethods } from '@gorhom/bottom-sheet';
 import { type RefObject, useCallback, useEffect, useRef } from 'react';
 import type { LayoutChangeEvent, NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 
-import type { TransactionType } from '@/constants/enums';
-
-import { usePendingFrame } from '../pending_frame.hook';
-import { resolveAccountStripRevealX } from './transaction_form.geometry';
+import { resolveAccountStripRevealX } from './form_sheet.geometry';
+import { usePendingFrame } from './pending_frame.hook';
 
 interface AccountStripReveal {
   scrollRef: RefObject<BottomSheetScrollViewMethods | null>;
@@ -14,10 +12,10 @@ interface AccountStripReveal {
   handleChipPress: (index: number) => void;
 }
 
-/** Scrolls the strip so its selected chip reads whole, after a layout, a new selection, a type switch or a press of the selected chip; it writes nothing. */
+/** Scrolls the strip so its selected chip reads whole, after a layout, a new selection, a reveal key change or a press of the selected chip; it writes nothing. */
 export function useAccountStripReveal(
   selectedIndex: number,
-  type: TransactionType,
+  revealKey: string | undefined,
 ): AccountStripReveal {
   const scrollRef = useRef<BottomSheetScrollViewMethods | null>(null);
   const selectedIndexRef = useRef(selectedIndex);
@@ -45,11 +43,11 @@ export function useAccountStripReveal(
     if (scrollRef.current === null) scrollXRef.current = 0;
   });
 
-  // Expense and Income hand the strip the same chips and index, so `type` is the only sign of that switch.
+  // Two owners can hand the strip the same chips and index, so a key change is the only sign of that switch.
   useEffect(() => {
     selectedIndexRef.current = selectedIndex;
     requestReveal();
-  }, [selectedIndex, type, requestReveal]);
+  }, [selectedIndex, revealKey, requestReveal]);
 
   const handleLayout = useCallback(
     (event: LayoutChangeEvent) => {

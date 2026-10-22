@@ -6,17 +6,14 @@ import { useWindowDimensions } from 'react-native';
 import { Colors, Radius, Size } from '@/constants/theme';
 
 import {
-  TABS_LIST_PADDING,
+  SOLID_GOLD_SELECTED_RADIUS,
+  SOLID_GOLD_TRACK_RADIUS,
   type TabsTriggerHitSlop,
   resolveGrownScrollRadii,
   resolveSegmentedTabsGeometry,
   resolveTabsScrollSlopInset,
 } from './tabs.geometry';
 import { type SegmentedTabsScrollAlign, useSegmentedTabsScroll } from './tabs.hook';
-
-// The form vocabulary is small radii — inputs and tiles sit at Radius.md — so the solid-gold track overrides HeroUI's pill `--radius-3xl` (user ruling 2026-09-01); the fill is concentric inside the list padding.
-export const SOLID_GOLD_TRACK_RADIUS = Radius.md;
-export const SOLID_GOLD_SELECTED_RADIUS = Math.max(SOLID_GOLD_TRACK_RADIUS - TABS_LIST_PADDING, 0);
 
 export type SegmentedTabsCorners = 'pill' | 'form';
 

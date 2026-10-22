@@ -2,16 +2,18 @@ import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { SkeletonGroup } from 'heroui-native';
 import { View, useWindowDimensions } from 'react-native';
 
+import {
+  ACCOUNT_STRIP_CHIP_RADIUS,
+  ACCOUNT_STRIP_GAP,
+  ACCOUNT_STRIP_INSET_X,
+  ACCOUNT_STRIP_PADDING_Y,
+} from '@/components/ui/form_sheet.geometry';
 import { ListCard } from '@/components/ui/list_card';
 import { Strings } from '@/constants/strings';
 import { Radius } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
 import {
-  ACCOUNT_STRIP_CHIP_RADIUS,
-  ACCOUNT_STRIP_GAP,
-  ACCOUNT_STRIP_INSET_X,
-  ACCOUNT_STRIP_PADDING_Y,
   TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
   TRANSACTION_FORM_SKELETON_GEOMETRY,
   resolveTransactionFormSkeletonBars,
