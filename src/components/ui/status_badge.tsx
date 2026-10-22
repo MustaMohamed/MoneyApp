@@ -4,7 +4,7 @@ import React from 'react';
 import { View } from 'react-native';
 
 import { scaledFontSize, scaledTextStyle } from '@/components/ui/text_scale.geometry';
-import { Type, lineHeightFor } from '@/constants/theme';
+import { Size, Type, lineHeightFor } from '@/constants/theme';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -29,8 +29,12 @@ const PADDING_VERTICAL = {
   sm: STATUS_BADGE_PADDING_VERTICAL,
   md: STATUS_BADGE_PADDING_VERTICAL,
 } as const;
-// Raw, as above: A1 `.stag`'s horizontal chrome, read by `resolveStatusBadgeXsMinWidth`.
-const XS_ROOT_STYLE = { paddingLeft: 4, paddingRight: 6, gap: 3 } as const;
+// The xs root draws these and `resolveStatusBadgeXsMinWidth` reads them.
+const XS_ROOT_STYLE = {
+  paddingLeft: Size.statusBadgeXsPaddingLeft,
+  paddingRight: Size.statusBadgeXsPaddingRight,
+  gap: Size.statusBadgeXsGap,
+} as const;
 // A scaled label's narrowest box, in ems of its size: one `…`.
 const ELLIPSIS_EM = 1;
 const ROOT_CLASS = {
