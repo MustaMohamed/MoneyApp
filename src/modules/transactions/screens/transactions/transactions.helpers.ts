@@ -32,6 +32,8 @@ import { snapToZero, toCents, wholePercentOf } from '@/utils/money';
 import {
   MONTHS_SHORT,
   currentYearMonth,
+  daysLeftInMonth,
+  fullMonthName,
   monthNumberFromYearMonth,
   shiftYearMonth,
 } from '@/utils/year_month';
@@ -194,10 +196,6 @@ const CHANGE_SENTENCE: Record<DeltaDirection, (pct: string, month: string) => st
   flat: (_pct, month) => Strings.transactionsHeroSpentSame(month),
 };
 
-export function fullMonthName(yearMonth: string): string {
-  return new Date(`${yearMonth}-01T12:00:00`).toLocaleDateString('en-US', { month: 'long' });
-}
-
 function resolveLastMonthChange(
   expenseEgp: number,
   previous: PeriodTotals | null,
@@ -214,12 +212,6 @@ function resolveLastMonthChange(
     label: `${pct}%`,
     accessibilityLabel: CHANGE_SENTENCE[delta.direction](pct, month),
   };
-}
-
-function daysLeftInMonth(yearMonth: string, today: string): number | undefined {
-  if (today.slice(0, 7) !== yearMonth) return undefined;
-  const lastDay = Number(resolvePeriod({ type: 'month', yearMonth }).to.slice(8, 10));
-  return Math.max(lastDay - Number(today.slice(8, 10)), 0);
 }
 
 export function buildTransactionsHeroModel(input: TransactionsHeroInput): TransactionsHeroModel {
