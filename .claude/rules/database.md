@@ -25,11 +25,11 @@ Types only — no logic, no cross-imports from `database/`; may import `@/consta
 - **Index-friendly predicates** (audit L2/L34 — both hot-path queries were full-scanning):
   - Never wrap an indexed column in a function: `substr(transaction_date, ...)` defeats `idx_transactions_date`. Put the bare indexed column in a range instead: half-open (`transaction_date >= :start AND transaction_date < :end`), or an inclusive `<= :end` on a date-only column (`docs/adr/2026-09-24-transactions-month-aggregate.md` §1).
   - Avoid `(:param IS NULL OR column = :param)` optional-filter chains — SQLite cannot plan them against an index. Build the WHERE clause conditionally in TS with a placeholder list.
-- Multi-statement write sequences that must be atomic go through `withTransactionAsync` / `withExclusiveTransactionAsync` — never sequential awaits on the raw connection.
+- Multi-statement write sequences that must be atomic go through `withWriteTransactionAsync(db, task)` on the main connection or `withExclusiveWriteTransactionAsync(task)` on its own connection, both from `@/database/client`. Never `db.withTransactionAsync` or `db.withExclusiveTransactionAsync`, which begin a plain `BEGIN`, and never sequential awaits on the raw connection.
 - **Never store derived time-state in a column that also stores durable user actions.** A `status` stamped at insert relative to "today" is stale the next day (audit H1/H2 root cause — commitment payments frozen at `upcoming` forever). Derive time-dependent state at read time, or age it explicitly inside the housekeeping transaction.
 
 ## Client (`database/client.ts`)
 
-`getDb()` singleton — WAL + foreign keys on. `runMigrations(db)` runs once at startup from `utils/use_layout_init.hook.ts`.
+`getDb()` singleton. Every connection, the main one and each exclusive transaction's own, opens through `openConnection` with the one wait bound `WRITE_LOCK_WAIT_MS` (`database/write_lock.ts`) as `busy_timeout`, foreign keys on and WAL; both transaction helpers begin `BEGIN IMMEDIATE` (`docs/adr/2026-10-22-write-lock-wait.md`). `runMigrations(db)` runs once at startup from `utils/use_layout_init.hook.ts`.
 
 Account creation defaults: `current_balance = opening_balance`, `is_archived = 0`, `id = uuidv4()`, `created_at = updated_at = new Date().toISOString()`.

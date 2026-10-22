@@ -1,7 +1,7 @@
 import uuid from 'react-native-uuid';
 
 import { Strings } from '@/constants/strings';
-import { getDb } from '@/database/client';
+import { getDb, withWriteTransactionAsync } from '@/database/client';
 import {
   deleteSoleCategorySpendingPlans,
   getSpendingPlanCategoryReassignmentConflict,
@@ -88,7 +88,7 @@ export class CategoryRepository implements ICategoryRepository {
 
   async delete(id: string): Promise<void> {
     const db = await getDb();
-    await db.withTransactionAsync(async () => {
+    await withWriteTransactionAsync(db, async () => {
       await deleteSoleCategorySpendingPlans(db, id);
       await deleteCategory(db, id);
     });
@@ -97,7 +97,7 @@ export class CategoryRepository implements ICategoryRepository {
   /** Commitments are reassigned: `commitments.category_id` is NOT NULL with no FK ON DELETE. */
   async reassignAndDelete(fromId: string, toId: string): Promise<void> {
     const db = await getDb();
-    await db.withTransactionAsync(async () => {
+    await withWriteTransactionAsync(db, async () => {
       const conflict = await getSpendingPlanCategoryReassignmentConflict(db, fromId, toId);
       if (conflict) {
         throw new Error(
