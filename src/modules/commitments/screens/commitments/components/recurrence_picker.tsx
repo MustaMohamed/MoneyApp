@@ -8,10 +8,15 @@ import { Text } from '@/components/ui/text';
 import { useTouchFloorGridHitSlop } from '@/components/ui/touch_floor.hook';
 import { RecurrencePeriod, RecurrencePreset } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { HIT_SLOP_UNCLIPPED_STYLE } from '@/constants/theme';
 
 import { type CommitmentFormValues, SET_OPTS, composeFieldBlur } from '../commitment_form.shared';
-import { COMMITMENT_FORM_PICKER_GAP, COMMITMENT_FORM_PILL_SLOP } from './commitment_form.geometry';
+import {
+  COMMITMENT_FORM_PICKER_GAP,
+  COMMITMENT_FORM_PILL_SLOP,
+  COMMITMENT_PICKER_CAPTION_ROW_EDGE,
+  COMMITMENT_PICKER_CAPTION_ROW_OVER_ROW_EDGE,
+} from './commitment_form.geometry';
+import { useRecurrencePeriodRoom } from './recurrence_picker.hook';
 
 interface Props {
   form: UseFormReturn<CommitmentFormValues>;
@@ -31,21 +36,26 @@ const PERIODS: { key: RecurrencePeriod; label: string }[] = [
   { key: RecurrencePeriod.Months, label: Strings.commitmentsRecurrenceUnitMonths },
   { key: RecurrencePeriod.Years, label: Strings.commitmentsRecurrenceUnitYears },
 ];
+const PRESET_KEYS = PRESETS.map(({ key }) => key);
+const PERIOD_KEYS = PERIODS.map(({ key }) => key);
 
 export function RecurrencePicker({ form, recurrencePreset, onPresetChange }: Props) {
   const recurrencePeriod = useWatch({ control: form.control, name: 'recurrencePeriod' });
   const everyError = form.formState.errors.recurrenceEvery?.message;
   const { onFocus: onInputFocus, onBlur: onInputBlur } = useBottomSheetAwareHandlers();
   const isCustom = recurrencePreset === RecurrencePreset.Custom;
+  const periodRoom = useRecurrencePeriodRoom();
   const presetTouch = useTouchFloorGridHitSlop(
     COMMITMENT_FORM_PICKER_GAP,
-    isCustom ? { bottom: COMMITMENT_FORM_PICKER_GAP / 2 } : {},
+    isCustom ? COMMITMENT_PICKER_CAPTION_ROW_OVER_ROW_EDGE : COMMITMENT_PICKER_CAPTION_ROW_EDGE,
     COMMITMENT_FORM_PILL_SLOP,
+    PRESET_KEYS,
   );
   const periodTouch = useTouchFloorGridHitSlop(
     COMMITMENT_FORM_PICKER_GAP,
-    { top: COMMITMENT_FORM_PICKER_GAP / 2 },
+    { top: periodRoom.periodTopRoom },
     COMMITMENT_FORM_PILL_SLOP,
+    isCustom ? PERIOD_KEYS : [],
   );
 
   return (
@@ -54,7 +64,10 @@ export function RecurrencePicker({ form, recurrencePreset, onPresetChange }: Pro
         {Strings.commitmentsFieldRecurrence}
       </Text>
 
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: COMMITMENT_FORM_PICKER_GAP }}>
+      <View
+        style={{ flexDirection: 'row', flexWrap: 'wrap', gap: COMMITMENT_FORM_PICKER_GAP }}
+        onLayout={periodRoom.onPresetsRowLayout}
+      >
         {PRESETS.map(({ key, label }) => (
           <SelectablePill
             key={key}
@@ -62,15 +75,19 @@ export function RecurrencePicker({ form, recurrencePreset, onPresetChange }: Pro
             label={label}
             selected={recurrencePreset === key}
             onPress={() => onPresetChange(key)}
-            style={HIT_SLOP_UNCLIPPED_STYLE}
           />
         ))}
       </View>
 
       {isCustom ? (
         <View
-          style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }}
-          className="gap-2"
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: COMMITMENT_FORM_PICKER_GAP,
+          }}
+          onLayout={periodRoom.onCustomRowLayout}
         >
           <Text className="font-inter text-muted text-[11px]">
             {Strings.commitmentsRecurrenceEvery}
@@ -101,7 +118,10 @@ export function RecurrencePicker({ form, recurrencePreset, onPresetChange }: Pro
               )}
             />
           </View>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: COMMITMENT_FORM_PICKER_GAP }}>
+          <View
+            style={{ flexDirection: 'row', flexWrap: 'wrap', gap: COMMITMENT_FORM_PICKER_GAP }}
+            onLayout={periodRoom.onPeriodRowLayout}
+          >
             {PERIODS.map(({ key, label }) => (
               <SelectablePill
                 key={key}
@@ -109,7 +129,6 @@ export function RecurrencePicker({ form, recurrencePreset, onPresetChange }: Pro
                 label={label}
                 selected={recurrencePeriod === key}
                 onPress={() => form.setValue('recurrencePeriod', key, SET_OPTS)}
-                style={HIT_SLOP_UNCLIPPED_STYLE}
               />
             ))}
           </View>

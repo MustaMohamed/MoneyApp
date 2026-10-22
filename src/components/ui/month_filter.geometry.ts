@@ -3,6 +3,9 @@ import type { Insets } from 'react-native';
 import { type ScaledTextStyle, scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Size, Spacing, Type, touchFloorHitSlop } from '@/constants/theme';
 
+/** The gap between the step buttons and the pill. */
+export const MONTH_ROW_GAP = Spacing.xxs;
+
 /** The month picker's year arrows' slop on every side, raw dp. */
 export const MONTH_STEP_HIT_SLOP = 8;
 
@@ -21,7 +24,7 @@ export function resolveMonthStepHitSlop(
   side: MonthStepSide,
 ): Required<Insets> {
   const floor = touchFloorHitSlop(height);
-  const inward = Math.min(floor.top, Spacing.xxs / 2);
+  const inward = Math.min(floor.top, MONTH_ROW_GAP / 2);
   const { top, bottom } = rowHitSlop ?? floor;
   return side === 'previous'
     ? { top, bottom, left: floor.top, right: inward }

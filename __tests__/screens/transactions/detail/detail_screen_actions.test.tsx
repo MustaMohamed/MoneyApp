@@ -95,9 +95,12 @@ describe('transaction detail actions', () => {
       <DetailHeader editable refreshing={false} onBack={jest.fn()} onEdit={jest.fn()} />,
     );
 
-    for (const label of [Strings.detailEditAccessibility, Strings.goBackAccessibility]) {
+    for (const [label, edge] of [
+      [Strings.detailEditAccessibility, 'trailing'],
+      [Strings.goBackAccessibility, 'leading'],
+    ] as const) {
       const action = screen.getByLabelText(label);
-      expect(action).toHaveProp('hitSlop', HEADER_ACTION_HIT_SLOP);
+      expect(action).toHaveProp('hitSlop', HEADER_ACTION_HIT_SLOP[edge]);
       expect(action).toHaveStyle({
         width: Size.headerActionTrack,
         height: Size.headerActionTrack,

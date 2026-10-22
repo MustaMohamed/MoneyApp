@@ -86,7 +86,6 @@ export function resolveSegmentedTabsGeometry(
   };
 }
 
-/** The default trigger's height: HeroUI's base line, scaled, inside the trigger's block padding. */
 export function resolveDefaultTriggerHeight(fontScale: number, maxFontScale = Infinity): number {
   return (
     scaledTextStyle(HEROUI_TEXT_TYPE.base, fontScale, maxFontScale).lineHeight +

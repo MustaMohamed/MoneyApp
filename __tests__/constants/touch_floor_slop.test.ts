@@ -2,7 +2,6 @@ import {
   TOUCH_SLOP_PIXEL_MARGIN,
   TouchSize,
   touchFloorHitSlop,
-  touchFloorHitSlopInGap,
   touchFloorHitSlopWithin,
 } from '@/constants/theme';
 
@@ -51,23 +50,6 @@ describe('touchFloorHitSlopWithin', () => {
     expect(touchFloorHitSlopWithin(36, { top: 0 })).toEqual({
       top: 0,
       bottom: 2 * touchFloorHitSlop(36).top,
-    });
-  });
-});
-
-describe('touchFloorHitSlopInGap', () => {
-  it('MA-236: a 29 dp control in a row 6 dp apart stops at half the gap on every side', () => {
-    expect(touchFloorHitSlopInGap(29, 6)).toEqual({ top: 3, bottom: 3, left: 3, right: 3 });
-  });
-
-  it('MA-236: a 41 dp control in a row 6 dp apart takes its floor slop above and below and half the gap beside it', () => {
-    const floor = touchFloorHitSlop(41).top;
-
-    expect(touchFloorHitSlopInGap(41, 6)).toEqual({
-      top: floor,
-      bottom: floor,
-      left: 3,
-      right: 3,
     });
   });
 });

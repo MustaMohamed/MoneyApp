@@ -3,7 +3,6 @@ import { type Insets, PixelRatio } from 'react-native';
 import {
   type TouchFloorHitSlop,
   type TouchFloorRoom,
-  touchFloorHitSlopInGap,
   touchFloorHitSlopWithin,
 } from '@/constants/theme';
 
@@ -27,18 +26,25 @@ export function resolveGridItemHitSlop(
   edge: TouchFloorRoom,
   minSlop?: TouchFloorHitSlop,
 ): Required<Insets> {
-  if (box === undefined || rows === undefined) return touchFloorHitSlopInGap(0, gap);
   const half = gap / 2;
+  if (box === undefined || rows === undefined) {
+    return { top: half, bottom: half, left: half, right: half };
+  }
   const pixel = 1 / PixelRatio.get();
-  const rooms: TouchFloorRoom = {
-    top: Math.abs(box.y - rows.minY) <= pixel ? edge.top : half,
-    bottom: Math.abs(box.y - rows.maxY) <= pixel ? edge.bottom : half,
-  };
-  const within = touchFloorHitSlopWithin(box.height, rooms);
+  const isTopRow = Math.abs(box.y - rows.minY) <= pixel;
+  const isBottomRow = Math.abs(box.y - rows.maxY) <= pixel;
+  const within = touchFloorHitSlopWithin(box.height, {
+    top: isTopRow ? edge.top : half,
+    bottom: isBottomRow ? edge.bottom : half,
+  });
   return {
-    top: Math.min(rooms.top ?? Infinity, Math.max(within.top, minSlop?.top ?? 0)),
-    bottom: Math.min(rooms.bottom ?? Infinity, Math.max(within.bottom, minSlop?.bottom ?? 0)),
+    top: isTopRow ? resolveEdgeSide(edge.top, within.top, minSlop?.top) : half,
+    bottom: isBottomRow ? resolveEdgeSide(edge.bottom, within.bottom, minSlop?.bottom) : half,
     left: half,
     right: half,
   };
+}
+
+function resolveEdgeSide(room: number | undefined, within: number, minSlop = 0): number {
+  return Math.min(room ?? Infinity, Math.max(within, minSlop));
 }

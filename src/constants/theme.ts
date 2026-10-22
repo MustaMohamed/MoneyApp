@@ -1,4 +1,4 @@
-import { Platform, type Insets } from 'react-native';
+import { Platform } from 'react-native';
 
 import { ms, msFont } from '@/utils/responsive';
 
@@ -164,7 +164,7 @@ export const Size = {
   // Raw 36 for the same reason: every header action's and back button's box, formerly `h-9 w-9`, at scale 1.
   headerActionTrack: 36,
   // Raw 8, never ms(): the native back button's drawn padding past each side of that box.
-  headerActionSlop: 8,
+  headerBackPadding: 8,
   // Raw 24, never ms(): HeroUI's search clear button, `w-6 h-6` (search-field.css).
   searchClearTrack: 24,
   // Raw 40 for the same reason: the spending plan sheet's name and total fields, formerly `h-10`, at scale 1.
@@ -322,13 +322,6 @@ export function touchFloorHitSlopWithin(height: number, room: TouchFloorRoom): T
     top: Math.min(roomTop, slop + Math.max(0, slop - roomBottom)),
     bottom: Math.min(roomBottom, slop + Math.max(0, slop - roomTop)),
   };
-}
-
-/** The floor slop of a control in a row of like controls `gap` apart: never past half the gap on any side. */
-export function touchFloorHitSlopInGap(height: number, gap: number): Required<Insets> {
-  const half = gap / 2;
-  const { top, bottom } = touchFloorHitSlopWithin(height, { top: half, bottom: half });
-  return { top, bottom, left: half, right: half };
 }
 
 /** HeroUI's pressable root clips, and RNGH drops a slop outside a clipping view on Android (MA-122). */

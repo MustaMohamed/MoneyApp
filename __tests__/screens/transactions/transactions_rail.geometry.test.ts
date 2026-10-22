@@ -47,9 +47,7 @@ describe('resolveTransactionsRailGeometry', () => {
     'at a scaled space of %d the gap between the rows splits between the pill and the tabs with no overlap',
     (scaledSpace) => {
       const { space, monthRowHitSlop, tabsHitSlop } = resolveTransactionsRailGeometry(scaledSpace);
-      expect(monthRowHitSlop.bottom - Spacing.xxxxs + (tabsHitSlop.top - TABS_LIST_PADDING)).toBe(
-        space,
-      );
+      expect(monthRowHitSlop.bottom + (tabsHitSlop.top - TABS_LIST_PADDING)).toBe(space);
     },
   );
 

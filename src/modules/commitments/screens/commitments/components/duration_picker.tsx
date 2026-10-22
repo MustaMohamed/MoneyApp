@@ -10,12 +10,16 @@ import { Text } from '@/components/ui/text';
 import { useTouchFloorGridHitSlop } from '@/components/ui/touch_floor.hook';
 import { DurationType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { HIT_SLOP_UNCLIPPED_STYLE } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 import { formatLongDate, toLocalDateString } from '@/utils/format_date';
 
 import { type CommitmentFormValues, SET_OPTS, composeFieldBlur } from '../commitment_form.shared';
-import { COMMITMENT_FORM_PICKER_GAP, COMMITMENT_FORM_PILL_SLOP } from './commitment_form.geometry';
+import {
+  COMMITMENT_FORM_PICKER_GAP,
+  COMMITMENT_FORM_PILL_SLOP,
+  COMMITMENT_PICKER_CAPTION_ROW_EDGE,
+  COMMITMENT_PICKER_CAPTION_ROW_OVER_ROW_EDGE,
+} from './commitment_form.geometry';
 
 interface Props {
   form: UseFormReturn<CommitmentFormValues>;
@@ -44,7 +48,9 @@ export function DurationPicker({
   const { onFocus: onInputFocus, onBlur: onInputBlur } = useBottomSheetAwareHandlers();
   const durationTouch = useTouchFloorGridHitSlop(
     COMMITMENT_FORM_PICKER_GAP,
-    durationType === DurationType.Forever ? {} : { bottom: COMMITMENT_FORM_PICKER_GAP / 2 },
+    durationType === DurationType.Forever
+      ? COMMITMENT_PICKER_CAPTION_ROW_EDGE
+      : COMMITMENT_PICKER_CAPTION_ROW_OVER_ROW_EDGE,
     COMMITMENT_FORM_PILL_SLOP,
   );
 
@@ -75,7 +81,6 @@ export function DurationPicker({
             label={label}
             selected={durationType === key}
             onPress={() => onDurationTypeChange(key)}
-            style={HIT_SLOP_UNCLIPPED_STYLE}
           />
         ))}
       </View>

@@ -6,6 +6,7 @@ import { Strings } from '@/constants/strings';
 import { Colors, HIT_SLOP_UNCLIPPED_STYLE, Size, Spacing } from '@/constants/theme';
 
 import {
+  MONTH_ROW_GAP,
   MONTH_STEP_HIT_SLOP,
   resolveMonthPillGeometry,
   resolveMonthStepHitSlop,
@@ -55,7 +56,7 @@ export function MonthFilter(props: MonthFilterProps) {
 
   return (
     <>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: MONTH_ROW_GAP }}>
         {showStepButtons && (
           <IconButton
             testID="month-filter-previous"

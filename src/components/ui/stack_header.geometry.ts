@@ -23,18 +23,28 @@ export interface HeaderTextActionGeometry {
 
 const HEADER_ACTION_SLOP = touchFloorHitSlop(Size.headerActionTrack).top;
 
-/** Lifts the header action box to the touch floor on every side. */
-export const HEADER_ACTION_HIT_SLOP = {
-  top: HEADER_ACTION_SLOP,
-  bottom: HEADER_ACTION_SLOP,
-  left: HEADER_ACTION_SLOP,
-  right: HEADER_ACTION_SLOP,
-} as const satisfies Insets;
+export type HeaderActionEdge = 'leading' | 'trailing';
+
+// The side toward the abutting title takes no slop: toward a line of text the room is its gap, 0.
+export const HEADER_ACTION_HIT_SLOP: Readonly<Record<HeaderActionEdge, Required<Insets>>> = {
+  leading: {
+    top: HEADER_ACTION_SLOP,
+    bottom: HEADER_ACTION_SLOP,
+    left: HEADER_ACTION_SLOP,
+    right: 0,
+  },
+  trailing: {
+    top: HEADER_ACTION_SLOP,
+    bottom: HEADER_ACTION_SLOP,
+    left: 0,
+    right: HEADER_ACTION_SLOP,
+  },
+};
 
 export const NATIVE_HEADER_BACK_PADDING = {
   paddingLeft: 0,
-  paddingRight: Size.headerActionSlop,
-  paddingVertical: Size.headerActionSlop,
+  paddingRight: Size.headerBackPadding,
+  paddingVertical: Size.headerBackPadding,
 } as const;
 
 /** `HeaderTextAction`'s box: at or below scale 1 the label keeps `Type.micro` and the OS scales it. */

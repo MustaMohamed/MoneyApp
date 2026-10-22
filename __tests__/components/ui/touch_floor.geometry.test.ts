@@ -82,6 +82,17 @@ describe('resolveGridItemHitSlop', () => {
     expect(height + top + bottom).toBeCloseTo(TouchSize.min + 2 * TOUCH_SLOP_PIXEL_MARGIN, 5);
   });
 
+  it('MA-236: an inner 41.14 dp pill 6 dp from the rows around it takes the whole half gap above and below', () => {
+    expect(
+      resolveGridItemHitSlop(
+        { y: ROW_PITCH, height: 41.14 },
+        { minY: 0, maxY: 2 * ROW_PITCH },
+        PILL_GAP,
+        OPTION_LIST_EDGE,
+      ),
+    ).toEqual({ top: 3, bottom: 3, left: 3, right: 3 });
+  });
+
   describe('with a minimum slop', () => {
     const minSlop = touchFloorHitSlop(25);
     const height = 37;

@@ -19,9 +19,6 @@ export const SELECTABLE_PILL_BARE_HEIGHT: number =
   2 * SELECTABLE_PILL_PADDING_BLOCK +
   2 * PILL_BORDER_WIDTH;
 
-// The filter option list's `gap-1.5`, unscaled CSS px (frame B1FilterSheet `.facc .pl`).
-export const FILTER_OPTION_PILL_GAP = 6;
-
 /** A pill never exceeds its line, so a label that wraps keeps the pill's rounded right end inside its card. */
 export const WRAPPING_PILL_STYLE = { maxWidth: '100%' } as const;
 

@@ -9,6 +9,9 @@ export const FILTER_ACCORDION_CARD_BORDER = 1;
 export const FILTER_ACCORDION_CARD_MARGIN_BOTTOM = 8;
 export const FILTER_ACCORDION_CONTENT_PADDING_BOTTOM = 14;
 
+// The filter option list's `gap-1.5`, unscaled CSS px (frame B1FilterSheet `.facc .pl`).
+export const FILTER_OPTION_PILL_GAP = 6;
+
 /** No room above the top row, where the trigger draws over the content; half the gap to the next card's trigger below the bottom row. */
 export const FILTER_OPTION_LIST_EDGE: TouchFloorRoom = {
   top: 0,

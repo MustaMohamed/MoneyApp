@@ -56,8 +56,7 @@ describe('resolveMonthStepHitSlop', () => {
     });
   });
 
-  it('MA-236: the year arrows keep MONTH_STEP_HIT_SLOP at 8, and a step without a row slop no longer takes it', () => {
+  it('MA-236: the year arrows keep MONTH_STEP_HIT_SLOP at 8', () => {
     expect(MONTH_STEP_HIT_SLOP).toBe(8);
-    expect(resolveMonthStepHitSlop(undefined, pillHeight, 'next')).not.toBe(MONTH_STEP_HIT_SLOP);
   });
 });

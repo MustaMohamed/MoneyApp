@@ -19,19 +19,29 @@ export interface TouchFloorGridHitSlop {
 
 type MeasuredBoxes = Readonly<Record<string, GridItemBox>>;
 
+function pickMountedBoxes(
+  boxes: MeasuredBoxes,
+  keys: readonly string[] | undefined,
+): MeasuredBoxes {
+  if (keys === undefined) return boxes;
+  return Object.fromEntries(keys.filter((key) => key in boxes).map((key) => [key, boxes[key]]));
+}
+
 function resolveGridRows(boxes: MeasuredBoxes): GridRows | undefined {
   const ys = Object.values(boxes).map((box) => box.y);
   if (ys.length === 0) return undefined;
   return { minY: Math.min(...ys), maxY: Math.max(...ys) };
 }
 
-/** Each list item's touch-floor slop from its measured box, since Android scales an OS-scaled label's line nonlinearly. */
+/** Each list item's touch-floor slop from its measured box, since Android scales an OS-scaled label's line nonlinearly; `keys` names the items now mounted, and an unmounted item's box is dropped. */
 export function useTouchFloorGridHitSlop(
   gap: number,
   edge: TouchFloorRoom,
   minSlop?: TouchFloorHitSlop,
+  keys?: readonly string[],
 ): TouchFloorGridHitSlop {
-  const [boxes, setBoxes] = useState<MeasuredBoxes>({});
+  const [measured, setBoxes] = useState<MeasuredBoxes>({});
+  const boxes = pickMountedBoxes(measured, keys);
   const rows = resolveGridRows(boxes);
 
   const measure = useCallback((key: string, event: LayoutChangeEvent) => {

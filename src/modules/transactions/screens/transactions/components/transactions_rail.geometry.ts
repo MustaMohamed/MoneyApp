@@ -1,6 +1,6 @@
 import type { MonthRowHitSlop } from '@/components/ui/month_filter.geometry';
 import { TABS_LIST_PADDING, type TabsTriggerHitSlop } from '@/components/ui/tabs.geometry';
-import { Size, Spacing, TOUCH_SLOP_PIXEL_MARGIN, TouchSize } from '@/constants/theme';
+import { Size, Spacing, touchFloorHitSlopWithin } from '@/constants/theme';
 
 // Raw dp: `ms(8)` is 7 on a narrow phone, and three 7s leave the block short of two touch floors.
 const RAIL_SPACE_FLOOR = 8;
@@ -15,17 +15,12 @@ export interface TransactionsRailGeometry {
 /** The gap between the rows splits at its middle. */
 export function resolveTransactionsRailGeometry(scaledSpace: number): TransactionsRailGeometry {
   const space = Math.max(scaledSpace, RAIL_SPACE_FLOOR);
-  const tabsSlopTop = TABS_LIST_PADDING + space / 2;
   return {
     space,
-    monthRowHitSlop: {
-      top: TouchSize.min - Size.monthPillTrack - space / 2 + TOUCH_SLOP_PIXEL_MARGIN,
-      bottom: space / 2 + TOUCH_SLOP_PIXEL_MARGIN,
-    },
-    tabsHitSlop: {
-      top: tabsSlopTop,
-      bottom: TouchSize.min - Size.compactSegmentTrack - tabsSlopTop + TOUCH_SLOP_PIXEL_MARGIN,
-    },
+    monthRowHitSlop: touchFloorHitSlopWithin(Size.monthPillTrack, { bottom: space / 2 }),
+    tabsHitSlop: touchFloorHitSlopWithin(Size.compactSegmentTrack, {
+      top: TABS_LIST_PADDING + space / 2,
+    }),
   };
 }
 

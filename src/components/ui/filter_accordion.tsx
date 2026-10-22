@@ -5,20 +5,17 @@ import { View, useWindowDimensions } from 'react-native';
 
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { HIT_SLOP_UNCLIPPED_STYLE, Type, lineHeightFor } from '@/constants/theme';
+import { Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 
 import { SelectablePill } from './chip';
-import {
-  FILTER_OPTION_PILL_GAP,
-  WRAPPING_PILL_LABEL_STYLE,
-  WRAPPING_PILL_STYLE,
-} from './chip.geometry';
+import { WRAPPING_PILL_LABEL_STYLE, WRAPPING_PILL_STYLE } from './chip.geometry';
 import {
   FILTER_ACCORDION_CARD_BORDER,
   FILTER_ACCORDION_CARD_MARGIN_BOTTOM,
   FILTER_ACCORDION_CONTENT_PADDING_BOTTOM,
   FILTER_OPTION_LIST_EDGE,
+  FILTER_OPTION_PILL_GAP,
   resolveFilterAmountSlotStyle,
 } from './filter_accordion.geometry';
 import { Input } from './input';
@@ -145,7 +142,12 @@ export function FilterOptionPillList<T extends string = string>({
   options,
   onToggle,
 }: FilterOptionPillListProps<T>): React.ReactElement {
-  const touch = useTouchFloorGridHitSlop(FILTER_OPTION_PILL_GAP, FILTER_OPTION_LIST_EDGE);
+  const touch = useTouchFloorGridHitSlop(
+    FILTER_OPTION_PILL_GAP,
+    FILTER_OPTION_LIST_EDGE,
+    undefined,
+    options.map((option) => option.id),
+  );
 
   return (
     <View className="flex-row flex-wrap" style={{ gap: FILTER_OPTION_PILL_GAP }}>
@@ -159,7 +161,7 @@ export function FilterOptionPillList<T extends string = string>({
           startIcon={option.startIcon}
           checkable
           accessibilityLabel={option.accessibilityLabel}
-          style={[WRAPPING_PILL_STYLE, HIT_SLOP_UNCLIPPED_STYLE]}
+          style={WRAPPING_PILL_STYLE}
           labelStyle={WRAPPING_PILL_LABEL_STYLE}
         />
       ))}

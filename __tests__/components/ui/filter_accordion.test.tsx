@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { Dimensions } from 'react-native';
 import type { Insets, LayoutChangeEvent, StyleProp, ViewStyle } from 'react-native';
 
-import { FILTER_OPTION_PILL_GAP, WRAPPING_PILL_STYLE } from '@/components/ui/chip.geometry';
+import { WRAPPING_PILL_STYLE } from '@/components/ui/chip.geometry';
 import {
   AmountRangeFilterContent,
   FilterAccordionShell,
@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/filter_accordion';
 import {
   FILTER_OPTION_LIST_EDGE,
+  FILTER_OPTION_PILL_GAP,
   resolveFilterAmountSlotStyle,
 } from '@/components/ui/filter_accordion.geometry';
 import { FilterAccountAccordion } from '@/components/ui/filter_account_accordion';
@@ -18,7 +19,6 @@ import { FilterAmountAccordion } from '@/components/ui/filter_amount_accordion';
 import { FilterCategoryAccordion } from '@/components/ui/filter_category_accordion';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { HIT_SLOP_UNCLIPPED_STYLE, touchFloorHitSlopInGap } from '@/constants/theme';
 import { makeTestAccount, makeTestCategory } from '@/test_helpers/transaction';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
@@ -200,11 +200,11 @@ describe('FilterOptionPillList', () => {
       />,
     );
 
-    const unmeasured = touchFloorHitSlopInGap(0, FILTER_OPTION_PILL_GAP);
+    const half = FILTER_OPTION_PILL_GAP / 2;
+    const unmeasured = { top: half, bottom: half, left: half, right: half };
     for (const label of ['Food filter', 'Rent filter']) {
       expect(getByLabelText(label).props.hitSlop).toEqual(unmeasured);
       expect(getByLabelText(label)).toHaveStyle(WRAPPING_PILL_STYLE);
-      expect(getByLabelText(label)).toHaveStyle(HIT_SLOP_UNCLIPPED_STYLE);
     }
 
     await fireEvent(getByLabelText('Food filter'), 'layout', {

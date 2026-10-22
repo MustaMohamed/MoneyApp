@@ -77,17 +77,22 @@ describe('resolveHeaderTextActionGeometry', () => {
 });
 
 describe('HEADER_ACTION_HIT_SLOP', () => {
-  it('MA-236: takes the touch-floor slop of the header action box on every side, and lifts the box to the floor', () => {
-    const { top, bottom, left, right } = HEADER_ACTION_HIT_SLOP;
+  it('MA-236: takes the touch-floor slop of the header action box above, below and on its outer side, and none toward the title it abuts', () => {
     const floor = touchFloorHitSlop(Size.headerActionTrack).top;
 
-    expect({ top, bottom, left, right }).toEqual({
+    expect(HEADER_ACTION_HIT_SLOP.leading).toEqual({
       top: floor,
       bottom: floor,
       left: floor,
+      right: 0,
+    });
+    expect(HEADER_ACTION_HIT_SLOP.trailing).toEqual({
+      top: floor,
+      bottom: floor,
+      left: 0,
       right: floor,
     });
-    expect(Size.headerActionTrack + top + bottom).toBeGreaterThanOrEqual(TouchSize.min);
+    expect(Size.headerActionTrack + 2 * floor).toBeGreaterThanOrEqual(TouchSize.min);
   });
 });
 
