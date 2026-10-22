@@ -38,6 +38,8 @@ No route: the add sheet, hosted by `src/modules/commitments/screens/commitments/
 
 - MA-220: under agent-device, `mqa tap`, `mqa scroll` and `mqa back` first send Back while a field holds focus (`ime-down`), and the headless keyboard passes that Back to the sheet, which closes. After a `fill`, blur with a plain `adb -s <serial> shell input tap` on a field label inside the form, and tap `Save Commitment` by `adb` at its centre from `mqa bounds`. A real keyboard takes that Back itself.
 - MA-220: at 2.0, `label="Category"` matches the `Category` button and its `CATEGORY` caption; tap the button at its centre from `mqa bounds` instead.
+- MA-220: at 2.0, `$MQA tap '~Walk Card'` on `/commitments` after `$MQA scroll down --until '~Walk Card'` did not open the detail, and the wait on `label="Edit"` timed out. `$MQA open /commitments`, then the tabbed `/commitments/<id>/edit` link, reaches the edit form, as `second commitment by deep link on the mounted screen` does.
+- MA-220: the lift row's keyboard top is the `InputMethod` window's `touchable region` top in `adb -s <serial> shell dumpsys window windows`, 1048 px (399.2 dp) at 1.0. With the keyboard up, `sheet-footer` read 301.7 to 399.2, Name 104.4 to 152.4 and Notes 229.7 to 301.7, so Notes ends at the footer's top.
 
 ## Seeding and forcing states
 
