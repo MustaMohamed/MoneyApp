@@ -161,11 +161,11 @@ describe('CommitmentRepository.markAsPaid — the write path reconciles', () => 
     insertPayment('payment-egp', 'commitment-egp', Currency.EGP, 10.999);
     const repo = new CommitmentRepository();
 
-    await repo.markAsPaid(
-      'payment-egp',
-      { amount_paid: 10.999, account_id: 'acc_egp', paid_date: '2026-05-08' },
-      commitmentRow('commitment-egp', Currency.EGP, 10.999),
-    );
+    await repo.markAsPaid('payment-egp', {
+      amount_paid: 10.999,
+      account_id: 'acc_egp',
+      paid_date: '2026-05-08',
+    });
 
     const payment = realDb
       .prepare('SELECT amount_paid, transaction_id FROM commitment_payments WHERE id = ?')
@@ -204,16 +204,12 @@ describe('CommitmentRepository.markAsPaid — the write path reconciles', () => 
       insertPayment(`p-${id}`, id, commitmentCurrency, 10.999);
       const repo = new CommitmentRepository();
 
-      await repo.markAsPaid(
-        `p-${id}`,
-        {
-          amount_paid: 10.999,
-          account_id: accountId,
-          paid_date: '2026-05-08',
-          exchange_rate_snapshot: rate,
-        },
-        commitmentRow(id, commitmentCurrency, 10.999),
-      );
+      await repo.markAsPaid(`p-${id}`, {
+        amount_paid: 10.999,
+        account_id: accountId,
+        paid_date: '2026-05-08',
+        exchange_rate_snapshot: rate,
+      });
 
       const payment = realDb
         .prepare('SELECT amount_paid, transaction_id FROM commitment_payments WHERE id = ?')
@@ -224,6 +220,71 @@ describe('CommitmentRepository.markAsPaid — the write path reconciles', () => 
 
       expect(payment.amount_paid).toBe(expectedAmountPaid);
       expect(tx.amount).toBe(expectedTxAmount);
+    },
+  );
+});
+
+describe('CommitmentRepository.markAsPaid — a carried row pays by id', () => {
+  it.each([
+    [Currency.EGP, 250, Currency.EGP, 'acc_egp', undefined, 250, 250, 750],
+    [Currency.EGP, 250, Currency.USD, 'acc_usd', 50, 5, 250, 995],
+    [Currency.USD, 5, Currency.EGP, 'acc_egp', 50, 250, 250, 750],
+    [Currency.USD, 5, Currency.USD, 'acc_usd', 50, 5, 250, 995],
+  ] as const)(
+    '%s %d commitment / %s account: an April row pays in May from its id alone',
+    async (
+      commitmentCurrency,
+      amountPaid,
+      accountCurrency,
+      accountId,
+      rate,
+      expectedTxAmount,
+      expectedEgpAmount,
+      expectedBalance,
+    ) => {
+      const id = `carried-${commitmentCurrency}-${accountCurrency}`;
+      insertCommitment(commitmentRow(id, commitmentCurrency, amountPaid));
+      insertPayment(`p-${id}`, id, commitmentCurrency, amountPaid);
+      realDb
+        .prepare("UPDATE commitment_payments SET due_date = '2026-04-01' WHERE id = ?")
+        .run(`p-${id}`);
+      const repo = new CommitmentRepository();
+
+      await repo.markAsPaid(`p-${id}`, {
+        amount_paid: amountPaid,
+        account_id: accountId,
+        paid_date: '2026-05-08',
+        exchange_rate_snapshot: rate,
+      });
+
+      const payment = realDb
+        .prepare(
+          'SELECT due_date, paid_date, amount_paid, transaction_id FROM commitment_payments WHERE id = ?',
+        )
+        .get(`p-${id}`) as {
+        due_date: string;
+        paid_date: string;
+        amount_paid: number;
+        transaction_id: string;
+      };
+      const tx = realDb
+        .prepare('SELECT amount, currency, egp_amount FROM transactions WHERE id = ?')
+        .get(payment.transaction_id);
+      const account = realDb
+        .prepare('SELECT current_balance FROM accounts WHERE id = ?')
+        .get(accountId) as { current_balance: number };
+
+      expect(payment).toMatchObject({
+        due_date: '2026-04-01',
+        paid_date: '2026-05-08',
+        amount_paid: amountPaid,
+      });
+      expect(tx).toEqual({
+        amount: expectedTxAmount,
+        currency: accountCurrency,
+        egp_amount: expectedEgpAmount,
+      });
+      expect(account.current_balance).toBe(expectedBalance);
     },
   );
 });

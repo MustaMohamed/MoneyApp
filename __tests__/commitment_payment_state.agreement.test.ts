@@ -3,6 +3,7 @@ import Database from 'better-sqlite3';
 import { MIGRATIONS } from '@/database/migrations';
 import {
   paidPaymentSql,
+  settledPaymentSql,
   skippedPaymentSql,
   unpaidPaymentSql,
 } from '@/modules/commitments/database/payment_state_sql';
@@ -27,6 +28,7 @@ const CASES: [string, (alias?: string) => string, (row: Row) => boolean][] = [
   ['unpaid', unpaidPaymentSql, isUnpaidPayment],
   ['paid', paidPaymentSql, isPaidPayment],
   ['skipped', skippedPaymentSql, isSkippedPayment],
+  ['settled', settledPaymentSql, (row) => !isUnpaidPayment(row)],
 ];
 
 let db: Database.Database;

@@ -13,8 +13,10 @@ import {
   getCommitmentById,
   getCommitments,
   getCommitmentsForMonthSnapshot,
+  reactivateCommitment,
   updateCommitment,
 } from '@/modules/commitments/database/commitments';
+import { settledPaymentSql } from '@/modules/commitments/database/payment_state_sql';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 
@@ -58,8 +60,8 @@ beforeAll(() => {
 
   mocked.runAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
     const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
-    realDb.prepare(sql).run(...(params as never[]));
-    return { changes: 1, lastInsertRowId: 1 };
+    const result = realDb.prepare(sql).run(...(params as never[]));
+    return { changes: result.changes, lastInsertRowId: Number(result.lastInsertRowid) };
   });
 
   mocked.getAllAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
@@ -438,7 +440,7 @@ describe('deactivateExpiredCommitments', () => {
     });
   });
 
-  it('uses the existing commitment payment index for paid-count expiry', () => {
+  it('uses the existing commitment payment index for settled-count expiry', () => {
     const plan = realDb
       .prepare(
         `EXPLAIN QUERY PLAN
@@ -452,7 +454,7 @@ describe('deactivateExpiredCommitments', () => {
                 AND (SELECT COUNT(*)
                        FROM commitment_payments INDEXED BY idx_cp_commitment_id
                       WHERE commitment_id = commitments.id
-                        AND paid_date IS NOT NULL) >= end_after_count)
+                        AND ${settledPaymentSql()}) >= end_after_count)
             )`,
       )
       .all(NOW, '2026-05-08') as Array<{ detail: string }>;
@@ -460,11 +462,11 @@ describe('deactivateExpiredCommitments', () => {
     expect(plan.map((row) => row.detail).join('\n')).toContain('idx_cp_commitment_id');
   });
 
-  it('counts a row as paid by its paid date and never counts a skipped one', async () => {
+  it('counts a paid and a skipped row toward the after-N end', async () => {
     await addCommitment(
       mockDb,
       makeCommitment({
-        id: 'after-paid-by-date',
+        id: 'after-two-settled',
         duration_type: DurationType.AfterCount,
         end_after_count: 2,
       }),
@@ -472,16 +474,20 @@ describe('deactivateExpiredCommitments', () => {
     await addCommitment(
       mockDb,
       makeCommitment({
-        id: 'after-one-skipped',
+        id: 'after-three-two-settled',
         duration_type: DurationType.AfterCount,
-        end_after_count: 2,
+        end_after_count: 3,
       }),
     );
     await addPayments(mockDb, [
-      makePayment('by-date-1', 'after-paid-by-date', '2026-03-01'),
-      makePayment('by-date-2', 'after-paid-by-date', '2026-04-01'),
-      makePayment('one-paid', 'after-one-skipped', '2026-03-01'),
-      makePayment('one-skipped', 'after-one-skipped', '2026-04-01', {
+      makePayment('two-paid', 'after-two-settled', '2026-03-01'),
+      makePayment('two-skipped', 'after-two-settled', '2026-04-01', {
+        paid_date: null,
+        amount_paid: null,
+        skipped_date: '2026-04-02',
+      }),
+      makePayment('three-paid', 'after-three-two-settled', '2026-03-01'),
+      makePayment('three-skipped', 'after-three-two-settled', '2026-04-01', {
         paid_date: null,
         amount_paid: null,
         skipped_date: '2026-04-02',
@@ -491,9 +497,40 @@ describe('deactivateExpiredCommitments', () => {
     await deactivateExpiredCommitments(mockDb, '2026-05-08', NOW);
 
     expect(realDb.prepare('SELECT id, is_active FROM commitments ORDER BY id').all()).toEqual([
-      { id: 'after-one-skipped', is_active: 1 },
-      { id: 'after-paid-by-date', is_active: 0 },
+      { id: 'after-three-two-settled', is_active: 1 },
+      { id: 'after-two-settled', is_active: 0 },
     ]);
+  });
+});
+
+describe('reactivateCommitment', () => {
+  it('makes an inactive commitment active and reports one change', async () => {
+    await addCommitment(mockDb, makeCommitment({ id: 'com-reactivate', is_active: 0 }));
+
+    const changes = await reactivateCommitment(mockDb, 'com-reactivate', NOW);
+
+    expect(changes).toBe(1);
+    expect(
+      realDb
+        .prepare('SELECT is_active, updated_at FROM commitments WHERE id = ?')
+        .get('com-reactivate'),
+    ).toEqual({ is_active: 1, updated_at: NOW });
+  });
+
+  it('reports no change on an active commitment and leaves it untouched', async () => {
+    await addCommitment(
+      mockDb,
+      makeCommitment({ id: 'com-already-active', updated_at: '2026-01-01T00:00:00.000Z' }),
+    );
+
+    const changes = await reactivateCommitment(mockDb, 'com-already-active', NOW);
+
+    expect(changes).toBe(0);
+    expect(
+      realDb
+        .prepare('SELECT is_active, updated_at FROM commitments WHERE id = ?')
+        .get('com-already-active'),
+    ).toEqual({ is_active: 1, updated_at: '2026-01-01T00:00:00.000Z' });
   });
 });
 

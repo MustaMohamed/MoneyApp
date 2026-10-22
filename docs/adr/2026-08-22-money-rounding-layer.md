@@ -96,8 +96,8 @@ retained for that purpose. See Addendum A, points 2 and 3.
 | # | Column | Class | Rounding point | Value bound at the write |
 |---|---|---|---|---|
 | 1 | `transactions.amount` | A | `resolveTransactionAmounts`, first line | `amounts.amount` at `transaction.repository.ts:309` / `:409`, supplied by `add_transaction.hook.ts:409-419` / `edit_transaction.hook.ts:312-322` |
-| 2 | `commitment_payments.amount_paid` | A | `resolveCommitmentPaymentAmounts`, first line | `amounts.paymentAmount`, threaded from `commitment.repository.ts:207` into `commitment_payments.ts:274` **in place of `details.amount_paid`** |
-| 3 | `commitments.amount` | B | `CommitmentRepository.add` (`:107`) and `.update` (`:121`), first statement | the rounded field of the composed `Commitment` / `UpdateCommitmentData`, into `commitments.ts:47` / `:91` — `Commitment.amount: number \| null` (null for Variable commitments), so this is the actual production caller of `roundMoney`'s `null` overload |
+| 2 | `commitment_payments.amount_paid` | A | `resolveCommitmentPaymentAmounts`, first line | `amounts.paymentAmount`, threaded from `commitment.repository.ts:292` into `commitment_payments.ts:385` **in place of `details.amount_paid`**; amended, Addendum B |
+| 3 | `commitments.amount` | B | `CommitmentRepository.add` (`:107`) and `.update` (`:121`), first statement | the rounded field of the composed `Commitment` / `UpdateCommitmentData`, into `commitments.ts:47` / `:91` — `Commitment.amount: number \| null` (null for Variable commitments; amended, Addendum B), so this is the actual production caller of `roundMoney`'s `null` overload |
 | 4 | `budgets.limit_amount` | C | `BudgetRepository.setBudget` (`:326`), first statement — `setLimit` (`:351`) delegates to it | `input.limit` into `setBudgetRow` (`budgets.ts:47`), whose own finite-and-positive check then runs on the rounded value |
 | 5 | budget-month income | C | `BudgetRepository.setExpectedIncome` (`:317`), first statement — **before** `withExclusiveTransactionAsync` | `setBudgetMonthIncome(tx, …)` at `:321`, so `snapshotBudgetMonthCategoryGroups` at `:322` sees the rounded value |
 | 6 | spending-plan total / allocations | C | `BudgetRepository.setSpendingPlan` (`:429`), first statement — **before** `validateSpendingPlanInput` at `:439` | `:493` `total_amount`, `:505` `allocated_amount` (null-preserving, see §7) |
@@ -136,7 +136,7 @@ three counts:
    `edit_transaction.hook.ts` are structurally identical and each pass `data.amount` twice (spec
    row 16). Four places for one column, against one in the resolver.
 2. **It does not close row 18 by construction.** `commitment_payments.amount_paid` is written
-   *inside* `commitment_payments.ts:274` from `details.amount_paid` — the resolver's own input
+   *inside* `commitment_payments.ts:385` from `details.amount_paid` — the resolver's own input
    object. A rounded value in the pay sheet does not reach that line; only "the write binds the
    resolver's return" does. Row 18 is the highest-value row in the ticket and this layer misses it.
 3. **It contradicts `money.md:20`** and leaves the resolver a function that rounds its outputs and
@@ -338,7 +338,7 @@ A call from a file outside that entry fails `npm run lint`.
   `amounts.amount` for the persisted amount; `normalizedAmountsMatch` compares `amount`;
   idempotence test.
 - **c7 (commitments):** resolver returns `paymentAmount`; `markAsPaid` threads it into
-  `commitment_payments.ts:274`; `CommitmentRepository.add` / `.update` round `amount`. Confirm by
+  `commitment_payments.ts:385`; `CommitmentRepository.add` / `.update` round `amount`. Confirm by
   grep that `markAsPaid` has exactly one caller chain (`commitment.store.ts:261` ← `pay_sheet.hook.ts:153`)
   and that nothing passes `updatePaymentStatus`'s optional `amount_paid` field.
 - **c8 (budgets):** `parseLimit` is deleted in favour of `parse_decimal.ts`; the three repository
@@ -411,3 +411,28 @@ invariant are unchanged.
    renders `"45"` at EGP's 0dp, silently wrong and never literally zero, so escalation never
    fires. Cross-referenced from
    `docs/adr/2026-08-21-currency-aware-display-decimals.md`.
+
+## Addendum B — the Variable estimate and the pay write by id (MA-205)
+
+2026-10-21, MA-205 (#779). Amends §3 rows 2 and 3. §1's rule, §5's exception and §6's invariant
+are unchanged.
+
+1. **A Variable commitment stores an optional estimate.** §3 row 3 said `commitments.amount` is
+   null for Variable commitments. It is not always null: the form saves an optional estimate for a
+   Variable commitment, and `commitments.amount` holds it. `CommitmentRepository.add` rounds it at
+   its first statement, and `CommitmentRepository.update` rounds it at its first statement, before
+   its `withExclusiveTransactionAsync`. With no estimate the column stays null, and `roundMoney`'s
+   `null` overload still has this production caller.
+2. **Generated rows copy the estimate.** `planMissingCommitmentPayments`
+   (`commitment_housekeeping.helpers.ts:58`) writes `commitment.amount` into
+   `commitment_payments.amount_due`, so an unpaid Variable row carries the estimate when there is
+   one. With no estimate, the row's `amount_due` is null and the row counts 0 in every sum.
+3. **A paid row always uses `amount_paid`.** A sum takes a paid row's `amount_paid`, never its
+   `amount_due`, for Fixed and Variable rows alike.
+4. **The "~" prefix.** Any sum that holds an unpaid Variable row takes the "~" prefix, whether
+   that row carries an estimate or not (Decisions, 2026-10-21). The sum is approximate in both
+   cases: an estimate is not the amount the user will pay, and a row with no estimate adds 0.
+5. **Row 2's write resolves by id.** `CommitmentRepository.markAsPaid(paymentId, details)` reads
+   the payment and its commitment by id before any write, and rejects when either is gone. It no
+   longer takes the commitment from the loaded month. `amounts.paymentAmount` still replaces
+   `details.amount_paid` at the write (`commitment.repository.ts:292`).

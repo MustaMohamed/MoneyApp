@@ -12,6 +12,7 @@ export default function AddCommitmentScreen() {
       categories={state.categories}
       accounts={state.accounts}
       saving={state.saving}
+      errorMessage={state.saveError}
       onSubmit={() => void onSubmit()}
       title={Strings.commitmentsAddTitle}
     />

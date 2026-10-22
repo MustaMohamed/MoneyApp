@@ -1,4 +1,4 @@
-import { CommitmentPaymentStatus } from '@/constants/enums';
+import { CommitmentPaymentStatus, DurationType } from '@/constants/enums';
 import {
   carriedDueBound,
   isDueInMonth,
@@ -6,7 +6,9 @@ import {
   isSkippedPayment,
   isUnpaidPayment,
   resolvePaymentState,
+  resolveUndoSkip,
 } from '@/modules/commitments/domain/payment_state';
+import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 
 interface Dates {
   due_date: string;
@@ -112,5 +114,73 @@ describe('isDueInMonth', () => {
     ['2028-03-01', false],
   ])('reads %s in the leap February 2028-02 as %s', (due_date, expected) => {
     expect(isDueInMonth({ due_date }, '2028-02')).toBe(expected);
+  });
+});
+
+describe('resolveUndoSkip', () => {
+  type UndoCommitment = Pick<
+    Commitment,
+    'is_active' | 'duration_type' | 'end_date' | 'end_after_count'
+  >;
+  const TODAY = '2026-05-01';
+
+  function undoCommitment(overrides: Partial<UndoCommitment> = {}): UndoCommitment {
+    return {
+      is_active: 0,
+      duration_type: DurationType.Forever,
+      end_date: null,
+      end_after_count: null,
+      ...overrides,
+    };
+  }
+
+  it('clears the skip on an active commitment', () => {
+    expect(resolveUndoSkip(undoCommitment({ is_active: 1 }), 1, TODAY)).toBe('clear');
+  });
+
+  it('reactivates an inactive after-N commitment the skip ended', () => {
+    const afterThree = undoCommitment({
+      duration_type: DurationType.AfterCount,
+      end_after_count: 3,
+    });
+    expect(resolveUndoSkip(afterThree, 3, TODAY)).toBe('reactivate');
+  });
+
+  it('clears the skip on an inactive after-N commitment that stays at N without it', () => {
+    const afterThree = undoCommitment({
+      duration_type: DurationType.AfterCount,
+      end_after_count: 3,
+    });
+    expect(resolveUndoSkip(afterThree, 4, TODAY)).toBe('clear');
+  });
+
+  it('refuses on an inactive after-N commitment short of N, which a Stop ended', () => {
+    const afterThree = undoCommitment({
+      duration_type: DurationType.AfterCount,
+      end_after_count: 3,
+    });
+    expect(resolveUndoSkip(afterThree, 2, TODAY)).toBe('refuse');
+  });
+
+  it('clears the skip on an inactive until-date commitment whose end date is before today', () => {
+    const untilApril = undoCommitment({
+      duration_type: DurationType.UntilDate,
+      end_date: '2026-04-30',
+    });
+    expect(resolveUndoSkip(untilApril, 1, TODAY)).toBe('clear');
+  });
+
+  it('refuses on an inactive until-date commitment whose end date is today', () => {
+    const untilToday = undoCommitment({ duration_type: DurationType.UntilDate, end_date: TODAY });
+    expect(resolveUndoSkip(untilToday, 1, TODAY)).toBe('refuse');
+  });
+
+  it('refuses on an inactive until-date commitment with no end date', () => {
+    const untilNull = undoCommitment({ duration_type: DurationType.UntilDate, end_date: null });
+    expect(resolveUndoSkip(untilNull, 1, TODAY)).toBe('refuse');
+  });
+
+  it('refuses on an inactive forever commitment', () => {
+    expect(resolveUndoSkip(undoCommitment(), 1, TODAY)).toBe('refuse');
   });
 });

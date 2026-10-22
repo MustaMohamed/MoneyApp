@@ -31,6 +31,8 @@ jest.mock('@/modules/commitments/screens/commitments/add_commitment/add_commitme
 
 const addCommitmentMock = jest.fn().mockResolvedValue(undefined);
 const generatePaymentsMock = jest.fn().mockResolvedValue(undefined);
+const setSaveErrorMock = jest.fn();
+let saveErrorValue: string | undefined;
 
 function setup() {
   attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
@@ -47,7 +49,9 @@ function setup() {
   }));
   attachMockSelectorStore(useAddCommitmentState as unknown as jest.Mock, () => ({
     saving: false,
+    saveError: saveErrorValue,
     setSaving: jest.fn(),
+    setSaveError: setSaveErrorMock,
     reset: jest.fn(),
   }));
 }
@@ -55,6 +59,7 @@ function setup() {
 describe('useAddCommitment', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    saveErrorValue = undefined;
     setup();
   });
 
@@ -183,5 +188,62 @@ describe('useAddCommitment', () => {
 
     expect(addCommitmentMock).toHaveBeenCalledTimes(1);
     expect(mockRouterBack).toHaveBeenCalledTimes(1);
+  });
+
+  describe('a failed add', () => {
+    async function mountFilled() {
+      const { result } = await renderHook(() => useAddCommitment());
+      await act(() => {
+        result.current.form.setValue('name', 'Rent');
+        result.current.form.setValue('amount', 5000);
+        result.current.form.setValue('categoryId', 'category-rent');
+      });
+      return result;
+    }
+
+    it('sets the save error, stays on the add screen and keeps the form', async () => {
+      addCommitmentMock.mockRejectedValueOnce(new Error('insert failed'));
+      const result = await mountFilled();
+
+      await act(async () => {
+        await result.current.onSubmit();
+      });
+
+      expect(addCommitmentMock).toHaveBeenCalledTimes(1);
+      expect(setSaveErrorMock).toHaveBeenLastCalledWith(Strings.commitmentsSaveError);
+      expect(mockRouterBack).not.toHaveBeenCalled();
+      expect(result.current.form.getValues('name')).toBe('Rent');
+      expect(result.current.form.getValues('amount')).toBe(5000);
+    });
+
+    it('clears the save error before the next add is called', async () => {
+      addCommitmentMock.mockRejectedValueOnce(new Error('insert failed'));
+      const result = await mountFilled();
+      await act(async () => {
+        await result.current.onSubmit();
+      });
+      setSaveErrorMock.mockClear();
+      addCommitmentMock.mockClear();
+
+      await act(async () => {
+        await result.current.onSubmit();
+      });
+
+      expect(setSaveErrorMock).toHaveBeenCalledWith(undefined);
+      expect(addCommitmentMock).toHaveBeenCalledTimes(1);
+      expect(setSaveErrorMock.mock.invocationCallOrder[0]).toBeLessThan(
+        addCommitmentMock.mock.invocationCallOrder[0],
+      );
+      expect(mockRouterBack).toHaveBeenCalledTimes(1);
+    });
+
+    it('returns the state save error for the form to show', async () => {
+      saveErrorValue = Strings.commitmentsSaveError;
+      setup();
+
+      const { result } = await renderHook(() => useAddCommitment());
+
+      expect(result.current.state.saveError).toBe(Strings.commitmentsSaveError);
+    });
   });
 });
