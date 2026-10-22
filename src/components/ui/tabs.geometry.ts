@@ -82,6 +82,14 @@ export function resolveSegmentedTabsGeometry(
     defaultListHeight:
       defaultLabel === undefined
         ? undefined
-        : defaultLabel.lineHeight + 2 * TABS_TRIGGER_PADDING_BLOCK + 2 * TABS_LIST_PADDING,
+        : resolveDefaultTriggerHeight(fontScale, maxFontScale) + 2 * TABS_LIST_PADDING,
   };
+}
+
+/** The default trigger's height: HeroUI's base line, scaled, inside the trigger's block padding. */
+export function resolveDefaultTriggerHeight(fontScale: number, maxFontScale = Infinity): number {
+  return (
+    scaledTextStyle(HEROUI_TEXT_TYPE.base, fontScale, maxFontScale).lineHeight +
+    2 * TABS_TRIGGER_PADDING_BLOCK
+  );
 }

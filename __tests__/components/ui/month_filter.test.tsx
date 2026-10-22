@@ -100,9 +100,14 @@ describe('MonthFilter', () => {
       <MonthFilter selectedMonth="2026-08" onSelectedMonthChange={jest.fn()} />,
     );
 
+    const pillHeight = resolveMonthPillGeometry(Dimensions.get('window').fontScale).height;
     expect(getByTestId('month-filter-open').props.hitSlop).toBeUndefined();
-    expect(getByTestId('month-filter-previous').props.hitSlop).toBe(MONTH_STEP_HIT_SLOP);
-    expect(getByTestId('month-filter-next').props.hitSlop).toBe(MONTH_STEP_HIT_SLOP);
+    expect(getByTestId('month-filter-previous').props.hitSlop).toEqual(
+      resolveMonthStepHitSlop(undefined, pillHeight, 'previous'),
+    );
+    expect(getByTestId('month-filter-next').props.hitSlop).toEqual(
+      resolveMonthStepHitSlop(undefined, pillHeight, 'next'),
+    );
 
     await rerender(
       <MonthFilter
@@ -112,10 +117,13 @@ describe('MonthFilter', () => {
       />,
     );
 
-    const stepHitSlop = resolveMonthStepHitSlop(ROW_HIT_SLOP);
     expect(getByTestId('month-filter-open').props.hitSlop).toEqual(ROW_HIT_SLOP);
-    expect(getByTestId('month-filter-previous').props.hitSlop).toEqual(stepHitSlop);
-    expect(getByTestId('month-filter-next').props.hitSlop).toEqual(stepHitSlop);
+    expect(getByTestId('month-filter-previous').props.hitSlop).toEqual(
+      resolveMonthStepHitSlop(ROW_HIT_SLOP, pillHeight, 'previous'),
+    );
+    expect(getByTestId('month-filter-next').props.hitSlop).toEqual(
+      resolveMonthStepHitSlop(ROW_HIT_SLOP, pillHeight, 'next'),
+    );
 
     await fireEvent.press(getByLabelText(Strings.monthFilterOpenA11y('August 2026')));
 

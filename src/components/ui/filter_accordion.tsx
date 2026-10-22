@@ -5,15 +5,27 @@ import { View, useWindowDimensions } from 'react-native';
 
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Type, lineHeightFor } from '@/constants/theme';
+import { HIT_SLOP_UNCLIPPED_STYLE, Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 
 import { SelectablePill } from './chip';
-import { resolveFilterAmountSlotStyle } from './filter_accordion.geometry';
+import {
+  FILTER_OPTION_PILL_GAP,
+  WRAPPING_PILL_LABEL_STYLE,
+  WRAPPING_PILL_STYLE,
+} from './chip.geometry';
+import {
+  FILTER_ACCORDION_CARD_BORDER,
+  FILTER_ACCORDION_CARD_MARGIN_BOTTOM,
+  FILTER_ACCORDION_CONTENT_PADDING_BOTTOM,
+  FILTER_OPTION_LIST_EDGE,
+  resolveFilterAmountSlotStyle,
+} from './filter_accordion.geometry';
 import { Input } from './input';
 import { SegmentedTabs } from './tabs';
 import { Text } from './text';
 import { resolveOneLineTextProps, scaledTextStyleAboveOne } from './text_scale.geometry';
+import { useTouchFloorGridHitSlop } from './touch_floor.hook';
 
 interface FilterAccordionShellProps {
   title: string;
@@ -62,7 +74,13 @@ export function FilterAccordionShell({
   const summaryLine = resolveOneLineTextProps(scaledTextStyleAboveOne(Type.micro, fontScale));
 
   return (
-    <View className="border-separator bg-surface mb-2 rounded-xl border px-3.5">
+    <View
+      className="border-separator bg-surface rounded-xl px-3.5"
+      style={{
+        borderWidth: FILTER_ACCORDION_CARD_BORDER,
+        marginBottom: FILTER_ACCORDION_CARD_MARGIN_BOTTOM,
+      }}
+    >
       <Accordion
         selectionMode="single"
         value={expanded ? 'section' : ''}
@@ -108,7 +126,13 @@ export function FilterAccordionShell({
               </View>
             </View>
           </Accordion.Trigger>
-          <Accordion.Content className="px-0 pt-0 pb-3.5" style={{ paddingHorizontal: 0 }}>
+          <Accordion.Content
+            className="px-0 pt-0"
+            style={{
+              paddingHorizontal: 0,
+              paddingBottom: FILTER_ACCORDION_CONTENT_PADDING_BOTTOM,
+            }}
+          >
             {children}
           </Accordion.Content>
         </Accordion.Item>
@@ -121,17 +145,22 @@ export function FilterOptionPillList<T extends string = string>({
   options,
   onToggle,
 }: FilterOptionPillListProps<T>): React.ReactElement {
+  const touch = useTouchFloorGridHitSlop(FILTER_OPTION_PILL_GAP, FILTER_OPTION_LIST_EDGE);
+
   return (
-    <View className="flex-row flex-wrap gap-1.5">
+    <View className="flex-row flex-wrap" style={{ gap: FILTER_OPTION_PILL_GAP }}>
       {options.map((option) => (
         <SelectablePill
           key={option.id}
+          {...touch.item(option.id)}
           label={option.label}
           selected={option.selected}
           onPress={() => onToggle(option.id)}
           startIcon={option.startIcon}
           checkable
           accessibilityLabel={option.accessibilityLabel}
+          style={[WRAPPING_PILL_STYLE, HIT_SLOP_UNCLIPPED_STYLE]}
+          labelStyle={WRAPPING_PILL_LABEL_STYLE}
         />
       ))}
     </View>

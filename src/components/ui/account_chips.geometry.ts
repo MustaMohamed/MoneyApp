@@ -14,6 +14,9 @@ export const CHIP_SLOP_Y = touchFloorHitSlop(Size.compactChipHeight).top;
 export const ROW_PADDING_TOP = Math.max(ms(9), CHIP_SLOP_Y);
 export const ROW_PADDING_BOTTOM = Math.max(Spacing.xs, CHIP_SLOP_Y);
 
+/** The chips are controls, so the search row's slop takes half the padding below them. */
+export const CHIP_ROW_ROOM_BELOW = ROW_PADDING_BOTTOM / 2;
+
 /** Commitments canvas `.spill .id-tile`, a 20 square around a 14 glyph, the account strip's `Size.rowGlyph`. */
 export const CHIP_TILE = ms(20);
 

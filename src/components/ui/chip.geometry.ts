@@ -1,5 +1,5 @@
 import { type ScaledTextStyle, scaledTextStyle } from '@/components/ui/text_scale.geometry';
-import { Size, Spacing, Type } from '@/constants/theme';
+import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 
 /** The `SelectablePill` label's size at scale 1. */
 export const SELECTABLE_PILL_LABEL_FONT_SIZE = Type.micro;
@@ -12,6 +12,21 @@ export const PILL_BORDER_WIDTH = 1;
 
 // A `SelectablePill` with no adornment takes `py-1`, unscaled CSS px.
 export const SELECTABLE_PILL_PADDING_BLOCK = 4;
+
+/** The bare pill's height at scale 1, its shortest. */
+export const SELECTABLE_PILL_BARE_HEIGHT: number =
+  lineHeightFor(SELECTABLE_PILL_LABEL_FONT_SIZE) +
+  2 * SELECTABLE_PILL_PADDING_BLOCK +
+  2 * PILL_BORDER_WIDTH;
+
+// The filter option list's `gap-1.5`, unscaled CSS px (frame B1FilterSheet `.facc .pl`).
+export const FILTER_OPTION_PILL_GAP = 6;
+
+/** A pill never exceeds its line, so a label that wraps keeps the pill's rounded right end inside its card. */
+export const WRAPPING_PILL_STYLE = { maxWidth: '100%' } as const;
+
+/** The label shrinks to wrap inside the pill instead of pushing it past its line. */
+export const WRAPPING_PILL_LABEL_STYLE = { flexShrink: 1 } as const;
 
 export interface ChipLabelGeometry {
   height: number;

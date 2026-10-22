@@ -5,11 +5,13 @@ import { View } from 'react-native';
 import { SelectablePill } from '@/components/ui/chip';
 import { useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
+import { useTouchFloorGridHitSlop } from '@/components/ui/touch_floor.hook';
 import { RecurrencePeriod, RecurrencePreset } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { HIT_SLOP_UNCLIPPED_STYLE } from '@/constants/theme';
 
 import { type CommitmentFormValues, SET_OPTS, composeFieldBlur } from '../commitment_form.shared';
-import { COMMITMENT_FORM_PILL_SLOP } from './commitment_form.geometry';
+import { COMMITMENT_FORM_PICKER_GAP, COMMITMENT_FORM_PILL_SLOP } from './commitment_form.geometry';
 
 interface Props {
   form: UseFormReturn<CommitmentFormValues>;
@@ -34,26 +36,38 @@ export function RecurrencePicker({ form, recurrencePreset, onPresetChange }: Pro
   const recurrencePeriod = useWatch({ control: form.control, name: 'recurrencePeriod' });
   const everyError = form.formState.errors.recurrenceEvery?.message;
   const { onFocus: onInputFocus, onBlur: onInputBlur } = useBottomSheetAwareHandlers();
+  const isCustom = recurrencePreset === RecurrencePreset.Custom;
+  const presetTouch = useTouchFloorGridHitSlop(
+    COMMITMENT_FORM_PICKER_GAP,
+    isCustom ? { bottom: COMMITMENT_FORM_PICKER_GAP / 2 } : {},
+    COMMITMENT_FORM_PILL_SLOP,
+  );
+  const periodTouch = useTouchFloorGridHitSlop(
+    COMMITMENT_FORM_PICKER_GAP,
+    { top: COMMITMENT_FORM_PICKER_GAP / 2 },
+    COMMITMENT_FORM_PILL_SLOP,
+  );
 
   return (
-    <View className="bg-default gap-2 rounded-2xl px-3 py-3">
+    <View className="bg-default rounded-2xl px-3 py-3" style={{ gap: COMMITMENT_FORM_PICKER_GAP }}>
       <Text className="font-inter text-muted text-[11px]">
         {Strings.commitmentsFieldRecurrence}
       </Text>
 
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap' }} className="gap-2">
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: COMMITMENT_FORM_PICKER_GAP }}>
         {PRESETS.map(({ key, label }) => (
           <SelectablePill
             key={key}
+            {...presetTouch.item(key)}
             label={label}
             selected={recurrencePreset === key}
             onPress={() => onPresetChange(key)}
-            hitSlop={COMMITMENT_FORM_PILL_SLOP}
+            style={HIT_SLOP_UNCLIPPED_STYLE}
           />
         ))}
       </View>
 
-      {recurrencePreset === RecurrencePreset.Custom ? (
+      {isCustom ? (
         <View
           style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }}
           className="gap-2"
@@ -87,14 +101,15 @@ export function RecurrencePicker({ form, recurrencePreset, onPresetChange }: Pro
               )}
             />
           </View>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap' }} className="gap-2">
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: COMMITMENT_FORM_PICKER_GAP }}>
             {PERIODS.map(({ key, label }) => (
               <SelectablePill
                 key={key}
+                {...periodTouch.item(key)}
                 label={label}
                 selected={recurrencePeriod === key}
                 onPress={() => form.setValue('recurrencePeriod', key, SET_OPTS)}
-                hitSlop={COMMITMENT_FORM_PILL_SLOP}
+                style={HIT_SLOP_UNCLIPPED_STYLE}
               />
             ))}
           </View>

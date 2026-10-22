@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/search_filter_row.geometry';
 import { scaledFontSize } from '@/components/ui/text_scale.geometry';
 import {
+  HIT_SLOP_UNCLIPPED_STYLE,
   Radius,
   Size,
   Spacing,
@@ -90,7 +91,12 @@ describe('resolveSearchFilterRowGeometry', () => {
       paddingTop: 0,
       paddingBottom: 0,
     });
-    expect(g.filterButton).toEqual({ height: ms(36), width: ms(36), borderRadius: Radius.md });
+    expect(g.filterButton).toEqual({
+      height: ms(36),
+      width: ms(36),
+      borderRadius: Radius.md,
+      ...HIT_SLOP_UNCLIPPED_STYLE,
+    });
     expect(g.badge).toEqual({
       top: ms(2),
       right: ms(2),

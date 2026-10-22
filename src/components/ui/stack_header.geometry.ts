@@ -1,7 +1,7 @@
 import type { Insets } from 'react-native';
 
 import { type ScaledTextStyle, scaledTextStyle } from '@/components/ui/text_scale.geometry';
-import { Size, Type } from '@/constants/theme';
+import { Size, Type, touchFloorHitSlop } from '@/constants/theme';
 
 export interface StackHeaderGeometry {
   title: ScaledTextStyle;
@@ -21,11 +21,14 @@ export interface HeaderTextActionGeometry {
   height: number;
 }
 
+const HEADER_ACTION_SLOP = touchFloorHitSlop(Size.headerActionTrack).top;
+
+/** Lifts the header action box to the touch floor on every side. */
 export const HEADER_ACTION_HIT_SLOP = {
-  top: Size.headerActionSlop,
-  bottom: Size.headerActionSlop,
-  left: Size.headerActionSlop,
-  right: Size.headerActionSlop,
+  top: HEADER_ACTION_SLOP,
+  bottom: HEADER_ACTION_SLOP,
+  left: HEADER_ACTION_SLOP,
+  right: HEADER_ACTION_SLOP,
 } as const satisfies Insets;
 
 export const NATIVE_HEADER_BACK_PADDING = {

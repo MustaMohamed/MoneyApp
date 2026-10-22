@@ -3,7 +3,7 @@ import React from 'react';
 import type { ViewStyle } from 'react-native';
 
 import { HEADER_ACTION_HIT_SLOP } from '@/components/ui/stack_header.geometry';
-import { Radius, Size } from '@/constants/theme';
+import { HIT_SLOP_UNCLIPPED_STYLE, Radius, Size } from '@/constants/theme';
 
 export interface HeaderActionBoxProps {
   accessibilityLabel: string;
@@ -25,7 +25,12 @@ export function HeaderActionBox({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       className="bg-surface border-border items-center justify-center"
-      style={{ ...style, borderRadius: Radius.sm, borderWidth: Size.hairline }}
+      style={{
+        ...style,
+        ...HIT_SLOP_UNCLIPPED_STYLE,
+        borderRadius: Radius.sm,
+        borderWidth: Size.hairline,
+      }}
     >
       {children}
     </PressableFeedback>

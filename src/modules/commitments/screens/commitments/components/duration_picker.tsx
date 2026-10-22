@@ -7,13 +7,15 @@ import { Platform, View } from 'react-native';
 import { SelectablePill } from '@/components/ui/chip';
 import { useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
+import { useTouchFloorGridHitSlop } from '@/components/ui/touch_floor.hook';
 import { DurationType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { HIT_SLOP_UNCLIPPED_STYLE } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 import { formatLongDate, toLocalDateString } from '@/utils/format_date';
 
 import { type CommitmentFormValues, SET_OPTS, composeFieldBlur } from '../commitment_form.shared';
-import { COMMITMENT_FORM_PILL_SLOP } from './commitment_form.geometry';
+import { COMMITMENT_FORM_PICKER_GAP, COMMITMENT_FORM_PILL_SLOP } from './commitment_form.geometry';
 
 interface Props {
   form: UseFormReturn<CommitmentFormValues>;
@@ -40,6 +42,11 @@ export function DurationPicker({
   const countError = form.formState.errors.endAfterCount?.message;
   const dateError = form.formState.errors.endDate?.message;
   const { onFocus: onInputFocus, onBlur: onInputBlur } = useBottomSheetAwareHandlers();
+  const durationTouch = useTouchFloorGridHitSlop(
+    COMMITMENT_FORM_PICKER_GAP,
+    durationType === DurationType.Forever ? {} : { bottom: COMMITMENT_FORM_PICKER_GAP / 2 },
+    COMMITMENT_FORM_PILL_SLOP,
+  );
 
   const endDateAsDate = endDate ? new Date(endDate + 'T00:00:00') : new Date();
   const formattedEndDate = endDate ? formatLongDate(endDate) : Strings.commitmentDateInputFormat;
@@ -57,17 +64,18 @@ export function DurationPicker({
   }
 
   return (
-    <View className="bg-default gap-2 rounded-2xl px-3 py-3">
+    <View className="bg-default rounded-2xl px-3 py-3" style={{ gap: COMMITMENT_FORM_PICKER_GAP }}>
       <Text className="font-inter text-muted text-[11px]">{Strings.commitmentsFieldDuration}</Text>
 
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap' }} className="gap-2">
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: COMMITMENT_FORM_PICKER_GAP }}>
         {DURATION_TYPES.map(({ key, label }) => (
           <SelectablePill
             key={key}
+            {...durationTouch.item(key)}
             label={label}
             selected={durationType === key}
             onPress={() => onDurationTypeChange(key)}
-            hitSlop={COMMITMENT_FORM_PILL_SLOP}
+            style={HIT_SLOP_UNCLIPPED_STYLE}
           />
         ))}
       </View>

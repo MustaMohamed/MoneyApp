@@ -19,7 +19,7 @@ export function resolveTransactionsRailGeometry(scaledSpace: number): Transactio
   return {
     space,
     monthRowHitSlop: {
-      top: space + TOUCH_SLOP_PIXEL_MARGIN,
+      top: TouchSize.min - Size.monthPillTrack - space / 2 + TOUCH_SLOP_PIXEL_MARGIN,
       bottom: space / 2 + TOUCH_SLOP_PIXEL_MARGIN,
     },
     tabsHitSlop: {

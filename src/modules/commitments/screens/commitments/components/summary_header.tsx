@@ -23,6 +23,8 @@ import { formatCurrencyTotals } from '@/utils/format_amount';
 import { wholePercentOf } from '@/utils/money';
 import { ms } from '@/utils/responsive';
 
+import { SUMMARY_HEADER_MARGIN_BOTTOM } from './summary_header.geometry';
+
 interface SummaryHeaderProps {
   counts: {
     paid: number;
@@ -107,7 +109,10 @@ export function SummaryHeader({ counts, totalsByCurrency, isLoading = false }: S
   const { fontScale } = useWindowDimensions();
 
   return (
-    <Card className="bg-surface border-border mx-4 mb-2 gap-1 rounded-2xl border px-3 py-2">
+    <Card
+      className="bg-surface border-border mx-4 gap-1 rounded-2xl border px-3 py-2"
+      style={{ marginBottom: SUMMARY_HEADER_MARGIN_BOTTOM }}
+    >
       {isLoading ? (
         <SummarySkeleton />
       ) : (

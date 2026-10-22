@@ -1,6 +1,7 @@
 import { fireEvent, render } from '@testing-library/react-native';
 import { Dimensions } from 'react-native';
 
+import { CHIP_ROW_ROOM_BELOW } from '@/components/ui/account_chips.geometry';
 import { SearchFilterRow } from '@/components/ui/search_filter_row';
 import { resolveSearchFilterRowGeometry } from '@/components/ui/search_filter_row.geometry';
 
@@ -18,6 +19,7 @@ describe('SearchFilterRow', () => {
         onOpenFilter={jest.fn()}
         activeFilterCount={0}
         filterBadgeTestID="shared-filter-badge"
+        topRoom={CHIP_ROW_ROOM_BELOW}
       />,
     );
 
@@ -36,6 +38,7 @@ describe('SearchFilterRow', () => {
         onOpenFilter={jest.fn()}
         activeFilterCount={0}
         filterBadgeTestID="shared-filter-badge"
+        topRoom={CHIP_ROW_ROOM_BELOW}
       />,
     );
     expect(empty.queryByTestId('shared-filter-badge')).toBeNull();
@@ -48,6 +51,7 @@ describe('SearchFilterRow', () => {
         onOpenFilter={jest.fn()}
         activeFilterCount={3}
         filterBadgeTestID="shared-filter-badge"
+        topRoom={CHIP_ROW_ROOM_BELOW}
       />,
     );
     expect(active.getByText('3')).toHaveProp('allowFontScaling', false);
@@ -65,6 +69,7 @@ describe('SearchFilterRow', () => {
         onOpenFilter={jest.fn()}
         activeFilterCount={0}
         filterBadgeTestID="shared-filter-badge"
+        topRoom={CHIP_ROW_ROOM_BELOW}
       />,
     );
 
@@ -83,6 +88,7 @@ describe('SearchFilterRow', () => {
         onOpenFilter={onOpenFilter}
         activeFilterCount={1}
         filterBadgeTestID="shared-filter-badge"
+        topRoom={CHIP_ROW_ROOM_BELOW}
       />,
     );
 
