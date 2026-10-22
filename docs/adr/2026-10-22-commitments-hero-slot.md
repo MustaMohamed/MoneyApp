@@ -16,7 +16,7 @@ The store holds one slot, `monthAggregate: { key, aggregate } | undefined`, and 
 - A successful load publishes `{ key, aggregate }` in one `set` and clears `monthAggregateErrorKey` only when it equals that key.
 - A failed load sets `monthAggregateErrorKey` to its key and keeps the slot it holds. `loadMonthAggregate` logs the error and never rejects.
 - A load sets no state when it starts. A held slot and an error key stay as they are while a reload runs.
-- Each load takes a request id and the store's data generation. A response from an older id, or one read before a write bumped the generation, publishes nothing and sets no error key, so a month left behind or a read from before a write never overwrites what is on screen.
+- Each load takes a request id and the store's data generation. A response from an older id, or one read before a write bumped the generation, publishes nothing and sets no error key, so a month left behind or a read from before a write never overwrites what is on screen. The generation re-check guards a future write that invalidates the data without reloading the slot; every write today reloads it, so the request id drops the older read first and no public store path tests the generation re-check alone.
 
 ## 2. When the slot loads
 

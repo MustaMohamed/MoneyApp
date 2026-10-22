@@ -1128,7 +1128,7 @@ describe('commitment store month aggregate', () => {
     expect(repository.getMonthAggregate).not.toHaveBeenCalled();
   });
 
-  it('publishes nothing from a read made before a write invalidated the data', async () => {
+  it("discards a read made before a write, through the write's aggregate reload", async () => {
     const beforeWrite = deferred<CommitmentMonthAggregate>();
     const afterWrite = deferred<CommitmentMonthAggregate>();
     const repository = makeRepository({
