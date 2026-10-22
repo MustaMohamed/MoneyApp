@@ -29,6 +29,32 @@ const DASHBOARD_INDEX = 'src/modules/dashboard/screens/dashboard/index.tsx';
 const GOALS_INDEX = 'src/modules/goals/screens/goals/index.tsx';
 const ACCOUNT_INFO_ROWS = 'src/modules/accounts/utils/account_info_rows.ts';
 const VERSIONED_FILE = 'src/modules/transactions/seeded_surface.ts';
+const TRANSACTION_CALL_FILE = 'src/modules/transactions/seeded_transaction_call.ts';
+const HELPER_CALL_FILE = 'src/test_helpers/seeded_transaction_call.ts';
+const BARE_IDENTIFIER_FILE = 'src/modules/transactions/seeded_bare_identifier.ts';
+const MEMBER_FORMS_FILE = 'src/modules/transactions/seeded_member_forms.ts';
+const COMMENTED_FORM_FILE = 'src/modules/transactions/seeded_commented_form.ts';
+const COMMENTED_FORM = '/**\n * const { prepareAsync } = db;\n */\nexport const seeded = 1;\n';
+const MEMBER_FORMS = [
+  'const { getEachAsync } = db;',
+  "db['execSync'](source);",
+  'db["runSync"](source);',
+  'db[`getAllSync`](source);',
+  'const {',
+  '  prepareSync: prepare,',
+  '} = db;',
+  'const read = ({ getFirstSync }: SQLiteDatabase) => getFirstSync(source);',
+  'report({ execSync });',
+  "const { 'runSync': run } = db;",
+  'const { db: { getEachSync } } = context;',
+  'for (const { prepareAsync } of connections) prepareAsync(source);',
+  'async function close({ execSync }): Promise<void> {}',
+  'const each = ({ getAllSync }) => getAllSync(source);',
+  'function pick() { return execSync; }',
+  '',
+].join('\n');
+const TRANSACTION_CALLS =
+  'db.withTransactionAsync(task);\ndb.withExclusiveTransactionAsync(task);\ndb.getEachAsync(source);\n';
 const FIELD_MESSAGE_RAIL = 'src/modules/accounts/components/field_message_rail.tsx';
 const ACCOUNT_COLOR_SHEET = 'src/modules/accounts/components/account_form/account_color_sheet.tsx';
 const COMMITMENT_FORM_BODY = `${COMMITMENTS}/components/commitment_form_body.tsx`;
@@ -497,6 +523,11 @@ describe('validate-structural-guards.js, banned tokens seeded together in one ru
       seeded.set(guard, { rel, line: appendLine(rel, text) });
     }
     write(VERSIONED_FILE, 'export const TransactionFormV2 = 1;\n');
+    write(TRANSACTION_CALL_FILE, TRANSACTION_CALLS);
+    write(HELPER_CALL_FILE, TRANSACTION_CALLS);
+    write(BARE_IDENTIFIER_FILE, 'const execSync = 1;\ndb.prepareAsync(source);\n');
+    write(MEMBER_FORMS_FILE, MEMBER_FORMS);
+    write(COMMENTED_FORM_FILE, COMMENTED_FORM);
     result = runGuard();
     restoreTouched();
   });
@@ -509,6 +540,57 @@ describe('validate-structural-guards.js, banned tokens seeded together in one ru
 
   it('T3: reports TransactionFormV2 in a new file under src/', () => {
     expectReported(result, [lineAt(VERSIONED_FILE, 1, 'TransactionFormV2')]);
+  });
+
+  it('T5: reports both expo transaction methods under src/, and none under src/test_helpers/', () => {
+    expectReported(result, [
+      lineAt(TRANSACTION_CALL_FILE, 1, 'withTransactionAsync'),
+      lineAt(TRANSACTION_CALL_FILE, 2, 'withExclusiveTransactionAsync'),
+    ]);
+    expect(stderrLines(result).filter((line) => line.startsWith(HELPER_CALL_FILE))).toEqual([]);
+  });
+
+  it('T6: reports a connection method outside the four the queue runs, and none under src/test_helpers/', () => {
+    expectReported(result, [lineAt(TRANSACTION_CALL_FILE, 3, 'getEachAsync')]);
+    expect(stderrLines(result).filter((line) => line.startsWith(HELPER_CALL_FILE))).toEqual([]);
+  });
+
+  it('T6: reports a connection method as a member access, and passes a bare identifier of the same name', () => {
+    expectReported(result, [lineAt(BARE_IDENTIFIER_FILE, 2, 'prepareAsync')]);
+    expect(
+      stderrLines(result).filter((line) => line.startsWith(`${BARE_IDENTIFIER_FILE}:1:`)),
+    ).toEqual([]);
+  });
+
+  it.each([
+    ['an object-destructuring declaration', 1, 'getEachAsync'],
+    ['a single-quoted bracket access', 2, "['execSync']"],
+    ['a double-quoted bracket access', 3, '["runSync"]'],
+    ['a template-literal bracket access', 4, '[`getAllSync`]'],
+    ['a renamed key in a destructuring pattern oxfmt wrapped', 6, 'prepareSync'],
+    ['a typed arrow parameter pattern', 8, 'getFirstSync'],
+    ['a quoted key in a destructuring pattern', 10, 'runSync'],
+    ['a nested destructuring pattern', 11, 'getEachSync'],
+    ['a for-of pattern', 12, 'prepareAsync'],
+    ['a function parameter pattern with a return type', 13, 'execSync'],
+    ['an untyped arrow parameter pattern', 14, 'getAllSync'],
+  ])('T6: reports a connection method reached through %s', (_form, line, token) => {
+    expectReported(result, [lineAt(MEMBER_FORMS_FILE, line, token)]);
+  });
+
+  it.each([
+    ['a shorthand property of an object literal', 9],
+    ['a statement in a block', 15],
+  ])('T6: passes a bare identifier of the same name as %s', (_form, line) => {
+    expect(
+      stderrLines(result).filter((entry) => entry.startsWith(`${MEMBER_FORMS_FILE}:${line}:`)),
+    ).toEqual([]);
+  });
+
+  it('T6: passes a destructuring pattern inside a multi-line comment', () => {
+    expect(stderrLines(result).filter((entry) => entry.startsWith(COMMENTED_FORM_FILE))).toEqual(
+      [],
+    );
   });
 
   it('ends stderr with one line that names the script and counts the violations', () => {

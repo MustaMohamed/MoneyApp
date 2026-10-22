@@ -1,6 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 import { AmountType, Currency } from '@/constants/enums';
+import { withWriteTransactionAsync } from '@/database/client';
 import { applyAccountDelta } from '@/modules/accounts/database/accounts';
 import { insertTransactionRow } from '@/modules/transactions/database/transactions';
 import type { AccountDelta } from '@/modules/transactions/domain/transaction_policy';
@@ -13,7 +14,10 @@ import {
   HELD_BUCKETS,
   type HeldBucketName,
 } from '../domain/commitment_month_totals';
-import type { CommitmentPayment } from '../entities/commitment_payment.entity';
+import type {
+  CommitmentMonthPayment,
+  CommitmentPayment,
+} from '../entities/commitment_payment.entity';
 import {
   paidPaymentSql,
   settledPaymentSql,
@@ -64,12 +68,16 @@ export function getActiveCommitmentDueDates(
   );
 }
 
+const MONTH_PAYMENT_COLUMNS_SQL = 'payment.*, transaction_row.egp_amount AS paid_egp_amount';
+const MONTH_PAYMENT_SOURCE_SQL = `FROM commitment_payments payment
+       LEFT JOIN transactions transaction_row ON transaction_row.id = payment.transaction_id`;
+
 /** `yearMonth` is `YYYY-MM`: the month's rows plus the unpaid rows due before `carriedBefore`. */
 export async function getPaymentsByMonth(
   db: SQLiteDatabase,
   yearMonth: string,
   carriedBefore: string,
-): Promise<CommitmentPayment[]> {
+): Promise<CommitmentMonthPayment[]> {
   const monthStart = `${yearMonth}-01`;
 
   const [year, month] = yearMonth.split('-').map(Number);
@@ -77,12 +85,12 @@ export async function getPaymentsByMonth(
   const nextYear = month === 12 ? year + 1 : year;
   const nextMonthStr = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`;
 
-  return db.getAllAsync<CommitmentPayment>(
-    `SELECT * FROM commitment_payments
-      WHERE due_date >= ? AND due_date < ?
+  return db.getAllAsync<CommitmentMonthPayment>(
+    `SELECT ${MONTH_PAYMENT_COLUMNS_SQL} ${MONTH_PAYMENT_SOURCE_SQL}
+      WHERE payment.due_date >= ? AND payment.due_date < ?
      UNION ALL
-     SELECT * FROM commitment_payments
-      WHERE due_date < ? AND ${unpaidPaymentSql()}
+     SELECT ${MONTH_PAYMENT_COLUMNS_SQL} ${MONTH_PAYMENT_SOURCE_SQL}
+      WHERE payment.due_date < ? AND ${unpaidPaymentSql('payment')}
      ORDER BY due_date ASC, id ASC`,
     [monthStart, nextMonthStr, carriedBefore],
   );
@@ -231,7 +239,7 @@ export async function addPayments(
   db: SQLiteDatabase,
   payments: CommitmentPayment[],
 ): Promise<void> {
-  await db.withTransactionAsync(async () => {
+  await withWriteTransactionAsync(db, async () => {
     await insertPaymentRows(db, payments);
   });
 }
@@ -367,7 +375,7 @@ export async function markCommitmentAsPaid(
 ): Promise<void> {
   const now = new Date().toISOString();
 
-  await db.withTransactionAsync(async () => {
+  await withWriteTransactionAsync(db, async () => {
     const paymentResult = await db.runAsync(
       `UPDATE commitment_payments SET
         paid_date = ?,

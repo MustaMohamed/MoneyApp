@@ -9,6 +9,8 @@ const DAY_CARD_RADIUS = Radius.lg;
 /** The card's corner inside its border, where a row's swipe actions are clipped. */
 export const DAY_CARD_INNER_RADIUS = DAY_CARD_RADIUS - DAY_CARD_BORDER_WIDTH;
 
+export type DayCardTone = 'default' | 'danger';
+
 type SlicePosition = 'first' | 'middle' | 'last' | 'only';
 
 const SIDES = {

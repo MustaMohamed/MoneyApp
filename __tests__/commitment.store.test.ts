@@ -1,7 +1,7 @@
 import { AmountType, Currency, DurationType, RecurrencePeriod } from '@/constants/enums';
 import type { CommitmentMonthAggregate } from '@/modules/commitments/domain/commitment_month_totals';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
-import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
+import type { CommitmentMonthPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import type {
   CommitmentMonthSnapshot,
   ICommitmentRepository,
@@ -19,7 +19,7 @@ import {
   makeTestCommitment,
   makeTestHeldBucket,
   makeTestMonthAggregate,
-  makeTestPayment,
+  makeTestMonthPayment,
 } from '@/test_helpers/commitment';
 import { deferred } from '@/test_helpers/deferred';
 
@@ -40,8 +40,8 @@ function commitment(overrides: Partial<Commitment> = {}): Commitment {
   });
 }
 
-function payment(overrides: Partial<CommitmentPayment> = {}): CommitmentPayment {
-  return makeTestPayment({
+function payment(overrides: Partial<CommitmentMonthPayment> = {}): CommitmentMonthPayment {
+  return makeTestMonthPayment({
     id: 'payment',
     commitment_id: 'commitment',
     due_date: '2026-05-08',
@@ -631,6 +631,40 @@ describe('commitment store mutation invalidation', () => {
     await flushMicrotasks();
   });
 
+  it('patches the paid row with the EGP amount the repository resolved', async () => {
+    const refresh = deferred<void>();
+    const repository = makeRepository({
+      getMonthSnapshot: jest
+        .fn()
+        .mockResolvedValue(
+          snapshot(
+            MAY,
+            [commitment({ currency: Currency.USD, amount: 10 })],
+            [payment({ currency: Currency.USD, amount_due: 10 })],
+          ),
+        ),
+      markAsPaid: jest.fn().mockResolvedValue(
+        paymentAmounts({
+          paymentAmount: 10,
+          accountNativeAmount: 505,
+          egpAmount: 505,
+          exchangeRate: 50.5,
+        }),
+      ),
+    });
+    const store = createCommitmentStore(repository);
+    await store.getState().loadMonthSnapshot(MAY);
+    expect(store.getState().payments[0].paid_egp_amount).toBeNull();
+    (repository.runHousekeeping as jest.Mock).mockReset().mockReturnValue(refresh.promise);
+
+    await store.getState().markAsPaid('payment', { ...paymentDetails, amount_paid: 10 });
+
+    expect(store.getState().payments[0].paid_egp_amount).toBe(505);
+
+    refresh.resolve();
+    await flushMicrotasks();
+  });
+
   it('keeps the resolved amount after the background revalidation rejects', async () => {
     const refreshError = new Error('post-pay refresh failed');
     const repository = makeRepository({
@@ -762,7 +796,7 @@ describe('commitment store transaction write announcement', () => {
 });
 
 describe('commitment store selectors', () => {
-  async function loadedStore(payments: CommitmentPayment[], commitments = [commitment()]) {
+  async function loadedStore(payments: CommitmentMonthPayment[], commitments = [commitment()]) {
     const repository = makeRepository({
       getMonthSnapshot: jest.fn().mockResolvedValue(snapshot(MAY, commitments, payments)),
     });

@@ -15,9 +15,8 @@ jest.mock('@/database/client', () => {
     },
   );
   return {
-    getDb: jest
-      .fn()
-      .mockResolvedValue({ withExclusiveTransactionAsync: mockWithExclusiveTransactionAsync }),
+    getDb: jest.fn().mockResolvedValue({}),
+    withExclusiveWriteTransactionAsync: mockWithExclusiveTransactionAsync,
     mockWithExclusiveTransactionAsync,
   };
 });

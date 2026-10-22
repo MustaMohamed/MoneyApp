@@ -8,8 +8,14 @@ import { MIGRATIONS } from '@/database/migrations';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import { CommitmentRepository } from '@/modules/commitments/repositories/commitment.repository';
 import { makeTestCommitment } from '@/test_helpers/commitment';
+import { bridgeBetterSQLite, createMockSQLiteDatabase } from '@/test_helpers/sqlite';
 
-jest.mock('@/database/client', () => ({ getDb: jest.fn() }));
+jest.mock('@/database/client', () => ({
+  getDb: jest.fn(),
+  withWriteTransactionAsync:
+    jest.requireActual<typeof import('@/database/client')>('@/database/client')
+      .withWriteTransactionAsync,
+}));
 jest.mock('react-native-uuid', () => ({ v4: jest.fn() }));
 
 const NOW_ISO = '2026-05-08T10:11:12.000Z';
@@ -108,27 +114,9 @@ beforeAll(() => {
     )
     .run(NOW_ISO, NOW_ISO, NOW_ISO, NOW_ISO);
 
-  fakeDb = {
-    getAllAsync: jest.fn(async (sql: string, ...rest: unknown[]) => {
-      const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
-      return realDb.prepare(sql).all(...(params as never[]));
-    }),
-    runAsync: jest.fn(async (sql: string, ...rest: unknown[]) => {
-      const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
-      const result = realDb.prepare(sql).run(...(params as never[]));
-      return { changes: result.changes, lastInsertRowId: Number(result.lastInsertRowid) };
-    }),
-    withTransactionAsync: jest.fn(async (work: () => Promise<void>) => {
-      realDb.exec('BEGIN');
-      try {
-        await work();
-        realDb.exec('COMMIT');
-      } catch (error) {
-        realDb.exec('ROLLBACK');
-        throw error;
-      }
-    }),
-  } as unknown as SQLiteDatabase;
+  const sqlite = createMockSQLiteDatabase();
+  bridgeBetterSQLite(sqlite, realDb);
+  fakeDb = sqlite.database;
 });
 
 beforeEach(() => {

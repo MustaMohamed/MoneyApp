@@ -3,21 +3,25 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 
 import { MIGRATIONS } from '@/database/migrations';
 import { BudgetRepository } from '@/modules/budget/repositories/budget.repository';
-import { getSQLiteParams } from '@/test_helpers/sqlite';
+import { exclusiveWriteOnRealDb, getSQLiteParams } from '@/test_helpers/sqlite';
 
 let mockRepositoryDb: SQLiteDatabase;
 let mockUuidCounter = 0;
 
 jest.mock('@/database/client', () => ({
   getDb: jest.fn(async () => mockRepositoryDb),
+  withExclusiveWriteTransactionAsync: jest.fn(),
 }));
 jest.mock('react-native-uuid', () => ({
   __esModule: true,
   default: { v4: () => `copied-budget-${++mockUuidCounter}` },
 }));
 
-const { getDb } = jest.requireMock('@/database/client') as {
-  getDb: jest.Mock<Promise<SQLiteDatabase>, []>;
+const { withExclusiveWriteTransactionAsync } = jest.requireMock('@/database/client') as {
+  withExclusiveWriteTransactionAsync: jest.Mock<
+    Promise<void>,
+    [task: (db: SQLiteDatabase) => Promise<void>]
+  >;
 };
 
 const NOW = '2026-07-01T00:00:00.000Z';
@@ -61,20 +65,13 @@ beforeAll(() => {
       const result = realDb.prepare(sql).run(...getSQLiteParams(rest));
       return { changes: result.changes, lastInsertRowId: Number(result.lastInsertRowid) };
     },
-    withExclusiveTransactionAsync: async <T>(task: (db: SQLiteDatabase) => Promise<T>) => {
-      transactionCount += 1;
-      realDb.exec('BEGIN EXCLUSIVE');
-      try {
-        const result = await task(mockRepositoryDb);
-        realDb.exec('COMMIT');
-        return result;
-      } catch (error) {
-        realDb.exec('ROLLBACK');
-        throw error;
-      }
-    },
   };
   mockRepositoryDb = bridge as unknown as SQLiteDatabase;
+  jest.mocked(withExclusiveWriteTransactionAsync).mockImplementation(
+    exclusiveWriteOnRealDb(realDb, mockRepositoryDb, () => {
+      transactionCount += 1;
+    }),
+  );
 });
 
 beforeEach(() => {
@@ -121,7 +118,6 @@ describe('BudgetRepository atomic copy', () => {
 
     await expect(copy(new BudgetRepository())).rejects.toThrow('injected budget write failure');
 
-    expect(getDb).toHaveBeenCalledTimes(1);
     expect(transactionCount).toBe(1);
     expect(budgetWriteCount).toBe(2);
     expect(

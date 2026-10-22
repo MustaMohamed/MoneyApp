@@ -2,7 +2,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import uuid from 'react-native-uuid';
 
 import { TransactionType } from '@/constants/enums';
-import { getDb } from '@/database/client';
+import { getDb, withExclusiveWriteTransactionAsync } from '@/database/client';
 import { getAccountByIdIncludingArchived } from '@/modules/accounts/database/accounts';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { CommitmentPaymentAmounts } from '@/modules/transactions/domain/transaction_amounts';
@@ -49,7 +49,10 @@ import {
   resolveUndoSkip,
 } from '../domain/payment_state';
 import type { Commitment } from '../entities/commitment.entity';
-import type { CommitmentPayment } from '../entities/commitment_payment.entity';
+import type {
+  CommitmentMonthPayment,
+  CommitmentPayment,
+} from '../entities/commitment_payment.entity';
 import {
   CommitmentNotFoundError,
   CommitmentPaymentNotFoundError,
@@ -88,7 +91,7 @@ export interface CommitmentMonthSnapshot {
   loadedMonth: string;
   today: string;
   commitments: Commitment[];
-  payments: CommitmentPayment[];
+  payments: CommitmentMonthPayment[];
 }
 
 export interface ICommitmentRepository {
@@ -98,7 +101,7 @@ export interface ICommitmentRepository {
   update(id: string, data: UpdateCommitmentInput, now?: Date): Promise<void>;
   deactivate(id: string): Promise<void>;
 
-  getPaymentsForMonth(yearMonth: string, today: string): Promise<CommitmentPayment[]>;
+  getPaymentsForMonth(yearMonth: string, today: string): Promise<CommitmentMonthPayment[]>;
   getPaymentsByCommitment(commitmentId: string): Promise<CommitmentPayment[]>;
   getPaymentById(id: string): Promise<CommitmentPayment | undefined>;
   getLastPaidPayment(commitmentId: string): Promise<CommitmentPayment | undefined>;
@@ -146,9 +149,8 @@ export class CommitmentRepository implements ICommitmentRepository {
 
   async update(id: string, data: UpdateCommitmentInput, now: Date = new Date()): Promise<void> {
     const input = { ...data, amount: roundMoney(data.amount) };
-    const db = await getDb();
     const updateData: UpdateCommitmentData = { ...input };
-    await db.withExclusiveTransactionAsync(async (transactionDb) => {
+    await withExclusiveWriteTransactionAsync(async (transactionDb) => {
       await updateCommitment(transactionDb, id, updateData);
       const commitment = await getCommitmentById(transactionDb, id);
       if (!commitment) throw new CommitmentNotFoundError(id);
@@ -162,14 +164,13 @@ export class CommitmentRepository implements ICommitmentRepository {
   }
 
   async deactivate(id: string): Promise<void> {
-    const db = await getDb();
-    await db.withExclusiveTransactionAsync(async (transactionDb) => {
+    await withExclusiveWriteTransactionAsync(async (transactionDb) => {
       await deactivateCommitment(transactionDb, id);
       await deleteUnpaidPaymentsByCommitment(transactionDb, id);
     });
   }
 
-  async getPaymentsForMonth(yearMonth: string, today: string): Promise<CommitmentPayment[]> {
+  async getPaymentsForMonth(yearMonth: string, today: string): Promise<CommitmentMonthPayment[]> {
     const db = await getDb();
     return getPaymentsByMonth(db, yearMonth, carriedDueBound(yearMonth, today));
   }
@@ -198,10 +199,9 @@ export class CommitmentRepository implements ICommitmentRepository {
   }
 
   async runHousekeeping(now: Date): Promise<void> {
-    const db = await getDb();
     const timestamp = now.toISOString();
     const asOfDate = timestamp.slice(0, 10);
-    await db.withExclusiveTransactionAsync(async (transactionDb) => {
+    await withExclusiveWriteTransactionAsync(async (transactionDb) => {
       const commitments = await getCommitments(transactionDb);
       const dueDates = await getActiveCommitmentDueDates(transactionDb);
       await insertPlannedPayments(transactionDb, commitments, dueDates, now);
@@ -299,8 +299,7 @@ export class CommitmentRepository implements ICommitmentRepository {
   }
 
   async undoSkip(paymentId: string, today: string, updatedAt: string): Promise<void> {
-    const db = await getDb();
-    await db.withExclusiveTransactionAsync(async (transactionDb) => {
+    await withExclusiveWriteTransactionAsync(async (transactionDb) => {
       const payment = await getPaymentById(transactionDb, paymentId);
       if (!payment) throw new CommitmentPaymentNotFoundError(paymentId);
       if (isPaidPayment(payment)) throw new CommitmentPaymentNotSkippedError(paymentId);

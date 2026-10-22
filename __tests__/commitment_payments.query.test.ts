@@ -23,6 +23,7 @@ import {
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import { makeTestPayment } from '@/test_helpers/commitment';
 import { deferred } from '@/test_helpers/deferred';
+import { bridgeBetterSQLite, getExpoSQLiteTestDatabase } from '@/test_helpers/sqlite';
 import { explainQueryPlan } from '@/test_helpers/sqlite_fixtures';
 
 const sqlite = SQLite as unknown as { __reset: () => void };
@@ -75,11 +76,12 @@ beforeAll(() => {
       __fakeDb: {
         runAsync: jest.Mock;
         getAllAsync: jest.Mock;
-        withTransactionAsync: jest.Mock;
+        execAsync: jest.Mock;
       };
     }
   ).__fakeDb;
 
+  bridgeBetterSQLite(getExpoSQLiteTestDatabase(), realDb);
   mocked.runAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
     const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
     const result = realDb.prepare(sql).run(...(params as never[]));
@@ -89,10 +91,6 @@ beforeAll(() => {
   mocked.getAllAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
     const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
     return realDb.prepare(sql).all(...(params as never[]));
-  });
-
-  mocked.withTransactionAsync.mockImplementation(async (fn: () => Promise<void>) => {
-    await fn();
   });
 });
 
@@ -259,9 +257,170 @@ describe('getPaymentsByMonth', () => {
     const [sql, ...rest] = mocked.getAllAsync.mock.calls.at(-1) as [string, ...unknown[]];
     const plan = explainQueryPlan(realDb, sql, rest).join('\n');
 
-    expect(rows.map((row) => row.id)).toEqual(['pay-apr-unpaid', 'pay-may-1']);
-    expect(plan).not.toMatch(/SCAN commitment_payments(?! USING)/);
-    expect(plan).toContain('idx_cp_due_date');
+    expect(plan).not.toMatch(/SCAN (commitment_payments|payment)\b(?! USING)/);
+    expect(plan.split('\n').filter((detail) => detail.includes('idx_cp_due_date'))).toHaveLength(2);
+    expect(rows.map((row) => [row.id, row.paid_egp_amount])).toEqual([
+      ['pay-apr-unpaid', null],
+      ['pay-may-1', null],
+    ]);
+  });
+});
+
+describe('getPaymentsByMonth — the paid row’s transaction EGP amount', () => {
+  interface PaidPair {
+    pair: string;
+    id: string;
+    commitmentId: string;
+    currency: Currency;
+    amountDue: number;
+    accountId: string;
+    accountCurrency: Currency;
+    txAmount: number;
+    egpAmount: number;
+    exchangeRate: number | null;
+  }
+
+  const PAIRS: PaidPair[] = [
+    {
+      pair: 'EGP commitment on an EGP account',
+      id: 'pay-egp-egp',
+      commitmentId: 'commitment1',
+      currency: Currency.EGP,
+      amountDue: 200,
+      accountId: 'acc1',
+      accountCurrency: Currency.EGP,
+      txAmount: 210,
+      egpAmount: 210,
+      exchangeRate: null,
+    },
+    {
+      pair: 'EGP commitment on a USD account',
+      id: 'pay-egp-usd',
+      commitmentId: 'commitment1',
+      currency: Currency.EGP,
+      amountDue: 505,
+      accountId: 'acc2',
+      accountCurrency: Currency.USD,
+      txAmount: 10,
+      egpAmount: 505,
+      exchangeRate: 50.5,
+    },
+    {
+      pair: 'USD commitment on an EGP account',
+      id: 'pay-usd-egp',
+      commitmentId: 'commitment_usd',
+      currency: Currency.USD,
+      amountDue: 10,
+      accountId: 'acc1',
+      accountCurrency: Currency.EGP,
+      txAmount: 505,
+      egpAmount: 505,
+      exchangeRate: 50.5,
+    },
+    {
+      pair: 'USD commitment on a USD account',
+      id: 'pay-usd-usd',
+      commitmentId: 'commitment_usd',
+      currency: Currency.USD,
+      amountDue: 15,
+      accountId: 'acc2',
+      accountCurrency: Currency.USD,
+      txAmount: 15.5,
+      egpAmount: 782.75,
+      exchangeRate: 50.5,
+    },
+  ];
+
+  beforeAll(() => {
+    realDb
+      .prepare(
+        `INSERT OR IGNORE INTO commitments
+         (id, name, amount_type, amount, currency, category_id,
+          recurrence_every, recurrence_period, start_date, account_id, notes,
+          duration_type, end_date, end_after_count, is_active, created_at, updated_at)
+         VALUES ('commitment_usd', 'Hosting', 'fixed', 10, 'USD', 'cat1',
+          1, 'months', '2026-01-01', 'acc1', NULL, 'forever', NULL, NULL, 1, ?, ?)`,
+      )
+      .run(NOW, NOW);
+  });
+
+  async function payPair(spec: PaidPair): Promise<void> {
+    await addPayments(mockDb, [
+      makePayment({
+        id: spec.id,
+        commitment_id: spec.commitmentId,
+        due_date: '2026-05-01',
+        amount_due: spec.amountDue,
+        currency: spec.currency,
+      }),
+    ]);
+    await markCommitmentAsPaid(
+      mockDb,
+      spec.id,
+      {
+        amount_paid: spec.amountDue,
+        account_id: spec.accountId,
+        paid_date: '2026-05-02',
+        exchange_rate_snapshot: spec.exchangeRate ?? undefined,
+      },
+      makeTx({
+        id: `tx-${spec.id}`,
+        amount: spec.txAmount,
+        currency: spec.accountCurrency,
+        egp_amount: spec.egpAmount,
+        exchange_rate: spec.exchangeRate,
+        account_id: spec.accountId,
+        commitment_payment_id: spec.id,
+      }),
+      { accountId: spec.accountId, currentBalance: -spec.txAmount, revolvingBalance: 0 },
+    );
+  }
+
+  it.each(PAIRS)('$pair: a paid row reads its transaction’s egp_amount', async (spec) => {
+    await payPair(spec);
+
+    const rows = await getPaymentsByMonth(mockDb, '2026-05', '2026-05-01');
+
+    expect(rows.map((row) => [row.id, row.paid_egp_amount])).toEqual([[spec.id, spec.egpAmount]]);
+  });
+
+  it('an unpaid, a skipped and a carried row read null', async () => {
+    await addPayments(mockDb, [
+      makePayment({ id: 'pay-apr-carried', due_date: '2026-04-20' }),
+      makePayment({ id: 'pay-may-unpaid', due_date: '2026-05-10' }),
+      makePayment({ id: 'pay-may-skipped', due_date: '2026-05-05', skipped_date: '2026-05-05' }),
+    ]);
+
+    const rows = await getPaymentsByMonth(mockDb, '2026-05', '2026-05-01');
+
+    expect(rows.map((row) => [row.id, row.paid_egp_amount])).toEqual([
+      ['pay-apr-carried', null],
+      ['pay-may-skipped', null],
+      ['pay-may-unpaid', null],
+    ]);
+  });
+
+  it('a paid row whose transaction id matches no transaction reads null', async () => {
+    const foreignKeys = realDb.pragma('foreign_keys', { simple: true });
+    realDb.pragma('foreign_keys = OFF');
+    try {
+      await addPayments(mockDb, [
+        makePayment({
+          id: 'pay-may-orphan',
+          due_date: '2026-05-03',
+          paid_date: '2026-05-03',
+          amount_paid: 200,
+          account_id: 'acc1',
+          transaction_id: 'tx-missing',
+        }),
+      ]);
+    } finally {
+      realDb.pragma(`foreign_keys = ${foreignKeys}`);
+    }
+
+    const rows = await getPaymentsByMonth(mockDb, '2026-05', '2026-05-01');
+
+    expect(rows.map((row) => [row.id, row.paid_egp_amount])).toEqual([['pay-may-orphan', null]]);
   });
 });
 
@@ -297,10 +456,8 @@ describe('addPayments', () => {
         calls.push(String(params[0]));
         return { changes: 1, lastInsertRowId: 1 };
       }),
-      withTransactionAsync: jest.fn(async (work: () => Promise<void>) => {
-        calls.push('transaction:start');
-        await work();
-        calls.push('transaction:end');
+      execAsync: jest.fn(async (sql: string) => {
+        calls.push(sql);
       }),
     } as unknown as Parameters<typeof addPayments>[0];
     const payments = [
@@ -311,8 +468,7 @@ describe('addPayments', () => {
 
     await addPayments(db, payments);
 
-    expect(db.withTransactionAsync).toHaveBeenCalledTimes(1);
-    expect(calls).toEqual(['transaction:start', 'serial-1', 'transaction:end']);
+    expect(calls).toEqual(['BEGIN IMMEDIATE', 'serial-1', 'COMMIT']);
     expect(db.runAsync).toHaveBeenCalledTimes(1);
     expect((db.runAsync as jest.Mock).mock.calls[0][1]).toEqual(
       expect.arrayContaining(['serial-1', 'serial-2', 'serial-3']),
@@ -329,7 +485,8 @@ describe('insertPaymentRows', () => {
       .mockReturnValueOnce(first.promise)
       .mockReturnValueOnce(second.promise);
     const withTransactionAsync = jest.fn();
-    const db = { runAsync, withTransactionAsync } as unknown as Parameters<
+    const execAsync = jest.fn();
+    const db = { runAsync, withTransactionAsync, execAsync } as unknown as Parameters<
       typeof insertPaymentRows
     >[0];
     const payments = Array.from({ length: 61 }, (_, index) =>
@@ -349,6 +506,7 @@ describe('insertPaymentRows', () => {
 
     expect(runAsync.mock.calls.map((call) => call[1][0])).toEqual(['chunked-0', 'chunked-60']);
     expect(withTransactionAsync).not.toHaveBeenCalled();
+    expect(execAsync).not.toHaveBeenCalled();
   });
 });
 

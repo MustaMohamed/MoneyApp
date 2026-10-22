@@ -3,12 +3,13 @@ import type { ReactNode } from 'react';
 import { Dimensions } from 'react-native';
 
 import { CommitmentPaymentStatus, Currency } from '@/constants/enums';
-import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
+import type { CommitmentMonthPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import CommitmentsScreen from '@/modules/commitments/screens/commitments';
+import type { CommitmentsSection } from '@/modules/commitments/screens/commitments/commitments.helpers';
 import { useCommitments } from '@/modules/commitments/screens/commitments/commitments.hook';
 import { resolveCommitmentRowHeight } from '@/modules/commitments/screens/commitments/components/commitment_row.helpers';
 import { buildCommitmentsHeroModel } from '@/modules/commitments/screens/commitments/components/commitments_hero.helpers';
-import { makeTestPayment } from '@/test_helpers/commitment';
+import { makeTestMonthPayment } from '@/test_helpers/commitment';
 
 jest.mock('@/modules/commitments/screens/commitments/commitments.hook', () => ({
   useCommitments: jest.fn(),
@@ -127,6 +128,12 @@ jest.mock('@/modules/commitments/screens/commitments/components/search_row', () 
     );
   },
 }));
+jest.mock('@/components/ui/day_header', () => ({
+  DayHeader: ({ section }: { section: { label: string } }) => {
+    const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
+    return <Text>{section.label}</Text>;
+  },
+}));
 jest.mock('@/modules/commitments/screens/commitments/components/commitment_row', () => ({
   CommitmentRow: () => {
     const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
@@ -174,6 +181,8 @@ const baseCommitmentsState: CommitmentsScreenState = {
   categoriesById: new Map(),
   accountsById: new Map(),
   commitmentsById: new Map(),
+  tally: undefined,
+  liveRate: 50,
   hero: buildCommitmentsHeroModel({
     mode: 'skeleton',
     aggregate: undefined,
@@ -189,8 +198,8 @@ const clearSearchMock = jest.fn();
 const openFilterMock = jest.fn();
 const resetFiltersMock = jest.fn();
 
-function makePayment(overrides: Partial<CommitmentPayment> = {}): CommitmentPayment {
-  return makeTestPayment({
+function makePayment(overrides: Partial<CommitmentMonthPayment> = {}): CommitmentMonthPayment {
+  return makeTestMonthPayment({
     id: 'payment-1',
     commitment_id: 'commitment-1',
     due_date: '2026-08-05',
@@ -199,6 +208,17 @@ function makePayment(overrides: Partial<CommitmentPayment> = {}): CommitmentPaym
     updated_at: '2026-08-01T00:00:00.000Z',
     ...overrides,
   });
+}
+
+function dueSection(): CommitmentsSection {
+  return {
+    key: CommitmentPaymentStatus.Due,
+    label: 'Due today',
+    tone: 'default',
+    figures: { mode: 'figures', net: '5,000 EGP', count: '1' },
+    accessibilityLabel: 'Due today, 5,000 EGP, 1 payment',
+    data: [makePayment()],
+  };
 }
 
 function mockUseCommitments(state: Partial<CommitmentsScreenState> = {}) {
@@ -255,7 +275,7 @@ describe('CommitmentsScreen', () => {
       paymentsLoaded: false,
       presentation: 'coldLoading',
       hasLoaded: false,
-      sections: [{ title: 'Due', data: [makePayment()] }],
+      sections: [dueSection()],
     });
 
     const { getByText } = await render(<CommitmentsScreen />);
@@ -323,7 +343,7 @@ describe('CommitmentsScreen', () => {
       paymentsLoaded: true,
       refreshing: true,
       hasCommitments: true,
-      sections: [{ title: 'Due', data: [makePayment()] }],
+      sections: [dueSection()],
     });
 
     const { getByText, queryByTestId } = await render(<CommitmentsScreen />);

@@ -29,6 +29,8 @@
     --warning-foreground: #0f1923;
     --danger: #e05a42;
     --danger-foreground: #f0ebe3;
+    /* Opaque, so the Android slice overlap repaints one colour. */
+    --danger-border: color-mix(in srgb, var(--danger) 35%, var(--surface));
     --content-secondary: #6b7f99;
     --muted: #4a5568;
     --segment: #1a2535;
@@ -76,6 +78,8 @@
     --warning-foreground: #0f1923;
     --danger: #e05a42;
     --danger-foreground: #f0ebe3;
+    /* Opaque, so the Android slice overlap repaints one colour. */
+    --danger-border: color-mix(in srgb, var(--danger) 35%, var(--surface));
     --content-secondary: #6b7f99;
     --muted: #4a5568;
     --segment: #1a2535;
@@ -123,6 +127,7 @@
   --color-warning-foreground: var(--warning-foreground);
   --color-danger: var(--danger);
   --color-danger-foreground: var(--danger-foreground);
+  --color-danger-border: var(--danger-border);
   --color-content-secondary: var(--content-secondary);
   --color-muted: var(--muted);
   --color-segment: var(--segment);

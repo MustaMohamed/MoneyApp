@@ -2,16 +2,20 @@ import Database from 'better-sqlite3';
 import type { SQLiteDatabase } from 'expo-sqlite';
 import uuid from 'react-native-uuid';
 
+import { withExclusiveWriteTransactionAsync } from '@/database/client';
 import { MIGRATIONS } from '@/database/migrations';
 import {
   BudgetRepository,
   SpendingPlanValidationError,
 } from '@/modules/budget/repositories/budget.repository';
 import { validateAllocationText } from '@/modules/budget/screens/budget/spending_plan_sheet/spending_plan_sheet.helpers';
-import { getSQLiteParams } from '@/test_helpers/sqlite';
+import { exclusiveWriteOnRealDb, getSQLiteParams } from '@/test_helpers/sqlite';
 import { formatStoredMoneyText } from '@/utils/money_text';
 
-jest.mock('@/database/client', () => ({ getDb: jest.fn() }));
+jest.mock('@/database/client', () => ({
+  getDb: jest.fn(),
+  withExclusiveWriteTransactionAsync: jest.fn(),
+}));
 jest.mock('react-native-uuid', () => ({ v4: jest.fn() }));
 
 const NOW_ISO = '2026-08-01T00:00:00.000Z';
@@ -36,18 +40,10 @@ beforeAll(() => {
       const result = realDb.prepare(sql).run(...getSQLiteParams(rest));
       return { changes: result.changes, lastInsertRowId: Number(result.lastInsertRowid) };
     }),
-    withExclusiveTransactionAsync: jest.fn(async <T>(task: (db: SQLiteDatabase) => Promise<T>) => {
-      realDb.exec('BEGIN EXCLUSIVE');
-      try {
-        const result = await task(fakeDb);
-        realDb.exec('COMMIT');
-        return result;
-      } catch (error) {
-        realDb.exec('ROLLBACK');
-        throw error;
-      }
-    }),
   } as unknown as SQLiteDatabase;
+  jest
+    .mocked(withExclusiveWriteTransactionAsync)
+    .mockImplementation(exclusiveWriteOnRealDb(realDb, fakeDb));
 
   const { getDb } = jest.requireMock('@/database/client') as {
     getDb: jest.Mock<Promise<SQLiteDatabase>, []>;

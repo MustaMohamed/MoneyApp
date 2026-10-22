@@ -10,7 +10,6 @@ export interface MockSQLiteDatabase {
   getAllAsync: jest.Mock<Promise<unknown[]>, SQLiteArguments>;
   getFirstAsync: jest.Mock<Promise<unknown | null>, SQLiteArguments>;
   execAsync: jest.Mock<Promise<void>, [source: string]>;
-  withTransactionAsync: jest.Mock<Promise<void>, [task: () => Promise<void>]>;
 }
 
 export interface ExpoSQLiteTestDatabase extends MockSQLiteDatabase {
@@ -22,7 +21,7 @@ type ExpoSQLiteMockModule = typeof SQLite & {
   __reset: () => void;
 };
 
-function asSQLiteDatabase(methods: Omit<MockSQLiteDatabase, 'database'>): SQLiteDatabase {
+export function asSQLiteDatabase(methods: object): SQLiteDatabase {
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- one structural bridge for the Jest Expo SQLite facade; consumers remain fully typed
   return methods as unknown as SQLiteDatabase;
 }
@@ -33,7 +32,6 @@ export function createMockSQLiteDatabase(): MockSQLiteDatabase {
     getAllAsync: jest.fn<Promise<unknown[]>, SQLiteArguments>(),
     getFirstAsync: jest.fn<Promise<unknown | null>, SQLiteArguments>(),
     execAsync: jest.fn<Promise<void>, [source: string]>(),
-    withTransactionAsync: jest.fn<Promise<void>, [task: () => Promise<void>]>((task) => task()),
   };
   return { database: asSQLiteDatabase(methods), ...methods };
 }
@@ -52,7 +50,7 @@ export function getSQLiteParams(rest: unknown[]): unknown[] {
   return Array.isArray(rest[0]) ? rest[0] : rest;
 }
 
-/** Queries only: `withTransactionAsync` stays with the suite, since a pass-through is vacuous (M33). */
+/** Bridges `execAsync` too, so `BEGIN IMMEDIATE`, `COMMIT` and `ROLLBACK` reach `realDb` (M33). */
 export function bridgeBetterSQLite(
   mock: MockSQLiteDatabase,
   realDb: ReturnType<typeof Database>,
@@ -68,6 +66,28 @@ export function bridgeBetterSQLite(
     async (sql: string, ...rest: unknown[]) =>
       realDb.prepare(sql).get(...getSQLiteParams(rest)) ?? null,
   );
+  mock.execAsync.mockImplementation(async (sql: string) => {
+    realDb.exec(sql);
+  });
+}
+
+/** Maps `withExclusiveWriteTransactionAsync` onto `realDb` as the client does: BEGIN IMMEDIATE, the task, COMMIT, ROLLBACK on a throw. */
+export function exclusiveWriteOnRealDb(
+  realDb: ReturnType<typeof Database>,
+  txn: SQLiteDatabase,
+  onBegin?: () => void,
+): (task: (txn: SQLiteDatabase) => Promise<void>) => Promise<void> {
+  return async (task) => {
+    onBegin?.();
+    realDb.exec('BEGIN IMMEDIATE');
+    try {
+      await task(txn);
+      realDb.exec('COMMIT');
+    } catch (error) {
+      realDb.exec('ROLLBACK');
+      throw error;
+    }
+  };
 }
 
 export function isQueryPlanRow(value: unknown): value is { detail: string } {

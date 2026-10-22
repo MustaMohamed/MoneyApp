@@ -3,7 +3,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import uuid from 'react-native-uuid';
 
 import { CommitmentPaymentStatus, DurationType } from '@/constants/enums';
-import { getDb } from '@/database/client';
+import { getDb, withExclusiveWriteTransactionAsync } from '@/database/client';
 import { MIGRATIONS } from '@/database/migrations';
 import { deactivateExpiredCommitments } from '@/modules/commitments/database/commitments';
 import { resolvePaymentState, resolveUndoSkip } from '@/modules/commitments/domain/payment_state';
@@ -22,10 +22,17 @@ import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
 import {
   bridgeBetterSQLite,
   createMockSQLiteDatabase,
+  exclusiveWriteOnRealDb,
   getSQLiteParams,
 } from '@/test_helpers/sqlite';
 
-jest.mock('@/database/client', () => ({ getDb: jest.fn() }));
+jest.mock('@/database/client', () => ({
+  getDb: jest.fn(),
+  withWriteTransactionAsync:
+    jest.requireActual<typeof import('@/database/client')>('@/database/client')
+      .withWriteTransactionAsync,
+  withExclusiveWriteTransactionAsync: jest.fn(),
+}));
 jest.mock('react-native-uuid', () => ({ v4: jest.fn() }));
 
 const NOW = new Date('2026-05-08T10:11:12.000Z');
@@ -76,29 +83,10 @@ beforeAll(() => {
     const result = realDb.prepare(sql).run(...getSQLiteParams(rest));
     return { changes: result.changes, lastInsertRowId: Number(result.lastInsertRowid) };
   });
-  sqlite.withTransactionAsync.mockImplementation(async (work: () => Promise<void>) => {
-    realDb.exec('BEGIN');
-    try {
-      await work();
-      realDb.exec('COMMIT');
-    } catch (error) {
-      realDb.exec('ROLLBACK');
-      throw error;
-    }
-  });
   fakeDb = sqlite.database;
-  Object.assign(fakeDb, {
-    withExclusiveTransactionAsync: jest.fn(async (work: (db: SQLiteDatabase) => Promise<void>) => {
-      realDb.exec('BEGIN IMMEDIATE');
-      try {
-        await work(fakeDb);
-        realDb.exec('COMMIT');
-      } catch (error) {
-        realDb.exec('ROLLBACK');
-        throw error;
-      }
-    }),
-  });
+  jest
+    .mocked(withExclusiveWriteTransactionAsync)
+    .mockImplementation(exclusiveWriteOnRealDb(realDb, fakeDb));
 });
 
 beforeEach(() => {

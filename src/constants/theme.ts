@@ -274,6 +274,10 @@ export const Size = {
   fieldBorderWidth: 1.5,
   // Padding inside `FieldMessageRail`, not one of the fixed tracks above.
   fieldRailTextInset: ms(3),
+  // Raw, never ms(): the xs status tag's horizontal chrome (A1 `.stag`), which no font scale grows.
+  statusBadgeXsPaddingLeft: 4,
+  statusBadgeXsPaddingRight: 6,
+  statusBadgeXsGap: 3,
 } as const;
 
 /** Cross-platform floor of 44: Apple HIG recommends 44pt, Material 48dp. Never scaled. */
