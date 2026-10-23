@@ -111,6 +111,35 @@ describe('useCommitmentFormHost', () => {
     expect(submit).not.toHaveBeenCalled();
   });
 
+  it('calls nothing on a Save while the add state saves and the footer has not caught up', async () => {
+    const { result } = await renderHook(() => useCommitmentFormHost());
+    await act(() => host().openAdd());
+    const submit = makeSubmit();
+    await register(result, host().sessionId, submit);
+    await act(() => useAddCommitmentState.setState({ saving: true }));
+    expect(host().footer).toEqual({ saving: false });
+
+    await act(() => result.current.handleSave());
+
+    expect(submit).not.toHaveBeenCalled();
+  });
+
+  it('calls nothing on a Save while an edit entry saves and the footer has not caught up', async () => {
+    const { result } = await renderHook(() => useCommitmentFormHost());
+    await act(() => host().openEdit('c-1'));
+    const submit = makeSubmit();
+    await register(result, host().sessionId, submit);
+    await act(() => {
+      useEditCommitmentState.getState().claim('owner-1');
+      useEditCommitmentState.getState().setSaving('owner-1', true);
+    });
+    expect(host().footer).toEqual({ saving: false });
+
+    await act(() => result.current.handleSave());
+
+    expect(submit).not.toHaveBeenCalled();
+  });
+
   it('ignores a submit registered late by an older session', async () => {
     const { result } = await renderHook(() => useCommitmentFormHost());
     await act(() => host().openAdd());
