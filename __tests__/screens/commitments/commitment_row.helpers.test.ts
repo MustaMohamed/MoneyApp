@@ -99,15 +99,16 @@ describe('resolveCommitmentRowHeight', () => {
     expect(resolveCommitmentRowHeight(2)).toBeGreaterThan(resolveCommitmentRowHeight(1.3));
   });
 
-  // The name line over two caption lines, the due day and the USD leg under it (MA-243).
-  function twoCaptionColumn(s: number): number {
+  // The name line over one caption line at 1.0 and two above it, the due day and the USD leg under it (MA-243).
+  function captionLinesColumn(s: number): number {
     const nameLine = Math.max(
       scaledLineHeight(COMMITMENT_ROW_TITLE_FONT_SIZE, s),
       scaledLineHeight(STATUS_BADGE_XS_LABEL_FONT_SIZE, s) + 2 * STATUS_BADGE_XS_PADDING_VERTICAL,
     );
     const content =
       nameLine +
-      2 * (COMMITMENT_ROW_LINE_GAP + scaledLineHeight(COMMITMENT_ROW_CAPTION_FONT_SIZE, s));
+      resolveCommitmentRowCaptionLines(s) *
+        (COMMITMENT_ROW_LINE_GAP + scaledLineHeight(COMMITMENT_ROW_CAPTION_FONT_SIZE, s));
     const value =
       scaledLineHeight(COMMITMENT_ROW_AMOUNT_FONT_SIZE, s) +
       COMMITMENT_ROW_LINE_GAP +
@@ -118,7 +119,9 @@ describe('resolveCommitmentRowHeight', () => {
   it.each([1.3, 2])(
     'MA-243: at font scale %s counts the name line and two caption lines with their gaps',
     (s) => {
-      expect(resolveCommitmentRowHeight(s)).toBe(resolveRowHeightAroundColumn(twoCaptionColumn, s));
+      expect(resolveCommitmentRowHeight(s)).toBe(
+        resolveRowHeightAroundColumn(captionLinesColumn, s),
+      );
     },
   );
 });
