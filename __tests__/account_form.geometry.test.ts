@@ -1,5 +1,8 @@
 import { DISPLAY_HEADLINE_MAX_FONT_SCALE } from '@/components/ui/display_headline.geometry';
-import { resolveSegmentedTabsGeometry } from '@/components/ui/tabs.geometry';
+import {
+  resolveDrawnDefaultTriggerHeight,
+  resolveSegmentedTabsGeometry,
+} from '@/components/ui/tabs.geometry';
 import { FITTED_LINE_SLACK, scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -18,6 +21,7 @@ import {
   resolveBalanceField,
   resolveBalanceRowLabelLines,
   resolveCurrencyTabsBoxHeight,
+  resolveCurrencyTabsHitSlop,
   resolveTaggedRowLabelLines,
 } from '@/modules/accounts/components/account_form/account_form.geometry';
 import { TYPE_OPTIONS } from '@/modules/accounts/components/account_type_pill';
@@ -163,6 +167,27 @@ describe('resolveCurrencyTabsBoxHeight', () => {
     expect(height).toBe(Math.max(Size.fieldHeight, listHeight + FITTED_LINE_SLACK));
     expect(height).toBeGreaterThan(listHeight);
   });
+});
+
+describe('resolveCurrencyTabsHitSlop', () => {
+  it('MA-242: at font scale 1.0 the drawn currency segment is the default segment track', () => {
+    expect(resolveDrawnDefaultTriggerHeight(1, CURRENCY_TABS_MAX_FONT_SCALE)).toBe(
+      Size.defaultSegmentTrack,
+    );
+  });
+
+  it.each([1, 2])(
+    'MA-242: at font scale %p EGP and USD reach the floor with an even slop that stays inside the tabs box',
+    (fontScale) => {
+      const trigger = resolveDrawnDefaultTriggerHeight(fontScale, CURRENCY_TABS_MAX_FONT_SCALE);
+      const box = resolveCurrencyTabsBoxHeight(fontScale);
+      const slop = resolveCurrencyTabsHitSlop(fontScale);
+
+      expect(slop.top).toBe(slop.bottom);
+      expect(trigger + slop.top + slop.bottom).toBeGreaterThanOrEqual(TouchSize.min);
+      expect(slop.top).toBeLessThanOrEqual((box - trigger) / 2);
+    },
+  );
 });
 
 describe('resolveBalanceRowLabelLines', () => {

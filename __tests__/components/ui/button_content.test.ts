@@ -150,7 +150,7 @@ const flatRows: FlatRow[] = [
     flat: true,
     tone: 'accent',
     resolved: {
-      style: { borderRadius: Radius.cta, height: Size.compactCtaTrack },
+      style: { borderRadius: Radius.cta, height: Size.compactCtaTrack, overflow: 'visible' },
       rootClass: 'bg-accent-soft',
       labelClass: 'text-accent',
     },

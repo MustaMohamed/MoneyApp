@@ -2,6 +2,7 @@ import {
   TABS_LIST_PADDING,
   TABS_TRIGGER_PADDING_BLOCK,
   resolveDefaultTriggerHeight,
+  resolveDrawnDefaultTriggerHeight,
   resolveGrownScrollRadii,
   resolveSegmentedTabsGeometry,
   resolveTabsScrollSlopInset,
@@ -11,7 +12,7 @@ import {
   scaledFontSize,
   scaledTextStyle,
 } from '@/components/ui/text_scale.geometry';
-import { Radius, Type, lineHeightFor } from '@/constants/theme';
+import { Radius, Size, Type, lineHeightFor } from '@/constants/theme';
 
 describe('resolveDefaultTriggerHeight', () => {
   it('MA-236: at font scale 1 is the HeroUI base line inside the trigger padding', () => {
@@ -28,6 +29,22 @@ describe('resolveDefaultTriggerHeight', () => {
     ({ fontScale, maxFontScale }) => {
       expect(resolveSegmentedTabsGeometry(fontScale, maxFontScale).defaultListHeight).toBe(
         resolveDefaultTriggerHeight(fontScale, maxFontScale) + 2 * TABS_LIST_PADDING,
+      );
+    },
+  );
+});
+
+describe('resolveDrawnDefaultTriggerHeight', () => {
+  it("MA-242: at font scale 1.0 is HeroUI's drawn default trigger, 36", () => {
+    expect(resolveDrawnDefaultTriggerHeight(1)).toBe(Size.defaultSegmentTrack);
+    expect(Size.defaultSegmentTrack).toBe(36);
+  });
+
+  it.each([undefined, 1.3])(
+    'MA-242: at font scale 2.0 capped at %p is the default trigger height',
+    (maxFontScale) => {
+      expect(resolveDrawnDefaultTriggerHeight(2, maxFontScale)).toBe(
+        resolveDefaultTriggerHeight(2, maxFontScale),
       );
     },
   );
