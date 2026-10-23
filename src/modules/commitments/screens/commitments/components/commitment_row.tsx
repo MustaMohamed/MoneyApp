@@ -13,6 +13,8 @@ import { Strings } from '@/constants/strings';
 import { Size } from '@/constants/theme';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
+import type { PaymentDaySettlement } from '@/modules/commitments/domain/payment_day_distance';
+import type { DayIndicatorTone } from '@/modules/commitments/utils/day_indicator';
 import {
   TRANSACTION_ROW_CAPTION_SEPARATOR,
   resolveTransactionRowValueTrackMaxWidth,
@@ -31,6 +33,23 @@ import {
   buildCommitmentRowPresentation,
   resolveCommitmentRowHeight,
 } from './commitment_row.helpers';
+
+const DAY_INDICATOR_CLASS: Record<DayIndicatorTone, string> = {
+  danger: 'font-inter text-danger',
+  gold: 'font-inter-semibold text-accent',
+  caption: 'font-inter text-content-secondary',
+  success: 'font-inter text-success',
+};
+const NAME_CLASS: Record<PaymentDaySettlement, string> = {
+  unpaid: 'text-foreground',
+  paid: 'text-foreground/60',
+  skipped: 'text-muted line-through',
+};
+const AMOUNT_CLASS: Record<PaymentDaySettlement, string> = {
+  unpaid: 'text-foreground',
+  paid: 'text-foreground/60',
+  skipped: 'text-muted',
+};
 
 interface CommitmentRowProps {
   payment: CommitmentMonthPayment;
@@ -145,7 +164,7 @@ function CommitmentRowComponent({
                 />
                 <Text
                   allowFontScaling={false}
-                  className="font-inter-medium text-foreground min-w-0 shrink"
+                  className={`font-inter-medium min-w-0 shrink ${NAME_CLASS[row.settledLook]}`}
                   style={scaledTextStyle(COMMITMENT_ROW_TITLE_FONT_SIZE, fontScale)}
                   numberOfLines={1}
                 >
@@ -202,31 +221,46 @@ function CommitmentRowComponent({
                 )}
               </View>
             </View>
-            {/* Two sibling texts, never nested: RN Android drops margins on inline text. */}
             <View
               testID="commitment-row-value-track"
-              style={{
-                flexShrink: 0,
-                flexDirection: 'row',
-                alignItems: 'baseline',
-                gap: ms(4),
-                maxWidth: valueTrackMaxWidth,
-              }}
+              style={{ flexShrink: 0, alignItems: 'flex-end', maxWidth: valueTrackMaxWidth }}
             >
-              <Text
-                {...amountProps}
-                className="font-sora text-foreground tabular-nums"
-                style={{ ...amountProps.style, flexShrink: 1 }}
+              {/* Two sibling texts, never nested: RN Android drops margins on inline text. */}
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'baseline',
+                  gap: ms(4),
+                  maxWidth: '100%',
+                }}
               >
-                {row.amountText}
-              </Text>
+                <Text
+                  {...amountProps}
+                  className={`font-sora tabular-nums ${AMOUNT_CLASS[row.settledLook]}`}
+                  style={{ ...amountProps.style, flexShrink: 1 }}
+                >
+                  {row.amountText}
+                </Text>
+                <Text
+                  allowFontScaling={false}
+                  className="font-inter text-content-secondary"
+                  style={scaledTextStyle(COMMITMENT_ROW_CODE_FONT_SIZE, fontScale)}
+                  numberOfLines={1}
+                >
+                  {row.currencyCode}
+                </Text>
+              </View>
               <Text
+                testID="commitment-row-day-indicator"
                 allowFontScaling={false}
-                className="font-inter text-content-secondary"
-                style={scaledTextStyle(COMMITMENT_ROW_CODE_FONT_SIZE, fontScale)}
+                className={DAY_INDICATOR_CLASS[row.dayIndicator.tone]}
+                style={{
+                  ...scaledTextStyle(COMMITMENT_ROW_CAPTION_FONT_SIZE, fontScale),
+                  marginTop: COMMITMENT_ROW_LINE_GAP,
+                }}
                 numberOfLines={1}
               >
-                {row.currencyCode}
+                {row.dayIndicator.text}
               </Text>
             </View>
           </View>

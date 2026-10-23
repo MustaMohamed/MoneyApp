@@ -1,4 +1,5 @@
 const pad2 = (n: number): string => String(n).padStart(2, '0');
+const DAY_MS = 86_400_000;
 
 export const MONTHS_SHORT = [
   'Jan',
@@ -55,4 +56,15 @@ export function daysLeftInMonth(yearMonth: string, today: string): number | unde
     0,
   ).getDate();
   return Math.max(lastDay - Number(today.slice(8, 10)), 0);
+}
+
+/** Whole days since the epoch of a `YYYY-MM-DD` date, read in UTC so no zone's clock change moves it. */
+export function isoDayNumber(date: string): number {
+  const [year, month, day] = date.split('-').map(Number);
+  return Date.UTC(year, month - 1, day) / DAY_MS;
+}
+
+/** `to` minus `from`, both `YYYY-MM-DD`, in whole calendar days. */
+export function calendarDaysBetween(from: string, to: string): number {
+  return isoDayNumber(to) - isoDayNumber(from);
 }

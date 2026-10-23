@@ -1,8 +1,12 @@
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useDeferredValue, useMemo, useRef } from 'react';
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import { useAccountStore } from '@/modules/accounts/store/account.store';
+import {
+  findMissingAccountIds,
+  mergeAccountsById,
+} from '@/modules/accounts/store/account_lookup.helpers';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { toLocalDateString } from '@/utils/format_date';
@@ -17,6 +21,7 @@ import { monthAggregateKey, useCommitmentStore } from '../../store/commitment.st
 import { useCommitmentFormHostState } from '../../store/commitment_form_host.state';
 import { buildCommitmentSections } from './commitments.helpers';
 import { useCommitmentsScreenState } from './commitments.state';
+import { resolveCommitmentRowAccountId } from './components/commitment_row.helpers';
 import {
   buildCommitmentsHeroModel,
   resolveCommitmentsHeroAccountId,
@@ -31,6 +36,7 @@ import { useCommitmentFilterState } from './filter/filter.state';
 import { EMPTY_COMMITMENT_FILTERS, useCommitmentFilterStore } from './filter/filter.store';
 
 export type CommitmentsPresentation = 'coldLoading' | 'coldError' | 'content' | 'contentWithError';
+type CommitmentsFloatingAlert = 'list' | 'accounts';
 
 const EMPTY_COMMITMENTS: Commitment[] = [];
 const EMPTY_PAYMENTS: CommitmentMonthPayment[] = [];
@@ -44,6 +50,16 @@ function resolveCommitmentsPresentation({
 }): CommitmentsPresentation {
   if (!hasMatchingSnapshot) return loadError ? 'coldError' : 'coldLoading';
   return loadError ? 'contentWithError' : 'content';
+}
+
+/** The list's own load error takes the account alert's place. */
+function resolveCommitmentsFloatingAlert(
+  presentation: CommitmentsPresentation,
+  showAccountLookupError: boolean,
+): CommitmentsFloatingAlert | undefined {
+  if (presentation === 'contentWithError') return 'list';
+  if (presentation === 'content' && showAccountLookupError) return 'accounts';
+  return undefined;
 }
 
 export function useCommitments() {
@@ -80,7 +96,15 @@ export function useCommitments() {
   const skipPayment = useCommitmentStore.getState().skipPayment;
   const deactivateCommitment = useCommitmentStore.getState().deactivateCommitment;
 
-  const accounts = useAccountStore((s) => s.accounts);
+  const { accounts, archivedAccounts, accountLookupById, accountLookupError } = useAccountStore(
+    useShallow((s) => ({
+      accounts: s.accounts,
+      archivedAccounts: s.archivedAccounts,
+      accountLookupById: s.accountLookupById,
+      accountLookupError: s.accountLookupError,
+    })),
+  );
+  const loadAccountLookup = useAccountStore.getState().loadAccountLookup;
   const categories = useCategoryStore.useState.categories();
   const { rate, hasLoaded: rateLoaded } = useCurrencyStore(
     useShallow((s) => ({ rate: s.rate, hasLoaded: s.hasLoaded })),
@@ -104,7 +128,10 @@ export function useCommitments() {
   const openFilter = useCommitmentFilterState.getState().open;
   const setFilterDraft = useCommitmentFilterStore.getState().setDraft;
 
-  const accountsById = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts]);
+  const accountsById = useMemo(
+    () => mergeAccountsById(accounts, archivedAccounts, accountLookupById),
+    [accountLookupById, accounts, archivedAccounts],
+  );
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const hasMatchingSnapshot =
     commitmentsLoaded && paymentsLoaded && loadedMonth === selectedMonth && today !== undefined;
@@ -116,11 +143,27 @@ export function useCommitments() {
     [activeCommitments],
   );
 
+  const rowAccountIds = useMemo(
+    () =>
+      activePayments.flatMap((payment) => {
+        const id = resolveCommitmentRowAccountId(
+          payment,
+          commitmentsById.get(payment.commitment_id),
+        );
+        return id === undefined ? [] : [id];
+      }),
+    [activePayments, commitmentsById],
+  );
+
+  useEffect(() => {
+    void loadAccountLookup(rowAccountIds).catch(() => {});
+  }, [loadAccountLookup, rowAccountIds]);
+
   const { sections, tally } = useMemo((): ReturnType<typeof buildCommitmentSections> => {
     if (today === undefined) return { sections: [], tally: undefined };
     const filteredPayments = activePayments.filter((payment) => {
       const commitment = commitmentsById.get(payment.commitment_id);
-      const accountId = payment.account_id ?? commitment?.account_id;
+      const accountId = resolveCommitmentRowAccountId(payment, commitment);
       const candidate = {
         payment,
         commitment,
@@ -257,6 +300,14 @@ export function useCommitments() {
     }
   }, [setRefreshing, reloadSelectedMonth, loadMonthAggregate, selectedMonth, heroAccountId]);
 
+  const retryAccountLookup = useCallback(async () => {
+    try {
+      await loadAccountLookup(rowAccountIds);
+    } catch {
+      // The store owns accountLookupError; event boundaries contain the rejected operation.
+    }
+  }, [loadAccountLookup, rowAccountIds]);
+
   const goToDetail = useCallback((paymentId: string) => {
     router.push(`/commitments/${paymentId}`);
   }, []);
@@ -284,6 +335,10 @@ export function useCommitments() {
     setAppliedFilters(EMPTY_COMMITMENT_FILTERS);
   }, [clearSearch, setAppliedFilters, setStatusFilter]);
 
+  const presentation = resolveCommitmentsPresentation({ hasMatchingSnapshot, loadError });
+  const showAccountLookupError =
+    accountLookupError && findMissingAccountIds(rowAccountIds, accountsById).length > 0;
+
   return {
     state: {
       sections,
@@ -300,7 +355,8 @@ export function useCommitments() {
       paymentsLoaded,
       loading,
       loadError,
-      presentation: resolveCommitmentsPresentation({ hasMatchingSnapshot, loadError }),
+      presentation,
+      floatingAlert: resolveCommitmentsFloatingAlert(presentation, showAccountLookupError),
       hasLoaded: hasMatchingSnapshot,
       // Month-independent, unlike `isEmpty`: an empty month keeps the nav and filters mounted.
       hasCommitments: activeCommitments.length > 0,
@@ -315,6 +371,7 @@ export function useCommitments() {
     navigateMonth,
     selectMonth,
     onRefresh,
+    retryAccountLookup,
     goToDetail,
     goToAdd,
     goToEdit,

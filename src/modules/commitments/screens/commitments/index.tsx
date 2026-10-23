@@ -90,6 +90,7 @@ export default function CommitmentsScreen() {
     state,
     selectMonth,
     onRefresh,
+    retryAccountLookup,
     goToDetail,
     goToAdd,
     goToEdit,
@@ -245,7 +246,7 @@ export default function CommitmentsScreen() {
         filterAccessibilityLabel={Strings.commitmentStatusFilterAccessibility}
       />
 
-      {state.presentation === 'contentWithError' ? (
+      {state.floatingAlert === 'list' ? (
         <LoadErrorAlert
           mode="floating"
           floatingOffset="tabBar"
@@ -254,6 +255,19 @@ export default function CommitmentsScreen() {
           retryLabel={Strings.commitmentsLoadRetry}
           onRetry={() => void onRefresh()}
           testID="commitments-load-error"
+        />
+      ) : null}
+
+      {state.floatingAlert === 'accounts' ? (
+        <LoadErrorAlert
+          mode="floating"
+          floatingOffset="tabBar"
+          tinted
+          flatRetry
+          title={Strings.transactionsAccountLookupError}
+          retryLabel={Strings.transactionsLoadRetry}
+          onRetry={() => void retryAccountLookup()}
+          testID="commitments-account-lookup-error"
         />
       ) : null}
 

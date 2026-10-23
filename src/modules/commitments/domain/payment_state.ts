@@ -17,11 +17,15 @@ export function resolvePaymentState(
   return CommitmentPaymentStatus.Upcoming;
 }
 
-export function isPaidPayment(payment: PaymentDates): boolean {
+export function isPaidPayment<T extends PaymentDates>(
+  payment: T,
+): payment is T & { paid_date: string } {
   return payment.paid_date !== null;
 }
 
-export function isSkippedPayment(payment: PaymentDates): boolean {
+export function isSkippedPayment<T extends PaymentDates>(
+  payment: T,
+): payment is T & { paid_date: null; skipped_date: string } {
   return payment.paid_date === null && payment.skipped_date !== null;
 }
 

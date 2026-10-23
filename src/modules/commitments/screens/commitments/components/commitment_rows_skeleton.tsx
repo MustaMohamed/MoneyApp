@@ -51,10 +51,19 @@ export function CommitmentRowsSkeleton(): React.ReactElement {
                   }}
                 />
               </View>
-              <SkeletonGroup.Item
-                className={row % 2 === 0 ? 'w-24 rounded-md' : 'w-20 rounded-md'}
-                style={{ height: lineBar(COMMITMENT_ROW_AMOUNT_FONT_SIZE) }}
-              />
+              <View style={{ alignItems: 'flex-end' }}>
+                <SkeletonGroup.Item
+                  className={row % 2 === 0 ? 'w-24 rounded-md' : 'w-20 rounded-md'}
+                  style={{ height: lineBar(COMMITMENT_ROW_AMOUNT_FONT_SIZE) }}
+                />
+                <SkeletonGroup.Item
+                  className="w-12 rounded-md"
+                  style={{
+                    height: lineBar(COMMITMENT_ROW_CAPTION_FONT_SIZE),
+                    marginTop: COMMITMENT_ROW_LINE_GAP,
+                  }}
+                />
+              </View>
             </View>
           </View>
         ))}

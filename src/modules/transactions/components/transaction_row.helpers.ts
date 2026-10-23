@@ -3,7 +3,11 @@ import type React from 'react';
 import { PixelRatio } from 'react-native';
 
 import type { AccountStripTile } from '@/components/ui/form_sheet.helpers';
-import { resolveRowStacking, scaledFontSize } from '@/components/ui/text_scale.geometry';
+import {
+  resolveKeptSpaceHeight,
+  resolveRowStacking,
+  scaledLineHeight,
+} from '@/components/ui/text_scale.geometry';
 import { TYPE_BADGE_VERTICAL_CHROME } from '@/components/ui/type_badge';
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
@@ -68,34 +72,34 @@ export function resolveTransactionRowValueTrackMaxWidth(
     : undefined;
 }
 
-function rowLineBox(fontSize: number, fontScale: number): number {
-  return lineHeightFor(scaledFontSize(fontSize, fontScale));
-}
-
 function rowTallerColumn(fontScale: number): number {
   const titleLine = Math.max(
-    rowLineBox(TRANSACTION_ROW_TITLE_FONT_SIZE, fontScale),
-    rowLineBox(Type.compactBadge, fontScale) + TRANSACTION_ROW_TITLE_BADGE_CHROME,
+    scaledLineHeight(TRANSACTION_ROW_TITLE_FONT_SIZE, fontScale),
+    scaledLineHeight(Type.compactBadge, fontScale) + TRANSACTION_ROW_TITLE_BADGE_CHROME,
   );
   const content =
     titleLine +
     resolveTransactionRowCaptionLines(fontScale) *
-      (TRANSACTION_ROW_LINE_GAP + rowLineBox(TRANSACTION_ROW_CAPTION_FONT_SIZE, fontScale));
+      (TRANSACTION_ROW_LINE_GAP + scaledLineHeight(TRANSACTION_ROW_CAPTION_FONT_SIZE, fontScale));
   const value =
-    rowLineBox(TRANSACTION_ROW_AMOUNT_FONT_SIZE, fontScale) +
+    scaledLineHeight(TRANSACTION_ROW_AMOUNT_FONT_SIZE, fontScale) +
     TRANSACTION_ROW_LINE_GAP +
-    rowLineBox(TRANSACTION_ROW_CODE_FONT_SIZE, fontScale);
+    scaledLineHeight(TRANSACTION_ROW_CODE_FONT_SIZE, fontScale);
   return Math.max(content, value);
 }
 
-/** The row keeps its 1.0 space around its taller column, in whole device pixels, and never drops below its 1.0 height. */
-export function resolveTransactionRowHeight(fontScale: number): number {
-  return Math.max(
-    TRANSACTION_ROW_HEIGHT,
-    PixelRatio.roundToNearestPixel(
-      TRANSACTION_ROW_HEIGHT + rowTallerColumn(fontScale) - rowTallerColumn(1),
-    ),
+/** A row keeps its 1.0 space around its taller column, in whole device pixels, and never drops below its 1.0 height. */
+export function resolveRowHeightAroundColumn(
+  tallerColumn: (fontScale: number) => number,
+  fontScale: number,
+): number {
+  return PixelRatio.roundToNearestPixel(
+    resolveKeptSpaceHeight(TRANSACTION_ROW_HEIGHT, tallerColumn, fontScale),
   );
+}
+
+export function resolveTransactionRowHeight(fontScale: number): number {
+  return resolveRowHeightAroundColumn(rowTallerColumn, fontScale);
 }
 
 const FALLBACK_ICON: IconName = 'shape-outline';

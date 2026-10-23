@@ -1,16 +1,14 @@
 import type MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import type React from 'react';
-import { PixelRatio } from 'react-native';
 
 import {
   STATUS_BADGE_XS_LABEL_FONT_SIZE,
   STATUS_BADGE_XS_PADDING_VERTICAL,
 } from '@/components/ui/status_badge';
-import { scaledFontSize } from '@/components/ui/text_scale.geometry';
+import { scaledLineHeight } from '@/components/ui/text_scale.geometry';
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { CommitmentPaymentStatus, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { lineHeightFor } from '@/constants/theme';
 import { AcctTokens, CoreTokens } from '@/constants/theme_tokens';
 import {
   BADGE_TEXT_MIN_CONTRAST,
@@ -26,14 +24,15 @@ import {
   resolveDisplayAmount,
   type DisplayAmount,
 } from '@/modules/commitments/utils/commitment_status';
+import { resolveDayIndicator, type DayIndicator } from '@/modules/commitments/utils/day_indicator';
 import {
   TRANSACTION_ROW_AMOUNT_FONT_SIZE,
   TRANSACTION_ROW_CAPTION_FONT_SIZE,
   TRANSACTION_ROW_CODE_FONT_SIZE,
-  TRANSACTION_ROW_HEIGHT,
   TRANSACTION_ROW_LINE_GAP,
   TRANSACTION_ROW_TITLE_FONT_SIZE,
   resolveCategoryGlyph,
+  resolveRowHeightAroundColumn,
   resolveRowTile,
   type RowTile,
 } from '@/modules/transactions/components/transaction_row.helpers';
@@ -42,6 +41,10 @@ import { formatDisplayAmount, formatDisplayAmountParts } from '@/utils/format_am
 import { formatShortWeekdayDate } from '@/utils/format_date';
 
 import { resolveCommitmentRowLegEgp } from '../../../domain/commitment_section_sums';
+import {
+  resolvePaymentDayDistance,
+  type PaymentDaySettlement,
+} from '../../../domain/payment_day_distance';
 import { isPaidPayment, resolvePaymentState } from '../../../domain/payment_state';
 import type { Commitment } from '../../../entities/commitment.entity';
 import type {
@@ -60,30 +63,27 @@ export const COMMITMENT_STATUS_TAG_TEXT_MIN_CONTRAST = BADGE_TEXT_MIN_CONTRAST;
 
 const LABEL_SEPARATOR = ', ';
 
-function rowLineBox(fontSize: number, fontScale: number): number {
-  return lineHeightFor(scaledFontSize(fontSize, fontScale));
-}
-
 function rowTallerColumn(fontScale: number): number {
   const nameLine = Math.max(
-    rowLineBox(COMMITMENT_ROW_TITLE_FONT_SIZE, fontScale),
-    rowLineBox(STATUS_BADGE_XS_LABEL_FONT_SIZE, fontScale) + 2 * STATUS_BADGE_XS_PADDING_VERTICAL,
+    scaledLineHeight(COMMITMENT_ROW_TITLE_FONT_SIZE, fontScale),
+    scaledLineHeight(STATUS_BADGE_XS_LABEL_FONT_SIZE, fontScale) +
+      2 * STATUS_BADGE_XS_PADDING_VERTICAL,
   );
   const content =
-    nameLine + COMMITMENT_ROW_LINE_GAP + rowLineBox(COMMITMENT_ROW_CAPTION_FONT_SIZE, fontScale);
-  // The code sits on the amount's line in a smaller box, so the amount alone sets the value column.
-  const value = rowLineBox(COMMITMENT_ROW_AMOUNT_FONT_SIZE, fontScale);
+    nameLine +
+    COMMITMENT_ROW_LINE_GAP +
+    scaledLineHeight(COMMITMENT_ROW_CAPTION_FONT_SIZE, fontScale);
+  // The code sits on the amount's line in a smaller box, so the amount and the day indicator set the value column.
+  const value =
+    scaledLineHeight(COMMITMENT_ROW_AMOUNT_FONT_SIZE, fontScale) +
+    COMMITMENT_ROW_LINE_GAP +
+    scaledLineHeight(COMMITMENT_ROW_CAPTION_FONT_SIZE, fontScale);
   return Math.max(content, value);
 }
 
 /** The transaction row's height rule over this row's columns: its 1.0 space kept, whole device pixels, never below 1.0. */
 export function resolveCommitmentRowHeight(fontScale: number): number {
-  return Math.max(
-    TRANSACTION_ROW_HEIGHT,
-    PixelRatio.roundToNearestPixel(
-      TRANSACTION_ROW_HEIGHT + rowTallerColumn(fontScale) - rowTallerColumn(1),
-    ),
-  );
+  return resolveRowHeightAroundColumn(rowTallerColumn, fontScale);
 }
 
 // A1 `.stag`: each tone's share of the fill over the card surface the rows sit on.
@@ -150,6 +150,8 @@ export interface CommitmentRowPresentation {
   captionLeg: string | undefined;
   amountText: string;
   currencyCode: string;
+  dayIndicator: DayIndicator;
+  settledLook: PaymentDaySettlement;
   accessibilityLabel: string;
 }
 
@@ -194,6 +196,8 @@ export function buildCommitmentRowPresentation({
   const currencyCode: string = CURRENCY_CONFIG[payment.currency].code;
   const displayAmount = resolveDisplayAmount(payment, commitment);
   const amount = amountFor(payment, displayAmount, currencyCode);
+  const dayDistance = resolvePaymentDayDistance(payment, today);
+  const dayIndicator = resolveDayIndicator(dayDistance);
   const leg = resolveCommitmentRowLegEgp({ payment, amount: displayAmount.amount, rate: liveRate });
   const captionLeg =
     leg === undefined
@@ -214,12 +218,15 @@ export function buildCommitmentRowPresentation({
     captionLeg,
     amountText: amount.text,
     currencyCode,
+    dayIndicator,
+    settledLook: dayDistance.settlement,
     accessibilityLabel: [
       name,
       hasAccount ? resolveAccountName(account) : undefined,
       STATUS_LABELS[status],
       captionLeg === undefined ? dueDay : Strings.commitmentRowDueDayWithLeg(dueDay, captionLeg),
       amount.spoken,
+      dayIndicator.text,
     ]
       .filter((part): part is string => part !== undefined)
       .join(LABEL_SEPARATOR),
