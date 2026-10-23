@@ -45,14 +45,13 @@ export function resolveSmallButtonHeight(fontScale: number): number {
 export interface ButtonRootStyle {
   height?: number;
   borderRadius?: number;
-  overflow?: 'visible';
 }
 
 /** `md` and `lg` get no track `height`; the flat arm's keys win over the `sm` track. */
 export function resolveButtonRootStyle(
   size: ButtonSize,
   fontScale: number,
-  flatStyle?: { borderRadius: number; height?: number; overflow?: 'visible' },
+  flatStyle?: { borderRadius: number; height?: number },
 ): ButtonRootStyle | undefined {
   const track = size === 'sm' ? { height: resolveSmallButtonHeight(fontScale) } : undefined;
   if (track === undefined && flatStyle === undefined) return undefined;

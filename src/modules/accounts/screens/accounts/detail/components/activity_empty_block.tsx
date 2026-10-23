@@ -17,6 +17,7 @@ import {
 
 import {
   ACTIVITY_EMPTY_BLOCK_PADDING_Y,
+  ACTIVITY_EMPTY_LINK_MARGIN_TOP,
   resolveActivityEmptyLinkHitSlop,
 } from './account_detail_touch.geometry';
 
@@ -61,7 +62,7 @@ export function ActivityEmptyBlock({ onAdd }: Props): React.ReactElement {
         accessibilityRole="button"
         accessibilityLabel={Strings.accountActivityEmptyCta}
         hitSlop={resolveActivityEmptyLinkHitSlop(fontScale)}
-        style={{ marginTop: Spacing.sm, ...HIT_SLOP_UNCLIPPED_STYLE }}
+        style={{ marginTop: ACTIVITY_EMPTY_LINK_MARGIN_TOP, ...HIT_SLOP_UNCLIPPED_STYLE }}
       >
         <LinkButton.Label
           {...resolveOneLineTextProps(scaledTextStyle(Type.caption, fontScale))}

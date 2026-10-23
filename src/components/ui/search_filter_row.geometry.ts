@@ -17,6 +17,8 @@ import {
 } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
+import { touchFloorHitSlopCentred } from './touch_floor.geometry';
+
 export const SEARCH_INPUT_MAX_FONT_SCALE = DISPLAY_HEADLINE_MAX_FONT_SCALE;
 // Above it the badge covers the filter icon inside the button's clip.
 export const FILTER_BADGE_MAX_FONT_SCALE = DISPLAY_HEADLINE_MAX_FONT_SCALE;
@@ -101,12 +103,10 @@ export function resolveSearchRowHitSlop(inputHeight: number, topRoom: number): S
     top: topRoom,
     bottom: SEARCH_ROW_MARGIN_BOTTOM,
   });
-  const inset = (inputHeight - Size.searchClearTrack) / 2;
-  const clear = touchFloorHitSlopWithin(Size.searchClearTrack, {
-    top: inset + topRoom,
-    bottom: inset + SEARCH_ROW_MARGIN_BOTTOM,
+  const clear = touchFloorHitSlopCentred(Size.searchClearTrack, inputHeight, {
+    top: topRoom,
+    bottom: SEARCH_ROW_MARGIN_BOTTOM,
   });
-  const clearFloor = touchFloorHitSlop(Size.searchClearTrack).top;
   return {
     filter: {
       ...filter,
@@ -115,8 +115,7 @@ export function resolveSearchRowHitSlop(inputHeight: number, topRoom: number): S
     },
     clear: {
       ...clear,
-      left: clearFloor,
-      right: Math.min(clearFloor, (SEARCH_CLEAR_INSET_END + SEARCH_ROW_GAP) / 2),
+      right: Math.min(clear.right, (SEARCH_CLEAR_INSET_END + SEARCH_ROW_GAP) / 2),
     },
   };
 }

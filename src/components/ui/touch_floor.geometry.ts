@@ -3,8 +3,24 @@ import { type Insets, PixelRatio } from 'react-native';
 import {
   type TouchFloorHitSlop,
   type TouchFloorRoom,
+  touchFloorHitSlop,
   touchFloorHitSlopWithin,
 } from '@/constants/theme';
+
+/** A control centred in a row: its floor slop held inside the row's empty space plus `room` past the row, the floor slop beside it; `undefined` is a row not yet laid out. */
+export function touchFloorHitSlopCentred(
+  track: number,
+  rowHeight: number | undefined,
+  room: TouchFloorRoom,
+): Required<Insets> {
+  const inset = rowHeight === undefined ? 0 : Math.max(0, (rowHeight - track) / 2);
+  const vertical = touchFloorHitSlopWithin(track, {
+    top: room.top === undefined ? undefined : inset + room.top,
+    bottom: room.bottom === undefined ? undefined : inset + room.bottom,
+  });
+  const side = touchFloorHitSlop(track).top;
+  return { ...vertical, left: side, right: side };
+}
 
 /** An item's measured top and height, relative to its list's own view. */
 export interface GridItemBox {

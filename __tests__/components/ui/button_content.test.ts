@@ -3,6 +3,7 @@ import type { ButtonVariant } from 'heroui-native';
 import {
   resolveButtonContent,
   resolveFlatButtonStyle,
+  resolveFlatButtonUnclips,
   type FlatButtonStyle,
   type FlatButtonTone,
 } from '@/components/ui/button.content';
@@ -150,7 +151,7 @@ const flatRows: FlatRow[] = [
     flat: true,
     tone: 'accent',
     resolved: {
-      style: { borderRadius: Radius.cta, height: Size.compactCtaTrack, overflow: 'visible' },
+      style: { borderRadius: Radius.cta, height: Size.compactCtaTrack },
       rootClass: 'bg-accent-soft',
       labelClass: 'text-accent',
     },
@@ -198,5 +199,23 @@ describe('resolveFlatButtonStyle', () => {
         resolveFlatButtonStyle({ variant, flat: true, size: 'md', fontScale: 1 })?.style.height,
       ).toBeUndefined();
     }
+  });
+});
+
+describe('resolveFlatButtonUnclips', () => {
+  const flatStyle = resolveFlatButtonStyle({
+    variant: 'secondary',
+    flat: true,
+    size: 'sm',
+    fontScale: 1,
+  });
+  const slop = { top: 3, bottom: 3 };
+
+  it('MA-242: a flat button with a slop unclips; a flat one without a slop and a non-flat one with a slop do not', () => {
+    expect(flatStyle).toBeDefined();
+    expect(resolveFlatButtonUnclips(flatStyle, slop)).toBe(true);
+    expect(resolveFlatButtonUnclips(flatStyle, undefined)).toBe(false);
+    expect(resolveFlatButtonUnclips(flatStyle, null)).toBe(false);
+    expect(resolveFlatButtonUnclips(undefined, slop)).toBe(false);
   });
 });

@@ -192,7 +192,7 @@ export function Sheet({
               // No `asChild`: `CloseButton`'s animated layers crash `Slot.Pressable` and Reanimated.
               <View
                 testID="sheet-header"
-                onLayout={closeTouch.onHeaderLayout}
+                onLayout={showCloseButton ? closeTouch.onHeaderLayout : undefined}
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',

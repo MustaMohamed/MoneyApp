@@ -2,11 +2,12 @@ import type { BottomSheet } from 'heroui-native';
 import type React from 'react';
 import type { Insets, TextInput } from 'react-native';
 
-import { Size, Spacing, touchFloorHitSlop, touchFloorHitSlopWithin } from '@/constants/theme';
+import { Size, Spacing } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
 import type { SheetProps } from './sheet';
 import type { SheetCloseLifecycle } from './sheet_close_lifecycle';
+import { touchFloorHitSlopCentred } from './touch_floor.geometry';
 
 /** `paddingBottom` a consumer adds to scrollable content under a `footer`; a scrollable sheet that lifts above the keyboard ends its content at the footer and takes none. */
 export const SHEET_FOOTER_CLEARANCE = Size.ctaHeight + ms(72);
@@ -16,16 +17,11 @@ export const SHEET_HEADER_PADDING_BOTTOM = Spacing.xs;
 
 /** The close's slop: centred in the header row, it stops at the row's top edge and at half the padding below it; `undefined` is a header not yet laid out. */
 export function resolveSheetCloseHitSlop(headerHeight: number | undefined): Required<Insets> {
-  const inset =
-    headerHeight === undefined
-      ? 0
-      : Math.max(0, (headerHeight - SHEET_HEADER_PADDING_BOTTOM - Size.sheetCloseTrack) / 2);
-  const vertical = touchFloorHitSlopWithin(Size.sheetCloseTrack, {
-    top: inset,
-    bottom: inset + SHEET_HEADER_PADDING_BOTTOM / 2,
-  });
-  const side = touchFloorHitSlop(Size.sheetCloseTrack).top;
-  return { ...vertical, left: side, right: side };
+  return touchFloorHitSlopCentred(
+    Size.sheetCloseTrack,
+    headerHeight === undefined ? undefined : headerHeight - SHEET_HEADER_PADDING_BOTTOM,
+    { top: 0, bottom: SHEET_HEADER_PADDING_BOTTOM / 2 },
+  );
 }
 
 const SHEET_SIZES = ['xxs', 'xs', 'sm', 'md', 'lg', 'xl', 'xxl'] as const;

@@ -17,6 +17,9 @@ import type { ActivityCardBody } from './account_activity.helpers';
 // The activity empty block's `py-5`, unscaled CSS px.
 export const ACTIVITY_EMPTY_BLOCK_PADDING_Y = 20;
 
+/** The gap between the empty block's body text and its link. */
+export const ACTIVITY_EMPTY_LINK_MARGIN_TOP = Spacing.sm;
+
 // The archived account's Unarchive `mt-4` and Delete `mt-2`, unscaled CSS px.
 export const ARCHIVED_UNARCHIVE_MARGIN_TOP = 16;
 export const ARCHIVED_DELETE_MARGIN_TOP = 8;
@@ -46,7 +49,7 @@ export function resolveActivitySeeAllHitSlop(
 /** The whole gap to the body text above and the block's padding below. */
 export function resolveActivityEmptyLinkHitSlop(fontScale: number): TouchFloorHitSlop {
   return touchFloorHitSlopWithin(captionLineHeight(fontScale), {
-    top: Spacing.sm,
+    top: ACTIVITY_EMPTY_LINK_MARGIN_TOP,
     bottom: ACTIVITY_EMPTY_BLOCK_PADDING_Y,
   });
 }

@@ -80,8 +80,7 @@ interface SheetCloseHitSlopHook {
 export function useSheetCloseHitSlop(): SheetCloseHitSlopHook {
   const [headerHeight, setHeaderHeight] = useState<number | undefined>(undefined);
   const onHeaderLayout = useCallback((event: LayoutChangeEvent) => {
-    const { height } = event.nativeEvent.layout;
-    setHeaderHeight((current) => (current === height ? current : height));
+    setHeaderHeight(event.nativeEvent.layout.height);
   }, []);
   return { hitSlop: resolveSheetCloseHitSlop(headerHeight), onHeaderLayout };
 }

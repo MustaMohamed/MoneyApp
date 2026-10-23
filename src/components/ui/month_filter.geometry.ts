@@ -1,16 +1,10 @@
 import type { Insets } from 'react-native';
 
 import { type ScaledTextStyle, scaledTextStyle } from '@/components/ui/text_scale.geometry';
-import {
-  Size,
-  Spacing,
-  type TouchFloorRoom,
-  Type,
-  touchFloorHitSlop,
-  touchFloorHitSlopWithin,
-} from '@/constants/theme';
+import { Size, Spacing, type TouchFloorRoom, Type, touchFloorHitSlop } from '@/constants/theme';
 
 import { SHEET_HEADER_PADDING_BOTTOM } from './sheet.helpers';
+import { touchFloorHitSlopCentred } from './touch_floor.geometry';
 
 /** The gap between the step buttons and the pill. */
 export const MONTH_ROW_GAP = Spacing.xxs;
@@ -51,16 +45,10 @@ export function resolveMonthYearStepHitSlop(
   yearRowHeight: number | undefined,
   side: MonthStepSide,
 ): Required<Insets> {
-  const inset =
-    yearRowHeight === undefined ? 0 : Math.max(0, (yearRowHeight - Size.monthYearStepTrack) / 2);
-  const headerRoom =
-    side === 'next' ? SHEET_HEADER_PADDING_BOTTOM / 2 : SHEET_HEADER_PADDING_BOTTOM;
-  const vertical = touchFloorHitSlopWithin(Size.monthYearStepTrack, {
-    top: inset + headerRoom,
-    bottom: inset + MONTH_PICKER_YEAR_ROW_GAP / 2,
+  return touchFloorHitSlopCentred(Size.monthYearStepTrack, yearRowHeight, {
+    top: side === 'next' ? SHEET_HEADER_PADDING_BOTTOM / 2 : SHEET_HEADER_PADDING_BOTTOM,
+    bottom: MONTH_PICKER_YEAR_ROW_GAP / 2,
   });
-  const across = touchFloorHitSlop(Size.monthYearStepTrack).top;
-  return { ...vertical, left: across, right: across };
 }
 
 export interface MonthPillGeometry {

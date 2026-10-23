@@ -4,12 +4,13 @@ import { Button as HButton, Spinner, cn, type ButtonSize, type ButtonVariant } f
 import React from 'react';
 import { StyleSheet, useWindowDimensions, type PressableProps } from 'react-native';
 
-import { Colors, Size } from '@/constants/theme';
+import { Colors, HIT_SLOP_UNCLIPPED_STYLE, Size } from '@/constants/theme';
 import { GoldTokens, SemanticTokens } from '@/constants/theme_tokens';
 
 import {
   resolveButtonContent,
   resolveFlatButtonStyle,
+  resolveFlatButtonUnclips,
   type FlatButtonTone,
 } from './button.content';
 import { resolveButtonLabelStyle, resolveButtonRootStyle } from './button.geometry';
@@ -67,6 +68,7 @@ export function Button({
   const flatStyle = resolveFlatButtonStyle({ variant, flat, tone, fontScale, size });
   const labelProps = resolveOneLineTextProps(resolveButtonLabelStyle(size, fontScale));
   const rootStyle = resolveButtonRootStyle(size, fontScale, flatStyle?.style);
+  const unclips = resolveFlatButtonUnclips(flatStyle, props.hitSlop);
 
   if (variant === 'primary' && flat) {
     return (
@@ -123,14 +125,14 @@ export function Button({
       size={size}
       isDisabled={disabledState}
       className={cn(flatStyle?.rootClass, className)}
-      {...(flatStyle?.style.overflow === 'visible'
+      {...(unclips && flatStyle !== undefined
         ? {
             feedbackVariant: 'scale' as const,
             background: <PressHighlight radius={flatStyle.style.borderRadius} />,
           }
         : {})}
       {...props}
-      style={rootStyle}
+      style={unclips ? { ...rootStyle, ...HIT_SLOP_UNCLIPPED_STYLE } : rootStyle}
       // A glyph sibling stops RN deriving the label from the text child — restate it.
       accessibilityLabel={icon ? text : undefined}
     >
