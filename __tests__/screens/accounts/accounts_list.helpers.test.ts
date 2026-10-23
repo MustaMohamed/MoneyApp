@@ -4,6 +4,7 @@ import type { Account } from '@/modules/accounts/entities/account.entity';
 import {
   resolveAccountCaption,
   resolveAccountsListContent,
+  splitCaptionWords,
 } from '@/modules/accounts/screens/accounts/list/accounts_list.helpers';
 import { makeTestAccount } from '@/test_helpers/transaction';
 
@@ -232,5 +233,48 @@ describe('resolveAccountCaption — only the smart wallet equivalent carries a c
       expect(text).not.toContain(Currency.EGP);
       expect(text).not.toContain(Currency.USD);
     }
+  });
+});
+
+describe('splitCaptionWords (MA-243)', () => {
+  it('splits a savings caption into whole words, each but the last keeping its space', () => {
+    expect(splitCaptionWords('Month start 1,234,567 · 0')).toEqual([
+      'Month ',
+      'start ',
+      '1,234,567 ',
+      '· ',
+      '0',
+    ]);
+  });
+
+  it('keeps a signed amount whole in an archived bank caption', () => {
+    expect(splitCaptionWords('Bank · \u22122,500 EGP')).toEqual([
+      'Bank ',
+      '· ',
+      '\u22122,500 ',
+      'EGP',
+    ]);
+  });
+
+  it('gives a one-word caption alone', () => {
+    expect(splitCaptionWords('Bank')).toEqual(['Bank']);
+  });
+
+  it('gives no words for an empty caption', () => {
+    expect(splitCaptionWords('')).toEqual([]);
+  });
+
+  it('splits on U+0020 only, so a no-break space stays inside its word', () => {
+    expect(splitCaptionWords('Limit 120,000\u00a0EGP')).toEqual(['Limit ', '120,000\u00a0EGP']);
+  });
+
+  it.each([
+    'Month start 1,234,567 · 0',
+    'Bank · \u22122,500 EGP',
+    'Bank',
+    '',
+    'Limit 1,250,000 · 150,000 available',
+  ])('joins back to %j', (caption) => {
+    expect(splitCaptionWords(caption).join('')).toBe(caption);
   });
 });

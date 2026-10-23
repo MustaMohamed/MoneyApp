@@ -24,6 +24,7 @@ import {
   COMMITMENT_ROW_CAPTION_FONT_SIZE,
   COMMITMENT_ROW_LINE_GAP,
   COMMITMENT_ROW_TITLE_FONT_SIZE,
+  resolveCommitmentRowCaptionLines,
   resolveCommitmentRowHeight,
 } from '@/modules/commitments/screens/commitments/components/commitment_row.helpers';
 import {
@@ -81,13 +82,16 @@ function transactionTallerColumn(s: number): number {
   return Math.max(content, value);
 }
 
-// The 82432e2e column: the amount alone set the value side, before the day indicator sat under it.
+// The 82432e2e column with MA-243's caption lines: the amount alone set the value side, before the day indicator sat under it.
 function commitmentTallerColumn(s: number): number {
   const name = Math.max(
     line(COMMITMENT_ROW_TITLE_FONT_SIZE, s),
     line(STATUS_BADGE_XS_LABEL_FONT_SIZE, s) + 2 * STATUS_BADGE_XS_PADDING_VERTICAL,
   );
-  const content = name + COMMITMENT_ROW_LINE_GAP + line(COMMITMENT_ROW_CAPTION_FONT_SIZE, s);
+  const content =
+    name +
+    resolveCommitmentRowCaptionLines(s) *
+      (COMMITMENT_ROW_LINE_GAP + line(COMMITMENT_ROW_CAPTION_FONT_SIZE, s));
   return Math.max(content, line(COMMITMENT_ROW_AMOUNT_FONT_SIZE, s));
 }
 

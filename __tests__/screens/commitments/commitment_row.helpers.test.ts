@@ -1,3 +1,8 @@
+import {
+  STATUS_BADGE_XS_LABEL_FONT_SIZE,
+  STATUS_BADGE_XS_PADDING_VERTICAL,
+} from '@/components/ui/status_badge';
+import { scaledLineHeight } from '@/components/ui/text_scale.geometry';
 import { AccountType, AmountType, CommitmentPaymentStatus, Currency } from '@/constants/enums';
 import { AcctTokens, CoreTokens, GoldTokens } from '@/constants/theme_tokens';
 import {
@@ -10,13 +15,21 @@ import type { Commitment } from '@/modules/commitments/entities/commitment.entit
 import type { CommitmentMonthPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import {
   buildCommitmentRowPresentation,
+  COMMITMENT_ROW_AMOUNT_FONT_SIZE,
+  COMMITMENT_ROW_CAPTION_FONT_SIZE,
+  COMMITMENT_ROW_LINE_GAP,
+  COMMITMENT_ROW_TITLE_FONT_SIZE,
   COMMITMENT_STATUS_TAG_COLORS,
   COMMITMENT_STATUS_TAG_TEXT_MIN_CONTRAST,
   resolveCommitmentRowAccountId,
+  resolveCommitmentRowCaptionLines,
   resolveCommitmentRowHeight,
 } from '@/modules/commitments/screens/commitments/components/commitment_row.helpers';
 import { STATUS_ICONS, STATUS_LABELS } from '@/modules/commitments/utils/commitment_status';
-import { TRANSACTION_ROW_HEIGHT } from '@/modules/transactions/components/transaction_row.helpers';
+import {
+  TRANSACTION_ROW_HEIGHT,
+  resolveRowHeightAroundColumn,
+} from '@/modules/transactions/components/transaction_row.helpers';
 import { makeTestCommitment, makeTestMonthPayment } from '@/test_helpers/commitment';
 import { makeTestAccount, makeTestCategory } from '@/test_helpers/transaction';
 
@@ -84,6 +97,40 @@ describe('resolveCommitmentRowHeight', () => {
   it('grows with the font scale', () => {
     expect(resolveCommitmentRowHeight(1.3)).toBeGreaterThan(resolveCommitmentRowHeight(1));
     expect(resolveCommitmentRowHeight(2)).toBeGreaterThan(resolveCommitmentRowHeight(1.3));
+  });
+
+  // The name line over two caption lines, the due day and the USD leg under it (MA-243).
+  function twoCaptionColumn(s: number): number {
+    const nameLine = Math.max(
+      scaledLineHeight(COMMITMENT_ROW_TITLE_FONT_SIZE, s),
+      scaledLineHeight(STATUS_BADGE_XS_LABEL_FONT_SIZE, s) + 2 * STATUS_BADGE_XS_PADDING_VERTICAL,
+    );
+    const content =
+      nameLine +
+      2 * (COMMITMENT_ROW_LINE_GAP + scaledLineHeight(COMMITMENT_ROW_CAPTION_FONT_SIZE, s));
+    const value =
+      scaledLineHeight(COMMITMENT_ROW_AMOUNT_FONT_SIZE, s) +
+      COMMITMENT_ROW_LINE_GAP +
+      scaledLineHeight(COMMITMENT_ROW_CAPTION_FONT_SIZE, s);
+    return Math.max(content, value);
+  }
+
+  it.each([1.3, 2])(
+    'MA-243: at font scale %s counts the name line and two caption lines with their gaps',
+    (s) => {
+      expect(resolveCommitmentRowHeight(s)).toBe(resolveRowHeightAroundColumn(twoCaptionColumn, s));
+    },
+  );
+});
+
+describe('resolveCommitmentRowCaptionLines (MA-243)', () => {
+  it.each([
+    [0.85, 1],
+    [1, 1],
+    [1.01, 2],
+    [2, 2],
+  ])('at font scale %s is %i', (s, lines) => {
+    expect(resolveCommitmentRowCaptionLines(s)).toBe(lines);
   });
 });
 

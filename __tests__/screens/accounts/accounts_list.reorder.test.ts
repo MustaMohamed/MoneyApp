@@ -11,6 +11,8 @@ import {
   resolveMoveTarget,
   resolveReorderedIds,
   resolveRowShift,
+  resolveSlotOffset,
+  type RowBox,
 } from '@/modules/accounts/screens/accounts/list/accounts_list.reorder';
 
 describe('resolveMoveTarget', () => {
@@ -117,8 +119,19 @@ describe('resolveMoveActionDirection', () => {
   });
 });
 
+const equalBoxes = (height: number, count: number): RowBox[] =>
+  Array.from({ length: count }, (_, i) => ({ top: i * height, height }));
+
+// Row 1 is taller than the rest: a caption that wraps at font scale 2 (MA-243).
+const UNEQUAL_BOXES: RowBox[] = [
+  { top: 0, height: 60 },
+  { top: 60, height: 100 },
+  { top: 160, height: 60 },
+  { top: 220, height: 60 },
+];
+
 describe('resolveDropIndex', () => {
-  const cell = { cellHeight: 64, count: 4 };
+  const cell = { boxes: equalBoxes(64, 4), count: 4 };
 
   it('stays on the lifted row with no translation', () => {
     expect(resolveDropIndex({ ...cell, fromIndex: 1, translationY: 0 })).toBe(1);
@@ -135,7 +148,9 @@ describe('resolveDropIndex', () => {
   });
 
   it('moves as many rows as the translation spans', () => {
-    expect(resolveDropIndex({ fromIndex: 1, translationY: 130, cellHeight: 65, count: 4 })).toBe(3);
+    expect(
+      resolveDropIndex({ fromIndex: 1, translationY: 130, boxes: equalBoxes(65, 4), count: 4 }),
+    ).toBe(3);
     expect(resolveDropIndex({ ...cell, fromIndex: 3, translationY: -128 })).toBe(1);
   });
 
@@ -149,15 +164,87 @@ describe('resolveDropIndex', () => {
     expect(resolveDropIndex({ ...cell, fromIndex: 3, translationY: 64 })).toBe(3);
   });
 
-  it('returns the lifted index when the cell height is not measured yet', () => {
-    expect(resolveDropIndex({ fromIndex: 2, translationY: 200, cellHeight: 0, count: 4 })).toBe(2);
-    expect(resolveDropIndex({ fromIndex: 2, translationY: 200, cellHeight: -64, count: 4 })).toBe(
+  it('returns the lifted index when a row box has no height yet', () => {
+    const zero = equalBoxes(64, 4);
+    zero[2] = { top: 128, height: 0 };
+    expect(resolveDropIndex({ fromIndex: 2, translationY: 200, boxes: zero, count: 4 })).toBe(2);
+    const negative = equalBoxes(64, 4);
+    negative[0] = { top: 0, height: -64 };
+    expect(resolveDropIndex({ fromIndex: 2, translationY: 200, boxes: negative, count: 4 })).toBe(
       2,
     );
   });
 
+  it('returns the lifted index while a row on screen has no box yet', () => {
+    expect(
+      resolveDropIndex({ fromIndex: 2, translationY: 200, boxes: equalBoxes(64, 3), count: 4 }),
+    ).toBe(2);
+    expect(resolveDropIndex({ fromIndex: 1, translationY: 200, boxes: [], count: 4 })).toBe(1);
+  });
+
   it('returns the lifted index for an empty list', () => {
-    expect(resolveDropIndex({ fromIndex: 0, translationY: 200, cellHeight: 64, count: 0 })).toBe(0);
+    expect(resolveDropIndex({ fromIndex: 0, translationY: 200, boxes: [], count: 0 })).toBe(0);
+  });
+
+  it("MA-243: drops a short row over a taller neighbour by that neighbour's box", () => {
+    const rows = { boxes: UNEQUAL_BOXES, count: 4 };
+    expect(resolveDropIndex({ ...rows, fromIndex: 0, translationY: 100 })).toBe(1);
+    expect(resolveDropIndex({ ...rows, fromIndex: 0, translationY: 160 })).toBe(2);
+  });
+
+  it('MA-243: drops a tall row over shorter neighbours by their boxes', () => {
+    const rows = { boxes: UNEQUAL_BOXES, count: 4 };
+    expect(resolveDropIndex({ ...rows, fromIndex: 1, translationY: -60 })).toBe(0);
+    expect(resolveDropIndex({ ...rows, fromIndex: 1, translationY: 60 })).toBe(2);
+  });
+});
+
+describe('resolveSlotOffset (MA-243)', () => {
+  it('on equal boxes is the target index times the row height, from any lifted row', () => {
+    const boxes = equalBoxes(64, 4);
+    for (const fromIndex of [0, 1, 2, 3]) {
+      for (const toIndex of [0, 1, 2, 3]) {
+        expect(resolveSlotOffset({ fromIndex, toIndex, boxes })).toBe(toIndex * 64);
+      }
+    }
+  });
+
+  it('on unequal boxes puts the slot where the lifted row lands after remove-then-insert', () => {
+    expect(resolveSlotOffset({ fromIndex: 0, toIndex: 2, boxes: UNEQUAL_BOXES })).toBe(160);
+    expect(resolveSlotOffset({ fromIndex: 1, toIndex: 2, boxes: UNEQUAL_BOXES })).toBe(120);
+    expect(resolveSlotOffset({ fromIndex: 1, toIndex: 1, boxes: UNEQUAL_BOXES })).toBe(60);
+    expect(resolveSlotOffset({ fromIndex: 2, toIndex: 0, boxes: UNEQUAL_BOXES })).toBe(0);
+    expect(resolveSlotOffset({ fromIndex: 3, toIndex: 1, boxes: UNEQUAL_BOXES })).toBe(60);
+  });
+
+  it("counts from the first row's top: the same offsets, less 1, when that top is 1", () => {
+    const boxes: RowBox[] = [{ top: 1, height: 60 }, ...UNEQUAL_BOXES.slice(1)];
+    expect(resolveSlotOffset({ fromIndex: 0, toIndex: 2, boxes })).toBe(159);
+    expect(resolveSlotOffset({ fromIndex: 1, toIndex: 2, boxes })).toBe(119);
+    expect(resolveSlotOffset({ fromIndex: 1, toIndex: 1, boxes })).toBe(59);
+    expect(resolveSlotOffset({ fromIndex: 2, toIndex: 1, boxes })).toBe(59);
+  });
+
+  it('gives the same offsets on a list whose rows all start 1 lower', () => {
+    const shifted = UNEQUAL_BOXES.map((box) => ({ ...box, top: box.top + 1 }));
+    for (const [fromIndex, toIndex] of [
+      [0, 2],
+      [1, 2],
+      [1, 1],
+      [3, 0],
+    ]) {
+      expect(resolveSlotOffset({ fromIndex, toIndex, boxes: shifted })).toBe(
+        resolveSlotOffset({ fromIndex, toIndex, boxes: UNEQUAL_BOXES }),
+      );
+    }
+  });
+
+  it('is 0 when the first, the lifted or the target box is missing', () => {
+    expect(resolveSlotOffset({ fromIndex: 0, toIndex: 2, boxes: [] })).toBe(0);
+    expect(resolveSlotOffset({ fromIndex: 3, toIndex: 1, boxes: UNEQUAL_BOXES.slice(0, 3) })).toBe(
+      0,
+    );
+    expect(resolveSlotOffset({ fromIndex: 1, toIndex: 5, boxes: UNEQUAL_BOXES })).toBe(0);
   });
 });
 

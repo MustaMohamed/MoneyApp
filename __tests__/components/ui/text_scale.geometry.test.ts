@@ -3,6 +3,7 @@ import { PixelRatio } from 'react-native';
 import {
   FITTED_LINE_SLACK,
   resolveFitAmountTextProps,
+  resolveFitLineTextProps,
   resolveLoneWordLines,
   resolveMessageGlyphShift,
   resolveKeptSpaceHeight,
@@ -10,6 +11,7 @@ import {
   resolveRowStacking,
   resolveUncappedLinesAboveOne,
   resolveWordSafeLines,
+  resolveWrappingTextProps,
   scaledFontSize,
   scaledLineHeight,
   scaledTextStyle,
@@ -190,6 +192,60 @@ describe('resolveFitAmountTextProps', () => {
       adjustsFontSizeToFit: true,
       style: scaledTextStyle(Type.title, 2),
     });
+  });
+});
+
+describe('resolveWrappingTextProps (MA-243)', () => {
+  it('with no scaled style leaves the size to the OS and caps no lines', () => {
+    const props = resolveWrappingTextProps(undefined);
+    expect(props).toEqual({ allowFontScaling: true, style: {} });
+    expect(props).not.toHaveProperty('numberOfLines');
+  });
+
+  it('with a scaled style stops OS scaling, keeps that style and caps no lines', () => {
+    const scaled = scaledTextStyle(Type.micro, 2);
+    const props = resolveWrappingTextProps(scaled);
+    expect(props).toEqual({ allowFontScaling: false, style: scaled });
+    expect(props).not.toHaveProperty('numberOfLines');
+  });
+});
+
+describe('resolveFitLineTextProps (MA-243)', () => {
+  it.each([0.85, 1])(
+    'at font scale %s holds one line at its scaled size that does not shrink',
+    (s) => {
+      const props = resolveFitLineTextProps(Type.micro, s);
+      expect(props).toEqual({
+        numberOfLines: 1,
+        allowFontScaling: false,
+        adjustsFontSizeToFit: false,
+        minimumFontScale: undefined,
+        style: scaledTextStyle(Type.micro, s),
+      });
+      expect(props.minimumFontScale).toBeUndefined();
+    },
+  );
+
+  it.each([1.3, 2])(
+    'at font scale %s holds one line that shrinks to fit, floored at 1 / scale',
+    (s) => {
+      const props = resolveFitLineTextProps(Type.micro, s);
+      expect(props).toEqual({
+        numberOfLines: 1,
+        allowFontScaling: false,
+        adjustsFontSizeToFit: true,
+        minimumFontScale: 1 / s,
+        style: scaledTextStyle(Type.micro, s),
+      });
+    },
+  );
+
+  it.each([1.3, 2])('at font scale %s never shrinks below its 1.0 size', (s) => {
+    const props = resolveFitLineTextProps(Type.micro, s);
+    expect(props.style.fontSize * (props.minimumFontScale ?? Number.NaN)).toBeCloseTo(
+      Type.micro,
+      6,
+    );
   });
 });
 
