@@ -118,8 +118,8 @@ jest.mock(
   }),
 );
 
-import { AddTransactionSession } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction_session';
-import { EditTransactionSession } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction_session';
+import { AddTransactionSession } from '@/modules/transactions/screens/transactions/transaction_form/components/add_transaction_session';
+import { EditTransactionSession } from '@/modules/transactions/screens/transactions/transaction_form/components/edit_transaction_session';
 import { useTransactionFormState } from '@/modules/transactions/store/transaction_form_host.state';
 
 const tx: Transaction = {
