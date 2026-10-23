@@ -9,33 +9,19 @@ import {
   COMMITMENT_AMOUNT_REFUSES_ZERO,
   buildEditDefaults,
 } from '@/modules/commitments/screens/commitments/commitment_form.shared';
-import { useEditCommitment } from '@/modules/commitments/screens/commitments/edit_commitment/edit_commitment.hook';
-import { useEditCommitmentState } from '@/modules/commitments/screens/commitments/edit_commitment/edit_commitment.state';
+import { useEditCommitment } from '@/modules/commitments/screens/commitments/commitment_form/edit_commitment.hook';
+import { useEditCommitmentState } from '@/modules/commitments/screens/commitments/commitment_form/edit_commitment.state';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
-import { TABBED_ORIGIN } from '@/modules/navigation/domain/stacked_route';
 import { makeTestCommitment } from '@/test_helpers/commitment';
 import { deferred } from '@/test_helpers/deferred';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 import { holdStillTypingDecimal } from '@/utils/use_zod_form.hook';
 
-const mockRouterBack = jest.fn();
-const mockRouterDismissAll = jest.fn();
-const mockRouterDismissTo = jest.fn();
-const mockRouterReplace = jest.fn();
-const mockPathname = { current: '/commitments/com-1/edit' };
-let mockParams: { id: string; originTxId?: string; originTxCopy?: string } = { id: 'com-1' };
+const onSaved = jest.fn();
+const onDeactivated = jest.fn();
+const onMissing = jest.fn();
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
-jest.mock('expo-router', () => ({
-  useLocalSearchParams: () => mockParams,
-  usePathname: () => mockPathname.current,
-  useRouter: () => ({
-    back: mockRouterBack,
-    replace: mockRouterReplace,
-    dismissAll: mockRouterDismissAll,
-    dismissTo: mockRouterDismissTo,
-  }),
-}));
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
   useCommitmentStore: jest.fn(),
 }));
@@ -78,137 +64,195 @@ function setup() {
   }));
 }
 
+interface EditProps {
+  commitmentId: string;
+}
+
+function mount(commitmentId = 'com-1') {
+  return renderHook(
+    (props: EditProps) =>
+      useEditCommitment({
+        commitmentId: props.commitmentId,
+        onSaved,
+        onDeactivated,
+        onMissing,
+      }),
+    { initialProps: { commitmentId } },
+  );
+}
+
 type Pending = ReturnType<typeof deferred<void>>;
 
-type Hook = Awaited<ReturnType<typeof renderHook<ReturnType<typeof useEditCommitment>, unknown>>>;
+type Hook = Awaited<ReturnType<typeof mount>>;
 
 const entries = () => useEditCommitmentState.getState().entries;
 
 // Mounts the lower copy first, so each copy's owner is read off the key its mount added.
 async function mountTwoCopies() {
-  const lower = await renderHook(() => useEditCommitment());
+  const lower = await mount();
   const [lowerOwner] = Object.keys(entries());
-  const upper = await renderHook(() => useEditCommitment());
+  const upper = await mount();
   const upperOwner = Object.keys(entries()).find((key) => key !== lowerOwner)!;
   return { lower, lowerOwner, upper, upperOwner };
+}
+
+function expectNoLanding() {
+  expect(onSaved).not.toHaveBeenCalled();
+  expect(onDeactivated).not.toHaveBeenCalled();
+  expect(onMissing).not.toHaveBeenCalled();
+}
+
+const settles: [string, (pending: Pending) => void][] = [
+  ['resolves', (pending) => pending.resolve()],
+  ['rejects', (pending) => pending.reject(new Error('disk full'))],
+];
+
+async function startSave(hook: Hook) {
+  const pending = deferred<void>();
+  updateCommitmentMock.mockReturnValueOnce(pending.promise);
+  let inFlight = Promise.resolve();
+  await act(async () => {
+    inFlight = hook.result.current.onSubmit();
+  });
+  expect(hook.result.current.state.saving).toBe(true);
+  return { pending, inFlight };
+}
+
+async function startDeactivate(hook: Hook) {
+  const pending = deferred<void>();
+  deactivateCommitmentMock.mockReturnValueOnce(pending.promise);
+  await act(async () => hook.result.current.handleDeactivate());
+  let inFlight = Promise.resolve();
+  await act(async () => {
+    inFlight = hook.result.current.confirmDeactivate();
+  });
+  expect(hook.result.current.state.saving).toBe(true);
+  return { pending, inFlight };
+}
+
+async function settle(inFlight: Promise<void>, finish: () => void) {
+  await act(async () => {
+    finish();
+    await inFlight;
+  });
 }
 
 describe('useEditCommitment', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockPathname.current = '/commitments/com-1/edit';
-    mockParams = { id: 'com-1' };
     useEditCommitmentState.getState().reset();
     setup();
   });
 
   it('renders without throwing', async () => {
-    await expect(renderHook(() => useEditCommitment())).resolves.toBeDefined();
+    await expect(mount()).resolves.toBeDefined();
   });
 
   it('saving defaults to false', async () => {
-    const { result } = await renderHook(() => useEditCommitment());
+    const { result } = await mount();
     expect(result.current.state.saving).toBe(false);
   });
 
-  it('saving from the tabbed copy dismisses to the commitments list', async () => {
-    const { result } = await renderHook(() => useEditCommitment());
+  it('a save writes once and calls onSaved, not onDeactivated', async () => {
+    const { result } = await mount();
 
     await act(async () => {
       await result.current.onSubmit();
     });
 
-    expect(updateCommitmentMock).toHaveBeenCalled();
-    expect(mockRouterDismissTo).toHaveBeenCalledWith('/commitments');
+    expect(updateCommitmentMock).toHaveBeenCalledTimes(1);
+    expect(updateCommitmentMock).toHaveBeenCalledWith('com-1', expect.anything());
+    expect(onSaved).toHaveBeenCalledTimes(1);
+    expect(onDeactivated).not.toHaveBeenCalled();
+    expect(onMissing).not.toHaveBeenCalled();
+    expect(result.current.state.saveError).toBeUndefined();
   });
 
-  it('saving from the stacked copy pops back to the stacked transaction it came from', async () => {
-    mockPathname.current = '/stacked/commitments/com-1/edit';
-    mockParams.originTxId = 'tx-1';
-    const { result } = await renderHook(() => useEditCommitment());
-
-    await act(async () => {
-      await result.current.onSubmit();
-    });
-
-    expect(updateCommitmentMock).toHaveBeenCalled();
-    expect(mockRouterDismissTo).toHaveBeenCalledWith('/stacked/transactions/detail/tx-1');
-    expect(mockRouterDismissTo).not.toHaveBeenCalledWith('/commitments');
-  });
-
-  it('saving from a stacked copy with no origin falls back to one step inside the mirror', async () => {
-    mockPathname.current = '/stacked/commitments/com-1/edit';
-    const { result } = await renderHook(() => useEditCommitment());
-
-    await act(async () => {
-      await result.current.onSubmit();
-    });
-
-    expect(updateCommitmentMock).toHaveBeenCalled();
-    expect(mockRouterBack).toHaveBeenCalled();
-    expect(mockRouterDismissTo).not.toHaveBeenCalled();
-  });
-
-  it('deactivating from the tabbed copy replaces with the commitments list', async () => {
-    const { result } = await renderHook(() => useEditCommitment());
+  it('a confirmed deactivate calls onDeactivated and hides the confirm', async () => {
+    const { result } = await mount();
+    await act(async () => result.current.handleDeactivate());
+    expect(result.current.state.deactivateDialogVisible).toBe(true);
 
     await act(async () => {
       await result.current.confirmDeactivate();
     });
 
+    expect(deactivateCommitmentMock).toHaveBeenCalledTimes(1);
     expect(deactivateCommitmentMock).toHaveBeenCalledWith('com-1');
-    expect(mockRouterReplace).toHaveBeenCalledWith('/commitments');
+    expect(onDeactivated).toHaveBeenCalledTimes(1);
+    expect(onSaved).not.toHaveBeenCalled();
+    expect(result.current.state.deactivateDialogVisible).toBe(false);
   });
 
-  it('deactivating from the stacked copy pops back to the stacked transaction it came from', async () => {
-    mockPathname.current = '/stacked/commitments/com-1/edit';
-    mockParams.originTxId = 'tx-1';
-    const { result } = await renderHook(() => useEditCommitment());
-
-    await act(async () => {
-      await result.current.confirmDeactivate();
-    });
-
-    expect(deactivateCommitmentMock).toHaveBeenCalledWith('com-1');
-    expect(mockRouterDismissTo).toHaveBeenCalledWith('/stacked/transactions/detail/tx-1');
-    expect(mockRouterReplace).not.toHaveBeenCalled();
-  });
-
-  it('saving from a mirror opened on a tabbed transaction pops every screen above the tabs', async () => {
-    mockPathname.current = '/stacked/commitments/com-1/edit';
-    mockParams = { id: 'com-1', originTxId: 'tx-1', originTxCopy: TABBED_ORIGIN };
-    const { result } = await renderHook(() => useEditCommitment());
+  it('a failed save sets the save error and calls neither landing', async () => {
+    updateCommitmentMock.mockRejectedValueOnce(new Error('regeneration failed'));
+    const { result } = await mount();
 
     await act(async () => {
       await result.current.onSubmit();
     });
 
-    expect(updateCommitmentMock).toHaveBeenCalled();
-    expect(mockRouterDismissAll).toHaveBeenCalled();
-    expect(mockRouterDismissTo).not.toHaveBeenCalled();
+    expect(result.current.state.saveError).toBe(Strings.commitmentsSaveError);
+    expect(result.current.state.saving).toBe(false);
+    expect(onSaved).not.toHaveBeenCalled();
+    expect(onDeactivated).not.toHaveBeenCalled();
   });
 
-  it('deactivating from a mirror opened on a tabbed transaction pops every screen above the tabs', async () => {
-    mockPathname.current = '/stacked/commitments/com-1/edit';
-    mockParams = { id: 'com-1', originTxId: 'tx-1', originTxCopy: TABBED_ORIGIN };
-    const { result } = await renderHook(() => useEditCommitment());
+  it('a failed deactivate sets the save error, hides the confirm and calls neither landing', async () => {
+    deactivateCommitmentMock.mockRejectedValueOnce(new Error('deactivate failed'));
+    const { result } = await mount();
+    await act(async () => result.current.handleDeactivate());
 
     await act(async () => {
       await result.current.confirmDeactivate();
     });
 
-    expect(deactivateCommitmentMock).toHaveBeenCalledWith('com-1');
-    expect(mockRouterDismissAll).toHaveBeenCalled();
-    expect(mockRouterDismissTo).not.toHaveBeenCalled();
-    expect(mockRouterReplace).not.toHaveBeenCalled();
+    expect(result.current.state.saveError).toBe(Strings.commitmentsSaveError);
+    expect(result.current.state.deactivateDialogVisible).toBe(false);
+    expect(result.current.state.saving).toBe(false);
+    expect(onSaved).not.toHaveBeenCalled();
+    expect(onDeactivated).not.toHaveBeenCalled();
   });
+
+  it('a commitment missing at mount calls onMissing, and Save and Confirm write nothing', async () => {
+    const { result } = await mount('com-missing');
+
+    expect(onMissing).toHaveBeenCalled();
+
+    await act(async () => {
+      await result.current.onSubmit();
+      await result.current.confirmDeactivate();
+    });
+
+    expect(updateCommitmentMock).not.toHaveBeenCalled();
+    expect(deactivateCommitmentMock).not.toHaveBeenCalled();
+    expect(onSaved).not.toHaveBeenCalled();
+    expect(onDeactivated).not.toHaveBeenCalled();
+  });
+
+  it.each(settles)(
+    'a commitment that goes while a save is in flight calls onMissing only once the save %s',
+    async (_outcome, finish) => {
+      const hook = await mount();
+      const { pending, inFlight } = await startSave(hook);
+
+      commitments = [];
+      await hook.rerender({ commitmentId: 'com-1' });
+
+      expect(onMissing).not.toHaveBeenCalled();
+
+      await settle(inFlight, () => finish(pending));
+
+      expect(onMissing).toHaveBeenCalled();
+    },
+  );
 
   describe('MA-115 a half-typed amount after a refused Save', () => {
     const amountError = (result: { current: ReturnType<typeof useEditCommitment> }) =>
       result.current.form.getFieldState('amount').error?.message;
 
     async function mountRefused() {
-      const { result } = await renderHook(() => useEditCommitment());
+      const { result } = await mount();
       await act(() => {
         result.current.form.setValue('amount', undefined);
       });
@@ -278,7 +322,7 @@ describe('useEditCommitment', () => {
 
   it('keeps the form open and publishes a retryable error when update fails', async () => {
     updateCommitmentMock.mockRejectedValueOnce(new Error('regeneration failed'));
-    const { result } = await renderHook(() => useEditCommitment());
+    const { result } = await mount();
 
     await act(async () => {
       await result.current.onSubmit();
@@ -286,7 +330,7 @@ describe('useEditCommitment', () => {
 
     expect(result.current.state.saveError).toBe(Strings.commitmentsSaveError);
     expect(result.current.state.saving).toBe(false);
-    expect(mockRouterDismissTo).not.toHaveBeenCalled();
+    expect(onSaved).not.toHaveBeenCalled();
 
     const pendingRetry = deferred<void>();
     updateCommitmentMock.mockReturnValue(pendingRetry.promise);
@@ -346,7 +390,7 @@ describe('useEditCommitment', () => {
   it('a save that resolves after its copy unmounts writes nothing back', async () => {
     const pendingUpdate = deferred<void>();
     updateCommitmentMock.mockReturnValue(pendingUpdate.promise);
-    const copy = await renderHook(() => useEditCommitment());
+    const copy = await mount();
     let saving: Promise<void> | undefined;
 
     await act(async () => {
@@ -366,7 +410,7 @@ describe('useEditCommitment', () => {
   it('a deactivate that resolves after its copy unmounts writes nothing back', async () => {
     const pendingDeactivate = deferred<void>();
     deactivateCommitmentMock.mockReturnValue(pendingDeactivate.promise);
-    const copy = await renderHook(() => useEditCommitment());
+    const copy = await mount();
     let deactivating: Promise<void> | undefined;
 
     await act(async () => {
@@ -383,7 +427,7 @@ describe('useEditCommitment', () => {
     expect(entries()).toEqual({});
   });
 
-  it('a failed deactivate closes the sheet and shows the banner on the copy that confirmed only', async () => {
+  it('a failed deactivate closes the confirm and shows the banner on the copy that confirmed only', async () => {
     deactivateCommitmentMock.mockRejectedValueOnce(new Error('deactivate failed'));
     const { lower, upper, upperOwner } = await mountTwoCopies();
     await act(async () => lower.result.current.handleDeactivate());
@@ -398,10 +442,10 @@ describe('useEditCommitment', () => {
     expect(lower.result.current.state.saving).toBe(false);
     expect(entries()[upperOwner]).toBe(before);
     expect(upper.result.current.state.saveError).toBeUndefined();
-    expect(mockRouterReplace).not.toHaveBeenCalled();
+    expect(onDeactivated).not.toHaveBeenCalled();
   });
 
-  describe('MA-188 the route opens on a second commitment on the mounted screen', () => {
+  describe('MA-188 the mounted form rerenders on a second commitment', () => {
     const second = makeTestCommitment({
       id: 'com-2',
       name: 'Cloud storage',
@@ -421,19 +465,12 @@ describe('useEditCommitment', () => {
       updated_at: '2026-03-31T00:00:00.000Z',
     });
 
-    const settles: [string, (pending: Pending) => void][] = [
-      ['resolves', (pending) => pending.resolve()],
-      ['rejects', (pending) => pending.reject(new Error('disk full'))],
-    ];
-
     beforeEach(() => {
       commitments = [commitment, second];
     });
 
     async function openOn(hook: Hook, id: string) {
-      mockParams = { id };
-      mockPathname.current = `/commitments/${id}/edit`;
-      await hook.rerender({});
+      await hook.rerender({ commitmentId: id });
     }
 
     async function typeName(hook: Hook, name: string) {
@@ -442,55 +479,18 @@ describe('useEditCommitment', () => {
       });
     }
 
-    async function startSave(hook: Hook) {
-      const pending = deferred<void>();
-      updateCommitmentMock.mockReturnValueOnce(pending.promise);
-      let inFlight = Promise.resolve();
-      await act(async () => {
-        inFlight = hook.result.current.onSubmit();
-      });
-      expect(hook.result.current.state.saving).toBe(true);
-      return { pending, inFlight };
-    }
-
-    async function startDeactivate(hook: Hook) {
-      const pending = deferred<void>();
-      deactivateCommitmentMock.mockReturnValueOnce(pending.promise);
-      await act(async () => hook.result.current.handleDeactivate());
-      let inFlight = Promise.resolve();
-      await act(async () => {
-        inFlight = hook.result.current.confirmDeactivate();
-      });
-      expect(hook.result.current.state.saving).toBe(true);
-      return { pending, inFlight };
-    }
-
-    async function settle(inFlight: Promise<void>, finish: () => void) {
-      await act(async () => {
-        finish();
-        await inFlight;
-      });
-    }
-
-    function expectNoNavigation() {
-      expect(mockRouterDismissTo).not.toHaveBeenCalled();
-      expect(mockRouterBack).not.toHaveBeenCalled();
-      expect(mockRouterDismissAll).not.toHaveBeenCalled();
-      expect(mockRouterReplace).not.toHaveBeenCalled();
-    }
-
     it('keeps what the user typed through a reload of the commitments on one commitment', async () => {
-      const hook = await renderHook(() => useEditCommitment());
+      const hook = await mount();
       await typeName(hook, 'Typed name');
 
       commitments = [{ ...commitment }, second];
-      await hook.rerender({});
+      await hook.rerender({ commitmentId: 'com-1' });
 
       expect(hook.result.current.form.getValues('name')).toBe('Typed name');
     });
 
     it('every field shows the second commitment stored values', async () => {
-      const hook = await renderHook(() => useEditCommitment());
+      const hook = await mount();
       await typeName(hook, 'Typed name');
 
       await openOn(hook, 'com-2');
@@ -500,7 +500,7 @@ describe('useEditCommitment', () => {
 
     it('drops a settled save failure of the first commitment', async () => {
       updateCommitmentMock.mockRejectedValueOnce(new Error('disk full'));
-      const hook = await renderHook(() => useEditCommitment());
+      const hook = await mount();
       await act(async () => {
         await hook.result.current.onSubmit();
       });
@@ -512,7 +512,7 @@ describe('useEditCommitment', () => {
     });
 
     it('closes a deactivate confirmation opened on the first commitment', async () => {
-      const hook = await renderHook(() => useEditCommitment());
+      const hook = await mount();
       await act(async () => hook.result.current.handleDeactivate());
       expect(hook.result.current.state.deactivateDialogVisible).toBe(true);
 
@@ -523,21 +523,21 @@ describe('useEditCommitment', () => {
 
     it('a commitment that loads after mount drafts its stored values', async () => {
       commitments = [];
-      const hook = await renderHook(() => useEditCommitment());
+      const hook = await mount();
 
       commitments = [commitment];
-      await hook.rerender({});
+      await hook.rerender({ commitmentId: 'com-1' });
 
       expect(hook.result.current.form.getValues()).toEqual(buildEditDefaults(commitment));
     });
 
-    it('leaves the screen when the route opens on an id the commitments lack, and Save and Confirm write nothing', async () => {
-      const hook = await renderHook(() => useEditCommitment());
-      expect(mockRouterBack).not.toHaveBeenCalled();
+    it('calls onMissing when it rerenders on an id the commitments lack, and Save and Confirm write nothing', async () => {
+      const hook = await mount();
+      expect(onMissing).not.toHaveBeenCalled();
 
       await openOn(hook, 'com-missing');
 
-      expect(mockRouterBack).toHaveBeenCalled();
+      expect(onMissing).toHaveBeenCalled();
       await act(async () => {
         await hook.result.current.onSubmit();
         await hook.result.current.confirmDeactivate();
@@ -547,9 +547,9 @@ describe('useEditCommitment', () => {
     });
 
     it.each(settles)(
-      'a first commitment save that %s after the switch shows no error and navigates nowhere',
+      'a first commitment save that %s after the switch shows no error and calls no landing',
       async (_outcome, finish) => {
-        const hook = await renderHook(() => useEditCommitment());
+        const hook = await mount();
         const { pending, inFlight } = await startSave(hook);
 
         await openOn(hook, 'com-2');
@@ -557,7 +557,7 @@ describe('useEditCommitment', () => {
 
         expect(updateCommitmentMock).toHaveBeenCalledTimes(1);
         expect(updateCommitmentMock).toHaveBeenCalledWith('com-1', expect.anything());
-        expectNoNavigation();
+        expectNoLanding();
         expect(hook.result.current.state.saveError).toBeUndefined();
         expect(hook.result.current.state.saving).toBe(false);
         expect(hook.result.current.form.getValues()).toEqual(buildEditDefaults(second));
@@ -565,9 +565,9 @@ describe('useEditCommitment', () => {
     );
 
     it.each(settles)(
-      'a first commitment deactivate that %s after the confirmation reopens on the second navigates nowhere and keeps it open',
+      'a first commitment deactivate that %s after the confirmation reopens on the second calls no landing and keeps it open',
       async (_outcome, finish) => {
-        const hook = await renderHook(() => useEditCommitment());
+        const hook = await mount();
         const { pending, inFlight } = await startDeactivate(hook);
 
         await openOn(hook, 'com-2');
@@ -577,7 +577,7 @@ describe('useEditCommitment', () => {
 
         expect(deactivateCommitmentMock).toHaveBeenCalledTimes(1);
         expect(deactivateCommitmentMock).toHaveBeenCalledWith('com-1');
-        expectNoNavigation();
+        expectNoLanding();
         expect(hook.result.current.state.deactivateDialogVisible).toBe(true);
         expect(hook.result.current.state.saveError).toBeUndefined();
         expect(hook.result.current.state.saving).toBe(false);
@@ -585,7 +585,7 @@ describe('useEditCommitment', () => {
     );
 
     it('a Save on the second commitment while the first commitment save is in flight writes nothing and leaves the form unsubmitted', async () => {
-      const hook = await renderHook(() => useEditCommitment());
+      const hook = await mount();
       expect(hook.result.current.form.formState.isSubmitted).toBe(false);
       expect(hook.result.current.form.formState.submitCount).toBe(0);
       const { pending, inFlight } = await startSave(hook);
@@ -604,9 +604,9 @@ describe('useEditCommitment', () => {
     });
 
     it.each(settles)(
-      'a first commitment save that %s after the route opens on a missing id leaves once and navigates nowhere else',
+      'a first commitment save that %s after it rerenders on a missing id calls onMissing and no other landing',
       async (_outcome, finish) => {
-        const hook = await renderHook(() => useEditCommitment());
+        const hook = await mount();
         const { pending, inFlight } = await startSave(hook);
 
         await openOn(hook, 'com-missing');
@@ -614,18 +614,17 @@ describe('useEditCommitment', () => {
 
         expect(updateCommitmentMock).toHaveBeenCalledTimes(1);
         expect(updateCommitmentMock).toHaveBeenCalledWith('com-1', expect.anything());
-        expect(mockRouterBack).toHaveBeenCalled();
-        expect(mockRouterDismissTo).not.toHaveBeenCalled();
-        expect(mockRouterDismissAll).not.toHaveBeenCalled();
-        expect(mockRouterReplace).not.toHaveBeenCalled();
+        expect(onMissing).toHaveBeenCalled();
+        expect(onSaved).not.toHaveBeenCalled();
+        expect(onDeactivated).not.toHaveBeenCalled();
         expect(hook.result.current.state.saveError).toBeUndefined();
       },
     );
 
     it.each(settles)(
-      'a first commitment deactivate that %s after the route opens on a missing id leaves once and navigates nowhere else',
+      'a first commitment deactivate that %s after it rerenders on a missing id calls onMissing and no other landing',
       async (_outcome, finish) => {
-        const hook = await renderHook(() => useEditCommitment());
+        const hook = await mount();
         const { pending, inFlight } = await startDeactivate(hook);
 
         await openOn(hook, 'com-missing');
@@ -633,16 +632,15 @@ describe('useEditCommitment', () => {
 
         expect(deactivateCommitmentMock).toHaveBeenCalledTimes(1);
         expect(deactivateCommitmentMock).toHaveBeenCalledWith('com-1');
-        expect(mockRouterBack).toHaveBeenCalled();
-        expect(mockRouterDismissTo).not.toHaveBeenCalled();
-        expect(mockRouterDismissAll).not.toHaveBeenCalled();
-        expect(mockRouterReplace).not.toHaveBeenCalled();
+        expect(onMissing).toHaveBeenCalled();
+        expect(onSaved).not.toHaveBeenCalled();
+        expect(onDeactivated).not.toHaveBeenCalled();
         expect(hook.result.current.state.saveError).toBeUndefined();
       },
     );
 
-    it('a Save after the route opens on the second commitment writes the second and leaves', async () => {
-      const hook = await renderHook(() => useEditCommitment());
+    it('a Save after it rerenders on the second commitment writes the second and calls onSaved', async () => {
+      const hook = await mount();
 
       await openOn(hook, 'com-2');
       await act(async () => {
@@ -651,11 +649,12 @@ describe('useEditCommitment', () => {
 
       expect(updateCommitmentMock).toHaveBeenCalledTimes(1);
       expect(updateCommitmentMock).toHaveBeenCalledWith('com-2', expect.anything());
-      expect(mockRouterDismissTo).toHaveBeenCalledWith('/commitments');
+      expect(onSaved).toHaveBeenCalledTimes(1);
+      expect(onDeactivated).not.toHaveBeenCalled();
     });
 
-    it('a Confirm after the route opens on the second commitment deactivates the second and leaves', async () => {
-      const hook = await renderHook(() => useEditCommitment());
+    it('a Confirm after it rerenders on the second commitment deactivates the second and calls onDeactivated', async () => {
+      const hook = await mount();
 
       await openOn(hook, 'com-2');
       await act(async () => hook.result.current.handleDeactivate());
@@ -665,11 +664,12 @@ describe('useEditCommitment', () => {
 
       expect(deactivateCommitmentMock).toHaveBeenCalledTimes(1);
       expect(deactivateCommitmentMock).toHaveBeenCalledWith('com-2');
-      expect(mockRouterReplace).toHaveBeenCalledWith('/commitments');
+      expect(onDeactivated).toHaveBeenCalledTimes(1);
+      expect(onSaved).not.toHaveBeenCalled();
     });
 
     it('a Confirm while a save is in flight does not deactivate', async () => {
-      const hook = await renderHook(() => useEditCommitment());
+      const hook = await mount();
       const { pending, inFlight } = await startSave(hook);
 
       await act(async () => hook.result.current.handleDeactivate());
@@ -685,7 +685,7 @@ describe('useEditCommitment', () => {
     it.each(settles)(
       'a first commitment save that %s after the switch leaves the second commitment unsubmitted, with its edits kept',
       async (_outcome, finish) => {
-        const hook = await renderHook(() => useEditCommitment());
+        const hook = await mount();
         expect(hook.result.current.form.formState.isSubmitted).toBe(false);
         expect(hook.result.current.form.formState.submitCount).toBe(0);
         const { pending, inFlight } = await startSave(hook);

@@ -328,6 +328,44 @@ describe('useCommitments', () => {
     expect(mockRouter.push).not.toHaveBeenCalled();
   });
 
+  it('opens the edit sheet for the commitment from goToEdit, with no landing and no push', async () => {
+    useCommitmentFormHostState.getState().reset();
+    mockRouter.push.mockClear();
+    const { result } = await renderHook(() => useCommitments());
+
+    await act(() => result.current.goToEdit('c-1'));
+
+    expect(useCommitmentFormHostState.getState()).toMatchObject({
+      phase: 'open',
+      sessionId: 1,
+      mode: 'edit',
+      editingCommitmentId: 'c-1',
+    });
+    expect(useCommitmentFormHostState.getState().landing).toBeUndefined();
+    expect(mockRouter.push).not.toHaveBeenCalled();
+  });
+
+  it('opens nothing from goToEdit with no commitment id, so the next Edit opens session 1', async () => {
+    useCommitmentFormHostState.getState().reset();
+    mockRouter.push.mockClear();
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const { result } = await renderHook(() => useCommitments());
+
+    await act(() => result.current.goToEdit(undefined));
+
+    expect(useCommitmentFormHostState.getState().phase).toBe('closed');
+    expect(mockRouter.push).not.toHaveBeenCalled();
+
+    await act(() => result.current.goToEdit('c-1'));
+
+    expect(useCommitmentFormHostState.getState()).toMatchObject({
+      phase: 'open',
+      sessionId: 1,
+      editingCommitmentId: 'c-1',
+    });
+    warn.mockRestore();
+  });
+
   it('isEmpty is true when no payments', async () => {
     const { result } = await renderHook(() => useCommitments());
     expect(result.current.state.isEmpty).toBe(true);

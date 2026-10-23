@@ -2,7 +2,7 @@ import { useAddCommitmentState } from '@/modules/commitments/screens/commitments
 import {
   INITIAL_UI_ENTRY,
   useEditCommitmentState,
-} from '@/modules/commitments/screens/commitments/edit_commitment/edit_commitment.state';
+} from '@/modules/commitments/screens/commitments/commitment_form/edit_commitment.state';
 
 beforeEach(() => {
   useAddCommitmentState.getState().reset();
