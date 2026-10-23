@@ -87,19 +87,17 @@ jest.mock('@/components/ui/sheet', () => ({
 }));
 
 jest.mock(
-  '@/modules/transactions/screens/transactions/transaction_form/add_transaction_session',
+  '@/modules/transactions/screens/transactions/transaction_form/components/add_transaction_session',
   () => ({
     AddTransactionSession: (props: AddSessionMockProps) => mockAddSession(props),
   }),
-  { virtual: true },
 );
 
 jest.mock(
-  '@/modules/transactions/screens/transactions/transaction_form/edit_transaction_session',
+  '@/modules/transactions/screens/transactions/transaction_form/components/edit_transaction_session',
   () => ({
     EditTransactionSession: (props: EditSessionMockProps) => mockEditSession(props),
   }),
-  { virtual: true },
 );
 
 import { TransactionFormHost } from '@/modules/transactions/screens/transactions/transaction_form';

@@ -1,27 +1,14 @@
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useRef } from 'react';
-import { BackHandler } from 'react-native';
+import { useCallback } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import { useToast } from '@/components/ui/toast';
 import { Strings } from '@/constants/strings';
-import { useAddTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.state';
-import { useEditTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.state';
 import {
-  isTransactionFormSessionSaving,
+  TRANSACTION_FORM_SESSION_SOURCE,
   useTransactionFormState,
 } from '@/modules/transactions/store/transaction_form_host.state';
-
-export type TransactionFormSubmit = () => Promise<void>;
-export type RegisterTransactionFormSubmit = (
-  sessionId: number,
-  submit: TransactionFormSubmit | undefined,
-) => void;
-
-interface RegisteredSubmit {
-  sessionId: number;
-  submit: TransactionFormSubmit;
-}
+import { useFormSessionHost } from '@/utils/use_form_session.hook';
 
 export function useTransactionFormHost() {
   const router = useRouter();
@@ -36,84 +23,16 @@ export function useTransactionFormHost() {
       prerequisiteStatus: state.prerequisiteStatus,
     })),
   );
-  const submitRef = useRef<RegisteredSubmit | undefined>(undefined);
-  const submitInFlightRef = useRef<number | undefined>(undefined);
-  const addSaving = useAddTransactionState((state) => state.saving);
-  const editSaving = useEditTransactionState((state) => state.saving);
-  const activeFormSaving = mode === 'add' ? addSaving : mode === 'edit' ? editSaving : false;
-  const requestClose = useTransactionFormState.getState().requestClose;
+  const {
+    state: session,
+    registerSubmit,
+    handleSave,
+    handleOpenChange,
+    handleClose,
+  } = useFormSessionHost(TRANSACTION_FORM_SESSION_SOURCE);
   const completeSave = useTransactionFormState.getState().completeSave;
   const completeClose = useTransactionFormState.getState().completeClose;
   const requestAccountCreation = useTransactionFormState.getState().requestAccountCreation;
-
-  useEffect(() => {
-    if (phase === 'closed') {
-      submitRef.current = undefined;
-      submitInFlightRef.current = undefined;
-    }
-  }, [phase]);
-
-  useEffect(() => {
-    if (phase === 'closed') return undefined;
-
-    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-      requestClose();
-      return true;
-    });
-    return () => subscription.remove();
-  }, [phase, requestClose]);
-
-  const registerSubmit = useCallback<RegisterTransactionFormSubmit>((ownerSessionId, submit) => {
-    if (ownerSessionId !== useTransactionFormState.getState().sessionId) return;
-    submitRef.current = submit ? { sessionId: ownerSessionId, submit } : undefined;
-  }, []);
-
-  const handleSave = useCallback(() => {
-    const current = useTransactionFormState.getState();
-    const registered = submitRef.current;
-    if (
-      current.phase !== 'open' ||
-      current.footer.disabled ||
-      current.footer.saving ||
-      isTransactionFormSessionSaving(current.mode) ||
-      submitInFlightRef.current === current.sessionId ||
-      !registered ||
-      registered.sessionId !== current.sessionId
-    ) {
-      return;
-    }
-    submitInFlightRef.current = current.sessionId;
-    let submitResult: Promise<void>;
-    try {
-      submitResult = registered.submit();
-    } catch {
-      submitInFlightRef.current = undefined;
-      return;
-    }
-    void submitResult.then(
-      () => {
-        if (submitInFlightRef.current === current.sessionId) {
-          submitInFlightRef.current = undefined;
-        }
-      },
-      () => {
-        if (submitInFlightRef.current === current.sessionId) {
-          submitInFlightRef.current = undefined;
-        }
-      },
-    );
-  }, []);
-
-  const handleOpenChange = useCallback(
-    (open: boolean) => {
-      if (!open) requestClose();
-    },
-    [requestClose],
-  );
-
-  const handleClose = useCallback(() => {
-    requestClose();
-  }, [requestClose]);
 
   const handleSaved = useCallback(
     (ownerSessionId: number) => {
@@ -148,7 +67,7 @@ export function useTransactionFormHost() {
       footer,
       showsStatusTrack: prerequisiteStatus === 'ready',
       isOpen: phase === 'open',
-      isDismissable: !footer.saving && !activeFormSaving,
+      isDismissable: session.isDismissable,
       title: mode === 'edit' ? Strings.editTxTitle : Strings.addTxTitle,
     },
     registerSubmit,

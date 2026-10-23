@@ -3,7 +3,7 @@
 - **Date:** 2026-09-27
 - **Status:** accepted
 - **Ticket:** #577 (MA-111), under #566
-- **Applies to:** `src/components/ui/account_strip.tsx`, `src/modules/transactions/screens/transactions/transaction_form/transaction_form_body.tsx`, `src/modules/transactions/screens/transactions/transaction_form/add_transaction.hook.ts`, `src/modules/transactions/screens/transactions/transaction_form/add_transaction_session.tsx`, `src/modules/transactions/screens/transactions/transaction_form/transaction_form.helpers.ts`
+- **Applies to:** `src/components/ui/account_strip.tsx`, `src/modules/transactions/screens/transactions/transaction_form/transaction_form_body.tsx`, `src/modules/transactions/screens/transactions/transaction_form/add_transaction.hook.ts`, `src/modules/transactions/screens/transactions/transaction_form/components/add_transaction_session.tsx`, `src/modules/transactions/screens/transactions/transaction_form/transaction_form.helpers.ts`
 
 The add sheet's From account is a horizontal strip of account chips instead of a picker row and its sheet. The account choice feeds the money path: it sets the amount's currency, seeds the exchange rate, and clears a category and budget whose semantics no longer fit. This record fixes how the strip and its preselect reach that write.
 

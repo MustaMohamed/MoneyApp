@@ -1,75 +1,76 @@
+import { NoAccountsEmpty } from '@/components/ui/no_accounts_empty';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { AccountPickerSheet } from '@/modules/accounts/components/account_picker_sheet';
 import { CategoryPickerSheet } from '@/modules/categories/components/category_picker_sheet';
-import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
+import { useAddTransaction } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.hook';
 import { BudgetPickerSheet } from '@/modules/transactions/screens/transactions/transaction_form/components/budget_picker_sheet';
 import { TransactionFormDataError } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_data_error';
 import { TransactionFormLoading } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_loading';
-import { useEditTransaction } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.hook';
 import { TransactionFormBody } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_body';
+import { useTransactionFormState } from '@/modules/transactions/store/transaction_form_host.state';
+import { type RegisterFormSessionSubmit, useFormSession } from '@/utils/use_form_session.hook';
 
-import { resolveTransactionFormFooterVisible } from './transaction_form.helpers';
-import type { RegisterTransactionFormSubmit } from './transaction_form_host.hook';
-import { useTransactionFormPrerequisites } from './transaction_form_prerequisites.hook';
-import { useTransactionFormSession } from './transaction_form_session.hook';
+import { resolveTransactionFormFooterVisible } from '../transaction_form.helpers';
+import { useTransactionFormPrerequisites } from '../transaction_form_prerequisites.hook';
 
-export interface EditTransactionSessionProps {
+export interface AddTransactionSessionProps {
   sessionId: number;
-  tx: Transaction;
-  onRegisterSubmit: RegisterTransactionFormSubmit;
-  onClose: () => void;
+  onRegisterSubmit: RegisterFormSessionSubmit;
   onSaved: (sessionId: number) => void;
+  onRequestAccountCreation: (sessionId: number) => void;
 }
 
-export function EditTransactionSession(props: EditTransactionSessionProps): React.ReactElement {
-  const prerequisites = useTransactionFormPrerequisites(props.sessionId, 'edit', props.tx);
-  const hook = useEditTransaction(
-    props.tx,
-    props.onClose,
-    () => props.onSaved(props.sessionId),
-    prerequisites,
-  );
+export function AddTransactionSession(props: AddTransactionSessionProps): React.ReactElement {
+  const prerequisites = useTransactionFormPrerequisites(props.sessionId, 'add', null);
+  const hook = useAddTransaction(() => props.onSaved(props.sessionId), prerequisites);
+  const footerVisible = resolveTransactionFormFooterVisible({
+    formDataLoadError: hook.state.formDataLoadError,
+    formDataReady: hook.state.formDataReady,
+    hasAccounts: hook.state.hasAccounts,
+  });
   const footerDisabled =
     hook.state.saving ||
     !hook.state.formDataReady ||
+    !hook.state.hasAccounts ||
     hook.state.budgetsLoading ||
     Boolean(hook.state.budgetLookupError);
 
-  useTransactionFormSession({
+  useFormSession({
     sessionId: props.sessionId,
     submit: hook.handleSave,
     footer: {
-      visible: resolveTransactionFormFooterVisible({
-        formDataLoadError: hook.state.formDataLoadError,
-        formDataReady: hook.state.formDataReady,
-        hasAccounts: true,
-      }),
+      visible: footerVisible,
       saving: hook.state.saving,
       disabled: footerDisabled,
       status: hook.state.status,
     },
     onRegisterSubmit: props.onRegisterSubmit,
+    publishFooter: useTransactionFormState.getState().publishFooter,
   });
 
   return (
     <>
       {hook.state.formDataLoadError ? (
         <TransactionFormDataError onRetry={hook.retryFormData} />
-      ) : hook.state.formDataReady ? (
+      ) : hook.state.formDataReady && hook.state.hasAccounts ? (
         <TransactionFormBody
-          datePickerOwnerId={`edit:${props.sessionId}`}
-          formMode="edit"
-          locked
-          lockedChips={hook.state.lockedStripChips}
+          datePickerOwnerId={`add:${props.sessionId}`}
+          formMode="add"
+          locked={false}
           type={hook.state.type}
           typeLabel={hook.state.typeLabel}
           typeSupportingText={hook.state.typeSupportingText}
-          onSelectType={() => {}}
+          onSelectType={hook.setType}
           setAmountStr={hook.setAmountStr}
           amountError={hook.state.errors.amount}
           selectedAccount={hook.state.selectedAccount}
+          stripChips={hook.state.stripChips}
+          onSelectStripChip={hook.selectAccountById}
+          accountError={hook.state.errors.account}
           selectedToAccount={hook.state.selectedToAccount}
-          onOpenToPicker={() => {}}
+          onOpenToPicker={() => hook.setShowToPicker(true)}
+          toAccountError={hook.state.errors.toAccount}
           selectedCategory={hook.state.selectedCategory}
           onOpenCategoryPicker={() => hook.setShowCategoryPicker(true)}
           categoryError={hook.state.errors.category}
@@ -91,10 +92,22 @@ export function EditTransactionSession(props: EditTransactionSessionProps): Reac
           setNote={hook.setNote}
           currency={hook.state.selectedAccount?.currency ?? Currency.EGP}
         />
+      ) : hook.state.formDataReady ? (
+        <NoAccountsEmpty onAddAccount={() => props.onRequestAccountCreation(props.sessionId)} />
       ) : (
         <TransactionFormLoading />
       )}
 
+      <AccountPickerSheet
+        isOpen={hook.state.showToPicker}
+        title={Strings.addTxPickToTitle}
+        accounts={hook.state.accountsForTo}
+        selectedId={hook.state.toAccountId}
+        excludeId={hook.state.accountId}
+        onSelect={hook.selectToAccount}
+        onOpenChange={hook.setShowToPicker}
+        onCloseComplete={() => hook.completePickerClose('toAccount')}
+      />
       <CategoryPickerSheet
         isOpen={hook.state.showCategoryPicker}
         title={Strings.addTxPickCategoryTitle}

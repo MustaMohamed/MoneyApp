@@ -10,9 +10,14 @@ import { resolveTransactionFormFooterVisible } from '@/modules/transactions/scre
 import type { TransactionFormMode } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form.types';
 import type { TransactionFormPrerequisiteStatus } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_prerequisites.helpers';
 import { areTransactionFormPrerequisitesReady } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_prerequisites.helpers';
+import {
+  type FormSessionHostSource,
+  type FormSessionPhase,
+  subscribeToAll,
+} from '@/utils/use_form_session.hook';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
-export type TransactionFormPhase = 'closed' | 'open' | 'closing';
+export type TransactionFormPhase = FormSessionPhase;
 export type TransactionFormPostCloseAction = 'addAccount' | 'saved';
 
 export interface TransactionFormFooterState {
@@ -242,3 +247,16 @@ export const useTransactionFormState = createMoneyAppSelectors(
     },
   })),
 );
+
+export const TRANSACTION_FORM_SESSION_SOURCE: FormSessionHostSource = {
+  read: () => {
+    const { phase, sessionId, footer, mode } = useTransactionFormState.getState();
+    return { phase, sessionId, footer, sessionSaving: isTransactionFormSessionSaving(mode) };
+  },
+  subscribe: subscribeToAll([
+    useTransactionFormState,
+    useAddTransactionState,
+    useEditTransactionState,
+  ]),
+  requestClose: () => useTransactionFormState.getState().requestClose(),
+};

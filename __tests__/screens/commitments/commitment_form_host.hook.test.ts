@@ -1,34 +1,26 @@
 import { act, renderHook } from '@testing-library/react-native';
-import { BackHandler } from 'react-native';
 
 import { Strings } from '@/constants/strings';
 import { useAddCommitmentState } from '@/modules/commitments/screens/commitments/commitment_form/add_commitment.state';
-import {
-  type CommitmentFormSubmit,
-  useCommitmentFormHost,
-} from '@/modules/commitments/screens/commitments/commitment_form/commitment_form_host.hook';
+import { useCommitmentFormHost } from '@/modules/commitments/screens/commitments/commitment_form/commitment_form_host.hook';
 import { useEditCommitmentState } from '@/modules/commitments/screens/commitments/commitment_form/edit_commitment.state';
 import { useCommitmentFormHostState } from '@/modules/commitments/store/commitment_form_host.state';
+import { type BackHandlerSpy, installBackHandlerSpy, pressBack } from '@/test_helpers/back_handler';
+import { deferred } from '@/test_helpers/deferred';
+import type { FormSessionSubmit } from '@/utils/use_form_session.hook';
 
 type HostResult = { current: ReturnType<typeof useCommitmentFormHost> };
 
 const host = () => useCommitmentFormHostState.getState();
 
-let addListenerSpy: jest.SpiedFunction<typeof BackHandler.addEventListener>;
+let addListenerSpy: BackHandlerSpy;
 let removeMocks: jest.Mock[];
 
-function pressBack(): boolean | null | undefined {
-  const call = addListenerSpy.mock.calls.at(-1);
-  if (call === undefined) throw new Error('no hardware back listener was added');
-  expect(call[0]).toBe('hardwareBackPress');
-  return call[1]({ type: 'hardwareBackPress', timeStamp: 0 });
-}
-
 function makeSubmit() {
-  return jest.fn<ReturnType<CommitmentFormSubmit>, []>().mockResolvedValue(undefined);
+  return jest.fn<ReturnType<FormSessionSubmit>, []>().mockResolvedValue(undefined);
 }
 
-async function register(result: HostResult, sessionId: number, submit: CommitmentFormSubmit) {
+async function register(result: HostResult, sessionId: number, submit: FormSessionSubmit) {
   await act(() => result.current.registerSubmit(sessionId, submit));
 }
 
@@ -42,12 +34,7 @@ describe('useCommitmentFormHost', () => {
     host().reset();
     useAddCommitmentState.getState().reset();
     useEditCommitmentState.getState().reset();
-    removeMocks = [];
-    addListenerSpy = jest.spyOn(BackHandler, 'addEventListener').mockImplementation(() => {
-      const remove = jest.fn();
-      removeMocks.push(remove);
-      return { remove };
-    });
+    ({ spy: addListenerSpy, removeMocks } = installBackHandlerSpy());
   });
 
   afterEach(() => {
@@ -71,6 +58,29 @@ describe('useCommitmentFormHost', () => {
     await act(() => result.current.handleSave());
 
     expect(submit).toHaveBeenCalledTimes(1);
+  });
+
+  it('starts no second save before the first settles, and after a failed save the next Save starts one', async () => {
+    const { result } = await renderHook(() => useCommitmentFormHost());
+    await act(() => host().openAdd());
+    const pending = deferred();
+    const submit = jest
+      .fn<ReturnType<FormSessionSubmit>, []>()
+      .mockReturnValueOnce(pending.promise)
+      .mockResolvedValue(undefined);
+    await register(result, host().sessionId, submit);
+
+    await act(() => {
+      result.current.handleSave();
+      result.current.handleSave();
+    });
+
+    expect(submit).toHaveBeenCalledTimes(1);
+
+    await act(async () => pending.reject(new Error('save failed')));
+    await act(() => result.current.handleSave());
+
+    expect(submit).toHaveBeenCalledTimes(2);
   });
 
   it('calls nothing on a Save while the sheet is closing', async () => {
@@ -174,7 +184,7 @@ describe('useCommitmentFormHost', () => {
 
     let handled: boolean | null | undefined;
     await act(() => {
-      handled = pressBack();
+      handled = pressBack(addListenerSpy);
     });
     expect(handled).toBe(true);
     expect(host().phase).toBe('closing');
@@ -249,7 +259,7 @@ describe('useCommitmentFormHost', () => {
 
     let handled: boolean | null | undefined;
     await act(() => {
-      handled = pressBack();
+      handled = pressBack(addListenerSpy);
     });
     expect(handled).toBe(true);
     expect(host().phase).toBe('open');
@@ -276,7 +286,7 @@ describe('useCommitmentFormHost', () => {
 
     expect(result.current.state.isDismissable).toBe(false);
     await act(() => {
-      pressBack();
+      pressBack(addListenerSpy);
     });
     expect(host().phase).toBe('open');
     await act(() => result.current.handleClose());

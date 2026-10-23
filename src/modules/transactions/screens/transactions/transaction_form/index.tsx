@@ -5,9 +5,9 @@ import { Sheet } from '@/components/ui/sheet';
 import { StatusTrack } from '@/components/ui/status_track';
 import { Strings } from '@/constants/strings';
 
-import { AddTransactionSession } from './add_transaction_session';
+import { AddTransactionSession } from './components/add_transaction_session';
+import { EditTransactionSession } from './components/edit_transaction_session';
 import { TRANSACTION_FORM_STATUS_GAP } from './components/transaction_form.geometry';
-import { EditTransactionSession } from './edit_transaction_session';
 import { useTransactionFormHost } from './transaction_form_host.hook';
 
 export function TransactionFormHost(): React.ReactElement {
