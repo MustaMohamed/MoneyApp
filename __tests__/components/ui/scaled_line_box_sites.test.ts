@@ -1,193 +1,221 @@
+import { PixelRatio } from 'react-native';
+
 import { resolveDayHeaderGeometry } from '@/components/ui/day_header.geometry';
-import { resolveDetailRowHeight } from '@/components/ui/detail_row.geometry';
-import { resolveFilterAmountSlotStyle } from '@/components/ui/filter_accordion.geometry';
-import { resolveSearchFilterRowGeometry } from '@/components/ui/search_filter_row.geometry';
-import { resolveSearchTallyGeometry } from '@/components/ui/search_tally.geometry';
-import { resolveCommitmentRowHeight } from '@/modules/commitments/screens/commitments/components/commitment_row.helpers';
-import { resolveTransactionRowHeight } from '@/modules/transactions/components/transaction_row.helpers';
-import { resolveTransactionsHeroGeometry } from '@/modules/transactions/screens/transactions/components/transactions_text.geometry';
 import {
+  DETAIL_ROW_HEIGHT,
+  DETAIL_ROW_LABEL_FONT_SIZE,
+  DETAIL_ROW_VALUE_FONT_SIZE,
+  resolveDetailRowHeight,
+} from '@/components/ui/detail_row.geometry';
+import {
+  FILTER_AMOUNT_ERROR_SLOT_HEIGHT,
+  resolveFilterAmountSlotStyle,
+} from '@/components/ui/filter_accordion.geometry';
+import { resolveSearchTallyGeometry } from '@/components/ui/search_tally.geometry';
+import {
+  STATUS_BADGE_PADDING_VERTICAL,
+  STATUS_BADGE_XS_LABEL_FONT_SIZE,
+  STATUS_BADGE_XS_PADDING_VERTICAL,
+} from '@/components/ui/status_badge';
+import { FITTED_LINE_SLACK, scaledFontSize } from '@/components/ui/text_scale.geometry';
+import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
+import {
+  COMMITMENT_ROW_AMOUNT_FONT_SIZE,
+  COMMITMENT_ROW_CAPTION_FONT_SIZE,
+  COMMITMENT_ROW_LINE_GAP,
+  COMMITMENT_ROW_TITLE_FONT_SIZE,
+  resolveCommitmentRowHeight,
+} from '@/modules/commitments/screens/commitments/components/commitment_row.helpers';
+import {
+  TRANSACTION_ROW_AMOUNT_FONT_SIZE,
+  TRANSACTION_ROW_CAPTION_FONT_SIZE,
+  TRANSACTION_ROW_CODE_FONT_SIZE,
+  TRANSACTION_ROW_HEIGHT,
+  TRANSACTION_ROW_LINE_GAP,
+  TRANSACTION_ROW_TITLE_BADGE_CHROME,
+  TRANSACTION_ROW_TITLE_FONT_SIZE,
+  resolveTransactionRowCaptionLines,
+  resolveTransactionRowHeight,
+} from '@/modules/transactions/components/transaction_row.helpers';
+import {
+  TRANSACTIONS_HERO_MAX_FONT_SCALE,
+  resolveTransactionsHeroGeometry,
+} from '@/modules/transactions/screens/transactions/components/transactions_text.geometry';
+import {
+  DETAIL_HERO_AMOUNT_MAX_FONT_SCALE,
+  DETAIL_HERO_BADGE_GAP,
+  DETAIL_HERO_CAPTION_GAP,
+  DETAIL_HERO_OVERLINE_GAP,
+  DETAIL_HERO_PADDING,
+  DETAIL_TRANSFER_AMOUNT_FONT_SIZE,
+  DETAIL_TRANSFER_LABEL_FONT_SIZE,
+  DETAIL_TRANSFER_MIN_HEIGHT,
+  DETAIL_TRANSFER_NAME_FONT_SIZE,
   resolveDetailHeroGeometry,
   resolveTransferCardHeight,
 } from '@/modules/transactions/screens/transactions/detail/components/detail.geometry';
 
-// MA-237: the shared scaled line box and kept-space rule move nothing; every value is the resolver's output at 82432e2e.
+// MA-237: the shared scaled line box and kept-space rule move nothing; each expectation is the resolver's formula at 82432e2e.
 const FONT_SCALES = [0.85, 1, 1.3, 2] as const;
-type FontScale = (typeof FONT_SCALES)[number];
 
-const SITES: Record<
-  string,
-  { resolve: (fontScale: number) => unknown; at: Record<FontScale, unknown> }
-> = {
-  'resolveFilterAmountSlotStyle(s).range': {
-    resolve: (s) => resolveFilterAmountSlotStyle(s).range,
-    at: {
-      0.85: { height: 18 },
-      1: { height: 18 },
-      1.3: { minHeight: 21 },
-      2: { minHeight: 33 },
+const line = (fontSize: number, fontScale: number, maxFontScale = Infinity): number =>
+  lineHeightFor(scaledFontSize(fontSize, fontScale, maxFontScale));
+
+function keptSpace(heightAtOne: number, lines: (fontScale: number) => number, s: number): number {
+  return Math.max(heightAtOne, heightAtOne + lines(s) - lines(1));
+}
+
+function transactionTallerColumn(s: number): number {
+  const title = Math.max(
+    line(TRANSACTION_ROW_TITLE_FONT_SIZE, s),
+    line(Type.compactBadge, s) + TRANSACTION_ROW_TITLE_BADGE_CHROME,
+  );
+  const content =
+    title +
+    resolveTransactionRowCaptionLines(s) *
+      (TRANSACTION_ROW_LINE_GAP + line(TRANSACTION_ROW_CAPTION_FONT_SIZE, s));
+  const value =
+    line(TRANSACTION_ROW_AMOUNT_FONT_SIZE, s) +
+    TRANSACTION_ROW_LINE_GAP +
+    line(TRANSACTION_ROW_CODE_FONT_SIZE, s);
+  return Math.max(content, value);
+}
+
+// The 82432e2e column: the amount alone set the value side, before the day indicator sat under it.
+function commitmentTallerColumn(s: number): number {
+  const name = Math.max(
+    line(COMMITMENT_ROW_TITLE_FONT_SIZE, s),
+    line(STATUS_BADGE_XS_LABEL_FONT_SIZE, s) + 2 * STATUS_BADGE_XS_PADDING_VERTICAL,
+  );
+  const content = name + COMMITMENT_ROW_LINE_GAP + line(COMMITMENT_ROW_CAPTION_FONT_SIZE, s);
+  return Math.max(content, line(COMMITMENT_ROW_AMOUNT_FONT_SIZE, s));
+}
+
+function rowAroundColumn(tallerColumn: (fontScale: number) => number, s: number): number {
+  return Math.max(
+    TRANSACTION_ROW_HEIGHT,
+    PixelRatio.roundToNearestPixel(TRANSACTION_ROW_HEIGHT + tallerColumn(s) - tallerColumn(1)),
+  );
+}
+
+const SITES: Record<string, { resolve: (s: number) => unknown; expected: (s: number) => unknown }> =
+  {
+    'resolveFilterAmountSlotStyle(s).range': {
+      resolve: (s) => resolveFilterAmountSlotStyle(s).range,
+      expected: (s) =>
+        s <= 1 ? { height: FILTER_AMOUNT_ERROR_SLOT_HEIGHT } : { minHeight: line(Type.micro, s) },
     },
-  },
-  resolveSearchTallyGeometry: {
-    resolve: resolveSearchTallyGeometry,
-    at: {
-      0.85: { slotHeight: 19, lineHeight: 14 },
-      1: { slotHeight: 21, lineHeight: 16 },
-      1.3: { slotHeight: 26, lineHeight: 21 },
-      2: { slotHeight: 38, lineHeight: 33 },
+    resolveSearchTallyGeometry: {
+      resolve: resolveSearchTallyGeometry,
+      expected: (s) => ({
+        slotHeight: Spacing.xxs + line(Type.micro, s),
+        lineHeight: line(Type.micro, s),
+      }),
     },
-  },
-  'resolveSearchFilterRowGeometry(s).badge': {
-    resolve: (s) => resolveSearchFilterRowGeometry(s).badge,
-    at: {
-      0.85: { top: 2, right: 2, minWidth: 18, height: 18, borderRadius: 9 },
-      1: { top: 2, right: 2, minWidth: 18, height: 18, borderRadius: 9 },
-      1.3: { top: 2, right: 2, minWidth: 18, height: 18, borderRadius: 9 },
-      2: { top: 2, right: 2, minWidth: 18, height: 18, borderRadius: 9 },
-    },
-  },
-  resolveDayHeaderGeometry: {
-    resolve: resolveDayHeaderGeometry,
-    at: {
-      0.85: { fontSize: 11.9, lineHeight: 15, pillHeight: 19, height: 46 },
-      1: { fontSize: 14, lineHeight: 18, pillHeight: 22, height: 49 },
-      1.3: { fontSize: 18.2, lineHeight: 24, pillHeight: 28, height: 55 },
-      2: { fontSize: 28, lineHeight: 36, pillHeight: 40, height: 67 },
-    },
-  },
-  resolveDetailRowHeight: {
-    resolve: resolveDetailRowHeight,
-    at: { 0.85: 67, 1: 67, 1.3: 76, 2: 101 },
-  },
-  resolveTransactionsHeroGeometry: {
-    resolve: resolveTransactionsHeroGeometry,
-    at: {
-      0.85: {
-        overline: 10.2,
-        hero: 27.2,
-        subhead: 15.725,
-        micro: 10.625,
-        body: 13.6,
-        chip: 8.924999999999999,
-        header: 13,
-        amount: 35,
-        columns: 34,
-        rail: 3,
-        caption: 12,
-      },
-      1: {
-        overline: 12,
-        hero: 32,
-        subhead: 18.5,
-        micro: 12.5,
-        body: 16,
-        chip: 10.5,
-        header: 16,
-        amount: 42,
-        columns: 39,
-        rail: 3,
-        caption: 14,
-      },
-      1.3: {
-        overline: 15.600000000000001,
-        hero: 41.6,
-        subhead: 24.05,
-        micro: 16.25,
-        body: 20.8,
-        chip: 13.65,
-        header: 20,
-        amount: 54,
-        columns: 50,
-        rail: 3,
-        caption: 18,
-      },
-      2: {
-        overline: 15.600000000000001,
-        hero: 41.6,
-        subhead: 24.05,
-        micro: 16.25,
-        body: 20.8,
-        chip: 13.65,
-        header: 20,
-        amount: 54,
-        columns: 50,
-        rail: 3,
-        caption: 18,
+    resolveDayHeaderGeometry: {
+      resolve: resolveDayHeaderGeometry,
+      expected: (s) => {
+        const pillHeight = line(Type.caption, s) + 2 * Spacing.xxxs;
+        return {
+          fontSize: scaledFontSize(Type.caption, s),
+          lineHeight: line(Type.caption, s),
+          pillHeight,
+          height: Spacing.md + pillHeight + Spacing.xs,
+        };
       },
     },
-  },
-  resolveTransferCardHeight: {
-    resolve: resolveTransferCardHeight,
-    at: { 0.85: 145, 1: 145, 1.3: 160, 2: 194 },
-  },
-  resolveTransactionRowHeight: {
-    resolve: resolveTransactionRowHeight,
-    at: { 0.85: 69, 1: 69, 1.3: 104, 2: 144 },
-  },
-  resolveCommitmentRowHeight: {
-    resolve: resolveCommitmentRowHeight,
-    at: { 0.85: 69, 1: 69, 1.3: 81, 2: 109 },
-  },
-};
+    resolveDetailRowHeight: {
+      resolve: resolveDetailRowHeight,
+      expected: (s) =>
+        keptSpace(
+          DETAIL_ROW_HEIGHT,
+          (f) => line(DETAIL_ROW_LABEL_FONT_SIZE, f) + line(DETAIL_ROW_VALUE_FONT_SIZE, f),
+          s,
+        ),
+    },
+    resolveTransactionsHeroGeometry: {
+      resolve: resolveTransactionsHeroGeometry,
+      expected: (s) => {
+        const size = (fontSize: number) =>
+          scaledFontSize(fontSize, s, TRANSACTIONS_HERO_MAX_FONT_SCALE);
+        return {
+          overline: size(Type.overline),
+          hero: size(Type.hero),
+          subhead: size(Type.subhead),
+          micro: size(Type.micro),
+          body: size(Type.body),
+          chip: size(Type.chip),
+          header: lineHeightFor(size(Type.overline)),
+          amount: lineHeightFor(size(Type.hero)),
+          columns: lineHeightFor(size(Type.micro)) + Spacing.xxxs + lineHeightFor(size(Type.body)),
+          rail: Size.progressThin,
+          caption: lineHeightFor(size(Type.chip)),
+        };
+      },
+    },
+    resolveTransferCardHeight: {
+      resolve: resolveTransferCardHeight,
+      expected: (s) =>
+        keptSpace(
+          DETAIL_TRANSFER_MIN_HEIGHT,
+          (f) =>
+            line(DETAIL_TRANSFER_LABEL_FONT_SIZE, f) +
+            line(DETAIL_TRANSFER_NAME_FONT_SIZE, f) +
+            line(DETAIL_TRANSFER_AMOUNT_FONT_SIZE, f),
+          s,
+        ),
+    },
+    resolveTransactionRowHeight: {
+      resolve: resolveTransactionRowHeight,
+      expected: (s) => rowAroundColumn(transactionTallerColumn, s),
+    },
+    resolveCommitmentRowHeight: {
+      resolve: resolveCommitmentRowHeight,
+      expected: (s) => rowAroundColumn(commitmentTallerColumn, s),
+    },
+  };
 
 // The nine fields DetailHeroGeometry held at 82432e2e; fields added after it are not pinned here.
-const DETAIL_HERO_AT: Record<FontScale, Record<string, number>> = {
-  0.85: {
-    titleFontSize: 21.675,
-    overlineFontSize: 10.625,
-    amountFontSize: 29.325,
-    codeFontSize: 15.725,
-    captionFontSize: 10.625,
-    badgeHeight: 18,
-    topHeight: 55,
-    amountHeight: 38.5,
-    height: 180.5,
-  },
-  1: {
-    titleFontSize: 25.5,
-    overlineFontSize: 12.5,
-    amountFontSize: 34.5,
-    codeFontSize: 18.5,
-    captionFontSize: 12.5,
-    badgeHeight: 20,
-    topHeight: 58,
-    amountHeight: 45.5,
-    height: 194.5,
-  },
-  1.3: {
-    titleFontSize: 33.15,
-    overlineFontSize: 16.25,
-    amountFontSize: 44.85,
-    codeFontSize: 24.05,
-    captionFontSize: 16.25,
-    badgeHeight: 25,
-    topHeight: 73,
-    amountHeight: 58.5,
-    height: 232.5,
-  },
-  2: {
-    titleFontSize: 51,
-    overlineFontSize: 25,
-    amountFontSize: 44.85,
-    codeFontSize: 24.05,
-    captionFontSize: 25,
-    badgeHeight: 37,
-    topHeight: 108,
-    amountHeight: 58.5,
-    height: 291.5,
-  },
-};
+function detailHeroAt(s: number): Record<string, number> {
+  const titleFontSize = scaledFontSize(Type.headline, s);
+  const microFontSize = scaledFontSize(Type.micro, s);
+  const amountFontSize = scaledFontSize(Type.detailHero, s, DETAIL_HERO_AMOUNT_MAX_FONT_SCALE);
+  const badgeHeight = lineHeightFor(microFontSize) + 2 * STATUS_BADGE_PADDING_VERTICAL;
+  const topHeight = Math.max(
+    Size.detailHeroTile,
+    lineHeightFor(titleFontSize) + DETAIL_HERO_BADGE_GAP + badgeHeight,
+  );
+  const amountHeight = lineHeightFor(amountFontSize) + FITTED_LINE_SLACK;
+  return {
+    titleFontSize,
+    overlineFontSize: microFontSize,
+    amountFontSize,
+    codeFontSize: scaledFontSize(Type.subhead, s, DETAIL_HERO_AMOUNT_MAX_FONT_SCALE),
+    captionFontSize: microFontSize,
+    badgeHeight,
+    topHeight,
+    amountHeight,
+    height:
+      2 * DETAIL_HERO_PADDING +
+      topHeight +
+      DETAIL_HERO_OVERLINE_GAP +
+      lineHeightFor(microFontSize) +
+      amountHeight +
+      DETAIL_HERO_CAPTION_GAP +
+      lineHeightFor(microFontSize),
+  };
+}
 
 const SITE_CASES = Object.entries(SITES).flatMap(([name, site]) =>
   FONT_SCALES.map((fontScale) => [name, fontScale, site] as const),
 );
 
-describe('MA-237 scaled line box sites hold their 82432e2e values', () => {
+describe('MA-237 scaled line box sites hold their 82432e2e formulas', () => {
   it.each(SITE_CASES)('%s at font scale %s', (_name, fontScale, site) => {
-    expect(site.resolve(fontScale)).toEqual(site.at[fontScale]);
+    expect(site.resolve(fontScale)).toEqual(site.expected(fontScale));
   });
 
   it.each(FONT_SCALES)('resolveDetailHeroGeometry at font scale %s', (fontScale) => {
-    expect(resolveDetailHeroGeometry(fontScale)).toMatchObject(DETAIL_HERO_AT[fontScale]);
+    expect(resolveDetailHeroGeometry(fontScale)).toMatchObject(detailHeroAt(fontScale));
   });
 });

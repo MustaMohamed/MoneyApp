@@ -175,6 +175,7 @@ const baseCommitmentsState: CommitmentsScreenState = {
   loading: false,
   loadError: false,
   presentation: 'content',
+  floatingAlert: undefined,
   hasLoaded: true,
   today: '2026-05-08',
   hasCommitments: false,

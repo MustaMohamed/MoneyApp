@@ -10,28 +10,20 @@ export interface DayIndicator {
   tone: DayIndicatorTone;
 }
 
+function dayCountText(days: number, one: string, many: (count: string) => string): string {
+  return days === 1 ? one : many(formatAmount(days));
+}
+
 function lateText(days: number): string {
-  return days === 1
-    ? Strings.commitmentDayLateOne
-    : Strings.commitmentDayLateMany(formatAmount(days));
-}
-
-function aheadText(days: number): string {
-  return days === 1
-    ? Strings.commitmentDayAheadOne
-    : Strings.commitmentDayAheadMany(formatAmount(days));
-}
-
-function earlyText(days: number): string {
-  return days === 1
-    ? Strings.commitmentDayEarlyOne
-    : Strings.commitmentDayEarlyMany(formatAmount(days));
+  return dayCountText(days, Strings.commitmentDayLateOne, Strings.commitmentDayLateMany);
 }
 
 /** A settled row's day against its due day. */
 function settledText(days: number): string {
   if (days > 0) return lateText(days);
-  if (days < 0) return earlyText(-days);
+  if (days < 0) {
+    return dayCountText(-days, Strings.commitmentDayEarlyOne, Strings.commitmentDayEarlyMany);
+  }
   return Strings.commitmentDayOnTheDay;
 }
 
@@ -42,6 +34,11 @@ export function resolveDayIndicator({ settlement, days }: PaymentDayDistance): D
     return { text: settledText(days), tone: days > 0 ? 'danger' : 'success' };
   }
   if (days > 0) return { text: lateText(days), tone: 'danger' };
-  if (days < 0) return { text: aheadText(-days), tone: 'caption' };
+  if (days < 0) {
+    return {
+      text: dayCountText(-days, Strings.commitmentDayAheadOne, Strings.commitmentDayAheadMany),
+      tone: 'caption',
+    };
+  }
   return { text: Strings.commitmentDayDueToday, tone: 'gold' };
 }

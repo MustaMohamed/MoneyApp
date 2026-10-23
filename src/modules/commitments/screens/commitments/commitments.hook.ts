@@ -52,14 +52,14 @@ function resolveCommitmentsPresentation({
   return loadError ? 'contentWithError' : 'content';
 }
 
-/** The list's own load error takes the account alert's place; no key, no alert. */
+/** The list's own load error takes the account alert's place. */
 function resolveCommitmentsFloatingAlert(
   presentation: CommitmentsPresentation,
   showAccountLookupError: boolean,
-): { floatingAlert?: CommitmentsFloatingAlert } {
-  if (presentation === 'contentWithError') return { floatingAlert: 'list' };
-  if (presentation === 'content' && showAccountLookupError) return { floatingAlert: 'accounts' };
-  return {};
+): CommitmentsFloatingAlert | undefined {
+  if (presentation === 'contentWithError') return 'list';
+  if (presentation === 'content' && showAccountLookupError) return 'accounts';
+  return undefined;
 }
 
 export function useCommitments() {
@@ -163,7 +163,7 @@ export function useCommitments() {
     if (today === undefined) return { sections: [], tally: undefined };
     const filteredPayments = activePayments.filter((payment) => {
       const commitment = commitmentsById.get(payment.commitment_id);
-      const accountId = payment.account_id ?? commitment?.account_id;
+      const accountId = resolveCommitmentRowAccountId(payment, commitment);
       const candidate = {
         payment,
         commitment,
@@ -356,7 +356,7 @@ export function useCommitments() {
       loading,
       loadError,
       presentation,
-      ...resolveCommitmentsFloatingAlert(presentation, showAccountLookupError),
+      floatingAlert: resolveCommitmentsFloatingAlert(presentation, showAccountLookupError),
       hasLoaded: hasMatchingSnapshot,
       // Month-independent, unlike `isEmpty`: an empty month keeps the nav and filters mounted.
       hasCommitments: activeCommitments.length > 0,

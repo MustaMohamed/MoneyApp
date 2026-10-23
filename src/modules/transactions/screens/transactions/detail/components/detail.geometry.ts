@@ -56,44 +56,35 @@ interface DetailHeroGeometry {
 
 /** The loaded hero and its skeleton both stand at `height`; the amount line is fitted, so it keeps one device pixel of slack. */
 export function resolveDetailHeroGeometry(fontScale: number): DetailHeroGeometry {
-  const titleFontSize = scaledFontSize(Type.headline, fontScale);
-  const overlineFontSize = scaledFontSize(Type.micro, fontScale);
-  const captionFontSize = scaledFontSize(Type.micro, fontScale);
-  const amountFontSize = scaledFontSize(
-    Type.detailHero,
-    fontScale,
-    DETAIL_HERO_AMOUNT_MAX_FONT_SCALE,
-  );
+  const title = scaledTextStyle(Type.headline, fontScale);
+  // The overline, the caption and the badge label are one step.
+  const micro = scaledTextStyle(Type.micro, fontScale);
+  const amount = scaledTextStyle(Type.detailHero, fontScale, DETAIL_HERO_AMOUNT_MAX_FONT_SCALE);
   const codeFontSize = scaledFontSize(Type.subhead, fontScale, DETAIL_HERO_AMOUNT_MAX_FONT_SCALE);
-  const titleLineHeight = scaledLineHeight(Type.headline, fontScale);
-  const overlineLineHeight = scaledLineHeight(Type.micro, fontScale);
-  const captionLineHeight = scaledLineHeight(Type.micro, fontScale);
-  const badgeHeight = scaledLineHeight(Type.micro, fontScale) + DETAIL_HERO_BADGE_CHROME;
+  const badgeHeight = micro.lineHeight + DETAIL_HERO_BADGE_CHROME;
   const topHeight = Math.max(
     Size.detailHeroTile,
-    titleLineHeight + DETAIL_HERO_BADGE_GAP + badgeHeight,
+    title.lineHeight + DETAIL_HERO_BADGE_GAP + badgeHeight,
   );
-  const amountHeight =
-    scaledLineHeight(Type.detailHero, fontScale, DETAIL_HERO_AMOUNT_MAX_FONT_SCALE) +
-    FITTED_LINE_SLACK;
+  const amountHeight = amount.lineHeight + FITTED_LINE_SLACK;
   const height =
     2 * DETAIL_HERO_PADDING +
     topHeight +
     DETAIL_HERO_OVERLINE_GAP +
-    overlineLineHeight +
+    micro.lineHeight +
     amountHeight +
     DETAIL_HERO_CAPTION_GAP +
-    captionLineHeight;
+    micro.lineHeight;
 
   return {
-    titleFontSize,
-    overlineFontSize,
-    amountFontSize,
+    titleFontSize: title.fontSize,
+    overlineFontSize: micro.fontSize,
+    amountFontSize: amount.fontSize,
     codeFontSize,
-    captionFontSize,
-    titleLineHeight,
-    overlineLineHeight,
-    captionLineHeight,
+    captionFontSize: micro.fontSize,
+    titleLineHeight: title.lineHeight,
+    overlineLineHeight: micro.lineHeight,
+    captionLineHeight: micro.lineHeight,
     badgeHeight,
     topHeight,
     amountHeight,
@@ -109,9 +100,9 @@ export interface DetailSkeletonGeometry {
 
 function transferLines(fontScale: number): number {
   return (
-    scaledTextStyle(DETAIL_TRANSFER_LABEL_FONT_SIZE, fontScale).lineHeight +
-    scaledTextStyle(DETAIL_TRANSFER_NAME_FONT_SIZE, fontScale).lineHeight +
-    scaledTextStyle(DETAIL_TRANSFER_AMOUNT_FONT_SIZE, fontScale).lineHeight
+    scaledLineHeight(DETAIL_TRANSFER_LABEL_FONT_SIZE, fontScale) +
+    scaledLineHeight(DETAIL_TRANSFER_NAME_FONT_SIZE, fontScale) +
+    scaledLineHeight(DETAIL_TRANSFER_AMOUNT_FONT_SIZE, fontScale)
   );
 }
 

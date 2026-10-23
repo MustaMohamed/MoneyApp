@@ -4,14 +4,9 @@ import type {
   SpendingPlanTimingVM,
 } from '@/modules/budget/screens/budget/spending_plans.types';
 import { compareGapToPoints } from '@/utils/money';
+import { isoDayNumber } from '@/utils/year_month';
 
-const DAY_MS = 86_400_000;
 const PACE_WARNING_POINTS = 10;
-
-function isoDayNumber(value: string): number {
-  const [year, month, day] = value.split('-').map(Number);
-  return Math.floor(Date.UTC(year, month - 1, day) / DAY_MS);
-}
 
 export function computePlanTiming(
   startDate: string,

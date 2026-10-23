@@ -491,9 +491,9 @@ describe('buildCommitmentRowPresentation day indicator (MA-234)', () => {
 
 describe('buildCommitmentRowPresentation settled look (MA-234)', () => {
   it.each<[CommitmentPaymentStatus, string, Partial<CommitmentMonthPayment>]>([
-    [CommitmentPaymentStatus.Overdue, 'none', { due_date: '2026-10-21' }],
-    [CommitmentPaymentStatus.Due, 'none', { due_date: TODAY }],
-    [CommitmentPaymentStatus.Upcoming, 'none', { due_date: '2026-10-23' }],
+    [CommitmentPaymentStatus.Overdue, 'unpaid', { due_date: '2026-10-21' }],
+    [CommitmentPaymentStatus.Due, 'unpaid', { due_date: TODAY }],
+    [CommitmentPaymentStatus.Upcoming, 'unpaid', { due_date: '2026-10-23' }],
     [
       CommitmentPaymentStatus.Paid,
       'paid',

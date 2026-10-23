@@ -1,9 +1,62 @@
-import {
-  calendarDaysBetween,
-  resolvePaymentDayDistance,
-} from '@/modules/commitments/domain/payment_day_distance';
+import { execFileSync } from 'node:child_process';
+import path from 'node:path';
+
+import { resolvePaymentDayDistance } from '@/modules/commitments/domain/payment_day_distance';
+import { calendarDaysBetween } from '@/utils/year_month';
 
 const TODAY = '2026-10-23';
+
+// Jest hands each file a copy of `process.env`, so a TZ set here never moves V8's zone; a child node started under TZ does.
+const CHILD_PRELUDE = `
+const ts = require(${JSON.stringify(require.resolve('typescript'))});
+const fs = require('fs');
+const path = require('path');
+const Module = require('module');
+const resolve = Module._resolveFilename;
+Module._resolveFilename = function (request, ...rest) {
+  const mapped = request.startsWith('@/') ? path.join(${JSON.stringify(path.resolve(__dirname, '../src'))}, request.slice(2)) : request;
+  return resolve.call(this, mapped, ...rest);
+};
+require.extensions['.ts'] = (module, file) => {
+  const options = { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 };
+  module._compile(ts.transpileModule(fs.readFileSync(file, 'utf8'), { compilerOptions: options }).outputText, file);
+};
+const offsetAt = (day) => new Date(day + 'T12:00:00').getTimezoneOffset();
+`;
+
+/** Runs `body`, a JS function expression over `require` and `offsetAt`, in a node started under `zone`; returns its JSON result. */
+function runInZone(zone: string, body: string): unknown {
+  const output = execFileSync(
+    process.execPath,
+    ['-e', `${CHILD_PRELUDE}\nprocess.stdout.write(JSON.stringify((${body})()));`],
+    { env: { ...process.env, TZ: zone }, encoding: 'utf8' },
+  );
+  return JSON.parse(output);
+}
+
+// Each zone changes its clocks between `before` and `after`, so a gap read from local midnights is off by the hour there.
+const CLOCK_CHANGES = [
+  {
+    zone: 'America/New_York',
+    before: '2026-03-07',
+    after: '2026-03-09',
+    gaps: [
+      ['2026-03-07', '2026-03-09', 2],
+      ['2026-03-08', '2026-03-09', 1],
+      ['2026-10-31', '2026-11-02', 2],
+    ],
+  },
+  {
+    zone: 'Africa/Cairo',
+    before: '2026-04-23',
+    after: '2026-04-25',
+    gaps: [
+      ['2026-04-23', '2026-04-25', 2],
+      ['2026-04-24', '2026-04-25', 1],
+      ['2026-04-25', '2026-04-23', -2],
+    ],
+  },
+] as const;
 
 function payment(
   due_date: string,
@@ -37,16 +90,24 @@ describe('calendarDaysBetween', () => {
     expect(calendarDaysBetween('2027-02-28', '2027-03-01')).toBe(1);
   });
 
-  it('counts whole calendar days across a clock change', () => {
-    // America/New_York springs forward on 2026-03-08 and falls back on 2026-11-01.
-    expect(calendarDaysBetween('2026-03-07', '2026-03-09')).toBe(2);
-    expect(calendarDaysBetween('2026-03-08', '2026-03-09')).toBe(1);
-    expect(calendarDaysBetween('2026-10-31', '2026-11-02')).toBe(2);
-    // Africa/Cairo springs forward on 2026-04-24.
-    expect(calendarDaysBetween('2026-04-23', '2026-04-25')).toBe(2);
-    expect(calendarDaysBetween('2026-04-24', '2026-04-25')).toBe(1);
-    expect(calendarDaysBetween('2026-04-25', '2026-04-23')).toBe(-2);
-  });
+  it.each(CLOCK_CHANGES)(
+    'counts whole calendar days across a clock change in $zone',
+    ({ zone, before, after, gaps }) => {
+      const result = runInZone(
+        zone,
+        `() => {
+          const { calendarDaysBetween } = require('@/utils/year_month');
+          const gaps = ${JSON.stringify(gaps)};
+          return {
+            clockChanged: offsetAt('${before}') !== offsetAt('${after}'),
+            days: gaps.map(([from, to]) => calendarDaysBetween(from, to)),
+          };
+        }`,
+      );
+
+      expect(result).toEqual({ clockChanged: true, days: gaps.map(([, , days]) => days) });
+    },
+  );
 
   it('counts a gap of years', () => {
     expect(calendarDaysBetween('2023-01-02', '2026-01-01')).toBe(1095);
@@ -125,13 +186,26 @@ describe('resolvePaymentDayDistance', () => {
     });
   });
 
-  it('counts whole calendar days across a clock change', () => {
-    expect(resolvePaymentDayDistance(payment('2026-03-07'), '2026-03-09')).toEqual({
-      settlement: 'unpaid',
-      days: 2,
-    });
-    expect(
-      resolvePaymentDayDistance(payment('2026-04-23', { paid_date: '2026-04-25' }), '2026-05-01'),
-    ).toEqual({ settlement: 'paid', days: 2 });
-  });
+  it.each(CLOCK_CHANGES)(
+    'counts whole calendar days across a clock change in $zone',
+    ({ zone, before, after }) => {
+      const result = runInZone(
+        zone,
+        `() => {
+          const { resolvePaymentDayDistance } = require('@/modules/commitments/domain/payment_day_distance');
+          return [
+            resolvePaymentDayDistance({ due_date: '${before}', paid_date: null, skipped_date: null }, '${after}'),
+            resolvePaymentDayDistance({ due_date: '${before}', paid_date: '${after}', skipped_date: null }, '2026-12-31'),
+            resolvePaymentDayDistance({ due_date: '${before}', paid_date: null, skipped_date: '${after}' }, '2026-12-31'),
+          ];
+        }`,
+      );
+
+      expect(result).toEqual([
+        { settlement: 'unpaid', days: 2 },
+        { settlement: 'paid', days: 2 },
+        { settlement: 'skipped', days: 2 },
+      ]);
+    },
+  );
 });

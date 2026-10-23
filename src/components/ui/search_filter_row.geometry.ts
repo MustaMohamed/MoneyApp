@@ -3,8 +3,7 @@ import type { Insets } from 'react-native';
 import { DISPLAY_HEADLINE_MAX_FONT_SCALE } from '@/components/ui/display_headline.geometry';
 import {
   type ScaledTextStyle,
-  scaledFontSize,
-  scaledLineHeight,
+  scaledTextStyle,
   scaledTextStyleAboveOne,
 } from '@/components/ui/text_scale.geometry';
 import {
@@ -64,11 +63,8 @@ export function resolveSearchFilterRowGeometry(fontScale: number): SearchFilterR
     paddingTop: 0,
     paddingBottom: 0,
   };
-  const badgeFontSize = scaledFontSize(Type.chip, fontScale, FILTER_BADGE_MAX_FONT_SCALE);
-  const badgeSize = Math.max(
-    FILTER_BADGE_SIZE,
-    scaledLineHeight(Type.chip, fontScale, FILTER_BADGE_MAX_FONT_SCALE),
-  );
+  const chip = scaledTextStyle(Type.chip, fontScale, FILTER_BADGE_MAX_FONT_SCALE);
+  const badgeSize = Math.max(FILTER_BADGE_SIZE, chip.lineHeight);
   return {
     input,
     inputText,
@@ -88,7 +84,7 @@ export function resolveSearchFilterRowGeometry(fontScale: number): SearchFilterR
     },
     badgeText: {
       // oxlint-disable-next-line moneyapp/font-size-pairs-line-height -- lineHeight matches the circular badge's own diameter so the count centers inside it; at scale 1 lineHeightFor(Type.chip)'s 12px would not fill the 16px circle.
-      fontSize: badgeFontSize,
+      fontSize: chip.fontSize,
       lineHeight: badgeSize,
     },
   };

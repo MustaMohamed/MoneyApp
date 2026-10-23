@@ -41,7 +41,10 @@ import { formatDisplayAmount, formatDisplayAmountParts } from '@/utils/format_am
 import { formatShortWeekdayDate } from '@/utils/format_date';
 
 import { resolveCommitmentRowLegEgp } from '../../../domain/commitment_section_sums';
-import { resolvePaymentDayDistance } from '../../../domain/payment_day_distance';
+import {
+  resolvePaymentDayDistance,
+  type PaymentDaySettlement,
+} from '../../../domain/payment_day_distance';
 import { isPaidPayment, resolvePaymentState } from '../../../domain/payment_state';
 import type { Commitment } from '../../../entities/commitment.entity';
 import type {
@@ -133,14 +136,6 @@ export interface CommitmentRowPresentationInput {
   liveRate: number | undefined;
 }
 
-export type CommitmentRowSettledLook = 'none' | 'paid' | 'skipped';
-
-function settledLookFor(status: CommitmentPaymentStatus): CommitmentRowSettledLook {
-  if (status === CommitmentPaymentStatus.Paid) return 'paid';
-  if (status === CommitmentPaymentStatus.Skipped) return 'skipped';
-  return 'none';
-}
-
 export interface CommitmentRowPresentation {
   name: string;
   glyphName: IconName;
@@ -156,7 +151,7 @@ export interface CommitmentRowPresentation {
   amountText: string;
   currencyCode: string;
   dayIndicator: DayIndicator;
-  settledLook: CommitmentRowSettledLook;
+  settledLook: PaymentDaySettlement;
   accessibilityLabel: string;
 }
 
@@ -201,7 +196,8 @@ export function buildCommitmentRowPresentation({
   const currencyCode: string = CURRENCY_CONFIG[payment.currency].code;
   const displayAmount = resolveDisplayAmount(payment, commitment);
   const amount = amountFor(payment, displayAmount, currencyCode);
-  const dayIndicator = resolveDayIndicator(resolvePaymentDayDistance(payment, today));
+  const dayDistance = resolvePaymentDayDistance(payment, today);
+  const dayIndicator = resolveDayIndicator(dayDistance);
   const leg = resolveCommitmentRowLegEgp({ payment, amount: displayAmount.amount, rate: liveRate });
   const captionLeg =
     leg === undefined
@@ -223,7 +219,7 @@ export function buildCommitmentRowPresentation({
     amountText: amount.text,
     currencyCode,
     dayIndicator,
-    settledLook: settledLookFor(status),
+    settledLook: dayDistance.settlement,
     accessibilityLabel: [
       name,
       hasAccount ? resolveAccountName(account) : undefined,

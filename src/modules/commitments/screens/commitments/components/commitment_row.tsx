@@ -13,6 +13,7 @@ import { Strings } from '@/constants/strings';
 import { Size } from '@/constants/theme';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
+import type { PaymentDaySettlement } from '@/modules/commitments/domain/payment_day_distance';
 import type { DayIndicatorTone } from '@/modules/commitments/utils/day_indicator';
 import {
   TRANSACTION_ROW_CAPTION_SEPARATOR,
@@ -31,7 +32,6 @@ import {
   COMMITMENT_ROW_TITLE_FONT_SIZE,
   buildCommitmentRowPresentation,
   resolveCommitmentRowHeight,
-  type CommitmentRowSettledLook,
 } from './commitment_row.helpers';
 
 const DAY_INDICATOR_CLASS: Record<DayIndicatorTone, string> = {
@@ -40,13 +40,13 @@ const DAY_INDICATOR_CLASS: Record<DayIndicatorTone, string> = {
   caption: 'font-inter text-content-secondary',
   success: 'font-inter text-success',
 };
-const NAME_CLASS: Record<CommitmentRowSettledLook, string> = {
-  none: 'text-foreground',
+const NAME_CLASS: Record<PaymentDaySettlement, string> = {
+  unpaid: 'text-foreground',
   paid: 'text-foreground/60',
   skipped: 'text-muted line-through',
 };
-const AMOUNT_CLASS: Record<CommitmentRowSettledLook, string> = {
-  none: 'text-foreground',
+const AMOUNT_CLASS: Record<PaymentDaySettlement, string> = {
+  unpaid: 'text-foreground',
   paid: 'text-foreground/60',
   skipped: 'text-muted',
 };
