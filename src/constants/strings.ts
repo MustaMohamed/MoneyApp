@@ -1195,6 +1195,14 @@ export const Strings = {
   commitmentRowNoEstimateLabel: (code: string) => `~ ${code}`,
   commitmentRowUnavailable: '—',
   commitmentRowUnavailableLabel: (code: string) => `— ${code}`,
+  commitmentDayLateOne: '1 day late',
+  commitmentDayLateMany: (count: string) => `${count} days late`,
+  commitmentDayDueToday: 'Due today',
+  commitmentDayAheadOne: 'in 1 day',
+  commitmentDayAheadMany: (count: string) => `in ${count} days`,
+  commitmentDayEarlyOne: '1 day early',
+  commitmentDayEarlyMany: (count: string) => `${count} days early`,
+  commitmentDayOnTheDay: 'on the day',
 
   // Commitments: recurrence / duration labels
   commitmentsRecurrenceEveryN: (n: number, period: string) =>
