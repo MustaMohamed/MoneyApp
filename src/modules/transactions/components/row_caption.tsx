@@ -8,13 +8,14 @@ import { lineHeightFor } from '@/constants/theme';
 import {
   type RowCaptionFit,
   TRANSACTION_ROW_CAPTION_FONT_SIZE,
+  TRANSACTION_ROW_CAPTION_SEPARATOR,
   TRANSACTION_ROW_LINE_GAP,
   resolveRowCaptionTextProps,
   resolveRowCaptionTrail,
   resolveTransactionRowCaptionLines,
 } from './transaction_row.helpers';
 
-/** A row's caption: the trail never ellipsizes and above 1.0 takes its own line; at or below 1.0 a `'whole'` trail wraps under the lead rather than cut it. */
+/** A row's caption: the trail never ellipsizes and above 1.0 takes its own line; at or below 1.0 a `'whole'` trail wraps bare under the lead, the separator ending the lead's line. */
 export function RowCaption({
   lead,
   trail,
@@ -28,7 +29,9 @@ export function RowCaption({
   const stacked = resolveTransactionRowCaptionLines(fontScale) === 2;
   const wraps = fit === 'whole' && !stacked;
   const line = resolveRowCaptionTextProps(fit, fontScale);
-  const trailText = resolveRowCaptionTrail({ lead, trail, stacked });
+  const joined = wraps && lead !== undefined && trail !== undefined;
+  const leadText = joined ? `${lead}${TRANSACTION_ROW_CAPTION_SEPARATOR}` : lead;
+  const trailText = joined ? trail : resolveRowCaptionTrail({ lead, trail, stacked });
   return (
     <View
       style={{
@@ -39,13 +42,13 @@ export function RowCaption({
         marginTop: TRANSACTION_ROW_LINE_GAP,
       }}
     >
-      {lead === undefined ? null : (
+      {leadText === undefined ? null : (
         <Text
           className="font-inter text-content-secondary"
           {...line}
           style={{ ...line.style, flexShrink: wraps ? 0 : 1 }}
         >
-          {lead}
+          {leadText}
         </Text>
       )}
       {trailText === undefined ? null : (
