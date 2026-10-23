@@ -34,6 +34,7 @@ import {
   resolveCategoryGlyph,
   resolveRowHeightAroundColumn,
   resolveRowTile,
+  resolveTransactionRowCaptionLines,
   type RowTile,
 } from '@/modules/transactions/components/transaction_row.helpers';
 import { resolveAccountName } from '@/utils/account_name';
@@ -63,6 +64,11 @@ export const COMMITMENT_STATUS_TAG_TEXT_MIN_CONTRAST = BADGE_TEXT_MIN_CONTRAST;
 
 const LABEL_SEPARATOR = ', ';
 
+/** Above font scale 1 a USD row's leg takes its own line under the due day, as the transaction row's time does. */
+export function resolveCommitmentRowCaptionLines(fontScale: number): 1 | 2 {
+  return resolveTransactionRowCaptionLines(fontScale);
+}
+
 function rowTallerColumn(fontScale: number): number {
   const nameLine = Math.max(
     scaledLineHeight(COMMITMENT_ROW_TITLE_FONT_SIZE, fontScale),
@@ -71,8 +77,8 @@ function rowTallerColumn(fontScale: number): number {
   );
   const content =
     nameLine +
-    COMMITMENT_ROW_LINE_GAP +
-    scaledLineHeight(COMMITMENT_ROW_CAPTION_FONT_SIZE, fontScale);
+    resolveCommitmentRowCaptionLines(fontScale) *
+      (COMMITMENT_ROW_LINE_GAP + scaledLineHeight(COMMITMENT_ROW_CAPTION_FONT_SIZE, fontScale));
   // The code sits on the amount's line in a smaller box, so the amount and the day indicator set the value column.
   const value =
     scaledLineHeight(COMMITMENT_ROW_AMOUNT_FONT_SIZE, fontScale) +
