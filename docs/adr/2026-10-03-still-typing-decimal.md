@@ -32,7 +32,7 @@ On the add and edit transaction sheets the rate is typed in the rate editor, who
 | Transaction rate, add and edit sheet | no hold: `src/components/ui/rate_editor_sheet.hook.ts` checks the rate only at Done (MA-169) | yes |
 | Pay sheet amount | `pay_sheet.hook.ts`, through `setTypedDecimal` | yes |
 | Pay sheet rate | `pay_sheet.hook.ts`, through `setTypedDecimal` | yes |
-| Commitment amount, add and edit form | `commitment_form_body.tsx` | yes |
+| Commitment amount, add and edit form | `commitment_form.helpers.ts`, through `applyCommitmentAmountText` (MA-221) | yes |
 | Income amount | `income_sheet.hook.ts`, through `setTypedDecimal` | yes |
 | Set-budget limit | `set_budget_sheet.hook.ts`, through `setTypedDecimal` | yes |
 | Spending plan total | `spending_plan_sheet_fields.tsx` | yes |
@@ -52,6 +52,8 @@ The spending plan's category amounts are not form fields. They show the incomple
 ## 5. The commitment amount passes its typed text
 
 `DecimalAmountInput` hands the form a number, so `0`, `0.` and `0.0` all arrive as `0` and `48.` arrives as `48`. The predicate needs the text. The input's `onChange` now carries the typed text as a second argument on a keystroke and carries none on blur, so blur validates as it did.
+
+**Amended 2026-10-23, MA-221 (#795).** `DecimalAmountInput` is gone. The commitments amount hero, `commitment_amount_hero.tsx`, passes its typed text on every keystroke to `applyCommitmentAmountText` in `commitment_form.helpers.ts`, which holds a still-typing text and commits any other. No blur pass remains, as on the transaction sheet, so Save validates. The commitment site is a `.ts` file, and five `.tsx` sites remain of the six §3 counts.
 
 ## Consequence
 

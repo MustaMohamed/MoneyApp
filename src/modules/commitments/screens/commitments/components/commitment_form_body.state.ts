@@ -5,7 +5,6 @@ import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 interface CommitmentFormBodyPickerEntry {
   categoryPickerVisible: boolean;
-  accountPickerVisible: boolean;
   showStartDatePicker: boolean;
   showEndDatePicker: boolean;
 }
@@ -15,7 +14,6 @@ type CommitmentFormBodyStateShape = KeyedEntries<CommitmentFormBodyPickerEntry>;
 type CommitmentFormBodyState = CommitmentFormBodyStateShape & {
   claim: (owner: string) => void;
   setCategoryPickerVisible: (owner: string, v: boolean) => void;
-  setAccountPickerVisible: (owner: string, v: boolean) => void;
   setShowStartDatePicker: (owner: string, v: boolean) => void;
   setShowEndDatePicker: (owner: string, v: boolean) => void;
   release: (owner: string) => void;
@@ -24,7 +22,6 @@ type CommitmentFormBodyState = CommitmentFormBodyStateShape & {
 
 export const INITIAL_PICKER_ENTRY: CommitmentFormBodyPickerEntry = Object.freeze({
   categoryPickerVisible: false,
-  accountPickerVisible: false,
   showStartDatePicker: false,
   showEndDatePicker: false,
 });
@@ -48,7 +45,6 @@ export const useCommitmentFormBodyState = createMoneyAppSelectors(
           owner in state.entries ? state : withEntry(state, owner, INITIAL_PICKER_ENTRY),
         ),
       setCategoryPickerVisible: (owner, v) => updateEntry(owner, { categoryPickerVisible: v }),
-      setAccountPickerVisible: (owner, v) => updateEntry(owner, { accountPickerVisible: v }),
       setShowStartDatePicker: (owner, v) => updateEntry(owner, { showStartDatePicker: v }),
       setShowEndDatePicker: (owner, v) => updateEntry(owner, { showEndDatePicker: v }),
       release: (owner) => set((state) => withoutEntry(state, owner)),

@@ -56,3 +56,9 @@ export const COMMITMENT_FORM_CONTENT_CONTAINER_STYLE = {
   paddingTop: Spacing.xs,
   paddingBottom: Spacing.md,
 };
+
+/** The top half spans the sheet edge to edge, as the transaction sheet draws it; the cards below keep the inset. */
+export const COMMITMENT_FORM_TOP_BLEED_STYLE = {
+  marginHorizontal: -COMMITMENT_FORM_CONTENT_CONTAINER_STYLE.paddingHorizontal,
+  marginTop: -COMMITMENT_FORM_CONTENT_CONTAINER_STYLE.paddingTop,
+};
