@@ -3,6 +3,10 @@ import type { Insets } from 'react-native';
 import { SELECTABLE_PILL_LABEL_FONT_SIZE } from '@/components/ui/chip.geometry';
 import { DISPLAY_HEADLINE_MAX_FONT_SCALE } from '@/components/ui/display_headline.geometry';
 import { getVisibleScrollOffset } from '@/components/ui/scroll_reveal.geometry';
+import {
+  type TabsTriggerHitSlop,
+  resolveSegmentedTabsGeometry,
+} from '@/components/ui/tabs.geometry';
 import { type ScaledTextStyle, scaledTextStyleAboveOne } from '@/components/ui/text_scale.geometry';
 import {
   Radius,
@@ -89,6 +93,18 @@ export function resolveAccountStripChipGeometry(fontScale: number): {
 } {
   const label = scaledTextStyleAboveOne(SELECTABLE_PILL_LABEL_FONT_SIZE, fontScale);
   return { height: Math.max(ACCOUNT_STRIP_CHIP_HEIGHT, label?.lineHeight ?? 0), label };
+}
+
+/** `triggerHitSlop` lifts a tab past the touch floor. */
+export function resolveTypeTabsGeometry(fontScale: number): {
+  listHeight: number;
+  triggerHitSlop: TabsTriggerHitSlop;
+} {
+  const { compact } = resolveSegmentedTabsGeometry(fontScale);
+  return {
+    listHeight: Math.max(Size.typeTabsTrack, compact.listHeight),
+    triggerHitSlop: touchFloorHitSlop(compact.triggerHeight),
+  };
 }
 
 interface AccountStripRevealInput {

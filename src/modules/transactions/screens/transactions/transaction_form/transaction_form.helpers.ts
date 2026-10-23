@@ -10,6 +10,7 @@ import type { Account } from '@/modules/accounts/entities/account.entity';
 import {
   type RowTile,
   resolveRowTile,
+  toAccountStripChip,
 } from '@/modules/transactions/components/transaction_row.helpers';
 import {
   requiresDestination,
@@ -113,20 +114,12 @@ export function resolveStripSelectedId(eligible: Account[], accountId: string): 
   return eligible.some((account) => account.id === accountId) ? accountId : undefined;
 }
 
-function toStripChip(
-  id: string,
-  account: Account | undefined,
-  state: Pick<AccountStripChip, 'selected' | 'locked' | 'dimmed'>,
-): AccountStripChip {
-  return { id, name: resolveAccountName(account), tile: resolveRowTile(account), ...state };
-}
-
 export function resolveAccountStripChips(
   eligible: Account[],
   selectedId: string | undefined,
 ): AccountStripChip[] {
   return eligible.map((account) =>
-    toStripChip(account.id, account, {
+    toAccountStripChip(account.id, account, {
       selected: account.id === selectedId,
       locked: false,
       dimmed: false,
@@ -145,9 +138,9 @@ export function resolveLockedStripChips(input: {
     (account) => account.id !== currentId,
   );
   return [
-    toStripChip(currentId, current, { selected: true, locked: true, dimmed: false }),
+    toAccountStripChip(currentId, current, { selected: true, locked: true, dimmed: false }),
     ...others.map((account) =>
-      toStripChip(account.id, account, { selected: false, locked: false, dimmed: true }),
+      toAccountStripChip(account.id, account, { selected: false, locked: false, dimmed: true }),
     ),
   ];
 }

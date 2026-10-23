@@ -4,14 +4,11 @@ import {
   ACCOUNT_STRIP_CHIP_WIDTH,
   AMOUNT_ENTRY_MAX_FONT_SCALE,
   resolveAccountStripChipGeometry,
+  resolveTypeTabsGeometry,
 } from '@/components/ui/form_sheet.geometry';
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
-import {
-  type TabsTriggerHitSlop,
-  resolveSegmentedTabsGeometry,
-} from '@/components/ui/tabs.geometry';
 import { type ScaledTextStyle, scaledTextStyleAboveOne } from '@/components/ui/text_scale.geometry';
-import { Size, Spacing, Type, lineHeightFor, touchFloorHitSlop } from '@/constants/theme';
+import { Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
 /** The gap between the status track and Save. */
@@ -71,17 +68,9 @@ export function resolveTransactionFormSkeletonBars(fontScale: number): {
   };
 }
 
-/** `triggerHitSlop` lifts a tab past the touch floor. */
-export function resolveTypeTabsGeometry(fontScale: number): {
-  listHeight: number;
-  skeletonHeight: number;
-  triggerHitSlop: TabsTriggerHitSlop;
-} {
-  const { compact } = resolveSegmentedTabsGeometry(fontScale);
-  const listHeight = Math.max(Size.typeTabsTrack, compact.listHeight);
-  return {
-    listHeight,
-    skeletonHeight: fontScale <= 1 ? TRANSACTION_FORM_SKELETON_GEOMETRY.tabBar : listHeight,
-    triggerHitSlop: touchFloorHitSlop(compact.triggerHeight),
-  };
+/** The skeleton's tab shape: the skeleton bar at or below scale 1, the loaded tab row above it. */
+export function resolveTypeTabsSkeletonHeight(fontScale: number): number {
+  return fontScale <= 1
+    ? TRANSACTION_FORM_SKELETON_GEOMETRY.tabBar
+    : resolveTypeTabsGeometry(fontScale).listHeight;
 }

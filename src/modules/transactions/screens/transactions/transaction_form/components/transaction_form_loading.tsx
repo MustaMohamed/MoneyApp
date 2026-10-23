@@ -17,7 +17,7 @@ import {
   TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
   TRANSACTION_FORM_SKELETON_GEOMETRY,
   resolveTransactionFormSkeletonBars,
-  resolveTypeTabsGeometry,
+  resolveTypeTabsSkeletonHeight,
 } from './transaction_form.geometry';
 
 const STRIP_BARS = Array.from(
@@ -32,7 +32,7 @@ const LAST_FACT_ROW = FACT_ROWS.length - 1;
 
 export function TransactionFormLoading(): React.ReactElement {
   const { fontScale } = useWindowDimensions();
-  const { skeletonHeight } = resolveTypeTabsGeometry(fontScale);
+  const skeletonHeight = resolveTypeTabsSkeletonHeight(fontScale);
   const bars = resolveTransactionFormSkeletonBars(fontScale);
   return (
     <View

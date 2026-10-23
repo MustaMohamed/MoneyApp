@@ -4,14 +4,20 @@ import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/d
 import { Input, PressableFeedback } from 'heroui-native';
 import { useMemo } from 'react';
 import { Controller, useWatch, type UseFormReturn } from 'react-hook-form';
-import { Platform, View } from 'react-native';
+import { Platform, View, useWindowDimensions } from 'react-native';
 
-import { TYPE_OPTIONS } from '@/components/account_type_pill';
+import { AccountStrip } from '@/components/ui/account_strip';
 import { Button } from '@/components/ui/button';
 import { FormErrorText } from '@/components/ui/form_error_text';
+import {
+  ACCOUNT_STRIP_WRAPPER_PADDING_Y,
+  resolveTypeTabsGeometry,
+} from '@/components/ui/form_sheet.geometry';
 import { useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { SegmentedTabs } from '@/components/ui/tabs';
 import { Text } from '@/components/ui/text';
+import { scaledTextStyleAboveOne } from '@/components/ui/text_scale.geometry';
+import { ValidationSlot } from '@/components/ui/validation_slot';
 import {
   AmountType,
   CategoryType,
@@ -24,28 +30,30 @@ import { Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 import type { Account } from '@/database/entities/account.entity';
 import type { Category } from '@/database/entities/category.entity';
-import { AccountPickerSheet } from '@/modules/accounts/components/account_picker_sheet';
-import { resolveAccountGlyphColor } from '@/modules/accounts/constants/account_glyph_color';
 import { CategoryPickerSheet } from '@/modules/categories/components/category_picker_sheet';
-import { resolveAccountName } from '@/utils/account_name';
 import { formatLongDate, toLocalDateString } from '@/utils/format_date';
 import { ms } from '@/utils/responsive';
-import { holdStillTypingDecimal } from '@/utils/use_zod_form.hook';
 
+import { resolveAccountIdFromChip, resolveCommitmentStripChips } from '../commitment_form.helpers';
 import {
-  COMMITMENT_AMOUNT_REFUSES_ZERO,
   type CommitmentFormValues,
   PRESET_MAP,
   SET_OPTS,
   composeFieldBlur,
   detectPreset,
 } from '../commitment_form.shared';
+import { CommitmentAmountHero } from './commitment_amount_hero';
 import {
   COMMITMENT_FORM_CONTENT_CONTAINER_STYLE,
   COMMITMENT_FORM_TABS_SLOP,
+  COMMITMENT_FORM_TOP_BLEED_STYLE,
 } from './commitment_form.geometry';
-import { useCommitmentFormBodyPickers } from './commitment_form_body.hook';
-import { DecimalAmountInput } from './decimal_amount_input';
+import {
+  useCommitmentFormBodyFaults,
+  useCommitmentFormBodyPickers,
+  useCommitmentFormStripAccounts,
+  useCommitmentFormStripError,
+} from './commitment_form_body.hook';
 import { DurationPicker } from './duration_picker';
 import { RecurrencePicker } from './recurrence_picker';
 
@@ -95,6 +103,9 @@ export function CommitmentFormFooter({
 export function CommitmentFormBody(props: CommitmentFormBodyProps) {
   const { form, categories, accounts, locked, afterFields } = props;
   const { onFocus: onInputFocus, onBlur: onInputBlur } = useBottomSheetAwareHandlers();
+  const { fontScale } = useWindowDimensions();
+  const typeTabs = resolveTypeTabsGeometry(fontScale);
+  const supportingText = scaledTextStyleAboveOne(Type.micro, fontScale);
   const [
     amountType,
     currency,
@@ -128,26 +139,22 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
     () => categories.filter((c) => c.type === CategoryType.Expense),
     [categories],
   );
-  const selectedAccount = useMemo(
-    () => accounts.find((a) => a.id === accountId),
-    [accounts, accountId],
-  );
+  const accountsById = useCommitmentFormStripAccounts(accountId);
+  const stripError = useCommitmentFormStripError(accountId, accountsById);
+  const stripChips = resolveCommitmentStripChips({
+    activeAccounts: accounts,
+    accountId,
+    accountsById,
+  });
 
   const {
-    state: { categoryPickerVisible, accountPickerVisible, showStartDatePicker, showEndDatePicker },
+    state: { categoryPickerVisible, showStartDatePicker, showEndDatePicker },
     setCategoryPickerVisible,
-    setAccountPickerVisible,
     setShowStartDatePicker,
     setShowEndDatePicker,
   } = useCommitmentFormBodyPickers();
 
-  const errors = {
-    name: form.formState.errors.name?.message,
-    amount: form.formState.errors.amount?.message,
-    category: form.formState.errors.categoryId?.message,
-    startDate: form.formState.errors.startDate?.message,
-    notes: form.formState.errors.notes?.message,
-  };
+  const { faults: errors, isSubmitted } = useCommitmentFormBodyFaults(form);
 
   const startDateAsDate = startDate ? new Date(startDate + 'T00:00:00') : new Date();
   const formattedStartDate = startDate
@@ -156,6 +163,7 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
 
   function handleAmountTypeChange(v: AmountType) {
     form.setValue('amountType', v, SET_OPTS);
+    if (isSubmitted) void form.trigger('amount');
   }
 
   function handleRecurrencePresetChange(preset: ReturnType<typeof detectPreset>) {
@@ -200,11 +208,6 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
     setCategoryPickerVisible(false);
   }
 
-  function selectAccount(account: Account) {
-    form.setValue('accountId', account.id, SET_OPTS);
-    setAccountPickerVisible(false);
-  }
-
   return (
     <>
       <BottomSheetScrollView
@@ -214,6 +217,66 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
+        <View style={COMMITMENT_FORM_TOP_BLEED_STYLE}>
+          <View className="border-separator border-b px-4 py-2">
+            <SegmentedTabs<AmountType>
+              segments={[
+                { value: AmountType.Fixed, label: Strings.commitmentsTypeFixedAmount },
+                { value: AmountType.Variable, label: Strings.commitmentsTypeVariesEachTime },
+              ]}
+              value={amountType}
+              onValueChange={handleAmountTypeChange}
+              variant="solid-gold"
+              density="compact"
+              corners="form"
+              listClassName="w-full"
+              listStyle={{ height: typeTabs.listHeight }}
+              triggerHitSlop={typeTabs.triggerHitSlop}
+              accessibilityLabel={Strings.commitmentsAmountTypeSelectorA11y}
+              isDisabled={locked}
+            />
+          </View>
+          <View className="min-h-8 justify-center px-4 py-1.5">
+            <Text
+              className="font-inter text-muted"
+              allowFontScaling={supportingText === undefined}
+              style={{
+                fontSize: Type.micro,
+                lineHeight: lineHeightFor(Type.micro),
+                ...supportingText,
+              }}
+            >
+              {amountType === AmountType.Variable
+                ? Strings.commitmentsTypeVariableSupport
+                : Strings.commitmentsTypeFixedSupport}
+            </Text>
+          </View>
+          <View
+            className="border-separator border-b"
+            style={{ paddingVertical: ACCOUNT_STRIP_WRAPPER_PADDING_Y }}
+          >
+            <AccountStrip
+              chips={stripChips}
+              error={stripError}
+              onSelect={
+                locked
+                  ? undefined
+                  : (id) => form.setValue('accountId', resolveAccountIdFromChip(id), SET_OPTS)
+              }
+            />
+          </View>
+          <CommitmentAmountHero
+            form={form}
+            currency={currency}
+            invalid={errors.amount !== undefined}
+          />
+          <ValidationSlot
+            testID="amount-error-slot"
+            liveTestID="amount-error-live"
+            message={errors.amount}
+          />
+        </View>
+
         <View className="bg-default gap-1 rounded-2xl px-3 py-3">
           <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
             {Strings.commitmentsFieldName}
@@ -242,92 +305,21 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
 
         <View className="bg-default gap-2 rounded-2xl px-3 py-3">
           <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
-            {Strings.commitmentsFieldAmountType}
+            {Strings.commitmentsFieldCurrency}
           </Text>
-          <SegmentedTabs<AmountType>
+          <SegmentedTabs<Currency>
             segments={[
-              { value: AmountType.Fixed, label: Strings.commitmentsAmountFixed },
-              { value: AmountType.Variable, label: Strings.commitmentsAmountVariable },
+              { value: Currency.EGP, label: Currency.EGP },
+              { value: Currency.USD, label: Currency.USD },
             ]}
-            value={amountType}
-            onValueChange={handleAmountTypeChange}
+            value={currency}
+            onValueChange={(c) => form.setValue('currency', c, SET_OPTS)}
             variant="solid-gold"
             listClassName="w-full"
             isDisabled={locked}
-            accessibilityLabel={Strings.commitmentsFieldAmountType}
+            accessibilityLabel={Strings.commitmentsFieldCurrency}
             triggerHitSlop={COMMITMENT_FORM_TABS_SLOP}
           />
-        </View>
-
-        <View style={{ flexDirection: 'row' }} className="gap-2">
-          <View style={{ flex: 3 }} className="bg-default gap-1 rounded-2xl px-3 py-3">
-            <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-1">
-              <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
-                {amountType === AmountType.Variable
-                  ? Strings.commitmentsFieldEstimatedAmount
-                  : Strings.commitmentsFieldAmount}
-              </Text>
-              {amountType === AmountType.Variable ? (
-                <Text className="font-inter text-muted text-[10px]">
-                  {Strings.commitmentsOptional}
-                </Text>
-              ) : null}
-            </View>
-            <Controller
-              control={form.control}
-              name="amount"
-              render={({ field: { value, onChange, onBlur } }) => (
-                <DecimalAmountInput
-                  value={value}
-                  onChange={(n, typedText) => {
-                    const held =
-                      typedText !== undefined &&
-                      holdStillTypingDecimal(
-                        form,
-                        'amount',
-                        n,
-                        COMMITMENT_AMOUNT_REFUSES_ZERO,
-                        typedText,
-                      );
-                    if (!held) onChange(n);
-                  }}
-                  onFocus={onInputFocus}
-                  onBlur={composeFieldBlur(onInputBlur, onBlur)}
-                  hasError={!!errors.amount}
-                  placeholder={
-                    amountType === AmountType.Variable
-                      ? Strings.commitmentsEstimatedAmountPlaceholder
-                      : Strings.commitmentsAmountPlaceholder
-                  }
-                  editable={!locked}
-                  multiline={false}
-                  numberOfLines={1}
-                />
-              )}
-            />
-            {errors.amount ? (
-              <Text className="font-inter text-danger text-[11px]">{errors.amount}</Text>
-            ) : null}
-          </View>
-
-          <View style={{ flex: 2 }} className="bg-default gap-2 rounded-2xl px-3 py-3">
-            <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
-              {Strings.commitmentsFieldCurrency}
-            </Text>
-            <SegmentedTabs<Currency>
-              segments={[
-                { value: Currency.EGP, label: Currency.EGP },
-                { value: Currency.USD, label: Currency.USD },
-              ]}
-              value={currency}
-              onValueChange={(c) => form.setValue('currency', c, SET_OPTS)}
-              variant="solid-gold"
-              listClassName="w-full"
-              isDisabled={locked}
-              accessibilityLabel={Strings.commitmentsFieldCurrency}
-              triggerHitSlop={COMMITMENT_FORM_TABS_SLOP}
-            />
-          </View>
         </View>
 
         <PressableFeedback
@@ -356,8 +348,8 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
               color={CoreTokens.text2}
             />
           </View>
-          {errors.category ? (
-            <Text className="font-inter text-danger text-[11px]">{errors.category}</Text>
+          {errors.categoryId ? (
+            <Text className="font-inter text-danger text-[11px]">{errors.categoryId}</Text>
           ) : null}
         </PressableFeedback>
 
@@ -408,40 +400,6 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
           />
         ) : null}
 
-        <PressableFeedback
-          onPress={() => setAccountPickerVisible(true)}
-          isDisabled={locked}
-          className="bg-default gap-1 rounded-2xl px-3 py-3"
-          accessibilityRole="button"
-          accessibilityLabel={Strings.commitmentsFieldDefaultAccount}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-1">
-            <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
-              {Strings.commitmentsFieldDefaultAccount}
-            </Text>
-            <Text className="font-inter text-muted text-[10px]">{Strings.commitmentsOptional}</Text>
-          </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-2">
-            {selectedAccount ? (
-              <>
-                <MaterialCommunityIcons
-                  name={TYPE_OPTIONS.find((o) => o.type === selectedAccount.type)?.icon ?? 'bank'}
-                  size={ms(16)}
-                  color={resolveAccountGlyphColor(selectedAccount.color)}
-                />
-                <Text className="font-sora-semibold text-foreground flex-1 text-[15px]">
-                  {resolveAccountName(selectedAccount)}
-                </Text>
-              </>
-            ) : (
-              <Text className="font-inter text-muted flex-1 text-[15px]">
-                {Strings.addTxPickAccountTitle}
-              </Text>
-            )}
-            <MaterialCommunityIcons name="chevron-right" size={18} color={CoreTokens.text2} />
-          </View>
-        </PressableFeedback>
-
         <DurationPicker
           form={form}
           durationType={durationType}
@@ -487,14 +445,6 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
         selectedId={categoryId}
         onSelect={selectCategory}
         onOpenChange={() => setCategoryPickerVisible(false)}
-      />
-      <AccountPickerSheet
-        isOpen={accountPickerVisible}
-        title={Strings.addTxPickAccountTitle}
-        accounts={accounts}
-        selectedId={accountId}
-        onSelect={selectAccount}
-        onOpenChange={() => setAccountPickerVisible(false)}
       />
     </>
   );

@@ -1,10 +1,12 @@
 import { act, renderHook } from '@testing-library/react-native';
+import { useController } from 'react-hook-form';
 
 import { AmountType, Currency, DurationType, RecurrencePeriod } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
+import { applyCommitmentAmountText } from '@/modules/commitments/screens/commitments/commitment_form.helpers';
 import {
   COMMITMENT_AMOUNT_REFUSES_ZERO,
   buildEditDefaults,
@@ -251,8 +253,7 @@ describe('useEditCommitment', () => {
     const amountError = (result: { current: ReturnType<typeof useEditCommitment> }) =>
       result.current.form.getFieldState('amount').error?.message;
 
-    async function mountRefused() {
-      const { result } = await mount();
+    async function refuseSave(result: { current: ReturnType<typeof useEditCommitment> }) {
       await act(() => {
         result.current.form.setValue('amount', undefined);
       });
@@ -261,10 +262,21 @@ describe('useEditCommitment', () => {
       });
       expect(updateCommitmentMock).not.toHaveBeenCalled();
       expect(amountError(result)).toBe(Strings.commitmentsErrAmountRequired);
+    }
+
+    async function mountRefused() {
+      const { result } = await mount();
+      await refuseSave(result);
       return result;
     }
 
-    // The pairs `DecimalAmountInput` sends: the number it stores and the text typed.
+    function useEditWithAmountField() {
+      const hook = useEditCommitment({ commitmentId: 'com-1', onSaved, onDeactivated, onMissing });
+      const { field } = useController({ control: hook.form.control, name: 'amount' });
+      return { ...hook, field };
+    }
+
+    // The pairs `applyCommitmentAmountText` passes on: the number it parses and the text typed.
     it.each([
       ['0', 0],
       ['0.', 0],
@@ -294,28 +306,16 @@ describe('useEditCommitment', () => {
       },
     );
 
-    it('does not hold 0.001, and the shipped call validates it to the floor message', async () => {
-      const result = await mountRefused();
+    it('stores 0.001 through the amount field and validates it to the floor message', async () => {
+      const { result } = await renderHook(() => useEditWithAmountField());
+      await refuseSave(result);
 
-      let held: boolean | undefined;
       await act(async () => {
-        held = holdStillTypingDecimal(
-          result.current.form,
-          'amount',
-          0.001,
-          COMMITMENT_AMOUNT_REFUSES_ZERO,
-          '0.001',
-        );
-        if (!held) {
-          result.current.form.setValue('amount', 0.001, {
-            shouldDirty: true,
-            shouldValidate: true,
-          });
-        }
+        applyCommitmentAmountText(result.current.form, '0.001', result.current.field.onChange);
         await new Promise((resolve) => setTimeout(resolve, 0));
       });
 
-      expect(held).toBe(false);
+      expect(result.current.form.getValues('amount')).toBe(0.001);
       expect(amountError(result)).toBe(Strings.commitmentsErrAmountPositive);
     });
   });

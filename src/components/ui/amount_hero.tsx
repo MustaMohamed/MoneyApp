@@ -29,11 +29,12 @@ const amountClass = tv({
       success: 'text-success',
       info: 'text-info',
       accentCc: 'text-accent-cc',
+      foreground: 'text-foreground',
     },
   },
 });
 
-export type AmountHeroTone = 'danger' | 'success' | 'info' | 'accentCc';
+export type AmountHeroTone = 'danger' | 'success' | 'info' | 'accentCc' | 'foreground';
 
 interface Props {
   onChange: (value: string) => void;
@@ -42,6 +43,7 @@ interface Props {
   tone: AmountHeroTone;
   currency: Currency;
   invalid?: boolean;
+  accessibilityLabel: string;
 }
 
 export function AmountHero({
@@ -50,6 +52,7 @@ export function AmountHero({
   tone,
   currency,
   invalid = false,
+  accessibilityLabel,
 }: Props): React.ReactElement {
   const { onFocus, onBlur } = useBottomSheetAwareHandlers();
   const { fontScale } = useWindowDimensions();
@@ -77,7 +80,7 @@ export function AmountHero({
           onFocus={onFocus}
           onBlur={onBlur}
           keyboardType="decimal-pad"
-          accessibilityLabel={Strings.addTxAmountInputAccessibility}
+          accessibilityLabel={accessibilityLabel}
           className={amountClass({ tone })}
           allowFontScaling={false}
           style={{

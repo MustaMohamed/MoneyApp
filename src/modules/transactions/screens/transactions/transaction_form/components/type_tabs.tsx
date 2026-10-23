@@ -1,11 +1,10 @@
 import { View, useWindowDimensions } from 'react-native';
 
+import { resolveTypeTabsGeometry } from '@/components/ui/form_sheet.geometry';
 import { SegmentedTabs, type TabSegment } from '@/components/ui/tabs';
 import { TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { TRANSACTION_TYPE_ICONS } from '@/constants/transaction_type_icons';
-
-import { resolveTypeTabsGeometry } from './transaction_form.geometry';
 
 const TYPE_SEGMENTS: ReadonlyArray<TabSegment<TransactionType>> = [
   {

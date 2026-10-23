@@ -12,7 +12,6 @@ const entryOf = (owner: string) => useCommitmentFormBodyState.getState().entries
 // Every write except `claim`, the begin action; each must refuse an owner with no entry.
 const guardedWrites: ((owner: string) => void)[] = [
   (owner) => useCommitmentFormBodyState.getState().setCategoryPickerVisible(owner, true),
-  (owner) => useCommitmentFormBodyState.getState().setAccountPickerVisible(owner, true),
   (owner) => useCommitmentFormBodyState.getState().setShowStartDatePicker(owner, true),
   (owner) => useCommitmentFormBodyState.getState().setShowEndDatePicker(owner, true),
 ];
@@ -27,7 +26,6 @@ describe('useCommitmentFormBodyState', () => {
 
     expect(entryOf('owner-a')).toEqual({
       categoryPickerVisible: false,
-      accountPickerVisible: false,
       showStartDatePicker: false,
       showEndDatePicker: false,
     });
@@ -35,7 +33,7 @@ describe('useCommitmentFormBodyState', () => {
 
   it('claim on a copy that already owns an entry keeps it', () => {
     useCommitmentFormBodyState.getState().claim('owner-a');
-    useCommitmentFormBodyState.getState().setAccountPickerVisible('owner-a', true);
+    useCommitmentFormBodyState.getState().setCategoryPickerVisible('owner-a', true);
     const before = entryOf('owner-a');
 
     useCommitmentFormBodyState.getState().claim('owner-a');
@@ -54,7 +52,6 @@ describe('useCommitmentFormBodyState', () => {
     }
     expect(entryOf('owner-b')).toEqual({
       categoryPickerVisible: true,
-      accountPickerVisible: true,
       showStartDatePicker: true,
       showEndDatePicker: true,
     });

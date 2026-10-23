@@ -15,7 +15,7 @@ jest.mock('@/components/ui/tabs', () => ({
   SegmentedTabs: (props: SegmentedTabsProps<TransactionType>) => mockSegmentedTabs(props),
 }));
 
-import { resolveTypeTabsGeometry } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form.geometry';
+import { resolveTypeTabsGeometry } from '@/components/ui/form_sheet.geometry';
 import { TypeTabs } from '@/modules/transactions/screens/transactions/transaction_form/components/type_tabs';
 
 const ICONS_IN_TAB_ORDER = [

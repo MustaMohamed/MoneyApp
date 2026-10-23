@@ -929,7 +929,6 @@ export const Strings = {
   addTxErrCardCreditExceedsLiability: 'Card credit cannot exceed the current card balance',
   addTxErrCcPaymentExceedsLiability: 'Payment cannot exceed the current card balance',
   addTxInsufficientBalance: (name: string) => `Insufficient balance in ${name}`,
-  addTxPickAccountTitle: 'Select Account',
   addTxPickToTitle: 'To Account',
   addTxPickCategoryTitle: 'Select Category',
 
@@ -1076,18 +1075,23 @@ export const Strings = {
   commitmentsAddTitle: 'New Commitment',
   commitmentsEditTitle: 'Edit Commitment',
   commitmentsFieldName: 'Name',
-  commitmentsFieldAmountType: 'Amount Type',
-  commitmentsFieldAmount: 'Amount',
   commitmentsFieldCurrency: 'Currency',
   commitmentsFieldCategory: 'Category',
   commitmentsFieldRecurrence: 'Recurrence',
   commitmentsFieldCustomRecurrence: 'Custom Recurrence',
   commitmentsFieldStartDate: 'Start Date',
-  commitmentsFieldDefaultAccount: 'Default Account',
   commitmentsFieldDuration: 'Duration',
   commitmentsFieldNotes: 'Notes',
   commitmentsAmountFixed: 'Fixed',
   commitmentsAmountVariable: 'Variable',
+  commitmentsTypeFixedAmount: 'Fixed amount',
+  commitmentsTypeVariesEachTime: 'Varies each time',
+  commitmentsTypeFixedSupport: 'The same amount every cycle.',
+  commitmentsTypeVariableSupport:
+    'Enter each amount when you pay. The estimate sets the hero and the totals.',
+  commitmentsStripNoAccount: 'No account',
+  commitmentsAmountTypeSelectorA11y: 'Amount type',
+  commitmentsAmountInputAccessibility: 'Commitment amount',
   commitmentsRecurrenceMonthly: 'Monthly',
   commitmentsRecurrenceWeekly: 'Weekly',
   commitmentsRecurrenceAnnually: 'Annually',
@@ -1116,11 +1120,8 @@ export const Strings = {
 
   // Commitments: placeholders
   commitmentsNamePlaceholder: 'e.g. Rent',
-  commitmentsAmountPlaceholder: '0.00',
   commitmentDateInputFormat: 'YYYY-MM-DD',
   commitmentsAfterCountPlaceholder: '0',
-  commitmentsFieldEstimatedAmount: 'Estimated Amount',
-  commitmentsEstimatedAmountPlaceholder: 'e.g. 500',
 
   // Commitments: C4 Detail
   commitmentsDetailRecurrence: 'Recurrence',
@@ -1150,6 +1151,7 @@ export const Strings = {
   // Commitments: C5 Pay Sheet
   commitmentsPayTitle: (name: string) => `Pay ${name}`,
   commitmentsPayAmount: 'Amount',
+  commitmentsAmountPlaceholder: '0.00',
   commitmentsPayAccount: 'Pay from Account',
   commitmentsPayDate: 'Payment Date',
   commitmentsPayDatePlaceholder: 'Select date',

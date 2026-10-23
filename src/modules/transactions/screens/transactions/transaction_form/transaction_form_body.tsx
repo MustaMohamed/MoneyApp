@@ -9,12 +9,8 @@ import { AccountStrip } from '@/components/ui/account_strip';
 import { DangerRing } from '@/components/ui/danger_ring';
 import { DateRow } from '@/components/ui/date_row';
 import { FactRow } from '@/components/ui/fact_row';
-import { FormErrorText } from '@/components/ui/form_error_text';
 import { FormPickerRow } from '@/components/ui/form_picker_row';
-import {
-  ACCOUNT_STRIP_WRAPPER_PADDING_Y,
-  AMOUNT_MESSAGE_TEXT_STYLE,
-} from '@/components/ui/form_sheet.geometry';
+import { ACCOUNT_STRIP_WRAPPER_PADDING_Y } from '@/components/ui/form_sheet.geometry';
 import type { AccountStripChip } from '@/components/ui/form_sheet.helpers';
 import { INPUT_NO_FOCUS_BORDER_COLOR } from '@/components/ui/input';
 import { ListCard } from '@/components/ui/list_card';
@@ -25,6 +21,7 @@ import {
   resolveOneLineTextProps,
   scaledTextStyleAboveOne,
 } from '@/components/ui/text_scale.geometry';
+import { ValidationSlot } from '@/components/ui/validation_slot';
 import { Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Size, Type, lineHeightFor } from '@/constants/theme';
@@ -35,7 +32,6 @@ import type { Budget } from '@/modules/budget/entities/budget.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { isRateStale } from '@/modules/currency/store/currency.helpers';
 import { toIconName } from '@/utils/icon_name_guard';
-import { ms } from '@/utils/responsive';
 
 import { TransactionAmountHero } from './components/transaction_amount_hero';
 import {
@@ -97,38 +93,8 @@ type Props = BaseProps &
     | { locked: false; stripChips: AccountStripChip[]; onSelectStripChip: (id: string) => void }
   );
 
-export const TRANSACTION_FORM_ERROR_SLOT_HEIGHT = ms(16);
-
 // Canvas `.fact`: 16 inset, a hairline under every fact but the last (Note).
 const FACT_CELL_CLASS = 'border-separator border-b px-4';
-
-interface ValidationSlotProps {
-  testID: string;
-  liveTestID: string;
-  message?: string;
-  children?: React.ReactNode;
-}
-
-function ValidationSlot({ testID, liveTestID, message, children }: ValidationSlotProps) {
-  return (
-    <View
-      testID={testID}
-      style={{ minHeight: TRANSACTION_FORM_ERROR_SLOT_HEIGHT }}
-      className="justify-center px-4"
-    >
-      {/* collapsable={false} keeps the View: Fabric flattens one whose only prop is the live region. */}
-      <View testID={liveTestID} collapsable={false} accessibilityLiveRegion="polite">
-        <FormErrorText
-          message={message}
-          numberOfLines={1}
-          disableAnimation
-          style={AMOUNT_MESSAGE_TEXT_STYLE}
-        />
-      </View>
-      {children}
-    </View>
-  );
-}
 
 export function TransactionFormBody(props: Props): React.ReactElement {
   const {
