@@ -28,7 +28,7 @@ Route `/stacked/commitments/[id]` from the list, `/commitments/[id]` on the tab 
 | Action | Lands on | Back lands on |
 |---|---|---|
 | Back | `/commitments` | n/a |
-| edit | `/stacked/commitments/[id]/edit` | this detail |
+| `Edit` | the edit sheet over this detail (`add_commitment.md`) | this detail, the sheet closed |
 | `Mark as paid` / `Skip` | this detail, the cycle card restated | n/a |
 
 ## Gotchas
