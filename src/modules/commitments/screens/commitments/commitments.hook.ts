@@ -270,7 +270,7 @@ export function useCommitments() {
       console.warn('[goToEdit] commitment id is undefined — skipping navigation');
       return;
     }
-    router.push(`/commitments/${commitmentId}/edit`);
+    useCommitmentFormHostState.getState().openEdit(commitmentId);
   }, []);
 
   const handleOpenFilter = useCallback(() => {

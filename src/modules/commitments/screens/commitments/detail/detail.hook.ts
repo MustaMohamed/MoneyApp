@@ -7,7 +7,12 @@ import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { buildRecurrenceLabel } from '@/modules/commitments/utils/recurrence_label';
-import { commitmentEditRoute, stackedPrefixOf } from '@/modules/navigation/domain/stacked_route';
+import {
+  STACKED_PREFIX,
+  TABBED_ORIGIN,
+  stackedPrefixOf,
+  stackedTransactionDetailRoute,
+} from '@/modules/navigation/domain/stacked_route';
 import { formatLongDate } from '@/utils/format_date';
 
 import { isUnpaidPayment } from '../../../domain/payment_state';
@@ -15,6 +20,10 @@ import type { Commitment } from '../../../entities/commitment.entity';
 import type { CommitmentPayment } from '../../../entities/commitment_payment.entity';
 import { commitmentRepository } from '../../../repositories/commitment.repository';
 import { useCommitmentStore } from '../../../store/commitment.store';
+import {
+  type CommitmentEditLanding,
+  useCommitmentFormHostState,
+} from '../../../store/commitment_form_host.state';
 import { usePaySheetState } from './components/pay_sheet.state';
 import { overlayStorePayments, resolveCommitmentDetailViewState } from './detail.helpers';
 import { INITIAL_UI_ENTRY, useCommitmentDetailState } from './detail.state';
@@ -33,6 +42,17 @@ function buildDurationLabel(commitment: Commitment): string {
         ? Strings.commitmentsDurationUntilDateOf(formatLongDate(commitment.end_date))
         : Strings.commitmentsDurationUntilDate;
   }
+}
+
+function leaveStackedSubtree(
+  originTxId: string | undefined,
+  originTxCopy: string | undefined,
+): void {
+  // `(tabs)` is index 0 of the `(app)` Stack, so popping to the top lands on the tabbed transaction.
+  if (originTxCopy === TABBED_ORIGIN) router.dismissAll();
+  // POP_TO selects by route name, so it steps over any duplicate edit or payment a double-tap appended.
+  else if (originTxId) router.dismissTo(stackedTransactionDetailRoute(originTxId));
+  else router.back();
 }
 
 // Rows arrive in due-date order, so the first unpaid one is the earliest open cycle.
@@ -187,7 +207,14 @@ export function useCommitmentDetail() {
 
   const goToEdit = useCallback(() => {
     if (!commitment) return;
-    router.push(commitmentEditRoute(commitment.id, stackedPrefix, originTxId, originTxCopy));
+    const landing: CommitmentEditLanding =
+      stackedPrefix === STACKED_PREFIX
+        ? { onDeactivated: () => leaveStackedSubtree(originTxId, originTxCopy) }
+        : {
+            onSaved: () => router.dismissTo('/commitments'),
+            onDeactivated: () => router.dismissTo('/commitments'),
+          };
+    useCommitmentFormHostState.getState().openEdit(commitment.id, landing);
   }, [commitment, stackedPrefix, originTxId, originTxCopy]);
 
   const goBack = useCallback(() => {
