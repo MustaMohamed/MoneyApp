@@ -2,22 +2,16 @@ import { act, renderHook } from '@testing-library/react-native';
 import { BackHandler } from 'react-native';
 
 import { Strings } from '@/constants/strings';
-import { useAccountStore } from '@/modules/accounts/store/account.store';
-import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { useAddCommitmentState } from '@/modules/commitments/screens/commitments/commitment_form/add_commitment.state';
-import { useCommitmentFormHost } from '@/modules/commitments/screens/commitments/commitment_form/commitment_form_host.hook';
-import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
+import {
+  type CommitmentFormSubmit,
+  useCommitmentFormHost,
+} from '@/modules/commitments/screens/commitments/commitment_form/commitment_form_host.hook';
+import { useEditCommitmentState } from '@/modules/commitments/screens/commitments/commitment_form/edit_commitment.state';
 import { useCommitmentFormHostState } from '@/modules/commitments/store/commitment_form_host.state';
-import { deferred } from '@/test_helpers/deferred';
-import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
-
-jest.mock('@/modules/commitments/store/commitment.store', () => ({
-  useCommitmentStore: jest.fn(),
-}));
 
 type HostResult = { current: ReturnType<typeof useCommitmentFormHost> };
 
-const addCommitmentMock = jest.fn().mockResolvedValue(undefined);
 const host = () => useCommitmentFormHostState.getState();
 
 let addListenerSpy: jest.SpiedFunction<typeof BackHandler.addEventListener>;
@@ -30,26 +24,12 @@ function pressBack(): boolean | null | undefined {
   return call[1]({ type: 'hardwareBackPress', timeStamp: 0 });
 }
 
-async function settle(): Promise<void> {
-  await act(async () => {
-    await new Promise((resolve) => setTimeout(resolve, 0));
-  });
+function makeSubmit() {
+  return jest.fn<ReturnType<CommitmentFormSubmit>, []>().mockResolvedValue(undefined);
 }
 
-async function openAndFill(result: HostResult): Promise<void> {
-  await act(() => host().openAdd());
-  await act(() => {
-    result.current.form.setValue('name', 'Rent');
-    result.current.form.setValue('amount', 5000);
-    result.current.form.setValue('categoryId', 'category-rent');
-  });
-}
-
-async function failSave(result: HostResult): Promise<void> {
-  addCommitmentMock.mockRejectedValueOnce(new Error('insert failed'));
-  await act(() => result.current.handleSave());
-  await settle();
-  expect(result.current.state.saveError).toBe(Strings.commitmentsSaveError);
+async function register(result: HostResult, sessionId: number, submit: CommitmentFormSubmit) {
+  await act(() => result.current.registerSubmit(sessionId, submit));
 }
 
 async function closeUnsaved(result: HostResult): Promise<void> {
@@ -59,14 +39,9 @@ async function closeUnsaved(result: HostResult): Promise<void> {
 
 describe('useCommitmentFormHost', () => {
   beforeEach(() => {
-    addCommitmentMock.mockReset().mockResolvedValue(undefined);
-    attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
-      addCommitment: addCommitmentMock,
-    }));
-    useAccountStore.setState({ accounts: [], accountLookupById: {}, hasLoaded: false });
-    useCategoryStore.setState({ categories: [], hasLoaded: false });
     host().reset();
     useAddCommitmentState.getState().reset();
+    useEditCommitmentState.getState().reset();
     removeMocks = [];
     addListenerSpy = jest.spyOn(BackHandler, 'addEventListener').mockImplementation(() => {
       const remove = jest.fn();
@@ -87,29 +62,81 @@ describe('useCommitmentFormHost', () => {
     expect(result.current.state.hasSession).toBe(false);
   });
 
-  it('clears a failed draft as soon as the sheet has closed', async () => {
+  it("calls the current session's registered submit once on Save", async () => {
     const { result } = await renderHook(() => useCommitmentFormHost());
-    await openAndFill(result);
-    await failSave(result);
+    await act(() => host().openAdd());
+    const submit = makeSubmit();
+    await register(result, host().sessionId, submit);
 
-    await closeUnsaved(result);
+    await act(() => result.current.handleSave());
 
-    expect(host().phase).toBe('closed');
-    expect(result.current.state.hasSession).toBe(false);
-    expect(result.current.form.getValues('name')).toBe('');
-    expect(result.current.state.saveError).toBeUndefined();
+    expect(submit).toHaveBeenCalledTimes(1);
   });
 
-  it('writes nothing on a Save while the sheet is closing', async () => {
+  it('calls nothing on a Save while the sheet is closing', async () => {
     const { result } = await renderHook(() => useCommitmentFormHost());
-    await openAndFill(result);
+    await act(() => host().openAdd());
+    const submit = makeSubmit();
+    await register(result, host().sessionId, submit);
     await act(() => result.current.handleOpenChange(false));
     expect(host().phase).toBe('closing');
 
     await act(() => result.current.handleSave());
-    await settle();
 
-    expect(addCommitmentMock).not.toHaveBeenCalled();
+    expect(submit).not.toHaveBeenCalled();
+  });
+
+  it('calls nothing on a Save once the session has unregistered its submit', async () => {
+    const { result } = await renderHook(() => useCommitmentFormHost());
+    await act(() => host().openAdd());
+    const submit = makeSubmit();
+    await register(result, host().sessionId, submit);
+    await act(() => result.current.registerSubmit(host().sessionId, undefined));
+
+    await act(() => result.current.handleSave());
+
+    expect(submit).not.toHaveBeenCalled();
+    expect(host().phase).toBe('open');
+  });
+
+  it('calls nothing on a Save while the footer reads saving', async () => {
+    const { result } = await renderHook(() => useCommitmentFormHost());
+    await act(() => host().openAdd());
+    const submit = makeSubmit();
+    await register(result, host().sessionId, submit);
+    await act(() => host().publishFooter(host().sessionId, { saving: true }));
+
+    await act(() => result.current.handleSave());
+
+    expect(submit).not.toHaveBeenCalled();
+  });
+
+  it('ignores a submit registered late by an older session', async () => {
+    const { result } = await renderHook(() => useCommitmentFormHost());
+    await act(() => host().openAdd());
+    const olderSession = host().sessionId;
+    await closeUnsaved(result);
+    await act(() => host().openAdd());
+    expect(host().sessionId).toBe(olderSession + 1);
+    const stale = makeSubmit();
+    await register(result, olderSession, stale);
+
+    await act(() => result.current.handleSave());
+
+    expect(stale).not.toHaveBeenCalled();
+  });
+
+  it('drops the submit an older session registered once the sheet has closed', async () => {
+    const { result } = await renderHook(() => useCommitmentFormHost());
+    await act(() => host().openAdd());
+    const stale = makeSubmit();
+    await register(result, host().sessionId, stale);
+    await closeUnsaved(result);
+    await act(() => host().openAdd());
+
+    await act(() => result.current.handleSave());
+
+    expect(stale).not.toHaveBeenCalled();
   });
 
   it('closes on hardware back, then removes its listener once closed', async () => {
@@ -126,6 +153,7 @@ describe('useCommitmentFormHost', () => {
     await act(() => result.current.handleCloseComplete());
 
     expect(host().phase).toBe('closed');
+    expect(result.current.state.hasSession).toBe(false);
     expect(removeMocks.length).toBeGreaterThan(0);
     for (const remove of removeMocks) expect(remove).toHaveBeenCalledTimes(1);
   });
@@ -136,6 +164,7 @@ describe('useCommitmentFormHost', () => {
 
     expect(result.current.state.isOpen).toBe(true);
     expect(result.current.state.hasSession).toBe(true);
+    expect(result.current.state.mode).toBe('add');
     expect(result.current.state.isDismissable).toBe(true);
     expect(result.current.state.title).toBe(Strings.commitmentsAddTitle);
 
@@ -145,87 +174,151 @@ describe('useCommitmentFormHost', () => {
     expect(result.current.state.isOpen).toBe(false);
   });
 
-  it('refuses back and a close request while a save is in flight, and closes once it lands', async () => {
-    const save = deferred<void>();
+  it('titles an edit session with the edit title and holds the commitment it was opened for', async () => {
     const { result } = await renderHook(() => useCommitmentFormHost());
-    await openAndFill(result);
-    addCommitmentMock.mockReturnValueOnce(save.promise);
 
-    await act(() => result.current.handleSave());
-    await settle();
-    expect(addCommitmentMock).toHaveBeenCalledTimes(1);
+    await act(() => host().openEdit('c-1'));
+
+    expect(result.current.state.isOpen).toBe(true);
+    expect(result.current.state.hasSession).toBe(true);
+    expect(result.current.state.mode).toBe('edit');
+    expect(result.current.state.editingCommitmentId).toBe('c-1');
+    expect(result.current.state.title).toBe(Strings.commitmentsEditTitle);
+  });
+
+  it('reads saving and the save error from the footer the session publishes', async () => {
+    const { result } = await renderHook(() => useCommitmentFormHost());
+    await act(() => host().openAdd());
+    const sessionId = host().sessionId;
+    expect(result.current.state.saving).toBe(false);
+    expect(result.current.state.saveError).toBeUndefined();
+
+    await act(() => host().publishFooter(sessionId, { saving: true }));
+
     expect(result.current.state.saving).toBe(true);
     expect(result.current.state.isDismissable).toBe(false);
 
+    await act(() =>
+      host().publishFooter(sessionId, {
+        saving: false,
+        errorMessage: Strings.commitmentsSaveError,
+      }),
+    );
+
+    expect(result.current.state.saving).toBe(false);
+    expect(result.current.state.saveError).toBe(Strings.commitmentsSaveError);
+    expect(result.current.state.isDismissable).toBe(true);
+  });
+
+  it('refuses back and a close request while the add state saves, and closes once it lands', async () => {
+    const { result } = await renderHook(() => useCommitmentFormHost());
+    await act(() => host().openAdd());
+    const sessionId = host().sessionId;
+
+    await act(() => useAddCommitmentState.getState().setSaving(true));
+    expect(result.current.state.isDismissable).toBe(false);
+
+    let handled: boolean | null | undefined;
     await act(() => {
-      pressBack();
+      handled = pressBack();
     });
+    expect(handled).toBe(true);
     expect(host().phase).toBe('open');
     await act(() => result.current.handleOpenChange(false));
     expect(host().phase).toBe('open');
+    await act(() => result.current.handleClose());
+    expect(host().phase).toBe('open');
 
-    await act(async () => {
-      save.resolve();
-      await save.promise;
-    });
-    await settle();
+    await act(() => useAddCommitmentState.getState().setSaving(false));
+    await act(() => result.current.handleSaved(sessionId));
 
     expect(host().phase).toBe('closing');
   });
 
-  it('stays open with the save error after a rejected add', async () => {
+  it('follows the edit state for dismissal, back and the close button in edit mode', async () => {
     const { result } = await renderHook(() => useCommitmentFormHost());
-    await openAndFill(result);
+    await act(() => host().openEdit('c-1'));
+    expect(result.current.state.isDismissable).toBe(true);
 
-    await failSave(result);
-
-    expect(addCommitmentMock).toHaveBeenCalledTimes(1);
-    expect(host().phase).toBe('open');
-    expect(result.current.state.isOpen).toBe(true);
-  });
-
-  it('keeps a name typed while open through a rerender', async () => {
-    const { result, rerender } = await renderHook(() => useCommitmentFormHost());
-    await act(() => host().openAdd());
     await act(() => {
-      result.current.form.setValue('name', 'Rent');
+      useEditCommitmentState.getState().claim('owner-1');
+      useEditCommitmentState.getState().setSaving('owner-1', true);
     });
 
-    await rerender({});
-
-    expect(result.current.form.getValues('name')).toBe('Rent');
-  });
-
-  it('reopens on an empty draft with no save error after an unsaved close', async () => {
-    const { result } = await renderHook(() => useCommitmentFormHost());
-    await openAndFill(result);
-    await failSave(result);
-    await closeUnsaved(result);
-
-    await act(() => host().openAdd());
-
+    expect(result.current.state.isDismissable).toBe(false);
+    await act(() => {
+      pressBack();
+    });
     expect(host().phase).toBe('open');
-    expect(host().sessionId).toBe(2);
-    expect(result.current.form.getValues('name')).toBe('');
-    expect(result.current.state.saveError).toBeUndefined();
+    await act(() => result.current.handleClose());
+    expect(host().phase).toBe('open');
+
+    await act(() => useEditCommitmentState.getState().setSaving('owner-1', false));
+
+    expect(result.current.state.isDismissable).toBe(true);
+    await act(() => result.current.handleClose());
+    expect(host().phase).toBe('closing');
   });
 
-  describe('an open on a later day', () => {
+  describe('a landed save or deactivate', () => {
+    const onSaved = jest.fn();
+    const onDeactivated = jest.fn();
+
     beforeEach(() => {
-      jest.useFakeTimers({ now: new Date('2026-10-22T12:00:00') });
+      onSaved.mockReset();
+      onDeactivated.mockReset();
     });
 
-    afterEach(() => {
-      jest.useRealTimers();
-    });
-
-    it('drafts the start date of the day the sheet opens on', async () => {
+    it('closes on a save and runs only the onSaved of its landing', async () => {
       const { result } = await renderHook(() => useCommitmentFormHost());
+      await act(() => host().openEdit('c-1', { onSaved, onDeactivated }));
 
-      jest.setSystemTime(new Date('2026-10-23T12:00:00'));
-      await act(() => host().openAdd());
+      await act(() => result.current.handleSaved(host().sessionId));
 
-      expect(result.current.form.getValues('startDate')).toBe('2026-10-23');
+      expect(host().phase).toBe('closing');
+      expect(onSaved).toHaveBeenCalledTimes(1);
+      expect(onDeactivated).not.toHaveBeenCalled();
     });
+
+    it('closes on a deactivate and runs only the onDeactivated of its landing', async () => {
+      const { result } = await renderHook(() => useCommitmentFormHost());
+      await act(() => host().openEdit('c-1', { onSaved, onDeactivated }));
+
+      await act(() => result.current.handleDeactivated(host().sessionId));
+
+      expect(host().phase).toBe('closing');
+      expect(onDeactivated).toHaveBeenCalledTimes(1);
+      expect(onSaved).not.toHaveBeenCalled();
+    });
+
+    it('closes on a save from a session opened with no landing', async () => {
+      const { result } = await renderHook(() => useCommitmentFormHost());
+      await act(() => host().openEdit('c-1'));
+
+      await act(() => result.current.handleSaved(host().sessionId));
+
+      expect(host().phase).toBe('closing');
+    });
+
+    it.each(['handleSaved', 'handleDeactivated'] as const)(
+      '%s from an older session neither closes the sheet nor runs a landing',
+      async (handler) => {
+        const olderLanding = { onSaved: jest.fn(), onDeactivated: jest.fn() };
+        const { result } = await renderHook(() => useCommitmentFormHost());
+        await act(() => host().openEdit('c-1', olderLanding));
+        const olderSession = host().sessionId;
+        await closeUnsaved(result);
+        await act(() => host().openEdit('c-2', { onSaved, onDeactivated }));
+
+        await act(() => result.current[handler](olderSession));
+
+        expect(host().phase).toBe('open');
+        expect(host().editingCommitmentId).toBe('c-2');
+        expect(onSaved).not.toHaveBeenCalled();
+        expect(onDeactivated).not.toHaveBeenCalled();
+        expect(olderLanding.onSaved).not.toHaveBeenCalled();
+        expect(olderLanding.onDeactivated).not.toHaveBeenCalled();
+      },
+    );
   });
 });
