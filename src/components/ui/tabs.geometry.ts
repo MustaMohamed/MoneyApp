@@ -86,6 +86,15 @@ export function resolveSegmentedTabsGeometry(
   };
 }
 
+/** The default trigger's drawn height: HeroUI sizes its label at or below scale 1, and the scaled label sizes it above. */
+export function resolveDrawnDefaultTriggerHeight(
+  fontScale: number,
+  maxFontScale = Infinity,
+): number {
+  if (fontScale <= 1) return Size.defaultSegmentTrack;
+  return resolveDefaultTriggerHeight(fontScale, maxFontScale);
+}
+
 export function resolveDefaultTriggerHeight(fontScale: number, maxFontScale = Infinity): number {
   return (
     scaledTextStyle(HEROUI_TEXT_TYPE.base, fontScale, maxFontScale).lineHeight +

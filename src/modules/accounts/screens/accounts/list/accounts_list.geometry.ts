@@ -1,5 +1,6 @@
 import type { Insets, TextStyle, ViewStyle } from 'react-native';
 
+import { SECTION_HEADER_MARGIN_TOP } from '@/components/ui/section_header.geometry';
 import { TABS_LIST_PADDING, type TabsTriggerHitSlop } from '@/components/ui/tabs.geometry';
 import { type ScaledTextStyle, scaledTextStyleAboveOne } from '@/components/ui/text_scale.geometry';
 import {
@@ -8,6 +9,7 @@ import {
   Size,
   Spacing,
   TOUCH_SLOP_PIXEL_MARGIN,
+  type TouchFloorRoom,
   TouchSize,
   Type,
   lineHeightFor,
@@ -72,19 +74,24 @@ export function resolveArchivedCardHeaderGeometry(fontScale: number): {
   };
 }
 
+export const ACCOUNTS_LIST_ARCHIVED_ROW_PADDING_Y = Spacing.xs;
+
 /** B5 `.ar-row`: 8 vertical against the canvas 10, since the 56 minimum decides the height. */
 export const ACCOUNTS_LIST_ARCHIVED_ROW_STYLE: Readonly<ViewStyle> = Object.freeze({
   minHeight: Size.archivedRowMinHeight,
   paddingLeft: Spacing.md,
   paddingRight: Spacing.sm,
-  paddingVertical: Spacing.xs,
+  paddingVertical: ACCOUNTS_LIST_ARCHIVED_ROW_PADDING_Y,
   gap: Spacing.sm,
   flexDirection: 'row',
   alignItems: 'center',
 });
 
-// SectionHeader's `mt-4` under the rail, unscaled CSS px.
-const SECTION_HEADER_MARGIN_TOP = 16;
+/** The row Unarchive's slop stays inside the row, a HeroUI pressable that clips (MA-122). */
+export const ACCOUNTS_LIST_ARCHIVED_UNARCHIVE_ROOM: TouchFloorRoom = {
+  top: ACCOUNTS_LIST_ARCHIVED_ROW_PADDING_Y,
+  bottom: ACCOUNTS_LIST_ARCHIVED_ROW_PADDING_Y,
+};
 
 /** B7 `.rail`: `padding: 4px 16px` on the canvas, as margins here since the scroll has no gutter. */
 export const ACCOUNTS_LIST_RAIL_STYLE: Readonly<ViewStyle> = Object.freeze({

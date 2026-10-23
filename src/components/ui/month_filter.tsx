@@ -6,14 +6,17 @@ import { Strings } from '@/constants/strings';
 import { Colors, HIT_SLOP_UNCLIPPED_STYLE, Size, Spacing } from '@/constants/theme';
 
 import {
+  MONTH_PICKER_CELL_GAP,
+  MONTH_PICKER_GRID_EDGE,
+  MONTH_PICKER_YEAR_ROW_GAP,
   MONTH_ROW_GAP,
-  MONTH_STEP_HIT_SLOP,
   resolveMonthPillGeometry,
   resolveMonthStepHitSlop,
 } from './month_filter.geometry';
 import { type MonthFilterProps, useMonthFilter } from './month_filter.hook';
 import { Sheet } from './sheet';
 import { Text } from './text';
+import { useTouchFloorGridHitSlop } from './touch_floor.hook';
 
 interface IconButtonProps {
   icon: 'chevron-left' | 'chevron-right';
@@ -21,7 +24,7 @@ interface IconButtonProps {
   onPress: () => void;
   testID?: string;
   size: number;
-  hitSlop?: number | Insets;
+  hitSlop: Insets;
   style?: ViewStyle;
 }
 
@@ -31,7 +34,7 @@ function IconButton({
   onPress,
   testID,
   size,
-  hitSlop = MONTH_STEP_HIT_SLOP,
+  hitSlop,
   style,
 }: IconButtonProps) {
   return (
@@ -53,6 +56,7 @@ export function MonthFilter(props: MonthFilterProps) {
   const monthFilter = useMonthFilter(props);
   const showStepButtons = props.showStepButtons ?? true;
   const pill = resolveMonthPillGeometry(useWindowDimensions().fontScale);
+  const cellTouch = useTouchFloorGridHitSlop(MONTH_PICKER_CELL_GAP, MONTH_PICKER_GRID_EDGE);
 
   return (
     <>
@@ -114,11 +118,13 @@ export function MonthFilter(props: MonthFilterProps) {
       >
         <View style={{ paddingHorizontal: Spacing.md, paddingBottom: Spacing.lg }}>
           <View
+            testID="month-picker-year-row"
+            onLayout={monthFilter.onYearRowLayout}
             style={{
               flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'space-between',
-              marginBottom: Spacing.sm,
+              marginBottom: MONTH_PICKER_YEAR_ROW_GAP,
             }}
           >
             <IconButton
@@ -126,6 +132,8 @@ export function MonthFilter(props: MonthFilterProps) {
               accessibilityLabel={Strings.monthPickerPreviousYearA11y}
               onPress={monthFilter.onPreviousPickerYear}
               size={Size.monthYearStepTrack}
+              hitSlop={monthFilter.state.yearStepHitSlop.previous}
+              style={HIT_SLOP_UNCLIPPED_STYLE}
             />
             <Text className="font-sora-bold text-foreground text-[17px]">
               {monthFilter.state.pickerYear}
@@ -135,18 +143,21 @@ export function MonthFilter(props: MonthFilterProps) {
               accessibilityLabel={Strings.monthPickerNextYearA11y}
               onPress={monthFilter.onNextPickerYear}
               size={Size.monthYearStepTrack}
+              hitSlop={monthFilter.state.yearStepHitSlop.next}
+              style={HIT_SLOP_UNCLIPPED_STYLE}
             />
           </View>
 
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: MONTH_PICKER_CELL_GAP }}>
             {monthFilter.state.pickerMonths.map((month) => (
               <PressableFeedback
                 key={month.key}
+                {...cellTouch.item(month.key)}
                 onPress={month.onPress}
                 accessibilityRole="button"
                 accessibilityLabel={month.accessibilityLabel}
                 accessibilityState={month.accessibilityState}
-                style={{ width: '31.5%' }}
+                style={{ width: '31.5%', ...HIT_SLOP_UNCLIPPED_STYLE }}
                 className={month.buttonClassName}
               >
                 <Text className={month.labelClassName}>{month.label}</Text>

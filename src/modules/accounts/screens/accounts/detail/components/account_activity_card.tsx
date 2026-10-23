@@ -1,4 +1,5 @@
 import React from 'react';
+import { useWindowDimensions } from 'react-native';
 
 import { DetailRowsCard } from '@/components/ui/detail_rows_card';
 import { LoadErrorAlert } from '@/components/ui/load_error_alert';
@@ -10,6 +11,7 @@ import type { TransactionRowPresentation } from '@/modules/transactions/componen
 import { TransactionRowsSkeleton } from '@/modules/transactions/components/transaction_rows_skeleton';
 
 import { resolveActivityCardView } from './account_activity.helpers';
+import { resolveActivitySeeAllHitSlop } from './account_detail_touch.geometry';
 import { ActivityEmptyBlock } from './activity_empty_block';
 
 const SKELETON_ROWS = 3;
@@ -37,13 +39,18 @@ export function AccountActivityCard({
   onRetry,
 }: Props): React.ReactElement {
   const { body, showSeeAll } = resolveActivityCardView(status, rows.length);
+  const { fontScale } = useWindowDimensions();
 
   return (
     <>
       {showSeeAll ? (
         <SectionHeader
           title={Strings.accountActivityTitle}
-          action={{ label: Strings.accountActivitySeeAll, onPress: onSeeAll }}
+          action={{
+            label: Strings.accountActivitySeeAll,
+            onPress: onSeeAll,
+            hitSlop: resolveActivitySeeAllHitSlop(fontScale, body === 'error' ? 'error' : 'rows'),
+          }}
         />
       ) : (
         <SectionHeader title={Strings.accountActivityTitle} />

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo } from 'react';
+import type { Insets, LayoutChangeEvent } from 'react-native';
 
 import { Strings } from '@/constants/strings';
 import { formatMonthYear } from '@/utils/format_date';
@@ -10,7 +11,11 @@ import {
   yearFromYearMonth,
 } from '@/utils/year_month';
 
-import type { MonthRowHitSlop } from './month_filter.geometry';
+import {
+  type MonthRowHitSlop,
+  type MonthStepSide,
+  resolveMonthYearStepHitSlop,
+} from './month_filter.geometry';
 import { useMonthFilterState } from './month_filter.state';
 
 export interface MonthFilterProps {
@@ -45,6 +50,7 @@ export function useMonthFilter({ selectedMonth, onSelectedMonthChange }: MonthFi
     setPickerOpen,
     setPickerYear,
     shiftPickerYear,
+    setYearRowHeight,
   } = useMonthFilterState(selectedYear);
 
   useEffect(() => {
@@ -71,6 +77,19 @@ export function useMonthFilter({ selectedMonth, onSelectedMonthChange }: MonthFi
   const onNextPickerYear = useCallback(() => {
     shiftPickerYear(1);
   }, [shiftPickerYear]);
+
+  const onYearRowLayout = useCallback(
+    (event: LayoutChangeEvent) => setYearRowHeight(event.nativeEvent.layout.height),
+    [setYearRowHeight],
+  );
+
+  const yearStepHitSlop = useMemo<Record<MonthStepSide, Required<Insets>>>(
+    () => ({
+      previous: resolveMonthYearStepHitSlop(monthFilterState.yearRowHeight, 'previous'),
+      next: resolveMonthYearStepHitSlop(monthFilterState.yearRowHeight, 'next'),
+    }),
+    [monthFilterState.yearRowHeight],
+  );
 
   const selectMonth = useCallback(
     (monthNumber: number) => {
@@ -107,6 +126,7 @@ export function useMonthFilter({ selectedMonth, onSelectedMonthChange }: MonthFi
       isPickerOpen: monthFilterState.isPickerOpen,
       pickerYear: monthFilterState.pickerYear,
       pickerMonths,
+      yearStepHitSlop,
     },
     onPickerOpenChange: setPickerOpen,
     onOpenPicker,
@@ -114,5 +134,6 @@ export function useMonthFilter({ selectedMonth, onSelectedMonthChange }: MonthFi
     onNextMonth,
     onPreviousPickerYear,
     onNextPickerYear,
+    onYearRowLayout,
   };
 }

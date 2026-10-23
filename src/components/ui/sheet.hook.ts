@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { Insets, LayoutChangeEvent } from 'react-native';
 
+import { resolveSheetCloseHitSlop } from './sheet.helpers';
 import {
   createSheetCloseLifecycle,
   settleSheetCloseLifecycle,
@@ -67,4 +69,19 @@ export function useSheetCloseLifecycle(
   }, [settlesOnDrop, handleSheetIndexChange]);
 
   return { closeLifecycle, handleSheetIndexChange, handleSheetClosed, handleSheetCloseRequest };
+}
+
+interface SheetCloseHitSlopHook {
+  hitSlop: Required<Insets>;
+  onHeaderLayout: (event: LayoutChangeEvent) => void;
+}
+
+/** The close's slop from the measured header row, which the OS-scaled title grows. */
+export function useSheetCloseHitSlop(): SheetCloseHitSlopHook {
+  const [headerHeight, setHeaderHeight] = useState<number | undefined>(undefined);
+  const onHeaderLayout = useCallback((event: LayoutChangeEvent) => {
+    const { height } = event.nativeEvent.layout;
+    setHeaderHeight((current) => (current === height ? current : height));
+  }, []);
+  return { hitSlop: resolveSheetCloseHitSlop(headerHeight), onHeaderLayout };
 }

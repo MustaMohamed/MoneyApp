@@ -1,7 +1,7 @@
 import type { ButtonSize, ButtonVariant } from 'heroui-native';
 
 import { Strings } from '@/constants/strings';
-import { Colors, Radius } from '@/constants/theme';
+import { Colors, HIT_SLOP_UNCLIPPED_STYLE, Radius } from '@/constants/theme';
 
 import { resolveCompactCtaHeight } from './button.geometry';
 
@@ -10,7 +10,7 @@ const FLAT_VARIANTS: ButtonVariant[] = ['primary', 'secondary', 'ghost', 'danger
 export type FlatButtonTone = 'danger' | 'accent';
 
 export interface FlatButtonStyle {
-  style: { borderRadius: number; height?: number };
+  style: { borderRadius: number; height?: number; overflow?: 'visible' };
   rootClass?: string;
   labelClass?: string;
 }
@@ -43,6 +43,7 @@ export function resolveFlatButtonStyle({
       style: {
         borderRadius: Radius.cta,
         height: resolveCompactCtaHeight(size, fontScale),
+        ...HIT_SLOP_UNCLIPPED_STYLE,
       },
       rootClass: 'bg-accent-soft',
       labelClass: 'text-accent',

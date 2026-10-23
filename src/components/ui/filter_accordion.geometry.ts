@@ -1,7 +1,12 @@
 import type { ViewStyle } from 'react-native';
 
+import {
+  TABS_LIST_PADDING,
+  type TabsTriggerHitSlop,
+  resolveDrawnDefaultTriggerHeight,
+} from '@/components/ui/tabs.geometry';
 import { scaledLineHeight } from '@/components/ui/text_scale.geometry';
-import { type TouchFloorRoom, Type } from '@/constants/theme';
+import { type TouchFloorRoom, Type, touchFloorHitSlopWithin } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
 // The filter card's `border`, `mb-2` and content `pb-3.5`, unscaled CSS px.
@@ -21,6 +26,17 @@ export const FILTER_OPTION_LIST_EDGE: TouchFloorRoom = {
       FILTER_ACCORDION_CARD_MARGIN_BOTTOM) /
     2,
 };
+
+// The Amount currency tabs' `mb-3`, unscaled CSS px.
+export const FILTER_AMOUNT_TABS_MARGIN_BOTTOM = 12;
+
+/** The list padding above, where the trigger draws over the content's clipped edge, and the whole gap to the Min label below. */
+export function resolveFilterAmountCurrencyHitSlop(fontScale: number): TabsTriggerHitSlop {
+  return touchFloorHitSlopWithin(resolveDrawnDefaultTriggerHeight(fontScale), {
+    top: TABS_LIST_PADDING,
+    bottom: TABS_LIST_PADDING + FILTER_AMOUNT_TABS_MARGIN_BOTTOM,
+  });
+}
 
 export const FILTER_AMOUNT_FIELD_SLOT_HEIGHT = ms(76);
 export const FILTER_AMOUNT_ERROR_SLOT_HEIGHT = ms(16);

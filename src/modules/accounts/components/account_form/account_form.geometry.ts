@@ -1,5 +1,9 @@
 import { DISPLAY_HEADLINE_MAX_FONT_SCALE } from '@/components/ui/display_headline.geometry';
-import { resolveSegmentedTabsGeometry } from '@/components/ui/tabs.geometry';
+import {
+  type TabsTriggerHitSlop,
+  resolveDrawnDefaultTriggerHeight,
+  resolveSegmentedTabsGeometry,
+} from '@/components/ui/tabs.geometry';
 import {
   FITTED_LINE_SLACK,
   type ScaledTextStyle,
@@ -7,7 +11,7 @@ import {
 } from '@/components/ui/text_scale.geometry';
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Size, Spacing, Type } from '@/constants/theme';
+import { Size, Spacing, Type, touchFloorHitSlopWithin } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
 import type { TypeOption } from '../account_type_pill';
@@ -87,6 +91,13 @@ export function resolveCurrencyTabsBoxHeight(fontScale: number): number {
     CURRENCY_TABS_MAX_FONT_SCALE,
   );
   return Math.max(Size.fieldHeight, (defaultListHeight ?? 0) + FITTED_LINE_SLACK);
+}
+
+/** The currency segments' slop, held inside the box around the tabs: the label above and the empty rail below take no touch. */
+export function resolveCurrencyTabsHitSlop(fontScale: number): TabsTriggerHitSlop {
+  const trigger = resolveDrawnDefaultTriggerHeight(fontScale, CURRENCY_TABS_MAX_FONT_SCALE);
+  const room = (resolveCurrencyTabsBoxHeight(fontScale) - trigger) / 2;
+  return touchFloorHitSlopWithin(trigger, { top: room, bottom: room });
 }
 
 /** Above scale 1 both labels of the balance row keep two lines on every type, so no field moves when the type relabels one. */

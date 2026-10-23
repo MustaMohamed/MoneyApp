@@ -3,7 +3,16 @@ import React from 'react';
 import { View, useWindowDimensions } from 'react-native';
 
 import { resolveOneLineTextProps, scaledTextStyle } from '@/components/ui/text_scale.geometry';
-import { Colors, Spacing, Type, lineHeightFor } from '@/constants/theme';
+import {
+  Colors,
+  HIT_SLOP_UNCLIPPED_STYLE,
+  Spacing,
+  type TouchFloorHitSlop,
+  Type,
+  lineHeightFor,
+} from '@/constants/theme';
+
+import { SECTION_HEADER_MARGIN_BOTTOM, SECTION_HEADER_MARGIN_TOP } from './section_header.geometry';
 
 interface SectionHeaderCommonProps {
   title: string;
@@ -13,7 +22,7 @@ interface SectionHeaderCommonProps {
 export type SectionHeaderProps =
   | (SectionHeaderCommonProps & { count?: number; action?: never })
   | (SectionHeaderCommonProps & {
-      action: { label: string; onPress: () => void };
+      action: { label: string; onPress: () => void; hitSlop?: TouchFloorHitSlop };
       count?: never;
     });
 
@@ -23,8 +32,14 @@ export function SectionHeader({ title, count, action }: SectionHeaderProps) {
   );
   return (
     <View
-      className="mt-4 mb-2 flex-row items-center justify-between"
-      style={{ flexDirection: 'row', marginHorizontal: Spacing.md, gap: Spacing.xs }}
+      className="flex-row items-center justify-between"
+      style={{
+        flexDirection: 'row',
+        marginHorizontal: Spacing.md,
+        marginTop: SECTION_HEADER_MARGIN_TOP,
+        marginBottom: SECTION_HEADER_MARGIN_BOTTOM,
+        gap: Spacing.xs,
+      }}
     >
       <Typography
         {...captionLine}
@@ -58,7 +73,9 @@ export function SectionHeader({ title, count, action }: SectionHeaderProps) {
           onPress={action.onPress}
           accessibilityRole="button"
           accessibilityLabel={action.label}
-          style={{ flexShrink: 1 }}
+          {...(action.hitSlop === undefined
+            ? { style: { flexShrink: 1 } }
+            : { hitSlop: action.hitSlop, style: { flexShrink: 1, ...HIT_SLOP_UNCLIPPED_STYLE } })}
         >
           <LinkButton.Label {...captionLine} className="text-accent font-inter-semibold">
             {action.label}

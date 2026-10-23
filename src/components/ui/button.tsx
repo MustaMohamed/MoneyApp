@@ -13,6 +13,7 @@ import {
   type FlatButtonTone,
 } from './button.content';
 import { resolveButtonLabelStyle, resolveButtonRootStyle } from './button.geometry';
+import { PressHighlight } from './press_highlight';
 import { resolveOneLineTextProps } from './text_scale.geometry';
 
 // CTAs are Sora (.claude/rules/ui.md; mockup `.cta` uses the display face at 600) — HeroUI's own label ships Inter medium.
@@ -122,6 +123,12 @@ export function Button({
       size={size}
       isDisabled={disabledState}
       className={cn(flatStyle?.rootClass, className)}
+      {...(flatStyle?.style.overflow === 'visible'
+        ? {
+            feedbackVariant: 'scale' as const,
+            background: <PressHighlight radius={flatStyle.style.borderRadius} />,
+          }
+        : {})}
       {...props}
       style={rootStyle}
       // A glyph sibling stops RN deriving the label from the text child — restate it.

@@ -14,8 +14,10 @@ import {
   FILTER_ACCORDION_CARD_BORDER,
   FILTER_ACCORDION_CARD_MARGIN_BOTTOM,
   FILTER_ACCORDION_CONTENT_PADDING_BOTTOM,
+  FILTER_AMOUNT_TABS_MARGIN_BOTTOM,
   FILTER_OPTION_LIST_EDGE,
   FILTER_OPTION_PILL_GAP,
+  resolveFilterAmountCurrencyHitSlop,
   resolveFilterAmountSlotStyle,
 } from './filter_accordion.geometry';
 import { Input } from './input';
@@ -186,17 +188,20 @@ export function AmountRangeFilterContent({
 
   return (
     <View>
-      <SegmentedTabs<Currency>
-        segments={[
-          { value: Currency.EGP, label: Currency.EGP },
-          { value: Currency.USD, label: Currency.USD },
-        ]}
-        value={amountCurrency}
-        onValueChange={onChangeCurrency}
-        variant="solid-gold"
-        listClassName="w-full mb-3"
-        accessibilityLabel={accessibilityLabel}
-      />
+      <View style={{ marginBottom: FILTER_AMOUNT_TABS_MARGIN_BOTTOM }}>
+        <SegmentedTabs<Currency>
+          segments={[
+            { value: Currency.EGP, label: Currency.EGP },
+            { value: Currency.USD, label: Currency.USD },
+          ]}
+          value={amountCurrency}
+          onValueChange={onChangeCurrency}
+          variant="solid-gold"
+          listClassName="w-full"
+          accessibilityLabel={accessibilityLabel}
+          triggerHitSlop={resolveFilterAmountCurrencyHitSlop(fontScale)}
+        />
+      </View>
       <View className="flex-row gap-2">
         <View className="flex-1">
           <Text className="font-inter-semibold text-foreground/55 mb-1 text-[10px] uppercase">

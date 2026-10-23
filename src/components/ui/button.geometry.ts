@@ -5,7 +5,12 @@ import {
   type ScaledTextStyle,
   scaledTextStyleAboveOne,
 } from '@/components/ui/text_scale.geometry';
-import { Size } from '@/constants/theme';
+import {
+  Size,
+  type TouchFloorHitSlop,
+  type TouchFloorRoom,
+  touchFloorHitSlopWithin,
+} from '@/constants/theme';
 
 const LABEL_FONT_SIZE: Record<ButtonSize, number> = {
   sm: HEROUI_TEXT_TYPE.sm,
@@ -24,6 +29,15 @@ export function resolveCompactCtaHeight(size: ButtonSize, fontScale: number): nu
   return Math.max(Size.compactCtaTrack, resolveButtonLabelStyle(size, fontScale)?.lineHeight ?? 0);
 }
 
+/** The compact CTA's touch-floor slop at its drawn height, held inside `room`. */
+export function resolveCompactCtaHitSlop(
+  size: ButtonSize,
+  fontScale: number,
+  room: TouchFloorRoom,
+): TouchFloorHitSlop {
+  return touchFloorHitSlopWithin(resolveCompactCtaHeight(size, fontScale), room);
+}
+
 export function resolveSmallButtonHeight(fontScale: number): number {
   return Math.max(Size.smallButtonTrack, resolveButtonLabelStyle('sm', fontScale)?.lineHeight ?? 0);
 }
@@ -31,13 +45,14 @@ export function resolveSmallButtonHeight(fontScale: number): number {
 export interface ButtonRootStyle {
   height?: number;
   borderRadius?: number;
+  overflow?: 'visible';
 }
 
 /** `md` and `lg` get no track `height`; the flat arm's keys win over the `sm` track. */
 export function resolveButtonRootStyle(
   size: ButtonSize,
   fontScale: number,
-  flatStyle?: { borderRadius: number; height?: number },
+  flatStyle?: { borderRadius: number; height?: number; overflow?: 'visible' },
 ): ButtonRootStyle | undefined {
   const track = size === 'sm' ? { height: resolveSmallButtonHeight(fontScale) } : undefined;
   if (track === undefined && flatStyle === undefined) return undefined;
