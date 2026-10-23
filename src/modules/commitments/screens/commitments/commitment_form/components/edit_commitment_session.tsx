@@ -1,17 +1,17 @@
 import { PressableFeedback, Typography } from 'heroui-native';
 
 import { Strings } from '@/constants/strings';
+import { useCommitmentFormHostState } from '@/modules/commitments/store/commitment_form_host.state';
+import { type RegisterFormSessionSubmit, useFormSession } from '@/utils/use_form_session.hook';
 
 import { CommitmentFormBody } from '../../components/commitment_form_body';
-import type { RegisterCommitmentFormSubmit } from '../commitment_form_host.hook';
-import { useCommitmentFormSession } from '../commitment_form_session.hook';
 import { useEditCommitment } from '../edit_commitment.hook';
 import { DeactivateSheet } from './deactivate_sheet';
 
 interface EditCommitmentSessionProps {
   sessionId: number;
   commitmentId: string;
-  onRegisterSubmit: RegisterCommitmentFormSubmit;
+  onRegisterSubmit: RegisterFormSessionSubmit;
   onSaved: (sessionId: number) => void;
   onDeactivated: (sessionId: number) => void;
   onClose: () => void;
@@ -33,11 +33,12 @@ export function EditCommitmentSession({
       onMissing: onClose,
     });
 
-  useCommitmentFormSession({
+  useFormSession({
     sessionId,
     submit: onSubmit,
     footer: { saving: state.saving, errorMessage: state.saveError },
     onRegisterSubmit,
+    publishFooter: useCommitmentFormHostState.getState().publishFooter,
   });
 
   return (

@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
-import { BackHandler } from 'react-native';
+import { useCallback } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import { Strings } from '@/constants/strings';
@@ -7,20 +6,27 @@ import {
   isCommitmentFormSessionSaving,
   useCommitmentFormHostState,
 } from '@/modules/commitments/store/commitment_form_host.state';
+import {
+  type FormSessionHostSource,
+  subscribeToAll,
+  useFormSessionHost,
+} from '@/utils/use_form_session.hook';
 
 import { useAddCommitmentState } from './add_commitment.state';
-import { isAnyEditCommitmentSaving, useEditCommitmentState } from './edit_commitment.state';
+import { useEditCommitmentState } from './edit_commitment.state';
 
-export type CommitmentFormSubmit = () => Promise<void>;
-export type RegisterCommitmentFormSubmit = (
-  sessionId: number,
-  submit: CommitmentFormSubmit | undefined,
-) => void;
-
-interface RegisteredSubmit {
-  sessionId: number;
-  submit: CommitmentFormSubmit;
-}
+const COMMITMENT_FORM_SESSION_SOURCE: FormSessionHostSource = {
+  read: () => {
+    const { phase, sessionId, footer, mode } = useCommitmentFormHostState.getState();
+    return { phase, sessionId, footer, sessionSaving: isCommitmentFormSessionSaving(mode) };
+  },
+  subscribe: subscribeToAll([
+    useCommitmentFormHostState,
+    useAddCommitmentState,
+    useEditCommitmentState,
+  ]),
+  requestClose: () => useCommitmentFormHostState.getState().requestClose(),
+};
 
 export function useCommitmentFormHost() {
   const { phase, sessionId, mode, editingCommitmentId, footer } = useCommitmentFormHostState(
@@ -32,59 +38,16 @@ export function useCommitmentFormHost() {
       footer: state.footer,
     })),
   );
-  const addSaving = useAddCommitmentState((state) => state.saving);
-  const editSaving = useEditCommitmentState(isAnyEditCommitmentSaving);
-  const sessionSaving = mode === 'add' ? addSaving : mode === 'edit' ? editSaving : false;
-  const requestClose = useCommitmentFormHostState.getState().requestClose;
+  const {
+    state: session,
+    registerSubmit,
+    handleSave,
+    handleOpenChange,
+    handleClose,
+  } = useFormSessionHost(COMMITMENT_FORM_SESSION_SOURCE);
   const completeSave = useCommitmentFormHostState.getState().completeSave;
   const completeClose = useCommitmentFormHostState.getState().completeClose;
-  const submitRef = useRef<RegisteredSubmit | undefined>(undefined);
   const hasSession = phase !== 'closed';
-
-  useEffect(() => {
-    if (phase === 'closed') submitRef.current = undefined;
-  }, [phase]);
-
-  useEffect(() => {
-    if (!hasSession) return undefined;
-
-    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-      requestClose();
-      return true;
-    });
-    return () => subscription.remove();
-  }, [hasSession, requestClose]);
-
-  const registerSubmit = useCallback<RegisterCommitmentFormSubmit>((ownerSessionId, submit) => {
-    if (ownerSessionId !== useCommitmentFormHostState.getState().sessionId) return;
-    submitRef.current = submit ? { sessionId: ownerSessionId, submit } : undefined;
-  }, []);
-
-  const handleSave = useCallback(() => {
-    const current = useCommitmentFormHostState.getState();
-    const registered = submitRef.current;
-    // The footer still takes taps while the sheet animates closed; a Save there would write a dismissed draft.
-    if (
-      current.phase !== 'open' ||
-      current.footer.saving ||
-      isCommitmentFormSessionSaving(current.mode)
-    ) {
-      return;
-    }
-    if (!registered || registered.sessionId !== current.sessionId) return;
-    void registered.submit();
-  }, []);
-
-  const handleOpenChange = useCallback(
-    (open: boolean) => {
-      if (!open) requestClose();
-    },
-    [requestClose],
-  );
-
-  const handleClose = useCallback(() => {
-    requestClose();
-  }, [requestClose]);
 
   const handleSaved = useCallback(
     (ownerSessionId: number) => {
@@ -116,7 +79,7 @@ export function useCommitmentFormHost() {
       mode,
       editingCommitmentId,
       title: mode === 'edit' ? Strings.commitmentsEditTitle : Strings.commitmentsAddTitle,
-      isDismissable: !footer.saving && !sessionSaving,
+      isDismissable: session.isDismissable,
       saving: footer.saving,
       saveError: footer.errorMessage,
     },
