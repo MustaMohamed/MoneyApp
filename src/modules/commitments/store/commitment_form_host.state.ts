@@ -1,12 +1,15 @@
 import { create } from 'zustand';
 
 import { useAddCommitmentState } from '@/modules/commitments/screens/commitments/commitment_form/add_commitment.state';
-import { useEditCommitmentState } from '@/modules/commitments/screens/commitments/commitment_form/edit_commitment.state';
+import {
+  isAnyEditCommitmentSaving,
+  useEditCommitmentState,
+} from '@/modules/commitments/screens/commitments/commitment_form/edit_commitment.state';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 type CommitmentFormPhase = 'closed' | 'open' | 'closing';
 
-export type CommitmentFormMode = 'add' | 'edit';
+type CommitmentFormMode = 'add' | 'edit';
 
 export interface CommitmentEditLanding {
   onSaved?: () => void;
@@ -50,9 +53,7 @@ const INITIAL_STATE: CommitmentFormHostStateShape = {
 
 export function isCommitmentFormSessionSaving(mode: CommitmentFormMode | undefined): boolean {
   if (mode === 'add') return useAddCommitmentState.getState().saving;
-  if (mode === 'edit') {
-    return Object.values(useEditCommitmentState.getState().entries).some((entry) => entry.saving);
-  }
+  if (mode === 'edit') return isAnyEditCommitmentSaving(useEditCommitmentState.getState());
   return false;
 }
 

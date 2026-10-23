@@ -26,6 +26,10 @@ export const INITIAL_UI_ENTRY: EditCommitmentUiEntry = Object.freeze({
   deactivateDialogVisible: false,
 });
 
+export function isAnyEditCommitmentSaving(state: EditCommitmentStateShape): boolean {
+  return Object.values(state.entries).some((entry) => entry.saving);
+}
+
 const initialState = (): EditCommitmentStateShape => ({ entries: {} });
 
 export const useEditCommitmentState = createMoneyAppSelectors(

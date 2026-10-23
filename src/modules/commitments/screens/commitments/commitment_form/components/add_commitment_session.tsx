@@ -1,7 +1,7 @@
-import { CommitmentFormBody } from '../components/commitment_form_body';
-import { useAddCommitment } from './add_commitment.hook';
-import type { RegisterCommitmentFormSubmit } from './commitment_form_host.hook';
-import { useCommitmentFormSession } from './commitment_form_session.hook';
+import { CommitmentFormBody } from '../../components/commitment_form_body';
+import { useAddCommitment } from '../add_commitment.hook';
+import type { RegisterCommitmentFormSubmit } from '../commitment_form_host.hook';
+import { useCommitmentFormSession } from '../commitment_form_session.hook';
 
 interface AddCommitmentSessionProps {
   sessionId: number;

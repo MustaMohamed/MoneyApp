@@ -1,9 +1,9 @@
 import { Sheet } from '@/components/ui/sheet';
 
 import { CommitmentFormFooter } from '../components/commitment_form_body';
-import { AddCommitmentSession } from './add_commitment_session';
 import { useCommitmentFormHost } from './commitment_form_host.hook';
-import { EditCommitmentSession } from './edit_commitment_session';
+import { AddCommitmentSession } from './components/add_commitment_session';
+import { EditCommitmentSession } from './components/edit_commitment_session';
 
 export function CommitmentFormHost(): React.ReactElement {
   const {

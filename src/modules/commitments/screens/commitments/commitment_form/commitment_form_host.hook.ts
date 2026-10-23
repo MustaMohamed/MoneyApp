@@ -3,10 +3,13 @@ import { BackHandler } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
 import { Strings } from '@/constants/strings';
-import { useCommitmentFormHostState } from '@/modules/commitments/store/commitment_form_host.state';
+import {
+  isCommitmentFormSessionSaving,
+  useCommitmentFormHostState,
+} from '@/modules/commitments/store/commitment_form_host.state';
 
 import { useAddCommitmentState } from './add_commitment.state';
-import { useEditCommitmentState } from './edit_commitment.state';
+import { isAnyEditCommitmentSaving, useEditCommitmentState } from './edit_commitment.state';
 
 export type CommitmentFormSubmit = () => Promise<void>;
 export type RegisterCommitmentFormSubmit = (
@@ -30,9 +33,7 @@ export function useCommitmentFormHost() {
     })),
   );
   const addSaving = useAddCommitmentState((state) => state.saving);
-  const editSaving = useEditCommitmentState((state) =>
-    Object.values(state.entries).some((entry) => entry.saving),
-  );
+  const editSaving = useEditCommitmentState(isAnyEditCommitmentSaving);
   const sessionSaving = mode === 'add' ? addSaving : mode === 'edit' ? editSaving : false;
   const requestClose = useCommitmentFormHostState.getState().requestClose;
   const completeSave = useCommitmentFormHostState.getState().completeSave;
@@ -63,7 +64,13 @@ export function useCommitmentFormHost() {
     const current = useCommitmentFormHostState.getState();
     const registered = submitRef.current;
     // The footer still takes taps while the sheet animates closed; a Save there would write a dismissed draft.
-    if (current.phase !== 'open' || current.footer.saving) return;
+    if (
+      current.phase !== 'open' ||
+      current.footer.saving ||
+      isCommitmentFormSessionSaving(current.mode)
+    ) {
+      return;
+    }
     if (!registered || registered.sessionId !== current.sessionId) return;
     void registered.submit();
   }, []);
