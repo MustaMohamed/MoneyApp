@@ -116,7 +116,7 @@ function remove(rel: string): void {
 function restore(rel: string): void {
   fs.rmSync(fakePath(rel), { recursive: true, force: true });
   const real = path.join(repoRoot, rel);
-  if (fs.existsSync(real)) fs.copyFileSync(real, fakePath(rel));
+  if (fs.existsSync(real)) fs.cpSync(real, fakePath(rel), { recursive: true });
 }
 
 function restoreTouched(): void {
@@ -493,6 +493,7 @@ const DELETED_PATHS = [
   { rel: `${BUDGET}/spending_plan_sheet/spending_plan_sheet.styles.ts`, folder: false },
   { rel: 'src/components/ui/tab_header.tsx', folder: false },
   { rel: `${TRANSACTIONS}/transaction_form_v2`, folder: true },
+  { rel: `${COMMITMENTS}/edit_commitment`, folder: true },
 ];
 
 beforeAll(() => {
@@ -734,7 +735,7 @@ describe('validate-structural-guards.js, tree rows and deleted paths', () => {
   it.each(DELETED_PATHS)('reports $rel when it is back', ({ rel, folder }) => {
     if (folder) {
       touched.add(rel);
-      fs.mkdirSync(fakePath(rel));
+      fs.mkdirSync(fakePath(rel), { recursive: true });
     } else {
       write(rel, 'export {};\n');
     }

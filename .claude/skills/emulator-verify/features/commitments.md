@@ -63,6 +63,7 @@ Route `/commitments`, a tab. Screen `src/modules/commitments/screens/commitments
 | `Filter` | the filter sheet over this screen | this list |
 | the month pill | the month picker sheet | this list |
 | the FAB's long press (`Add`), then `Add Commitment`, or the empty state's `Add Commitment` | the add sheet over this list (`add_commitment.md` § Reach it) | this list |
+| a row's swipe `Edit` | the edit sheet over this list (`add_commitment.md` § Reach it) | this list |
 | Back | the previous tab | n/a |
 
 ## Gotchas

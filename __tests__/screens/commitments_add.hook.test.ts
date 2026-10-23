@@ -250,7 +250,7 @@ describe('useAddCommitment', () => {
     });
   });
 
-  describe('resetDraft', () => {
+  describe('an unmount after a failed save, then a remount on a later day', () => {
     beforeEach(() => {
       jest.useFakeTimers({ now: new Date('2026-10-22T12:00:00') });
     });
@@ -259,27 +259,31 @@ describe('useAddCommitment', () => {
       jest.useRealTimers();
     });
 
-    it('clears a failed draft to the add defaults of the day it runs on', async () => {
+    it('resets the add state on unmount, and the remount drafts the add defaults of the day it mounts on', async () => {
       addCommitmentMock.mockRejectedValueOnce(new Error('insert failed'));
-      const { result } = await renderHook(() => useAddCommitment({ onSaved }));
-      expect(result.current.form.getValues('startDate')).toBe('2026-10-22');
+      const first = await renderHook(() => useAddCommitment({ onSaved }));
+      expect(first.result.current.form.getValues('startDate')).toBe('2026-10-22');
       await act(() => {
-        result.current.form.setValue('name', 'Rent');
-        result.current.form.setValue('amount', 5000);
-        result.current.form.setValue('categoryId', 'category-rent');
+        first.result.current.form.setValue('name', 'Rent');
+        first.result.current.form.setValue('amount', 5000);
+        first.result.current.form.setValue('categoryId', 'category-rent');
       });
       await act(async () => {
-        await result.current.onSubmit();
+        await first.result.current.onSubmit();
       });
       expect(setSaveErrorMock).toHaveBeenLastCalledWith(Strings.commitmentsSaveError);
       resetStateMock.mockClear();
 
-      jest.setSystemTime(new Date('2026-10-23T12:00:00'));
-      await act(() => result.current.resetDraft());
+      await first.unmount();
 
-      expect(result.current.form.getValues('name')).toBe('');
-      expect(result.current.form.getValues('startDate')).toBe('2026-10-23');
       expect(resetStateMock).toHaveBeenCalledTimes(1);
+
+      jest.setSystemTime(new Date('2026-10-23T12:00:00'));
+      const second = await renderHook(() => useAddCommitment({ onSaved }));
+
+      expect(second.result.current.form.getValues('name')).toBe('');
+      expect(second.result.current.form.getValues('amount')).toBeUndefined();
+      expect(second.result.current.form.getValues('startDate')).toBe('2026-10-23');
       expect(onSaved).not.toHaveBeenCalled();
     });
   });

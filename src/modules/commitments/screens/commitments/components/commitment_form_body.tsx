@@ -1,7 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
-import { router } from 'expo-router';
 import { Input, PressableFeedback } from 'heroui-native';
 import { useMemo } from 'react';
 import { Controller, useWatch, type UseFormReturn } from 'react-hook-form';
@@ -10,9 +9,7 @@ import { Platform, View } from 'react-native';
 import { TYPE_OPTIONS } from '@/components/account_type_pill';
 import { Button } from '@/components/ui/button';
 import { FormErrorText } from '@/components/ui/form_error_text';
-import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { useBottomSheetAwareHandlers } from '@/components/ui/sheet';
-import { StackHeader } from '@/components/ui/stack_header';
 import { SegmentedTabs } from '@/components/ui/tabs';
 import { Text } from '@/components/ui/text';
 import {
@@ -52,24 +49,13 @@ import { DecimalAmountInput } from './decimal_amount_input';
 import { DurationPicker } from './duration_picker';
 import { RecurrencePicker } from './recurrence_picker';
 
-type CommitmentFormPresentationProps =
-  | {
-      presentation?: 'screen';
-      title: string;
-      saving: boolean;
-      errorMessage?: string;
-      onSubmit: () => void;
-      /** Rendered between the scroll content and the CTA footer, inside the `Screen` layout. */
-      footerExtra?: React.ReactNode;
-    }
-  | { presentation: 'sheet' };
-
-type CommitmentFormBodyProps = {
+interface CommitmentFormBodyProps {
   form: UseFormReturn<CommitmentFormValues>;
   categories: Category[];
   accounts: Account[];
   locked?: boolean;
-} & CommitmentFormPresentationProps;
+  afterFields?: React.ReactNode;
+}
 
 export function CommitmentFormFooter({
   errorMessage,
@@ -106,59 +92,8 @@ export function CommitmentFormFooter({
   );
 }
 
-function CommitmentFormFrame(
-  props: CommitmentFormPresentationProps & { children: React.ReactNode },
-): React.ReactElement {
-  if (props.presentation === 'sheet') return <>{props.children}</>;
-  return (
-    <Screen edges={['top', 'bottom']}>
-      <StackHeader title={props.title} onBack={() => router.back()} />
-      {props.children}
-      {props.footerExtra ?? null}
-      <View className="border-separator border-t px-4 pt-2 pb-6">
-        <CommitmentFormFooter
-          errorMessage={props.errorMessage}
-          saving={props.saving}
-          onSubmit={props.onSubmit}
-        />
-      </View>
-    </Screen>
-  );
-}
-
-function CommitmentFormScroll({
-  presentation,
-  children,
-}: {
-  presentation: 'screen' | 'sheet' | undefined;
-  children: React.ReactNode;
-}): React.ReactElement {
-  if (presentation === 'sheet') {
-    return (
-      <BottomSheetScrollView
-        testID="commitment-form-scroll"
-        style={{ flex: 1 }}
-        contentContainerStyle={COMMITMENT_FORM_CONTENT_CONTAINER_STYLE}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        {children}
-      </BottomSheetScrollView>
-    );
-  }
-  return (
-    <ScreenScroll
-      contentContainerStyle={COMMITMENT_FORM_CONTENT_CONTAINER_STYLE}
-      keyboardShouldPersistTaps="handled"
-      showsVerticalScrollIndicator={false}
-    >
-      {children}
-    </ScreenScroll>
-  );
-}
-
 export function CommitmentFormBody(props: CommitmentFormBodyProps) {
-  const { form, categories, accounts, locked } = props;
+  const { form, categories, accounts, locked, afterFields } = props;
   const { onFocus: onInputFocus, onBlur: onInputBlur } = useBottomSheetAwareHandlers();
   const [
     amountType,
@@ -271,8 +206,14 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
   }
 
   return (
-    <CommitmentFormFrame {...props}>
-      <CommitmentFormScroll presentation={props.presentation}>
+    <>
+      <BottomSheetScrollView
+        testID="commitment-form-scroll"
+        style={{ flex: 1 }}
+        contentContainerStyle={COMMITMENT_FORM_CONTENT_CONTAINER_STYLE}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         <View className="bg-default gap-1 rounded-2xl px-3 py-3">
           <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
             {Strings.commitmentsFieldName}
@@ -536,7 +477,8 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
             )}
           />
         </View>
-      </CommitmentFormScroll>
+        {afterFields}
+      </BottomSheetScrollView>
 
       <CategoryPickerSheet
         isOpen={categoryPickerVisible}
@@ -554,6 +496,6 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
         onSelect={selectAccount}
         onOpenChange={() => setAccountPickerVisible(false)}
       />
-    </CommitmentFormFrame>
+    </>
   );
 }

@@ -1,4 +1,3 @@
-import { useLocalSearchParams, usePathname, useRouter } from 'expo-router';
 import { useEffect, useId, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -6,12 +5,6 @@ import { DurationType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
-import {
-  STACKED_PREFIX,
-  TABBED_ORIGIN,
-  stackedPrefixOf,
-  stackedTransactionDetailRoute,
-} from '@/modules/navigation/domain/stacked_route';
 import { useRouteDraft } from '@/utils/use_route_draft.hook';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
@@ -25,15 +18,17 @@ import { INITIAL_UI_ENTRY, useEditCommitmentState } from './edit_commitment.stat
 
 export type { CommitmentFormValues };
 
-export function useEditCommitment() {
+interface EditCommitmentOptions {
+  commitmentId: string;
+  onSaved: () => void;
+  onDeactivated: () => void;
+  onMissing: () => void;
+}
+
+export function useEditCommitment(options: EditCommitmentOptions) {
   const owner = useId();
-  const router = useRouter();
-  const { id, originTxId, originTxCopy } = useLocalSearchParams<{
-    id: string;
-    originTxId?: string;
-    originTxCopy?: string;
-  }>();
-  const stackedPrefix = stackedPrefixOf(usePathname());
+  const id = options.commitmentId;
+  const { onMissing } = options;
 
   const accounts = useAccountStore((s) => s.accounts);
   const categories = useCategoryStore.useState.categories();
@@ -52,8 +47,8 @@ export function useEditCommitment() {
   const commitment = useMemo(() => commitments.find((c) => c.id === id), [commitments, id]);
 
   useEffect(() => {
-    if (!commitment) router.back();
-  }, [commitment, router]);
+    if (!commitment && !saving) onMissing();
+  }, [commitment, saving, onMissing]);
 
   const form = useZodForm(COMMITMENT_SCHEMA, {
     mode: 'onSubmit',
@@ -81,14 +76,6 @@ export function useEditCommitment() {
     return () => release(owner);
   }, [owner, claim, release]);
 
-  function leaveStackedSubtree() {
-    // `(tabs)` is index 0 of the `(app)` Stack, so popping to the top lands on the tabbed transaction.
-    if (originTxCopy === TABBED_ORIGIN) router.dismissAll();
-    // POP_TO selects by route name, so it steps over any duplicate edit or payment a double-tap appended.
-    else if (originTxId) router.dismissTo(stackedTransactionDetailRoute(originTxId));
-    else router.back();
-  }
-
   async function onValid(data: CommitmentFormValues) {
     if (!commitment || !isCurrent(commitment.id) || isSaving()) return;
     setSaveError(owner, undefined);
@@ -112,8 +99,7 @@ export function useEditCommitment() {
           data.durationType === DurationType.AfterCount ? (data.endAfterCount ?? null) : null,
       });
       if (!isCurrent(commitment.id)) return;
-      if (stackedPrefix === STACKED_PREFIX) leaveStackedSubtree();
-      else router.dismissTo('/commitments');
+      options.onSaved();
     } catch {
       if (isCurrent(commitment.id)) setSaveError(owner, Strings.commitmentsSaveError);
     } finally {
@@ -134,8 +120,7 @@ export function useEditCommitment() {
       await deactivateCommitment(commitment.id);
       if (!isCurrent(commitment.id)) return;
       setDeactivateDialogVisible(owner, false);
-      if (stackedPrefix === STACKED_PREFIX) leaveStackedSubtree();
-      else router.replace('/commitments');
+      options.onDeactivated();
     } catch {
       if (!isCurrent(commitment.id)) return;
       // The sheet is a portal over the form, so it must close for the banner to show.

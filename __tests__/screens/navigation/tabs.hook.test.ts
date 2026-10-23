@@ -69,6 +69,16 @@ describe('useTabsLayout', () => {
     expect(result.current.state.fabHidden).toBe(true);
   });
 
+  it('hides the + button while the edit commitment sheet is open over the current tab', async () => {
+    const { result } = await renderHook(() => useTabsLayout());
+
+    await act(() => useCommitmentFormHostState.getState().openEdit('c-1'));
+
+    expect(mockPush).not.toHaveBeenCalled();
+    expect(useCommitmentFormHostState.getState().phase).toBe('open');
+    expect(result.current.state.fabHidden).toBe(true);
+  });
+
   it('keeps the + button hidden while the commitment sheet closes', async () => {
     const { result } = await renderHook(() => useTabsLayout());
 

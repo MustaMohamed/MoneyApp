@@ -1,11 +1,21 @@
 import { Sheet } from '@/components/ui/sheet';
 
-import { CommitmentFormBody, CommitmentFormFooter } from '../components/commitment_form_body';
+import { CommitmentFormFooter } from '../components/commitment_form_body';
 import { useCommitmentFormHost } from './commitment_form_host.hook';
+import { AddCommitmentSession } from './components/add_commitment_session';
+import { EditCommitmentSession } from './components/edit_commitment_session';
 
 export function CommitmentFormHost(): React.ReactElement {
-  const { state, form, handleSave, handleOpenChange, handleCloseComplete } =
-    useCommitmentFormHost();
+  const {
+    state,
+    registerSubmit,
+    handleSave,
+    handleOpenChange,
+    handleClose,
+    handleSaved,
+    handleDeactivated,
+    handleCloseComplete,
+  } = useCommitmentFormHost();
 
   return (
     <Sheet
@@ -27,13 +37,23 @@ export function CommitmentFormHost(): React.ReactElement {
         ) : undefined
       }
     >
-      {state.hasSession ? (
-        <CommitmentFormBody
+      {state.hasSession && state.mode === 'add' ? (
+        <AddCommitmentSession
           key={state.sessionId}
-          presentation="sheet"
-          form={form}
-          categories={state.categories}
-          accounts={state.accounts}
+          sessionId={state.sessionId}
+          onRegisterSubmit={registerSubmit}
+          onSaved={handleSaved}
+        />
+      ) : null}
+      {state.hasSession && state.mode === 'edit' && state.editingCommitmentId !== undefined ? (
+        <EditCommitmentSession
+          key={state.sessionId}
+          sessionId={state.sessionId}
+          commitmentId={state.editingCommitmentId}
+          onRegisterSubmit={registerSubmit}
+          onSaved={handleSaved}
+          onDeactivated={handleDeactivated}
+          onClose={handleClose}
         />
       ) : null}
     </Sheet>

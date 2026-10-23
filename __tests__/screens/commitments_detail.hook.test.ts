@@ -11,6 +11,7 @@ import { useCommitmentDetail } from '@/modules/commitments/screens/commitments/d
 import { useCommitmentDetailState } from '@/modules/commitments/screens/commitments/detail/detail.state';
 import { useCommitmentDetailStore } from '@/modules/commitments/screens/commitments/detail/detail.store';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
+import { useCommitmentFormHostState } from '@/modules/commitments/store/commitment_form_host.state';
 import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
 import { deferred } from '@/test_helpers/deferred';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
@@ -32,7 +33,7 @@ let paymentsState: CommitmentPayment[] = [];
 jest.mock('expo-router', () => ({
   useLocalSearchParams: () => mockUseParams(),
   usePathname: () => mockPathname.current,
-  router: { push: jest.fn(), back: jest.fn() },
+  router: { push: jest.fn(), back: jest.fn(), dismissTo: jest.fn(), dismissAll: jest.fn() },
 }));
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
   useCommitmentStore: jest.fn(),
@@ -108,8 +109,42 @@ beforeEach(() => {
   useCommitmentDetailStore.getState().reset();
   useCommitmentDetailState.getState().reset();
   usePaySheetState.getState().reset();
+  useCommitmentFormHostState.getState().reset();
   setup();
 });
+
+type LandingKey = 'onSaved' | 'onDeactivated';
+
+// What the host runs once a save or a deactivate settles: close the session, then its landing.
+function runHostLanding(key: LandingKey): void {
+  const { sessionId, landing } = useCommitmentFormHostState.getState();
+  if (!useCommitmentFormHostState.getState().completeSave(sessionId)) {
+    throw new Error('the host refused the completed save');
+  }
+  landing?.[key]?.();
+}
+
+function expectNoNavigation(): void {
+  expect(router.push).not.toHaveBeenCalled();
+  expect(router.back).not.toHaveBeenCalled();
+  expect(router.dismissTo).not.toHaveBeenCalled();
+  expect(router.dismissAll).not.toHaveBeenCalled();
+}
+
+async function openEditFromReadyDetail(): Promise<void> {
+  commitmentsState = [commitment];
+  paymentsState = [payment];
+  const { result } = await renderHook(() => useCommitmentDetail());
+  await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+
+  await act(async () => result.current.goToEdit());
+
+  expect(useCommitmentFormHostState.getState()).toMatchObject({
+    phase: 'open',
+    mode: 'edit',
+    editingCommitmentId: 'commitment-1',
+  });
+}
 
 describe('useCommitmentDetail', () => {
   it('renders without throwing', async () => {
@@ -167,45 +202,68 @@ describe('useCommitmentDetail', () => {
     expect(result.current.state.owner.length).toBeGreaterThan(0);
   });
 
-  it('edits through the tabbed route when opened from the tabbed copy', async () => {
-    commitmentsState = [commitment];
-    paymentsState = [payment];
-    const { result } = await renderHook(() => useCommitmentDetail());
-    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+  it.each<LandingKey>(['onSaved', 'onDeactivated'])(
+    'opens the edit sheet from the tabbed copy, whose %s lands on the list',
+    async (key) => {
+      await openEditFromReadyDetail();
+      expectNoNavigation();
 
-    await act(async () => result.current.goToEdit());
+      runHostLanding(key);
 
-    expect(router.push).toHaveBeenCalledWith('/commitments/commitment-1/edit');
-  });
+      expect(router.dismissTo).toHaveBeenCalledTimes(1);
+      expect(router.dismissTo).toHaveBeenCalledWith('/commitments');
+      expect(router.push).not.toHaveBeenCalled();
+    },
+  );
 
-  it('keeps the edit inside the stacked subtree when opened from the stacked copy', async () => {
+  it('opens the edit sheet from the stacked copy, whose save stays on the stacked detail', async () => {
     mockPathname.current = '/stacked/commitments/pay-1';
     mockParams.originTxId = 'tx-1';
-    commitmentsState = [commitment];
-    paymentsState = [payment];
-    const { result } = await renderHook(() => useCommitmentDetail());
-    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+    await openEditFromReadyDetail();
 
-    await act(async () => result.current.goToEdit());
+    runHostLanding('onSaved');
 
-    expect(router.push).toHaveBeenCalledWith(
-      '/stacked/commitments/commitment-1/edit?originTxId=tx-1',
-    );
+    expectNoNavigation();
   });
 
-  it('carries the tabbed origin copy to the edit when opened from the tabbed transaction', async () => {
+  it('a deactivate from the stacked copy pops back to the stacked transaction it came from', async () => {
+    mockPathname.current = '/stacked/commitments/pay-1';
+    mockParams.originTxId = 'tx-1';
+    await openEditFromReadyDetail();
+    expectNoNavigation();
+
+    runHostLanding('onDeactivated');
+
+    expect(router.dismissTo).toHaveBeenCalledWith('/stacked/transactions/detail/tx-1');
+    expect(router.dismissAll).not.toHaveBeenCalled();
+    expect(router.back).not.toHaveBeenCalled();
+    expect(router.push).not.toHaveBeenCalled();
+  });
+
+  it('a deactivate from a stacked copy opened on a tabbed transaction pops every screen above the tabs', async () => {
     mockPathname.current = '/stacked/commitments/pay-1';
     mockParams = { id: 'pay-1', originTxId: 'tx-1', originTxCopy: 'tabbed' };
-    commitmentsState = [commitment];
-    paymentsState = [payment];
-    const { result } = await renderHook(() => useCommitmentDetail());
-    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+    await openEditFromReadyDetail();
+    expectNoNavigation();
 
-    await act(async () => result.current.goToEdit());
+    runHostLanding('onDeactivated');
 
-    expect(router.push).toHaveBeenCalledWith(
-      '/stacked/commitments/commitment-1/edit?originTxId=tx-1&originTxCopy=tabbed',
-    );
+    expect(router.dismissAll).toHaveBeenCalledTimes(1);
+    expect(router.dismissTo).not.toHaveBeenCalled();
+    expect(router.push).not.toHaveBeenCalled();
+  });
+
+  it('a deactivate from a stacked copy with no origin steps back once', async () => {
+    mockPathname.current = '/stacked/commitments/pay-1';
+    await openEditFromReadyDetail();
+    expectNoNavigation();
+
+    runHostLanding('onDeactivated');
+
+    expect(router.back).toHaveBeenCalledTimes(1);
+    expect(router.dismissTo).not.toHaveBeenCalled();
+    expect(router.dismissAll).not.toHaveBeenCalled();
+    expect(router.push).not.toHaveBeenCalled();
   });
 
   it('completes a committed skip before an effect-driven history refresh failure', async () => {
