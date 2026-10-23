@@ -448,6 +448,9 @@ const DELETED_PATHS = [
   `${TRANSACTIONS}/transaction_form_v2`,
   'src/app/(app)/(tabs)/commitments/add',
   `${COMMITMENTS}/add_commitment`,
+  'src/app/(app)/(tabs)/commitments/[id]/edit',
+  'src/app/(app)/stacked/commitments/[id]/edit',
+  `${COMMITMENTS}/edit_commitment`,
 ];
 
 /** @param {string} rel @returns {string[]} */
