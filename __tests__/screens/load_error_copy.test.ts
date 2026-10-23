@@ -43,7 +43,7 @@ const derivedRetryKeys: StringsKey[] = [
 ].filter(isStringsKey);
 
 describe('load-error titles — derived from Strings by naming convention', () => {
-  it('derives exactly the 15 titles the load-error copy uses', () => {
+  it('derives exactly the 17 titles the load-error copy uses', () => {
     expect(derivedTitleKeys.slice().sort()).toEqual(
       [
         'accountActivityLoadError',
@@ -55,6 +55,8 @@ describe('load-error titles — derived from Strings by naming convention', () =
         'budgetLoadError',
         'addTxDataLoadError',
         'commitmentsLoadError',
+        'commitmentsDetailLoadErrorTitle',
+        'commitmentsDetailRefreshErrorTitle',
         'transactionsLoadError',
         'transactionsRefreshError',
         'transactionsTotalsLoadError',
@@ -66,7 +68,7 @@ describe('load-error titles — derived from Strings by naming convention', () =
   });
 
   it('every derived title is present and non-empty', () => {
-    expect(derivedTitleKeys).toHaveLength(15);
+    expect(derivedTitleKeys).toHaveLength(17);
     for (const key of derivedTitleKeys) {
       const value = Strings[key];
       if (typeof value !== 'string') throw new Error(`expected ${key} to be a string`);
@@ -76,7 +78,7 @@ describe('load-error titles — derived from Strings by naming convention', () =
 });
 
 describe('load-error retry labels — derived from Strings by naming convention', () => {
-  it('derives exactly the 9 retry labels the load-error copy uses', () => {
+  it('derives exactly the 10 retry labels the load-error copy uses', () => {
     expect(derivedRetryKeys.slice().sort()).toEqual(
       [
         'accountActivityLoadRetry',
@@ -86,6 +88,7 @@ describe('load-error retry labels — derived from Strings by naming convention'
         'budgetLoadRetry',
         'addTxDataLoadRetry',
         'commitmentsLoadRetry',
+        'commitmentsDetailLoadRetry',
         'transactionsLoadRetry',
         'detailLoadRetry',
       ].sort(),
@@ -93,7 +96,7 @@ describe('load-error retry labels — derived from Strings by naming convention'
   });
 
   it('every derived retry label is present and non-empty', () => {
-    expect(derivedRetryKeys).toHaveLength(9);
+    expect(derivedRetryKeys).toHaveLength(10);
     for (const key of derivedRetryKeys) {
       const value = Strings[key];
       if (typeof value !== 'string') throw new Error(`expected ${key} to be a string`);
@@ -123,5 +126,17 @@ describe('load-error titles — initial and refresh stay distinct where a screen
 
   it('transaction detail', () => {
     expect(Strings.detailRefreshErrorTitle).not.toBe(Strings.detailLoadErrorTitle);
+  });
+
+  it('commitment detail — both titles derive with its retry and stay distinct', () => {
+    expect(derivedTitleKeys).toEqual(
+      expect.arrayContaining([
+        'commitmentsDetailLoadErrorTitle',
+        'commitmentsDetailRefreshErrorTitle',
+      ]),
+    );
+    expect(Strings.commitmentsDetailRefreshErrorTitle).not.toBe(
+      Strings.commitmentsDetailLoadErrorTitle,
+    );
   });
 });

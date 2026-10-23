@@ -39,8 +39,6 @@ const UNREDESIGNED_OLD_VOICE_KEYS = [
   'incomeSheetSaveError',
   'categoriesSaveError',
   'categoriesReassignError',
-  'commitmentsDetailLoadErrorTitle',
-  'commitmentsDetailRefreshErrorTitle',
   'commitmentsSkipError',
   'commitmentsLoadError',
   'commitmentsLoadRetry',

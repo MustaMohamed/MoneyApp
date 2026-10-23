@@ -397,7 +397,7 @@ const paidPayment = makeTestPayment({
 });
 
 describe('useTransactionDetail commitment navigation', () => {
-  it('loads the linked payment month before navigating', async () => {
+  it('opens the commitment at the linked cycle and moves no month', async () => {
     mockGetCommitmentPaymentById.mockResolvedValue(paidPayment);
     const { result } = await renderHook(() => useTransactionDetail(linkedTransaction.id));
     await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
@@ -406,9 +406,9 @@ describe('useTransactionDetail commitment navigation', () => {
 
     expect(mockGetCommitmentPaymentById).toHaveBeenCalledWith('payment-1');
     expect(loadCommitments).not.toHaveBeenCalled();
-    expect(setSelectedMonth).toHaveBeenCalledWith('2026-04');
+    expect(setSelectedMonth).not.toHaveBeenCalled();
     expect(router.push).toHaveBeenCalledWith(
-      '/stacked/commitments/payment-1?originTxId=transaction-1&originTxCopy=tabbed',
+      '/stacked/commitments/commitment-1?cycle=payment-1&originTxId=transaction-1&originTxCopy=tabbed',
     );
   });
 
@@ -420,12 +420,13 @@ describe('useTransactionDetail commitment navigation', () => {
 
     await act(async () => result.current.openCommitment());
 
+    expect(setSelectedMonth).not.toHaveBeenCalled();
     expect(router.push).toHaveBeenCalledWith(
-      '/stacked/commitments/payment-1?originTxId=transaction-1',
+      '/stacked/commitments/commitment-1?cycle=payment-1&originTxId=transaction-1',
     );
   });
 
-  it('does not navigate when the linked payment no longer exists', async () => {
+  it('alerts the not-found title and body when the linked payment no longer exists', async () => {
     mockGetCommitmentPaymentById.mockResolvedValue(undefined);
     const { result } = await renderHook(() => useTransactionDetail(linkedTransaction.id));
     await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
@@ -435,7 +436,26 @@ describe('useTransactionDetail commitment navigation', () => {
     expect(loadCommitments).not.toHaveBeenCalled();
     expect(setSelectedMonth).not.toHaveBeenCalled();
     expect(router.push).not.toHaveBeenCalled();
-    expect(Alert.alert).toHaveBeenCalled();
+    expect(jest.mocked(Alert.alert).mock.calls).toEqual([
+      ['This commitment is gone', 'It no longer exists.'],
+    ]);
+  });
+
+  it('alerts the first-load title alone, never the not-found copy, when the payment read fails', async () => {
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    mockGetCommitmentPaymentById.mockRejectedValue(new Error('payment read failed'));
+    const { result } = await renderHook(() => useTransactionDetail(linkedTransaction.id));
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+
+    await act(async () => result.current.openCommitment());
+
+    expect(router.push).not.toHaveBeenCalled();
+    expect(jest.mocked(Alert.alert).mock.calls).toEqual([["Couldn't load this commitment."]]);
+    expect(Alert.alert).not.toHaveBeenCalledWith(
+      Strings.commitmentsDetailNotFoundTitle,
+      expect.anything(),
+    );
+    consoleSpy.mockRestore();
   });
 });
 

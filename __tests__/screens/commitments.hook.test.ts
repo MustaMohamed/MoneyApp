@@ -340,6 +340,16 @@ describe('useCommitments', () => {
     expect(mockRouter.push).not.toHaveBeenCalled();
   });
 
+  it('opens the detail at the commitment id with the tapped payment as its cycle', async () => {
+    mockRouter.push.mockClear();
+    const { result } = await renderHook(() => useCommitments());
+
+    await act(() => result.current.goToDetail('commitment-1', 'pay-1'));
+
+    expect(mockRouter.push).toHaveBeenCalledTimes(1);
+    expect(mockRouter.push).toHaveBeenCalledWith('/commitments/commitment-1?cycle=pay-1');
+  });
+
   it('opens the edit sheet for the commitment from goToEdit, with no landing and no push', async () => {
     useCommitmentFormHostState.getState().reset();
     mockRouter.push.mockClear();

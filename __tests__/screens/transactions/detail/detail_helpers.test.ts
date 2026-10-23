@@ -137,15 +137,15 @@ function transaction(overrides: Partial<Transaction>): Transaction {
 }
 
 describe('getCommitmentPaymentRoute', () => {
-  it('opens the stacked twin above the tabs and marks the tabbed origin copy', () => {
-    expect(getCommitmentPaymentRoute('payment-1', '', 'tx-1')).toBe(
-      '/stacked/commitments/payment-1?originTxId=tx-1&originTxCopy=tabbed',
+  it('opens the stacked twin at the commitment and its cycle, marking the tabbed origin copy', () => {
+    expect(getCommitmentPaymentRoute('commitment-1', 'payment-1', '', 'tx-1')).toBe(
+      '/stacked/commitments/commitment-1?cycle=payment-1&originTxId=tx-1&originTxCopy=tabbed',
     );
   });
 
-  it('opens the stacked twin with the origin transaction from a stacked transaction', () => {
-    expect(getCommitmentPaymentRoute('payment-1', STACKED_PREFIX, 'tx-1')).toBe(
-      '/stacked/commitments/payment-1?originTxId=tx-1',
+  it('opens the stacked twin at the commitment and its cycle from a stacked transaction', () => {
+    expect(getCommitmentPaymentRoute('commitment-1', 'payment-1', STACKED_PREFIX, 'tx-1')).toBe(
+      '/stacked/commitments/commitment-1?cycle=payment-1&originTxId=tx-1',
     );
   });
 });
