@@ -3,12 +3,42 @@ import { PressableFeedback, Typography } from 'heroui-native';
 import { Strings } from '@/constants/strings';
 
 import { CommitmentFormBody } from '../components/commitment_form_body';
+import type { RegisterCommitmentFormSubmit } from './commitment_form_host.hook';
+import { useCommitmentFormSession } from './commitment_form_session.hook';
 import { DeactivateSheet } from './components/deactivate_sheet';
 import { useEditCommitment } from './edit_commitment.hook';
 
-export default function EditCommitmentScreen() {
+interface EditCommitmentSessionProps {
+  sessionId: number;
+  commitmentId: string;
+  onRegisterSubmit: RegisterCommitmentFormSubmit;
+  onSaved: (sessionId: number) => void;
+  onDeactivated: (sessionId: number) => void;
+  onClose: () => void;
+}
+
+export function EditCommitmentSession({
+  sessionId,
+  commitmentId,
+  onRegisterSubmit,
+  onSaved,
+  onDeactivated,
+  onClose,
+}: EditCommitmentSessionProps): React.ReactElement {
   const { state, form, onSubmit, handleDeactivate, confirmDeactivate, cancelDeactivate } =
-    useEditCommitment();
+    useEditCommitment({
+      commitmentId,
+      onSaved: () => onSaved(sessionId),
+      onDeactivated: () => onDeactivated(sessionId),
+      onMissing: onClose,
+    });
+
+  useCommitmentFormSession({
+    sessionId,
+    submit: onSubmit,
+    footer: { saving: state.saving, errorMessage: state.saveError },
+    onRegisterSubmit,
+  });
 
   return (
     <>
@@ -16,11 +46,7 @@ export default function EditCommitmentScreen() {
         form={form}
         categories={state.categories}
         accounts={state.accounts}
-        saving={state.saving}
-        errorMessage={state.saveError}
-        onSubmit={() => void onSubmit()}
-        title={Strings.commitmentsEditTitle}
-        footerExtra={
+        afterFields={
           <PressableFeedback
             onPress={handleDeactivate}
             className="items-center px-4 py-5"

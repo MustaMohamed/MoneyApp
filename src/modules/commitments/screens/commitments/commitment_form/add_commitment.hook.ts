@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import { DurationType } from '@/constants/enums';
@@ -39,12 +39,6 @@ export function useAddCommitment(options: { onSaved: () => void }) {
   useEffect(() => {
     return () => reset();
   }, [reset]);
-
-  const resetForm = form.reset;
-  const resetDraft = useCallback(() => {
-    resetForm(buildAddDefaults());
-    reset();
-  }, [resetForm, reset]);
 
   async function onValid(data: CommitmentFormValues) {
     if (saveInFlightRef.current) return;
@@ -87,6 +81,5 @@ export function useAddCommitment(options: { onSaved: () => void }) {
     },
     form,
     onSubmit: form.handleSubmit(onValid),
-    resetDraft,
   };
 }
