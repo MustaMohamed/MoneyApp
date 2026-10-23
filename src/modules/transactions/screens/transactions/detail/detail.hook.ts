@@ -14,7 +14,6 @@ import {
 import { budgetRepository } from '@/modules/budget/repositories/budget.repository';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { commitmentRepository } from '@/modules/commitments/repositories/commitment.repository';
-import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { stackedPrefixOf } from '@/modules/navigation/domain/stacked_route';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import { useTransactionFormState } from '@/modules/transactions/store/transaction_form_host.state';
@@ -279,16 +278,16 @@ export function useTransactionDetail(id: string) {
     try {
       const payment = await commitmentRepository.getPaymentById(commitmentPaymentId);
       if (!payment) {
-        Alert.alert(Strings.commitmentsDetailNotFound);
+        Alert.alert(Strings.commitmentsDetailNotFoundTitle, Strings.commitmentsDetailNotFoundBody);
         return;
       }
-      const commitmentState = useCommitmentStore.getState();
-      await commitmentState.setSelectedMonth(payment.due_date.slice(0, 7));
       // The route's own id, not currentTx.id: POP_TO overwrites the target's params with this value.
-      router.push(getCommitmentPaymentRoute(commitmentPaymentId, stackedPrefix, id));
+      router.push(
+        getCommitmentPaymentRoute(payment.commitment_id, commitmentPaymentId, stackedPrefix, id),
+      );
     } catch (error) {
       console.error('[transactionDetail] open commitment failed', error);
-      Alert.alert(Strings.commitmentsDetailNotFound);
+      Alert.alert(Strings.commitmentsDetailLoadErrorTitle);
     }
   }, [commitmentPaymentId, stackedPrefix, id]);
 

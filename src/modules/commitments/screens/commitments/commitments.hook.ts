@@ -308,8 +308,8 @@ export function useCommitments() {
     }
   }, [loadAccountLookup, rowAccountIds]);
 
-  const goToDetail = useCallback((paymentId: string) => {
-    router.push(`/commitments/${paymentId}`);
+  const goToDetail = useCallback((commitmentId: string, paymentId: string) => {
+    router.push(`/commitments/${commitmentId}?cycle=${paymentId}`);
   }, []);
 
   const goToAdd = useCallback(() => {

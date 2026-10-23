@@ -1,7 +1,11 @@
+import { ErrorState } from '@/components/ui/error_state';
 import { LoadErrorAlert } from '@/components/ui/load_error_alert';
 import { Strings } from '@/constants/strings';
 
-import { resolveDetailLoadErrorTitle } from './detail_load_error.helpers';
+import {
+  resolveDetailLoadErrorAlertProps,
+  resolveDetailLoadErrorTitle,
+} from './detail_load_error.helpers';
 
 interface DetailLoadErrorProps {
   floating?: boolean;
@@ -12,11 +16,30 @@ export function DetailLoadError({
   floating = false,
   onRetry,
 }: DetailLoadErrorProps): React.ReactElement {
+  const title = resolveDetailLoadErrorTitle(floating);
+  const alertProps = resolveDetailLoadErrorAlertProps(floating);
+
+  if (alertProps === undefined) {
+    return (
+      <ErrorState
+        edges={[]}
+        flat
+        iconName="alert-circle-outline"
+        title={title}
+        description={Strings.commitmentsDetailLoadErrorDescription}
+        actionLabel={Strings.commitmentsDetailLoadRetry}
+        actionAccessibilityLabel={Strings.commitmentsDetailLoadRetry}
+        onAction={onRetry}
+        testID="commitment-detail-load-error"
+      />
+    );
+  }
+
   return (
     <LoadErrorAlert
-      mode={floating ? 'floating' : 'fill'}
-      title={resolveDetailLoadErrorTitle(floating)}
-      retryLabel={Strings.commitmentsLoadRetry}
+      {...alertProps}
+      title={title}
+      retryLabel={Strings.commitmentsDetailLoadRetry}
       onRetry={onRetry}
       testID="commitment-detail-load-error"
     />

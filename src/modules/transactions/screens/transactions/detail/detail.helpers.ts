@@ -417,15 +417,16 @@ export function buildTransactionDetailPresentation({
 }
 
 export function getCommitmentPaymentRoute(
+  commitmentId: string,
   paymentId: string,
   originPrefix: StackedPrefix,
   originTransactionId: string,
 ):
-  | `${typeof STACKED_PREFIX}/commitments/${string}?originTxId=${string}`
-  | `${typeof STACKED_PREFIX}/commitments/${string}?originTxId=${string}&originTxCopy=${typeof TABBED_ORIGIN}` {
+  | `${typeof STACKED_PREFIX}/commitments/${string}?cycle=${string}&originTxId=${string}`
+  | `${typeof STACKED_PREFIX}/commitments/${string}?cycle=${string}&originTxId=${string}&originTxCopy=${typeof TABBED_ORIGIN}` {
   // Always the stacked twin, so the detail sits above the tabs; the origin's copy rides on `originTxCopy`.
   if (originPrefix === '') {
-    return `${STACKED_PREFIX}/commitments/${paymentId}?originTxId=${originTransactionId}&originTxCopy=${TABBED_ORIGIN}`;
+    return `${STACKED_PREFIX}/commitments/${commitmentId}?cycle=${paymentId}&originTxId=${originTransactionId}&originTxCopy=${TABBED_ORIGIN}`;
   }
-  return `${STACKED_PREFIX}/commitments/${paymentId}?originTxId=${originTransactionId}`;
+  return `${STACKED_PREFIX}/commitments/${commitmentId}?cycle=${paymentId}&originTxId=${originTransactionId}`;
 }

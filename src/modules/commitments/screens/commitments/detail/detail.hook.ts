@@ -13,11 +13,9 @@ import {
   stackedPrefixOf,
   stackedTransactionDetailRoute,
 } from '@/modules/navigation/domain/stacked_route';
-import { formatLongDate } from '@/utils/format_date';
+import { formatLongDate, toLocalDateString } from '@/utils/format_date';
 
-import { isUnpaidPayment } from '../../../domain/payment_state';
 import type { Commitment } from '../../../entities/commitment.entity';
-import type { CommitmentPayment } from '../../../entities/commitment_payment.entity';
 import { commitmentRepository } from '../../../repositories/commitment.repository';
 import { useCommitmentStore } from '../../../store/commitment.store';
 import {
@@ -25,7 +23,11 @@ import {
   useCommitmentFormHostState,
 } from '../../../store/commitment_form_host.state';
 import { usePaySheetState } from './components/pay_sheet.state';
-import { overlayStorePayments, resolveCommitmentDetailViewState } from './detail.helpers';
+import {
+  overlayStorePayments,
+  resolveCommitmentDetailCycle,
+  resolveCommitmentDetailViewState,
+} from './detail.helpers';
 import { INITIAL_UI_ENTRY, useCommitmentDetailState } from './detail.state';
 import { INITIAL_DATA_ENTRY, useCommitmentDetailStore } from './detail.store';
 
@@ -55,31 +57,22 @@ function leaveStackedSubtree(
   else router.back();
 }
 
-// Rows arrive in due-date order, so the first unpaid one is the earliest open cycle.
-function findCurrentPayment(payments: CommitmentPayment[]): CommitmentPayment | undefined {
-  return payments.find(isUnpaidPayment);
-}
-
 export function useCommitmentDetail() {
   const owner = useId();
   const {
-    id: paymentId,
+    id: commitmentId,
+    cycle,
     originTxId,
     originTxCopy,
   } = useLocalSearchParams<{
     id: string;
+    cycle?: string;
     originTxId?: string;
     originTxCopy?: string;
   }>();
   const stackedPrefix = stackedPrefixOf(usePathname());
 
-  const { payments, commitments, today } = useCommitmentStore(
-    useShallow((s) => ({
-      payments: s.payments,
-      commitments: s.commitments,
-      today: s.today,
-    })),
-  );
+  const payments = useCommitmentStore((s) => s.payments);
   const storeSkipPayment = useCommitmentStore.getState().skipPayment;
   const accounts = useAccountStore((s) => s.accounts);
   const categories = useCategoryStore.useState.categories();
@@ -95,43 +88,44 @@ export function useCommitmentDetail() {
   const setSkipError = useCommitmentDetailState.getState().setSkipError;
   const releaseUi = useCommitmentDetailState.getState().release;
 
-  const { commitmentId: rowsCommitmentId, allPayments } = useCommitmentDetailStore(
-    useShallow((s) => s.entries[owner] ?? INITIAL_DATA_ENTRY),
-  );
-  const setAllPayments = useCommitmentDetailStore.getState().setAllPayments;
+  const entry = useCommitmentDetailStore(useShallow((s) => s.entries[owner] ?? INITIAL_DATA_ENTRY));
+  const setDetail = useCommitmentDetailStore.getState().setDetail;
   const releaseData = useCommitmentDetailStore.getState().release;
   const releasePaySheet = usePaySheetState.getState().release;
 
-  const payment = useMemo(() => payments.find((p) => p.id === paymentId), [payments, paymentId]);
-
-  const commitment = useMemo(
-    () => (payment ? commitments.find((c) => c.id === payment.commitment_id) : undefined),
-    [payment, commitments],
-  );
-  const commitmentId = commitment?.id;
-
-  // `payments` is the refresh trigger: every store publish re-queries the history in place.
+  // `payments` is the refresh trigger: every store publish re-reads the detail in place.
   useEffect(() => {
     if (!commitmentId) return;
     let cancelled = false;
-    const entry = useCommitmentDetailStore.getState().entries[owner] ?? INITIAL_DATA_ENTRY;
-    const preserveData = entry.commitmentId === commitmentId && entry.allPayments.length > 0;
+    const held = useCommitmentDetailStore.getState().entries[owner] ?? INITIAL_DATA_ENTRY;
+    const preserveData = held.commitmentId === commitmentId && held.commitment !== undefined;
+    const previousDueDate = preserveData
+      ? held.allPayments.find((p) => p.id === held.cycleId)?.due_date
+      : undefined;
+    const loadedOn = toLocalDateString(new Date());
     beginLoad(owner, commitmentId, preserveData);
-    commitmentRepository
-      .getPaymentsByCommitment(commitmentId)
-      .then((rows) => {
+    Promise.all([
+      commitmentRepository.getById(commitmentId),
+      commitmentRepository.getPaymentsByCommitment(commitmentId),
+    ])
+      .then(([found, rows]) => {
         if (cancelled) return;
-        setAllPayments(owner, commitmentId, rows);
+        setDetail(owner, commitmentId, {
+          commitment: found,
+          payments: rows,
+          cycleId: resolveCommitmentDetailCycle(rows, cycle, previousDueDate)?.id,
+          loadedOn,
+        });
         resolve(owner, commitmentId);
       })
       .catch((err) => {
-        console.error('[commitmentDetail] getPaymentsByCommitment failed', err);
+        console.error('[commitmentDetail] detail read failed', err);
         if (!cancelled) failLoad(owner, commitmentId, preserveData);
       });
     return () => {
       cancelled = true;
     };
-  }, [commitmentId, payments, reloadKey, owner, beginLoad, resolve, failLoad, setAllPayments]);
+  }, [commitmentId, cycle, payments, reloadKey, owner, beginLoad, resolve, failLoad, setDetail]);
 
   useEffect(() => {
     return () => {
@@ -141,14 +135,21 @@ export function useCommitmentDetail() {
     };
   }, [owner, releaseData, releaseUi, releasePaySheet]);
 
-  const rows = rowsCommitmentId === commitmentId ? allPayments : INITIAL_DATA_ENTRY.allPayments;
+  const holdsRoute = entry.commitmentId === commitmentId;
+  const commitment = holdsRoute ? entry.commitment : undefined;
+  const rows = holdsRoute ? entry.allPayments : INITIAL_DATA_ENTRY.allPayments;
+  const cycleId = holdsRoute ? entry.cycleId : undefined;
+  const today = holdsRoute ? entry.loadedOn : undefined;
   const historyRows = useMemo(() => overlayStorePayments(rows, payments), [rows, payments]);
+  const payment = useMemo(
+    () => (cycleId === undefined ? undefined : historyRows.find((p) => p.id === cycleId)),
+    [historyRows, cycleId],
+  );
 
   const viewState = resolveCommitmentDetailViewState({
     hasCommitment: commitment !== undefined,
     ownsStatus: activeId === commitmentId,
     status,
-    hasRows: rows.length > 0,
     refreshError,
   });
 
@@ -162,8 +163,6 @@ export function useCommitmentDetail() {
       commitment?.account_id ? accounts.find((a) => a.id === commitment.account_id) : undefined,
     [commitment, accounts],
   );
-
-  const currentPayment = useMemo(() => findCurrentPayment(allPayments), [allPayments]);
 
   const recurrenceLabel = useMemo(
     () => (commitment ? buildRecurrenceLabel(commitment) : ''),
@@ -230,7 +229,6 @@ export function useCommitmentDetail() {
       allPayments: historyRows,
       category,
       account,
-      currentPayment,
       today,
       recurrenceLabel,
       durationLabel,

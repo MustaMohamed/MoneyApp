@@ -1,19 +1,20 @@
-import { View } from 'react-native';
-
-import { HeaderTextAction } from '@/components/ui/header_text_action';
-import { LoadingCenter } from '@/components/ui/loading_center';
+import { HeaderIconAction } from '@/components/ui/header_icon_action';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { StackHeader } from '@/components/ui/stack_header';
-import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
+import { Size } from '@/constants/theme';
+import { GoldTokens } from '@/constants/theme_tokens';
 
 import { CurrentCycleCard } from './components/current_cycle_card';
 import { DetailHero } from './components/detail_hero';
 import { DetailLoadError } from './components/detail_load_error';
+import { CommitmentDetailSkeleton } from './components/detail_skeleton';
 import { DetailsCard } from './components/details_card';
+import { CommitmentDetailNotFound } from './components/not_found_state';
 import { PaySheet } from './components/pay_sheet';
 import { PaymentHistory } from './components/payment_history';
 import { SkipConfirmSheet } from './components/skip_confirm_sheet';
+import { commitmentDetailShowsEdit } from './detail.helpers';
 import { useCommitmentDetail } from './detail.hook';
 
 export default function CommitmentDetailScreen() {
@@ -24,24 +25,24 @@ export default function CommitmentDetailScreen() {
   return (
     <Screen edges={['top', 'bottom']}>
       <StackHeader
-        title={state.commitment?.name ?? ''}
+        title={Strings.commitmentsDetailHeader}
         onBack={goBack}
         right={
-          state.commitment && state.viewState !== 'loading' ? (
-            <HeaderTextAction label={Strings.commitmentsDetailEdit} onPress={goToEdit} />
+          commitmentDetailShowsEdit(state.viewState) ? (
+            <HeaderIconAction
+              icon="pencil-outline"
+              iconSize={Size.iconSm}
+              iconColor={GoldTokens[500]}
+              accessibilityLabel={Strings.commitmentsDetailEditAccessibility}
+              onPress={goToEdit}
+            />
           ) : undefined
         }
       />
 
-      {state.viewState === 'loading' ? <LoadingCenter /> : null}
+      {state.viewState === 'loading' ? <CommitmentDetailSkeleton /> : null}
 
-      {state.viewState === 'notFound' ? (
-        <View style={{ flex: 1 }} className="items-center justify-center">
-          <Text className="font-inter text-muted text-[15px]">
-            {Strings.commitmentsDetailNotFound}
-          </Text>
-        </View>
-      ) : null}
+      {state.viewState === 'notFound' ? <CommitmentDetailNotFound /> : null}
 
       {state.viewState === 'firstLoadError' ? <DetailLoadError onRetry={reload} /> : null}
 
