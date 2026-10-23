@@ -74,6 +74,16 @@ export function resolveOneLineTextProps(scaled: ScaledTextStyle | undefined): On
   };
 }
 
+export interface WrappingTextProps {
+  allowFontScaling: boolean;
+  style: { fontSize?: number; lineHeight?: number };
+}
+
+/** Text that wraps whole with no line cap: a scaled style stops OS scaling, `undefined` leaves the OS to scale. */
+export function resolveWrappingTextProps(scaled: ScaledTextStyle | undefined): WrappingTextProps {
+  return { allowFontScaling: scaled === undefined, style: { ...scaled } };
+}
+
 /** One device pixel in dp, added to a fixed-height box around a line under `adjustsFontSizeToFit`: RN ceils the line box to a whole px and a layout past its bound fails the fit. */
 export const FITTED_LINE_SLACK = 1 / PixelRatio.get();
 
@@ -129,6 +139,26 @@ export function resolveFitAmountTextProps(fontSize: number, fontScale: number): 
     numberOfLines: 1,
     allowFontScaling: false,
     adjustsFontSizeToFit: fontScale > 1,
+    style: scaledTextStyle(fontSize, fontScale),
+  };
+}
+
+export interface FitLineTextProps {
+  numberOfLines: 1;
+  allowFontScaling: false;
+  adjustsFontSizeToFit: boolean;
+  minimumFontScale: number | undefined;
+  style: ScaledTextStyle;
+}
+
+/** One line that shrinks to fit above font scale 1, floored at its 1.0 size. */
+export function resolveFitLineTextProps(fontSize: number, fontScale: number): FitLineTextProps {
+  const fits = fontScale > 1;
+  return {
+    numberOfLines: 1,
+    allowFontScaling: false,
+    adjustsFontSizeToFit: fits,
+    minimumFontScale: fits ? 1 / fontScale : undefined,
     style: scaledTextStyle(fontSize, fontScale),
   };
 }

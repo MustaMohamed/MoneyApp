@@ -85,3 +85,11 @@ export function resolveAccountCaption(input: AccountCaptionInput): string {
   // Unreachable by construction: every branch reads only kinds its own account type emits.
   return composeCaption(input) ?? ACCOUNT_TYPE_LABELS[input.account.type];
 }
+
+/** A caption's words split on U+0020, each but the last keeping its space, so the words join back to the caption. */
+export function splitCaptionWords(caption: string): string[] {
+  const parts = caption.split(' ');
+  return parts
+    .map((part, index) => (index < parts.length - 1 ? `${part} ` : part))
+    .filter((word) => word !== '');
+}

@@ -18,6 +18,7 @@ import {
   ACCOUNTS_LIST_ARCHIVED_UNARCHIVE_ROOM,
   ACCOUNTS_LIST_ROW_CAPTION_STYLE,
 } from '../accounts_list.geometry';
+import { AccountRowCaption } from './account_row_caption';
 import type { ArchivedAccountRowVM } from './archived_card.helpers';
 
 const UNARCHIVE_ACTION = 'unarchive';
@@ -42,7 +43,6 @@ export function ArchivedAccountRow({
 }: ArchivedAccountRowProps) {
   const { fontScale } = useWindowDimensions();
   const nameLine = resolveOneLineTextProps(scaledTextStyleAboveOne(Type.bodyStrong, fontScale));
-  const captionLine = resolveOneLineTextProps(scaledTextStyleAboveOne(Type.micro, fontScale));
 
   return (
     <View>
@@ -81,13 +81,7 @@ export function ArchivedAccountRow({
           >
             {resolveAccountName(account)}
           </ListGroup.ItemTitle>
-          <Typography
-            className="text-content-secondary font-inter tabular-nums"
-            {...captionLine}
-            style={[ACCOUNTS_LIST_ROW_CAPTION_STYLE, captionLine.style]}
-          >
-            {caption}
-          </Typography>
+          <AccountRowCaption caption={caption} />
         </ListGroup.ItemContent>
 
         <ListGroup.ItemSuffix style={{ flexShrink: 0 }}>
