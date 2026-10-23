@@ -209,19 +209,21 @@ describe('buildCommitmentRowPresentation tile', () => {
 });
 
 describe('buildCommitmentRowPresentation label', () => {
-  it('speaks the name, account, status, due day and amount with its code', () => {
-    expect(present({}).accessibilityLabel).toBe('Rent, CIB, Overdue, Tue 1 Sep, 8,000 EGP');
+  it('speaks the name, account, status, due day, amount with its code, then the day indicator', () => {
+    expect(present({}).accessibilityLabel).toBe(
+      'Rent, CIB, Overdue, Tue 1 Sep, 8,000 EGP, 51 days late',
+    );
   });
 
   it('speaks a soft-deleted account as Deleted Account', () => {
     expect(present({ account: deletedWallet }).accessibilityLabel).toBe(
-      'Rent, Deleted Account, Overdue, Tue 1 Sep, 8,000 EGP',
+      'Rent, Deleted Account, Overdue, Tue 1 Sep, 8,000 EGP, 51 days late',
     );
   });
 
   it('speaks an id the lookup missed as Unknown account', () => {
     expect(present({ account: undefined }).accessibilityLabel).toBe(
-      'Rent, Unknown account, Overdue, Tue 1 Sep, 8,000 EGP',
+      'Rent, Unknown account, Overdue, Tue 1 Sep, 8,000 EGP, 51 days late',
     );
   });
 
@@ -229,7 +231,7 @@ describe('buildCommitmentRowPresentation label', () => {
     const commitment = makeTestCommitment({ account_id: null });
 
     expect(present({ commitment, account: undefined }).accessibilityLabel).toBe(
-      'Rent, Overdue, Tue 1 Sep, 8,000 EGP',
+      'Rent, Overdue, Tue 1 Sep, 8,000 EGP, 51 days late',
     );
   });
 
@@ -241,7 +243,7 @@ describe('buildCommitmentRowPresentation label', () => {
     });
 
     expect(present({ payment, account: nbe }).accessibilityLabel).toBe(
-      'Rent, NBE, Paid, Tue 1 Sep, 8,000 EGP',
+      'Rent, NBE, Paid, Tue 1 Sep, 8,000 EGP, 1 day late',
     );
   });
 });
@@ -285,7 +287,7 @@ describe('buildCommitmentRowPresentation amount', () => {
     const row = present({ payment, commitment: variable });
 
     expect(row.amountText).toBe('640');
-    expect(row.accessibilityLabel).toBe('Rent, CIB, Paid, Tue 1 Sep, 640 EGP');
+    expect(row.accessibilityLabel).toBe('Rent, CIB, Paid, Tue 1 Sep, 640 EGP, 1 day late');
   });
 
   it('shows a tilde and a space before the estimate on an unpaid variable row', () => {
@@ -296,7 +298,7 @@ describe('buildCommitmentRowPresentation amount', () => {
 
     expect(row.amountText).toBe('~ 600');
     expect(row.currencyCode).toBe('EGP');
-    expect(row.accessibilityLabel).toBe('Rent, CIB, Overdue, Tue 1 Sep, ~ 600 EGP');
+    expect(row.accessibilityLabel).toBe('Rent, CIB, Overdue, Tue 1 Sep, ~ 600 EGP, 51 days late');
   });
 
   it('shows a tilde and a space before the estimate on a skipped variable row', () => {
@@ -304,7 +306,7 @@ describe('buildCommitmentRowPresentation amount', () => {
     const row = present({ payment, commitment: variable });
 
     expect(row.amountText).toBe('~ 600');
-    expect(row.accessibilityLabel).toBe('Rent, CIB, Skipped, Tue 1 Sep, ~ 600 EGP');
+    expect(row.accessibilityLabel).toBe('Rent, CIB, Skipped, Tue 1 Sep, ~ 600 EGP, 1 day late');
   });
 
   it('shows the tilde alone beside its code on a variable row with no estimate', () => {
@@ -314,7 +316,7 @@ describe('buildCommitmentRowPresentation amount', () => {
 
     expect(row.amountText).toBe('~');
     expect(row.currencyCode).toBe('EGP');
-    expect(row.accessibilityLabel).toBe('Rent, CIB, Overdue, Tue 1 Sep, ~ EGP');
+    expect(row.accessibilityLabel).toBe('Rent, CIB, Overdue, Tue 1 Sep, ~ EGP, 51 days late');
   });
 });
 
@@ -442,5 +444,66 @@ describe('buildCommitmentRowPresentation USD leg', () => {
     const row = present({ payment: usdRow(), commitment: usdCommitment });
 
     expect(row.accessibilityLabel).toContain(`${row.dueDay} · ≈ 783 EGP`);
+  });
+});
+
+describe('buildCommitmentRowPresentation day indicator (MA-234)', () => {
+  it.each<[string, Partial<CommitmentMonthPayment>, { text: string; tone: string }]>([
+    ['an Overdue row', { due_date: '2026-10-20' }, { text: '2 days late', tone: 'danger' }],
+    ['a Due row', { due_date: TODAY }, { text: 'Due today', tone: 'gold' }],
+    ['an Upcoming row', { due_date: '2026-10-23' }, { text: 'in 1 day', tone: 'caption' }],
+    [
+      'a row paid late',
+      { due_date: '2026-09-01', paid_date: '2026-09-04', amount_paid: 8000, account_id: 'cib' },
+      { text: '3 days late', tone: 'danger' },
+    ],
+    [
+      'a row paid early',
+      { due_date: '2026-10-25', paid_date: '2026-10-21', amount_paid: 8000, account_id: 'cib' },
+      { text: '4 days early', tone: 'success' },
+    ],
+    [
+      'a row paid on the day',
+      { due_date: '2026-10-01', paid_date: '2026-10-01', amount_paid: 8000, account_id: 'cib' },
+      { text: 'on the day', tone: 'success' },
+    ],
+    [
+      'a skipped row',
+      { due_date: '2026-09-01', skipped_date: '2026-09-03' },
+      { text: '2 days late', tone: 'caption' },
+    ],
+  ])('reads %s against today', (_row, overrides, indicator) => {
+    const row = present({ payment: makeTestMonthPayment(overrides) });
+
+    expect(row.dayIndicator).toEqual(indicator);
+    expect(row.accessibilityLabel.endsWith(`, ${indicator.text}`)).toBe(true);
+  });
+
+  it('counts the gap across a month end from the today it is given', () => {
+    const row = present({
+      payment: makeTestMonthPayment({ due_date: '2026-01-31' }),
+      today: '2026-03-01',
+    });
+
+    expect(row.dayIndicator).toEqual({ text: '29 days late', tone: 'danger' });
+  });
+});
+
+describe('buildCommitmentRowPresentation settled look (MA-234)', () => {
+  it.each<[CommitmentPaymentStatus, string, Partial<CommitmentMonthPayment>]>([
+    [CommitmentPaymentStatus.Overdue, 'none', { due_date: '2026-10-21' }],
+    [CommitmentPaymentStatus.Due, 'none', { due_date: TODAY }],
+    [CommitmentPaymentStatus.Upcoming, 'none', { due_date: '2026-10-23' }],
+    [
+      CommitmentPaymentStatus.Paid,
+      'paid',
+      { paid_date: '2026-09-02', amount_paid: 8000, account_id: 'cib' },
+    ],
+    [CommitmentPaymentStatus.Skipped, 'skipped', { skipped_date: '2026-09-02' }],
+  ])('the %s row takes the %s look', (status, look, overrides) => {
+    const row = present({ payment: makeTestMonthPayment(overrides) });
+
+    expect(row.statusLabel).toBe(STATUS_LABELS[status]);
+    expect(row.settledLook).toBe(look);
   });
 });

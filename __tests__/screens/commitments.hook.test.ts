@@ -87,6 +87,7 @@ jest.mock('@/modules/commitments/screens/commitments/commitments.state', () => (
 
 const loadMonthSnapshotMock = jest.fn().mockResolvedValue(undefined);
 const loadMonthAggregateMock = jest.fn().mockResolvedValue(undefined);
+const loadAccountLookupMock = jest.fn<Promise<void>, [string[]]>().mockResolvedValue(undefined);
 let currencyRate = 50;
 let currencyRateLoaded = true;
 const setSelectedMonthMock = jest.fn().mockResolvedValue(undefined);
@@ -225,6 +226,9 @@ function setup({
   statusFilter = 'all',
   searchQuery = '',
   accounts = [],
+  archivedAccounts = [],
+  accountLookupById = {},
+  accountLookupError = false,
   categories = [],
   appliedFilters = EMPTY_COMMITMENT_FILTERS,
   loadedMonth = selectedMonth,
@@ -242,6 +246,9 @@ function setup({
   statusFilter?: CommitmentStatusFilter;
   searchQuery?: string;
   accounts?: Account[];
+  archivedAccounts?: Account[];
+  accountLookupById?: Record<string, Account>;
+  accountLookupError?: boolean;
   categories?: Category[];
   appliedFilters?: typeof EMPTY_COMMITMENT_FILTERS;
   loadedMonth?: string;
@@ -273,6 +280,10 @@ function setup({
   }));
   attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
     accounts,
+    archivedAccounts,
+    accountLookupById,
+    accountLookupError,
+    loadAccountLookup: loadAccountLookupMock,
   }));
   attachMockSelectorStore(useCurrencyStore as unknown as jest.Mock, () => ({
     rate: currencyRate,
@@ -300,6 +311,7 @@ describe('useCommitments', () => {
     mockInteractionTasks.length = 0;
     loadMonthSnapshotMock.mockReset().mockResolvedValue(undefined);
     loadMonthAggregateMock.mockReset().mockResolvedValue(undefined);
+    loadAccountLookupMock.mockReset().mockResolvedValue(undefined);
     currencyRate = 50;
     currencyRateLoaded = true;
     setSelectedMonthMock.mockReset().mockResolvedValue(undefined);
@@ -979,5 +991,119 @@ describe('useCommitments', () => {
     await hook.rerender({});
 
     expect(hook.result.current.state.hero.committed.value).toBe('480');
+  });
+});
+
+describe('useCommitments account read (MA-234)', () => {
+  const wallet = makeAccount('account-wallet', 'Wallet');
+  const archived: Account = { ...makeAccount('account-archived', 'Old Bank'), is_archived: 1 };
+  const lookedUp: Account = { ...makeAccount('account-looked-up', 'Gone Bank'), is_deleted: 1 };
+
+  function rows() {
+    return {
+      commitments: [
+        makeCommitment('commitment-wallet'),
+        makeCommitment('commitment-archived', { account_id: 'account-archived' }),
+        makeCommitment('commitment-missing', { account_id: 'account-missing' }),
+        makeCommitment('commitment-none', { account_id: null }),
+      ],
+      payments: [
+        makePayment('wallet', CommitmentPaymentStatus.Due),
+        makePayment('archived', CommitmentPaymentStatus.Due),
+        makePayment('missing', CommitmentPaymentStatus.Upcoming),
+        makePayment('none', CommitmentPaymentStatus.Due),
+      ],
+      accounts: [wallet],
+      archivedAccounts: [archived],
+    };
+  }
+
+  function rowIds(sections: { data: CommitmentMonthPayment[] }[]): string[] {
+    return sections.flatMap((section) => section.data.map((payment) => payment.id));
+  }
+
+  beforeEach(() => {
+    capturedFocusCallbacks.length = 0;
+    mockInteractionTasks.length = 0;
+    loadMonthSnapshotMock.mockReset().mockResolvedValue(undefined);
+    loadMonthAggregateMock.mockReset().mockResolvedValue(undefined);
+    loadAccountLookupMock.mockReset().mockResolvedValue(undefined);
+    mockUseDeferredValue.mockReset().mockImplementation((value: unknown) => value);
+  });
+
+  it('holds archived and looked-up accounts beside the active ones', async () => {
+    setup({ ...rows(), accountLookupById: { 'account-looked-up': lookedUp } });
+
+    const { result } = await renderHook(() => useCommitments());
+
+    expect(result.current.state.accountsById.get('account-wallet')).toBe(wallet);
+    expect(result.current.state.accountsById.get('account-archived')).toBe(archived);
+    expect(result.current.state.accountsById.get('account-looked-up')).toBe(lookedUp);
+  });
+
+  it('finds the rows on an archived account by its name', async () => {
+    setup({ ...rows(), searchQuery: 'old bank' });
+
+    const { result } = await renderHook(() => useCommitments());
+
+    expect(rowIds(result.current.state.sections)).toEqual(['archived']);
+  });
+
+  it('reads the accounts its rows name once across two renders on the same payments', async () => {
+    setup(rows());
+
+    const hook = await renderHook(() => useCommitments());
+    await hook.rerender({});
+
+    expect(loadAccountLookupMock).toHaveBeenCalledTimes(1);
+    const ids = loadAccountLookupMock.mock.calls[0][0];
+    expect(ids).toEqual(expect.arrayContaining(['account-missing']));
+    expect(ids.every((id) => typeof id === 'string')).toBe(true);
+  });
+
+  it('floats the account alert while a row names an account the failed read missed', async () => {
+    setup({ ...rows(), accountLookupError: true });
+
+    const { result } = await renderHook(() => useCommitments());
+
+    expect(result.current.state.presentation).toBe('content');
+    expect(result.current.state.floatingAlert).toBe('accounts');
+  });
+
+  it('floats the list alert in its place under a load error', async () => {
+    setup({ ...rows(), accountLookupError: true, loadError: true });
+
+    const { result } = await renderHook(() => useCommitments());
+
+    expect(result.current.state.presentation).toBe('contentWithError');
+    expect(result.current.state.floatingAlert).toBe('list');
+  });
+
+  it('drops the account alert once no row names a missing account', async () => {
+    setup({ ...rows(), accountLookupError: true });
+    const hook = await renderHook(() => useCommitments());
+    expect(hook.result.current.state.floatingAlert).toBe('accounts');
+
+    setup({
+      ...rows(),
+      accountLookupError: true,
+      accountLookupById: { 'account-missing': makeAccount('account-missing', 'Found Bank') },
+    });
+    await hook.rerender({});
+
+    expect(hook.result.current.state.floatingAlert).toBeUndefined();
+  });
+
+  it('reads the accounts again on Try again and keeps a second failure off the caller', async () => {
+    setup({ ...rows(), accountLookupError: true });
+    const { result } = await renderHook(() => useCommitments());
+    loadAccountLookupMock.mockReset().mockRejectedValueOnce(new Error('read failed'));
+
+    await act(() => result.current.retryAccountLookup());
+
+    expect(loadAccountLookupMock).toHaveBeenCalledTimes(1);
+    expect(loadAccountLookupMock.mock.calls[0][0]).toEqual(
+      expect.arrayContaining(['account-missing']),
+    );
   });
 });

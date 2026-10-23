@@ -76,6 +76,10 @@ jest.mock('@/components/ui/empty_state', () => ({
   },
 }));
 jest.mock('@/components/ui/swipeable_row', () => ({ closeAllRows: jest.fn() }));
+// The floating arm's toast hold calls `useFocusEffect`, which needs a navigator.
+jest.mock('@/components/ui/load_error_alert.hook', () => ({
+  useFloatingAlertToastHold: () => ({ frameRef: { current: null }, holdClearance: jest.fn() }),
+}));
 jest.mock('@/utils/use_confirm_action.hook', () => ({
   useConfirmAction: () => ({
     pendingPayload: null,
@@ -197,6 +201,8 @@ const setSearchQueryMock = jest.fn();
 const clearSearchMock = jest.fn();
 const openFilterMock = jest.fn();
 const resetFiltersMock = jest.fn();
+const retryAccountLookupMock = jest.fn();
+const onRefreshMock = jest.fn();
 
 function makePayment(overrides: Partial<CommitmentMonthPayment> = {}): CommitmentMonthPayment {
   return makeTestMonthPayment({
@@ -226,7 +232,7 @@ function mockUseCommitments(state: Partial<CommitmentsScreenState> = {}) {
     state: { ...baseCommitmentsState, ...state },
     navigateMonth: jest.fn(),
     selectMonth: jest.fn(),
-    onRefresh: jest.fn(),
+    onRefresh: onRefreshMock,
     goToDetail: jest.fn(),
     goToAdd: jest.fn(),
     goToEdit: jest.fn(),
@@ -237,6 +243,7 @@ function mockUseCommitments(state: Partial<CommitmentsScreenState> = {}) {
     clearSearch: clearSearchMock,
     openFilter: openFilterMock,
     resetFilters: resetFiltersMock,
+    retryAccountLookup: retryAccountLookupMock,
   });
 }
 
@@ -298,7 +305,7 @@ describe('CommitmentsScreen', () => {
     expect(queryByText('spinner')).toBeNull();
   });
 
-  it('draws each row skeleton at the loaded row height with tile, name, due-day and amount bars', async () => {
+  it('draws each row skeleton at the loaded row height with tile, name, due-day, amount and day-indicator bars', async () => {
     mockUseCommitments({
       hasCommitments: true,
       paymentsLoaded: false,
@@ -315,7 +322,7 @@ describe('CommitmentsScreen', () => {
       expect(row).toHaveStyle({
         height: resolveCommitmentRowHeight(Dimensions.get('window').fontScale),
       });
-      expect(within(row).getAllByTestId('skeleton-item')).toHaveLength(4);
+      expect(within(row).getAllByTestId('skeleton-item')).toHaveLength(5);
     }
   });
 
@@ -397,5 +404,22 @@ describe('CommitmentsScreen', () => {
     const { getByText } = await render(<CommitmentsScreen />);
 
     expect(getByText('filtered')).toBeTruthy();
+  });
+
+  it('MA-234: floats the account names alert whose Try again reads the accounts again', async () => {
+    mockUseCommitments({
+      hasCommitments: true,
+      isEmpty: false,
+      sections: [dueSection()],
+      floatingAlert: 'accounts',
+    });
+
+    const { getByTestId, getByText } = await render(<CommitmentsScreen />);
+
+    expect(getByTestId('commitments-account-lookup-error')).toBeTruthy();
+    expect(getByText("Couldn't load account names.")).toBeTruthy();
+    await fireEvent.press(getByText('Try again'));
+    expect(retryAccountLookupMock).toHaveBeenCalledTimes(1);
+    expect(onRefreshMock).not.toHaveBeenCalled();
   });
 });

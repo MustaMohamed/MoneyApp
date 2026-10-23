@@ -5,14 +5,16 @@ import {
   resolveFitAmountTextProps,
   resolveLoneWordLines,
   resolveMessageGlyphShift,
+  resolveKeptSpaceHeight,
   resolveOneLineTextProps,
   resolveRowStacking,
   resolveUncappedLinesAboveOne,
   resolveWordSafeLines,
   scaledFontSize,
+  scaledLineHeight,
   scaledTextStyle,
 } from '@/components/ui/text_scale.geometry';
-import { Type } from '@/constants/theme';
+import { Type, lineHeightFor } from '@/constants/theme';
 
 describe('FITTED_LINE_SLACK', () => {
   it('MA-162: is one device pixel, in dp', () => {
@@ -25,6 +27,49 @@ describe('scaledFontSize', () => {
     expect(scaledFontSize(Type.overline, 1)).toBe(Type.overline);
     expect(scaledFontSize(Type.overline, 2)).toBe(Type.overline * 2);
     expect(scaledFontSize(Type.overline, 2, 1.3)).toBe(Type.overline * 1.3);
+  });
+});
+
+describe('scaledLineHeight (MA-234)', () => {
+  it.each([0.85, 1, 1.3, 2])('is the line box of the scaled size at font scale %s', (fontScale) => {
+    for (const fontSize of [Type.micro, Type.caption, Type.bodyStrong, Type.headline]) {
+      expect(scaledLineHeight(fontSize, fontScale)).toBe(
+        lineHeightFor(scaledFontSize(fontSize, fontScale)),
+      );
+    }
+  });
+
+  it.each([1.3, 2])('stops at its cap at font scale %s', (fontScale) => {
+    expect(scaledLineHeight(Type.chip, fontScale, 1.3)).toBe(
+      lineHeightFor(scaledFontSize(Type.chip, 1.3)),
+    );
+  });
+
+  it('is the line height scaledTextStyle pairs with the same size', () => {
+    expect(scaledLineHeight(Type.micro, 2, 1.3)).toBe(
+      scaledTextStyle(Type.micro, 2, 1.3).lineHeight,
+    );
+  });
+});
+
+describe('resolveKeptSpaceHeight (MA-234)', () => {
+  const HEIGHT_AT_ONE = 60;
+  const linesAt = (fontScale: number): number => 10.25 * fontScale;
+
+  it.each([0.85, 1])('keeps the 1.0 height at font scale %s', (fontScale) => {
+    expect(resolveKeptSpaceHeight(HEIGHT_AT_ONE, linesAt, fontScale)).toBe(HEIGHT_AT_ONE);
+  });
+
+  it.each([1.3, 2])('adds the lines grown past 1.0, unrounded, at font scale %s', (fontScale) => {
+    expect(resolveKeptSpaceHeight(HEIGHT_AT_ONE, linesAt, fontScale)).toBe(
+      HEIGHT_AT_ONE + linesAt(fontScale) - linesAt(1),
+    );
+  });
+
+  it('keeps the 1.0 height when the lines shrink above 1.0', () => {
+    expect(resolveKeptSpaceHeight(HEIGHT_AT_ONE, (fontScale: number) => 20 - fontScale, 2)).toBe(
+      HEIGHT_AT_ONE,
+    );
   });
 });
 

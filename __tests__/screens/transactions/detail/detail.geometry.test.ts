@@ -109,6 +109,17 @@ describe('resolveDetailHeroGeometry', () => {
       growth(Type.headline) + 3 * growth(Type.micro),
     );
   });
+
+  it.each([0.85, 1, 1.3, 2])(
+    'MA-237: gives the title, overline and caption the line boxes of their sizes at font scale %s',
+    (fontScale) => {
+      const geometry = resolveDetailHeroGeometry(fontScale);
+
+      expect(geometry.titleLineHeight).toBe(lineHeightFor(geometry.titleFontSize));
+      expect(geometry.overlineLineHeight).toBe(lineHeightFor(geometry.overlineFontSize));
+      expect(geometry.captionLineHeight).toBe(lineHeightFor(geometry.captionFontSize));
+    },
+  );
 });
 
 // The card's `p-3.5` and its 1 border, top and bottom, which the stretched cell sits inside.
