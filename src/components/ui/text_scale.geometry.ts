@@ -32,6 +32,24 @@ export function scaledTextStyle(
   return { fontSize: scaled, lineHeight: lineHeightFor(scaled) };
 }
 
+/** The line box of a size scaled as `scaledTextStyle` scales it. */
+export function scaledLineHeight(
+  fontSize: number,
+  fontScale: number,
+  maxFontScale = Infinity,
+): number {
+  return scaledTextStyle(fontSize, fontScale, maxFontScale).lineHeight;
+}
+
+/** A box keeps its 1.0 space around its lines and never drops below its 1.0 height. */
+export function resolveKeptSpaceHeight(
+  heightAtOne: number,
+  linesAt: (fontScale: number) => number,
+  fontScale: number,
+): number {
+  return Math.max(heightAtOne, heightAtOne + linesAt(fontScale) - linesAt(1));
+}
+
 /** `undefined` at or below scale 1: the text keeps its own size and the OS scales it. */
 export function scaledTextStyleAboveOne(
   fontSize: number,

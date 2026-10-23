@@ -1,5 +1,5 @@
-import { scaledFontSize } from '@/components/ui/text_scale.geometry';
-import { Spacing, Type, lineHeightFor } from '@/constants/theme';
+import { scaledLineHeight } from '@/components/ui/text_scale.geometry';
+import { Spacing, Type } from '@/constants/theme';
 
 export interface SearchTallyGeometry {
   slotHeight: number;
@@ -7,6 +7,6 @@ export interface SearchTallyGeometry {
 }
 
 export function resolveSearchTallyGeometry(fontScale: number): SearchTallyGeometry {
-  const lineHeight = lineHeightFor(scaledFontSize(Type.micro, fontScale));
+  const lineHeight = scaledLineHeight(Type.micro, fontScale);
   return { slotHeight: Spacing.xxs + lineHeight, lineHeight };
 }

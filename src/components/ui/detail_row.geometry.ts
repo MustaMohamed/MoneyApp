@@ -1,4 +1,4 @@
-import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
+import { resolveKeptSpaceHeight, scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
@@ -13,7 +13,6 @@ function rowLines(fontScale: number): number {
   );
 }
 
-/** The row keeps its 1.0 space around its lines and never drops below its 1.0 height. */
 export function resolveDetailRowHeight(fontScale: number): number {
-  return Math.max(DETAIL_ROW_HEIGHT, DETAIL_ROW_HEIGHT + rowLines(fontScale) - rowLines(1));
+  return resolveKeptSpaceHeight(DETAIL_ROW_HEIGHT, rowLines, fontScale);
 }

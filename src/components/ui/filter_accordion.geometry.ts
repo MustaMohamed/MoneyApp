@@ -1,7 +1,7 @@
 import type { ViewStyle } from 'react-native';
 
-import { scaledFontSize } from '@/components/ui/text_scale.geometry';
-import { type TouchFloorRoom, Type, lineHeightFor } from '@/constants/theme';
+import { scaledLineHeight } from '@/components/ui/text_scale.geometry';
+import { type TouchFloorRoom, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
 // The filter card's `border`, `mb-2` and content `pb-3.5`, unscaled CSS px.
@@ -38,6 +38,6 @@ export function resolveFilterAmountSlotStyle(fontScale: number): {
   }
   return {
     field: { minHeight: FILTER_AMOUNT_FIELD_SLOT_HEIGHT },
-    range: { minHeight: lineHeightFor(scaledFontSize(Type.micro, fontScale)) },
+    range: { minHeight: scaledLineHeight(Type.micro, fontScale) },
   };
 }

@@ -1,5 +1,5 @@
-import { scaledFontSize } from '@/components/ui/text_scale.geometry';
-import { Spacing, Type, lineHeightFor } from '@/constants/theme';
+import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
+import { Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
 /** Android reserves a truncated line's `…` in the paint's Roboto (0.669 em), and Inter SemiBold draws it at 0.956 em (StaticLayout.java:1189). */
@@ -24,8 +24,7 @@ interface DayHeaderGeometry {
 
 // Uncapped: the day header scales its text with the OS, so every box grows from the one scaled size.
 export function resolveDayHeaderGeometry(fontScale: number): DayHeaderGeometry {
-  const fontSize = scaledFontSize(Type.caption, fontScale);
-  const text = { fontSize, lineHeight: lineHeightFor(fontSize) };
+  const text = scaledTextStyle(Type.caption, fontScale);
   const pillHeight = text.lineHeight + 2 * Spacing.xxxs;
   return { ...text, pillHeight, height: Spacing.md + pillHeight + Spacing.xs };
 }

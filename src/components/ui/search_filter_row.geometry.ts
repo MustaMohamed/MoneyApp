@@ -4,6 +4,7 @@ import { DISPLAY_HEADLINE_MAX_FONT_SCALE } from '@/components/ui/display_headlin
 import {
   type ScaledTextStyle,
   scaledFontSize,
+  scaledLineHeight,
   scaledTextStyleAboveOne,
 } from '@/components/ui/text_scale.geometry';
 import {
@@ -12,7 +13,6 @@ import {
   Size,
   Spacing,
   Type,
-  lineHeightFor,
   touchFloorHitSlop,
   touchFloorHitSlopWithin,
 } from '@/constants/theme';
@@ -65,7 +65,10 @@ export function resolveSearchFilterRowGeometry(fontScale: number): SearchFilterR
     paddingBottom: 0,
   };
   const badgeFontSize = scaledFontSize(Type.chip, fontScale, FILTER_BADGE_MAX_FONT_SCALE);
-  const badgeSize = Math.max(FILTER_BADGE_SIZE, lineHeightFor(badgeFontSize));
+  const badgeSize = Math.max(
+    FILTER_BADGE_SIZE,
+    scaledLineHeight(Type.chip, fontScale, FILTER_BADGE_MAX_FONT_SCALE),
+  );
   return {
     input,
     inputText,

@@ -98,7 +98,7 @@ export function TransactionDetailSkeleton({ transaction, actionSet }: Props): Re
               <View style={{ flex: 1 }}>
                 <SkeletonGroup.Item
                   className="w-35 rounded-md"
-                  style={{ height: lineHeightFor(hero.titleFontSize) }}
+                  style={{ height: hero.titleLineHeight }}
                 />
                 <SkeletonGroup.Item
                   className="w-16 rounded-full"
@@ -109,7 +109,7 @@ export function TransactionDetailSkeleton({ transaction, actionSet }: Props): Re
             <SkeletonGroup.Item
               className="w-15 rounded-md"
               style={{
-                height: lineHeightFor(hero.overlineFontSize),
+                height: hero.overlineLineHeight,
                 marginTop: DETAIL_HERO_OVERLINE_GAP,
               }}
             />
@@ -117,7 +117,7 @@ export function TransactionDetailSkeleton({ transaction, actionSet }: Props): Re
             <SkeletonGroup.Item
               className="w-38 rounded-md"
               style={{
-                height: lineHeightFor(hero.captionFontSize),
+                height: hero.captionLineHeight,
                 marginTop: DETAIL_HERO_CAPTION_GAP,
               }}
             />

@@ -4,7 +4,9 @@ import type { ConvertedAmount } from '@/components/ui/form_sheet.helpers';
 import { STATUS_BADGE_PADDING_VERTICAL } from '@/components/ui/status_badge';
 import {
   FITTED_LINE_SLACK,
+  resolveKeptSpaceHeight,
   scaledFontSize,
+  scaledLineHeight,
   scaledTextStyle,
 } from '@/components/ui/text_scale.geometry';
 import { Currency } from '@/constants/enums';
@@ -43,6 +45,9 @@ interface DetailHeroGeometry {
   amountFontSize: number;
   codeFontSize: number;
   captionFontSize: number;
+  titleLineHeight: number;
+  overlineLineHeight: number;
+  captionLineHeight: number;
   badgeHeight: number;
   topHeight: number;
   amountHeight: number;
@@ -60,21 +65,25 @@ export function resolveDetailHeroGeometry(fontScale: number): DetailHeroGeometry
     DETAIL_HERO_AMOUNT_MAX_FONT_SCALE,
   );
   const codeFontSize = scaledFontSize(Type.subhead, fontScale, DETAIL_HERO_AMOUNT_MAX_FONT_SCALE);
-  const badgeHeight =
-    lineHeightFor(scaledFontSize(Type.micro, fontScale)) + DETAIL_HERO_BADGE_CHROME;
+  const titleLineHeight = scaledLineHeight(Type.headline, fontScale);
+  const overlineLineHeight = scaledLineHeight(Type.micro, fontScale);
+  const captionLineHeight = scaledLineHeight(Type.micro, fontScale);
+  const badgeHeight = scaledLineHeight(Type.micro, fontScale) + DETAIL_HERO_BADGE_CHROME;
   const topHeight = Math.max(
     Size.detailHeroTile,
-    lineHeightFor(titleFontSize) + DETAIL_HERO_BADGE_GAP + badgeHeight,
+    titleLineHeight + DETAIL_HERO_BADGE_GAP + badgeHeight,
   );
-  const amountHeight = lineHeightFor(amountFontSize) + FITTED_LINE_SLACK;
+  const amountHeight =
+    scaledLineHeight(Type.detailHero, fontScale, DETAIL_HERO_AMOUNT_MAX_FONT_SCALE) +
+    FITTED_LINE_SLACK;
   const height =
     2 * DETAIL_HERO_PADDING +
     topHeight +
     DETAIL_HERO_OVERLINE_GAP +
-    lineHeightFor(overlineFontSize) +
+    overlineLineHeight +
     amountHeight +
     DETAIL_HERO_CAPTION_GAP +
-    lineHeightFor(captionFontSize);
+    captionLineHeight;
 
   return {
     titleFontSize,
@@ -82,6 +91,9 @@ export function resolveDetailHeroGeometry(fontScale: number): DetailHeroGeometry
     amountFontSize,
     codeFontSize,
     captionFontSize,
+    titleLineHeight,
+    overlineLineHeight,
+    captionLineHeight,
     badgeHeight,
     topHeight,
     amountHeight,
@@ -109,10 +121,7 @@ export function resolveTransferCellHeight(fontScale: number): number {
 
 /** The card keeps its 1.0 space around the cell and never drops below its 1.0 height. */
 export function resolveTransferCardHeight(fontScale: number): number {
-  return Math.max(
-    DETAIL_TRANSFER_MIN_HEIGHT,
-    DETAIL_TRANSFER_MIN_HEIGHT + transferLines(fontScale) - transferLines(1),
-  );
+  return resolveKeptSpaceHeight(DETAIL_TRANSFER_MIN_HEIGHT, transferLines, fontScale);
 }
 
 /** The `h-20` shape at scale 1 and below, the loaded cell's height above it. */
