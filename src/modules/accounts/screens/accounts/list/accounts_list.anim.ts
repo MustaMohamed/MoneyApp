@@ -244,12 +244,9 @@ export function useLiftGesture(input: {
   onRelease: (id: string, fromIndex: number, toIndex: number) => Promise<void>;
 }): { gesture: PanGesture; onLayout: (e: LayoutChangeEvent) => void } {
   const { drag, id, index, count, enabled, onLift, onRelease } = input;
-  const rowHeight = useSharedValue(0);
-
   const onLayout = useCallback(
     (e: LayoutChangeEvent) => {
       const { y, height } = e.nativeEvent.layout;
-      rowHeight.value = height;
       // `modify` writes on the UI runtime in call order: two rows laid out in one tick keep both boxes.
       drag.rowBoxes.modify((boxes) => {
         'worklet';
@@ -258,7 +255,7 @@ export function useLiftGesture(input: {
         return next;
       });
     },
-    [drag, index, rowHeight],
+    [drag, index],
   );
 
   const gesture = useMemo(
@@ -275,7 +272,8 @@ export function useLiftGesture(input: {
             drag.liftedIndex.value = index;
             drag.targetIndex.value = index;
             drag.translationY.value = 0;
-            drag.cellHeight.value = rowHeight.value;
+            const liftBoxes = drag.rowBoxes.value;
+            drag.cellHeight.value = index in liftBoxes ? liftBoxes[index].height : 0;
             drag.isHolding.value = true;
             drag.fingerTranslationY.value = 0;
             drag.fingerAbsoluteY.value = e.absoluteY;
@@ -306,7 +304,7 @@ export function useLiftGesture(input: {
           }
           scheduleOnRN(onRelease, id, index, to);
         }),
-    [count, drag, enabled, id, index, onLift, onRelease, rowHeight],
+    [count, drag, enabled, id, index, onLift, onRelease],
   );
 
   return { gesture, onLayout };

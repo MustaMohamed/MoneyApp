@@ -11,7 +11,6 @@ import {
   resolveRowStacking,
   resolveUncappedLinesAboveOne,
   resolveWordSafeLines,
-  resolveWrappingTextProps,
   scaledFontSize,
   scaledLineHeight,
   scaledTextStyle,
@@ -192,21 +191,6 @@ describe('resolveFitAmountTextProps', () => {
       adjustsFontSizeToFit: true,
       style: scaledTextStyle(Type.title, 2),
     });
-  });
-});
-
-describe('resolveWrappingTextProps (MA-243)', () => {
-  it('with no scaled style leaves the size to the OS and caps no lines', () => {
-    const props = resolveWrappingTextProps(undefined);
-    expect(props).toEqual({ allowFontScaling: true, style: {} });
-    expect(props).not.toHaveProperty('numberOfLines');
-  });
-
-  it('with a scaled style stops OS scaling, keeps that style and caps no lines', () => {
-    const scaled = scaledTextStyle(Type.micro, 2);
-    const props = resolveWrappingTextProps(scaled);
-    expect(props).toEqual({ allowFontScaling: false, style: scaled });
-    expect(props).not.toHaveProperty('numberOfLines');
   });
 });
 

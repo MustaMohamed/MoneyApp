@@ -86,10 +86,25 @@ export function resolveAccountCaption(input: AccountCaptionInput): string {
   return composeCaption(input) ?? ACCOUNT_TYPE_LABELS[input.account.type];
 }
 
-/** A caption's words split on U+0020, each but the last keeping its space, so the words join back to the caption. */
-export function splitCaptionWords(caption: string): string[] {
-  const parts = caption.split(' ');
-  return parts
-    .map((part, index) => (index < parts.length - 1 ? `${part} ` : part))
-    .filter((word) => word !== '');
+const CAPTION_SEPARATOR = '·';
+const CAPTION_AMOUNT = /\d/;
+const CAPTION_CODE = /^[A-Z]{3}$/;
+const CAPTION_PREFIX = /^[≈\u2212]$/;
+
+/** A caption's words split on U+0020 into units that wrap whole: an amount keeps its leading `≈` or sign and its currency code, and a `·` joins the unit before it; each unit but the last keeps its trailing space. */
+export function splitCaptionUnits(caption: string): string[] {
+  const words = caption.split(' ').filter((word) => word !== '');
+  const units: string[][] = [];
+  words.forEach((word, index) => {
+    const previous = index > 0 ? words[index - 1] : undefined;
+    const joins =
+      previous !== undefined &&
+      (word === CAPTION_SEPARATOR ||
+        (CAPTION_CODE.test(word) && CAPTION_AMOUNT.test(previous)) ||
+        (CAPTION_AMOUNT.test(word) && CAPTION_PREFIX.test(previous)));
+    const last = units.at(-1);
+    if (joins && last !== undefined) last.push(word);
+    else units.push([word]);
+  });
+  return units.map((unit, index) => `${unit.join(' ')}${index < units.length - 1 ? ' ' : ''}`);
 }
