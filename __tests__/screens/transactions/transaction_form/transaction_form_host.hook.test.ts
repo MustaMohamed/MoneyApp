@@ -1,5 +1,4 @@
 import { act, renderHook } from '@testing-library/react-native';
-import { BackHandler } from 'react-native';
 
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
@@ -7,6 +6,7 @@ import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { useAddTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.state';
 import { useTransactionFormHost } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.hook';
 import { useTransactionFormState } from '@/modules/transactions/store/transaction_form_host.state';
+import { type BackHandlerSpy, installBackHandlerSpy, pressBack } from '@/test_helpers/back_handler';
 import { deferred } from '@/test_helpers/deferred';
 import { makeTestTransaction } from '@/test_helpers/transaction';
 
@@ -125,22 +125,13 @@ async function save(result: HostResult): Promise<void> {
 }
 
 describe('useTransactionFormHost Save gate', () => {
-  let addListenerSpy: jest.SpiedFunction<typeof BackHandler.addEventListener>;
-
-  function pressBack(): boolean | null | undefined {
-    const call = addListenerSpy.mock.calls.at(-1);
-    if (call === undefined) throw new Error('no hardware back listener was added');
-    expect(call[0]).toBe('hardwareBackPress');
-    return call[1]({ type: 'hardwareBackPress', timeStamp: 0 });
-  }
+  let addListenerSpy: BackHandlerSpy;
 
   beforeEach(() => {
     form().reset();
     useAccountStore.setState({ accounts: [], accountLookupById: {}, hasLoaded: false });
     useCategoryStore.setState({ categories: [], hasLoaded: false });
-    addListenerSpy = jest
-      .spyOn(BackHandler, 'addEventListener')
-      .mockImplementation(() => ({ remove: jest.fn() }));
+    ({ spy: addListenerSpy } = installBackHandlerSpy());
   });
 
   afterEach(() => {
@@ -224,7 +215,7 @@ describe('useTransactionFormHost Save gate', () => {
     expect(result.current.state.isDismissable).toBe(false);
     let handled: boolean | null | undefined;
     await act(() => {
-      handled = pressBack();
+      handled = pressBack(addListenerSpy);
     });
     expect(handled).toBe(true);
     expect(form().phase).toBe('open');

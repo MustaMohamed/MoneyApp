@@ -4,30 +4,11 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { useToast } from '@/components/ui/toast';
 import { Strings } from '@/constants/strings';
-import { useAddTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.state';
-import { useEditTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.state';
 import {
-  isTransactionFormSessionSaving,
+  TRANSACTION_FORM_SESSION_SOURCE,
   useTransactionFormState,
 } from '@/modules/transactions/store/transaction_form_host.state';
-import {
-  type FormSessionHostSource,
-  subscribeToAll,
-  useFormSessionHost,
-} from '@/utils/use_form_session.hook';
-
-const TRANSACTION_FORM_SESSION_SOURCE: FormSessionHostSource = {
-  read: () => {
-    const { phase, sessionId, footer, mode } = useTransactionFormState.getState();
-    return { phase, sessionId, footer, sessionSaving: isTransactionFormSessionSaving(mode) };
-  },
-  subscribe: subscribeToAll([
-    useTransactionFormState,
-    useAddTransactionState,
-    useEditTransactionState,
-  ]),
-  requestClose: () => useTransactionFormState.getState().requestClose(),
-};
+import { useFormSessionHost } from '@/utils/use_form_session.hook';
 
 export function useTransactionFormHost() {
   const router = useRouter();

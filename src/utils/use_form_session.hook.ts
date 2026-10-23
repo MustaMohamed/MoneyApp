@@ -3,6 +3,7 @@ import { BackHandler } from 'react-native';
 import { shallow } from 'zustand/shallow';
 
 export type FormSessionPhase = 'closed' | 'open' | 'closing';
+// A submit sets its sheet's error field and never rejects: handleSave discards a rejection and only clears the in-flight mark.
 export type FormSessionSubmit = () => Promise<void>;
 export type RegisterFormSessionSubmit = (
   sessionId: number,
@@ -21,6 +22,7 @@ export interface FormSessionSnapshot {
   sessionSaving: boolean;
 }
 
+// Each host passes one module-level constant: a new identity re-subscribes every store and re-adds the Back listener.
 export interface FormSessionHostSource {
   read: () => FormSessionSnapshot;
   subscribe: (onChange: () => void) => () => void;

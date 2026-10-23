@@ -1,11 +1,11 @@
 import { act, renderHook } from '@testing-library/react-native';
-import { BackHandler } from 'react-native';
 
 import { Strings } from '@/constants/strings';
 import { useAddCommitmentState } from '@/modules/commitments/screens/commitments/commitment_form/add_commitment.state';
 import { useCommitmentFormHost } from '@/modules/commitments/screens/commitments/commitment_form/commitment_form_host.hook';
 import { useEditCommitmentState } from '@/modules/commitments/screens/commitments/commitment_form/edit_commitment.state';
 import { useCommitmentFormHostState } from '@/modules/commitments/store/commitment_form_host.state';
+import { type BackHandlerSpy, installBackHandlerSpy, pressBack } from '@/test_helpers/back_handler';
 import { deferred } from '@/test_helpers/deferred';
 import type { FormSessionSubmit } from '@/utils/use_form_session.hook';
 
@@ -13,15 +13,8 @@ type HostResult = { current: ReturnType<typeof useCommitmentFormHost> };
 
 const host = () => useCommitmentFormHostState.getState();
 
-let addListenerSpy: jest.SpiedFunction<typeof BackHandler.addEventListener>;
+let addListenerSpy: BackHandlerSpy;
 let removeMocks: jest.Mock[];
-
-function pressBack(): boolean | null | undefined {
-  const call = addListenerSpy.mock.calls.at(-1);
-  if (call === undefined) throw new Error('no hardware back listener was added');
-  expect(call[0]).toBe('hardwareBackPress');
-  return call[1]({ type: 'hardwareBackPress', timeStamp: 0 });
-}
 
 function makeSubmit() {
   return jest.fn<ReturnType<FormSessionSubmit>, []>().mockResolvedValue(undefined);
@@ -41,12 +34,7 @@ describe('useCommitmentFormHost', () => {
     host().reset();
     useAddCommitmentState.getState().reset();
     useEditCommitmentState.getState().reset();
-    removeMocks = [];
-    addListenerSpy = jest.spyOn(BackHandler, 'addEventListener').mockImplementation(() => {
-      const remove = jest.fn();
-      removeMocks.push(remove);
-      return { remove };
-    });
+    ({ spy: addListenerSpy, removeMocks } = installBackHandlerSpy());
   });
 
   afterEach(() => {
@@ -196,7 +184,7 @@ describe('useCommitmentFormHost', () => {
 
     let handled: boolean | null | undefined;
     await act(() => {
-      handled = pressBack();
+      handled = pressBack(addListenerSpy);
     });
     expect(handled).toBe(true);
     expect(host().phase).toBe('closing');
@@ -271,7 +259,7 @@ describe('useCommitmentFormHost', () => {
 
     let handled: boolean | null | undefined;
     await act(() => {
-      handled = pressBack();
+      handled = pressBack(addListenerSpy);
     });
     expect(handled).toBe(true);
     expect(host().phase).toBe('open');
@@ -298,7 +286,7 @@ describe('useCommitmentFormHost', () => {
 
     expect(result.current.state.isDismissable).toBe(false);
     await act(() => {
-      pressBack();
+      pressBack(addListenerSpy);
     });
     expect(host().phase).toBe('open');
     await act(() => result.current.handleClose());

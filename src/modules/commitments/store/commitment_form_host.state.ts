@@ -5,9 +5,14 @@ import {
   isAnyEditCommitmentSaving,
   useEditCommitmentState,
 } from '@/modules/commitments/screens/commitments/commitment_form/edit_commitment.state';
+import {
+  type FormSessionHostSource,
+  type FormSessionPhase,
+  subscribeToAll,
+} from '@/utils/use_form_session.hook';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
-type CommitmentFormPhase = 'closed' | 'open' | 'closing';
+type CommitmentFormPhase = FormSessionPhase;
 
 type CommitmentFormMode = 'add' | 'edit';
 
@@ -120,3 +125,16 @@ export const useCommitmentFormHostState = createMoneyAppSelectors(
     reset: () => set(INITIAL_STATE),
   })),
 );
+
+export const COMMITMENT_FORM_SESSION_SOURCE: FormSessionHostSource = {
+  read: () => {
+    const { phase, sessionId, footer, mode } = useCommitmentFormHostState.getState();
+    return { phase, sessionId, footer, sessionSaving: isCommitmentFormSessionSaving(mode) };
+  },
+  subscribe: subscribeToAll([
+    useCommitmentFormHostState,
+    useAddCommitmentState,
+    useEditCommitmentState,
+  ]),
+  requestClose: () => useCommitmentFormHostState.getState().requestClose(),
+};

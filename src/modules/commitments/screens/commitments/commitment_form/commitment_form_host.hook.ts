@@ -3,30 +3,10 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { Strings } from '@/constants/strings';
 import {
-  isCommitmentFormSessionSaving,
+  COMMITMENT_FORM_SESSION_SOURCE,
   useCommitmentFormHostState,
 } from '@/modules/commitments/store/commitment_form_host.state';
-import {
-  type FormSessionHostSource,
-  subscribeToAll,
-  useFormSessionHost,
-} from '@/utils/use_form_session.hook';
-
-import { useAddCommitmentState } from './add_commitment.state';
-import { useEditCommitmentState } from './edit_commitment.state';
-
-const COMMITMENT_FORM_SESSION_SOURCE: FormSessionHostSource = {
-  read: () => {
-    const { phase, sessionId, footer, mode } = useCommitmentFormHostState.getState();
-    return { phase, sessionId, footer, sessionSaving: isCommitmentFormSessionSaving(mode) };
-  },
-  subscribe: subscribeToAll([
-    useCommitmentFormHostState,
-    useAddCommitmentState,
-    useEditCommitmentState,
-  ]),
-  requestClose: () => useCommitmentFormHostState.getState().requestClose(),
-};
+import { useFormSessionHost } from '@/utils/use_form_session.hook';
 
 export function useCommitmentFormHost() {
   const { phase, sessionId, mode, editingCommitmentId, footer } = useCommitmentFormHostState(

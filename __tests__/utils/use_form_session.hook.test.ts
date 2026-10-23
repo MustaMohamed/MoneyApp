@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react-native';
-import { BackHandler } from 'react-native';
 import { create } from 'zustand';
 
+import { type BackHandlerSpy, installBackHandlerSpy, pressBack } from '@/test_helpers/back_handler';
 import { deferred } from '@/test_helpers/deferred';
 import {
   type FormSessionFooter,
@@ -192,15 +192,8 @@ const TEST_SOURCE: FormSessionHostSource = {
 
 type HostResult = { current: ReturnType<typeof useFormSessionHost> };
 
-let addListenerSpy: jest.SpiedFunction<typeof BackHandler.addEventListener>;
+let addListenerSpy: BackHandlerSpy;
 let removeMocks: jest.Mock[];
-
-function pressBack(): boolean | null | undefined {
-  const call = addListenerSpy.mock.calls.at(-1);
-  if (call === undefined) throw new Error('no hardware back listener was added');
-  expect(call[0]).toBe('hardwareBackPress');
-  return call[1]({ type: 'hardwareBackPress', timeStamp: 0 });
-}
 
 function mountHost() {
   return renderHook(() => useFormSessionHost(TEST_SOURCE));
@@ -234,12 +227,7 @@ describe('useFormSessionHost', () => {
     useTestHost.setState(CLOSED_HOST, true);
     useTestSession.setState({ saving: false });
     requestClose.mockClear();
-    removeMocks = [];
-    addListenerSpy = jest.spyOn(BackHandler, 'addEventListener').mockImplementation(() => {
-      const remove = jest.fn();
-      removeMocks.push(remove);
-      return { remove };
-    });
+    ({ spy: addListenerSpy, removeMocks } = installBackHandlerSpy());
   });
 
   afterEach(() => {
@@ -452,7 +440,7 @@ describe('useFormSessionHost', () => {
 
     let handled: boolean | null | undefined;
     await act(() => {
-      handled = pressBack();
+      handled = pressBack(addListenerSpy);
     });
     expect(handled).toBe(true);
     expect(requestClose).toHaveBeenCalledTimes(1);
@@ -463,7 +451,7 @@ describe('useFormSessionHost', () => {
     await mountHost();
     await openSession();
     await act(() => {
-      pressBack();
+      pressBack(addListenerSpy);
     });
 
     await closeSession();
