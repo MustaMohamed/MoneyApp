@@ -1,6 +1,8 @@
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import {
+  commitmentDetailShowsEdit,
   overlayStorePayments,
+  resolveCommitmentDetailCycle,
   resolveCommitmentDetailViewState,
   type CommitmentDetailViewState,
   type CommitmentDetailViewStateInput,
@@ -21,148 +23,157 @@ function makePayment(overrides: Partial<CommitmentPayment> = {}): CommitmentPaym
 }
 
 describe('resolveCommitmentDetailViewState', () => {
+  // `hasCommitment`: the data entry for the route's id holds a commitment.
   const cases: [string, CommitmentDetailViewStateInput, CommitmentDetailViewState][] = [
     [
-      'not found beats a cold load',
-      {
-        hasCommitment: false,
-        ownsStatus: true,
-        status: 'loading',
-        hasRows: false,
-        refreshError: false,
-      },
-      'notFound',
-    ],
-    [
-      'not found beats a first-load error',
-      {
-        hasCommitment: false,
-        ownsStatus: true,
-        status: 'firstLoadError',
-        hasRows: false,
-        refreshError: false,
-      },
-      'notFound',
-    ],
-    [
-      'not found beats a refresh error over rows',
-      {
-        hasCommitment: false,
-        ownsStatus: true,
-        status: 'ready',
-        hasRows: true,
-        refreshError: true,
-      },
-      'notFound',
-    ],
-    [
-      'a cold load reads loading',
-      {
-        hasCommitment: true,
-        ownsStatus: true,
-        status: 'loading',
-        hasRows: false,
-        refreshError: false,
-      },
+      'a cold load with no commitment yet reads loading, never not found',
+      { hasCommitment: false, ownsStatus: true, status: 'loading', refreshError: false },
       'loading',
     ],
     [
-      'a warm load reads ready',
-      {
-        hasCommitment: true,
-        ownsStatus: true,
-        status: 'loading',
-        hasRows: true,
-        refreshError: false,
-      },
+      'a re-read over a loaded commitment reads ready',
+      { hasCommitment: true, ownsStatus: true, status: 'loading', refreshError: false },
       'ready',
     ],
     [
-      'a cold failure reads firstLoadError',
-      {
-        hasCommitment: true,
-        ownsStatus: true,
-        status: 'firstLoadError',
-        hasRows: false,
-        refreshError: false,
-      },
+      "another commitment's ready status with no commitment here reads loading",
+      { hasCommitment: false, ownsStatus: false, status: 'ready', refreshError: false },
+      'loading',
+    ],
+    [
+      "another commitment's first-load error with no commitment here reads loading",
+      { hasCommitment: false, ownsStatus: false, status: 'firstLoadError', refreshError: false },
+      'loading',
+    ],
+    [
+      "another commitment's refresh error never floats over this commitment",
+      { hasCommitment: true, ownsStatus: false, status: 'ready', refreshError: true },
+      'ready',
+    ],
+    [
+      'a cold failure reads firstLoadError, never not found',
+      { hasCommitment: false, ownsStatus: true, status: 'firstLoadError', refreshError: false },
       'firstLoadError',
     ],
     [
-      'a first-load error with rows reads refreshErrorWithData',
-      {
-        hasCommitment: true,
-        ownsStatus: true,
-        status: 'firstLoadError',
-        hasRows: true,
-        refreshError: false,
-      },
+      'a first-load error over a loaded commitment reads refreshErrorWithData',
+      { hasCommitment: true, ownsStatus: true, status: 'firstLoadError', refreshError: false },
       'refreshErrorWithData',
+    ],
+    [
+      'an answered read with no commitment reads notFound',
+      { hasCommitment: false, ownsStatus: true, status: 'ready', refreshError: false },
+      'notFound',
+    ],
+    [
+      'an answered read with no commitment reads notFound over a refresh error',
+      { hasCommitment: false, ownsStatus: true, status: 'ready', refreshError: true },
+      'notFound',
     ],
     [
       'a warm failure reads refreshErrorWithData',
-      { hasCommitment: true, ownsStatus: true, status: 'ready', hasRows: true, refreshError: true },
+      { hasCommitment: true, ownsStatus: true, status: 'ready', refreshError: true },
       'refreshErrorWithData',
     ],
     [
-      'a zero-row success reads ready',
-      {
-        hasCommitment: true,
-        ownsStatus: true,
-        status: 'ready',
-        hasRows: false,
-        refreshError: false,
-      },
-      'ready',
-    ],
-    [
-      'a success with rows reads ready',
-      {
-        hasCommitment: true,
-        ownsStatus: true,
-        status: 'ready',
-        hasRows: true,
-        refreshError: false,
-      },
-      'ready',
-    ],
-    [
-      "another commitment's ready status with no rows reads loading",
-      {
-        hasCommitment: true,
-        ownsStatus: false,
-        status: 'ready',
-        hasRows: false,
-        refreshError: false,
-      },
-      'loading',
-    ],
-    [
-      "another commitment's first-load error with no rows reads loading",
-      {
-        hasCommitment: true,
-        ownsStatus: false,
-        status: 'firstLoadError',
-        hasRows: false,
-        refreshError: false,
-      },
-      'loading',
-    ],
-    [
-      "another commitment's refresh error never floats over this commitment's rows",
-      {
-        hasCommitment: true,
-        ownsStatus: false,
-        status: 'ready',
-        hasRows: true,
-        refreshError: true,
-      },
+      'an answered read with a commitment reads ready',
+      { hasCommitment: true, ownsStatus: true, status: 'ready', refreshError: false },
       'ready',
     ],
   ];
 
-  it.each(cases)('%s', (_label, input, expected) => {
-    expect(resolveCommitmentDetailViewState(input)).toBe(expected);
+  it('reads the view state from the commitment, not from loaded rows', () => {
+    const actual = Object.fromEntries(
+      cases.map(([label, input]) => [label, resolveCommitmentDetailViewState(input)]),
+    );
+    const expected = Object.fromEntries(cases.map(([label, , state]) => [label, state]));
+
+    expect(actual).toEqual(expected);
+  });
+});
+
+describe('resolveCommitmentDetailCycle', () => {
+  const unpaid = (id: string, due_date: string) => makePayment({ id, due_date });
+  const paid = (id: string, due_date: string) =>
+    makePayment({ id, due_date, paid_date: due_date, amount_paid: 5000 });
+  const skipped = (id: string, due_date: string) =>
+    makePayment({ id, due_date, skipped_date: due_date });
+
+  it("opens at the param's row over an earlier unpaid row and over the previous due date", () => {
+    const earlier = unpaid('pay-apr', '2026-04-01');
+    const named = unpaid('pay-may', '2026-05-01');
+
+    expect(resolveCommitmentDetailCycle([earlier, named], 'pay-may', '2026-04-01')).toBe(named);
+  });
+
+  it('opens at a settled row the param names, past an earlier unpaid row', () => {
+    const earlier = unpaid('pay-apr', '2026-04-01');
+    const settled = paid('pay-may', '2026-05-01');
+
+    expect(resolveCommitmentDetailCycle([earlier, settled], 'pay-may', undefined)).toBe(settled);
+  });
+
+  it('keeps the previous due date on a leap day when the param names no row', () => {
+    const january = unpaid('new-jan', '2028-01-29');
+    const leapDay = unpaid('new-feb', '2028-02-29');
+    const march = unpaid('new-mar', '2028-03-29');
+
+    expect(resolveCommitmentDetailCycle([january, leapDay, march], 'old-feb', '2028-02-29')).toBe(
+      leapDay,
+    );
+  });
+
+  it('keeps the previous due date on a month-end when the param names no row', () => {
+    const december = unpaid('new-dec', '2025-12-31');
+    const january = unpaid('new-jan', '2026-01-31');
+    const february = unpaid('new-feb', '2026-02-28');
+
+    expect(
+      resolveCommitmentDetailCycle([december, january, february], 'old-jan', '2026-01-31'),
+    ).toBe(january);
+  });
+
+  it('opens at the earliest unpaid row past a skipped first row when no row has the due date', () => {
+    const rows = [
+      skipped('pay-mar', '2026-03-01'),
+      paid('pay-apr', '2026-04-01'),
+      unpaid('pay-may', '2026-05-01'),
+      unpaid('pay-jun', '2026-06-01'),
+    ];
+
+    expect(resolveCommitmentDetailCycle(rows, 'gone', '2026-07-15')).toBe(rows[2]);
+  });
+
+  it('opens at the earliest unpaid row with no param and no previous due date', () => {
+    const rows = [paid('pay-apr', '2026-04-01'), unpaid('pay-may', '2026-05-01')];
+
+    expect(resolveCommitmentDetailCycle(rows, undefined, undefined)).toBe(rows[1]);
+  });
+
+  it('opens at the last row when every row is settled', () => {
+    const rows = [
+      paid('pay-mar', '2026-03-01'),
+      skipped('pay-apr', '2026-04-01'),
+      paid('pay-may', '2026-05-01'),
+    ];
+
+    expect(resolveCommitmentDetailCycle(rows, 'gone', undefined)).toBe(rows[2]);
+  });
+
+  it('reads undefined with no rows', () => {
+    expect(resolveCommitmentDetailCycle([], 'pay-1', '2026-05-01')).toBeUndefined();
+  });
+});
+
+describe('commitmentDetailShowsEdit', () => {
+  it.each<[CommitmentDetailViewState, boolean]>([
+    ['ready', true],
+    ['refreshErrorWithData', true],
+    ['loading', false],
+    ['notFound', false],
+    ['firstLoadError', false],
+  ])('%s -> %s', (viewState, expected) => {
+    expect(commitmentDetailShowsEdit(viewState)).toBe(expected);
   });
 });
 

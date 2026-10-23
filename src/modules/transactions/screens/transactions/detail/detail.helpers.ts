@@ -16,6 +16,7 @@ import { isFrozenAccount } from '@/modules/accounts/utils/is_frozen_account';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import {
+  commitmentDetailRoute,
   STACKED_PREFIX,
   type StackedPrefix,
   TABBED_ORIGIN,
@@ -417,15 +418,16 @@ export function buildTransactionDetailPresentation({
 }
 
 export function getCommitmentPaymentRoute(
+  commitmentId: string,
   paymentId: string,
   originPrefix: StackedPrefix,
   originTransactionId: string,
 ):
-  | `${typeof STACKED_PREFIX}/commitments/${string}?originTxId=${string}`
-  | `${typeof STACKED_PREFIX}/commitments/${string}?originTxId=${string}&originTxCopy=${typeof TABBED_ORIGIN}` {
+  | `${typeof STACKED_PREFIX}/commitments/${string}?cycle=${string}&originTxId=${string}`
+  | `${typeof STACKED_PREFIX}/commitments/${string}?cycle=${string}&originTxId=${string}&originTxCopy=${typeof TABBED_ORIGIN}` {
   // Always the stacked twin, so the detail sits above the tabs; the origin's copy rides on `originTxCopy`.
-  if (originPrefix === '') {
-    return `${STACKED_PREFIX}/commitments/${paymentId}?originTxId=${originTransactionId}&originTxCopy=${TABBED_ORIGIN}`;
-  }
-  return `${STACKED_PREFIX}/commitments/${paymentId}?originTxId=${originTransactionId}`;
+  const route =
+    `${commitmentDetailRoute(STACKED_PREFIX, commitmentId, paymentId)}&originTxId=${originTransactionId}` as const;
+  if (originPrefix === '') return `${route}&originTxCopy=${TABBED_ORIGIN}`;
+  return route;
 }

@@ -1133,9 +1133,16 @@ export const Strings = {
   commitmentsDetailPaymentHistory: 'Payment History',
   commitmentsDetailCurrentCycle: 'Current Cycle',
   commitmentsDetailNotes: 'Notes',
-  commitmentsDetailEdit: 'Edit',
-  commitmentsDetailLoadErrorTitle: 'Could not load this commitment.',
-  commitmentsDetailRefreshErrorTitle: 'Could not refresh this commitment.',
+  commitmentsDetailHeader: 'Commitment',
+  commitmentsDetailEditAccessibility: 'Edit commitment',
+  commitmentsDetailLoadingA11y: 'Loading commitment',
+  commitmentsDetailNotFoundTitle: 'This commitment is gone',
+  commitmentsDetailNotFoundBody: 'It no longer exists.',
+  commitmentsDetailLoadErrorTitle: "Couldn't load this commitment.",
+  commitmentsDetailLoadErrorDescription:
+    'Something went wrong reading your data. Nothing was changed.',
+  commitmentsDetailRefreshErrorTitle: "Couldn't refresh this commitment.",
+  commitmentsDetailLoadRetry: 'Try again',
   commitmentsMarkAsPaid: 'Mark as Paid',
   commitmentsSkip: 'Skip',
   commitmentsSkipConfirmTitle: 'Skip this payment?',
@@ -1220,7 +1227,6 @@ export const Strings = {
   commitmentsDurationAfterCountOf: (n: number) =>
     n === 1 ? 'After 1 payment' : `After ${n} payments`,
   commitmentsDurationUntilDateOf: (date: string) => `Until ${date}`,
-  commitmentsDetailNotFound: 'Commitment not found',
 
   // Dashboard: commitments card
   dashboardCommitmentsTitle: 'Commitments',

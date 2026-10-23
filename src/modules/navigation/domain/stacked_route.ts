@@ -10,6 +10,14 @@ export function stackedPrefixOf(pathname: string): StackedPrefix {
   return firstSegment === STACKED_PREFIX.slice(1) ? STACKED_PREFIX : '';
 }
 
+export function commitmentDetailRoute<P extends StackedPrefix>(
+  prefix: P,
+  commitmentId: string,
+  paymentId: string,
+): `${P}/commitments/${string}?cycle=${string}` {
+  return `${prefix}/commitments/${commitmentId}?cycle=${paymentId}`;
+}
+
 export function stackedTransactionDetailRoute(
   transactionId: string,
 ): `${typeof STACKED_PREFIX}/transactions/detail/${string}` {

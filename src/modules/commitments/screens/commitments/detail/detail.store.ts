@@ -3,17 +3,25 @@ import { create } from 'zustand';
 import { withEntry, withoutEntry, type KeyedEntries } from '@/utils/keyed_entries';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
+import type { Commitment } from '../../../entities/commitment.entity';
 import type { CommitmentPayment } from '../../../entities/commitment_payment.entity';
 
 interface CommitmentDetailEntry {
   commitmentId: string | undefined;
+  commitment: Commitment | undefined;
   allPayments: CommitmentPayment[];
+  cycleId: string | undefined;
+  loadedOn: string | undefined;
 }
+
+type CommitmentDetailRead = Omit<CommitmentDetailEntry, 'commitmentId' | 'loadedOn'> & {
+  loadedOn: string;
+};
 
 type CommitmentDetailStoreShape = KeyedEntries<CommitmentDetailEntry>;
 
 type CommitmentDetailStore = CommitmentDetailStoreShape & {
-  setAllPayments: (owner: string, commitmentId: string, payments: CommitmentPayment[]) => void;
+  setDetail: (owner: string, commitmentId: string, detail: CommitmentDetailRead) => void;
   release: (owner: string) => void;
   reset: () => void;
 };
@@ -24,7 +32,10 @@ Object.freeze(EMPTY_PAYMENTS);
 
 export const INITIAL_DATA_ENTRY: CommitmentDetailEntry = Object.freeze({
   commitmentId: undefined,
+  commitment: undefined,
   allPayments: EMPTY_PAYMENTS,
+  cycleId: undefined,
+  loadedOn: undefined,
 });
 
 const initialState = (): CommitmentDetailStoreShape => ({ entries: {} });
@@ -32,8 +43,8 @@ const initialState = (): CommitmentDetailStoreShape => ({ entries: {} });
 export const useCommitmentDetailStore = createMoneyAppSelectors(
   create<CommitmentDetailStore>((set) => ({
     ...initialState(),
-    setAllPayments: (owner, commitmentId, payments) =>
-      set((state) => withEntry(state, owner, { commitmentId, allPayments: payments })),
+    setDetail: (owner, commitmentId, detail) =>
+      set((state) => withEntry(state, owner, { ...detail, commitmentId })),
     release: (owner) => set((state) => withoutEntry(state, owner)),
     reset: () => set(initialState()),
   })),

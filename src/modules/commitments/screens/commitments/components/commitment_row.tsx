@@ -59,7 +59,7 @@ interface CommitmentRowProps {
   commitment: Commitment | undefined;
   category: Category | undefined;
   account: Account | undefined;
-  onPress: (paymentId: string) => void;
+  onPress: (commitmentId: string, paymentId: string) => void;
   onSkip: (paymentId: string) => void;
   onEdit: (commitmentId: string | undefined) => void;
   onDelete: (commitmentId: string | undefined) => void;
@@ -95,7 +95,10 @@ function CommitmentRowComponent({
     [fontScale],
   );
 
-  const handlePress = useCallback(() => onPress(payment.id), [onPress, payment.id]);
+  const handlePress = useCallback(
+    () => onPress(payment.commitment_id, payment.id),
+    [onPress, payment.commitment_id, payment.id],
+  );
   const handleSkip = useCallback(() => onSkip(payment.id), [onSkip, payment.id]);
   const handleEdit = useCallback(() => onEdit(commitment?.id), [commitment?.id, onEdit]);
   const handleDelete = useCallback(() => onDelete(commitment?.id), [commitment?.id, onDelete]);

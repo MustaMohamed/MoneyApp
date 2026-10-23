@@ -256,6 +256,12 @@ describe('getCommitmentById', () => {
     const found = await getCommitmentById(mockDb, 'com-nonexistent');
     expect(found).toBeNull();
   });
+
+  it('returns a stopped commitment', async () => {
+    await addCommitment(mockDb, makeCommitment({ id: 'com-stopped', is_active: 0 }));
+
+    expect((await getCommitmentById(mockDb, 'com-stopped'))?.is_active).toBe(0);
+  });
 });
 
 describe('updateCommitment', () => {

@@ -1,5 +1,8 @@
 import { Strings } from '@/constants/strings';
-import { resolveDetailLoadErrorTitle } from '@/modules/commitments/screens/commitments/detail/components/detail_load_error.helpers';
+import {
+  resolveDetailLoadErrorAlertProps,
+  resolveDetailLoadErrorTitle,
+} from '@/modules/commitments/screens/commitments/detail/components/detail_load_error.helpers';
 
 const ROWS = [
   [false, Strings.commitmentsDetailLoadErrorTitle],
@@ -13,5 +16,19 @@ describe('resolveDetailLoadErrorTitle', () => {
 
   it('the two titles are distinct', () => {
     expect(new Set(ROWS.map(([, title]) => title)).size).toBe(ROWS.length);
+  });
+});
+
+describe('resolveDetailLoadErrorAlertProps', () => {
+  it('floats the refresh alert, tinted, with the flat retry', () => {
+    expect(resolveDetailLoadErrorAlertProps(true)).toStrictEqual({
+      mode: 'floating',
+      tinted: true,
+      flatRetry: true,
+    });
+  });
+
+  it('draws no alert on the first load, which takes the flat error block', () => {
+    expect(resolveDetailLoadErrorAlertProps(false)).toBeUndefined();
   });
 });
