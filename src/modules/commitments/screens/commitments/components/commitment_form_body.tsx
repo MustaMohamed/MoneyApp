@@ -3,7 +3,7 @@ import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { Input, PressableFeedback } from 'heroui-native';
 import { useMemo } from 'react';
-import { Controller, useWatch, type UseFormReturn } from 'react-hook-form';
+import { Controller, useFormState, useWatch, type UseFormReturn } from 'react-hook-form';
 import { Platform, View, useWindowDimensions } from 'react-native';
 
 import { AccountStrip } from '@/components/ui/account_strip';
@@ -54,6 +54,8 @@ import {
 } from './commitment_form_body.hook';
 import { DurationPicker } from './duration_picker';
 import { RecurrencePicker } from './recurrence_picker';
+
+const BODY_FAULT_FIELDS = ['name', 'amount', 'categoryId', 'startDate', 'notes'] as const;
 
 interface CommitmentFormBodyProps {
   form: UseFormReturn<CommitmentFormValues>;
@@ -151,12 +153,14 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
     setShowEndDatePicker,
   } = useCommitmentFormBodyPickers();
 
+  // Subscribes the body to its own faults: a compiled host reuses this element when `form` keeps its identity.
+  const formState = useFormState({ control: form.control, name: BODY_FAULT_FIELDS });
   const errors = {
-    name: form.formState.errors.name?.message,
-    amount: form.formState.errors.amount?.message,
-    category: form.formState.errors.categoryId?.message,
-    startDate: form.formState.errors.startDate?.message,
-    notes: form.formState.errors.notes?.message,
+    name: form.getFieldState('name', formState).error?.message,
+    amount: form.getFieldState('amount', formState).error?.message,
+    category: form.getFieldState('categoryId', formState).error?.message,
+    startDate: form.getFieldState('startDate', formState).error?.message,
+    notes: form.getFieldState('notes', formState).error?.message,
   };
 
   const startDateAsDate = startDate ? new Date(startDate + 'T00:00:00') : new Date();
