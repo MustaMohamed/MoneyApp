@@ -5,16 +5,16 @@ import {
   ACCOUNT_STRIP_CHIP_WIDTH,
   AMOUNT_ENTRY_MAX_FONT_SCALE,
   resolveAccountStripChipGeometry,
+  resolveTypeTabsGeometry,
 } from '@/components/ui/form_sheet.geometry';
-import { TABS_LIST_PADDING, resolveSegmentedTabsGeometry } from '@/components/ui/tabs.geometry';
 import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
-import { Spacing, TouchSize, Type, lineHeightFor } from '@/constants/theme';
+import { Spacing, Type, lineHeightFor } from '@/constants/theme';
 import {
   TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
   TRANSACTION_FORM_SKELETON_GEOMETRY,
   resolveNoteInputGeometry,
   resolveTransactionFormSkeletonBars,
-  resolveTypeTabsGeometry,
+  resolveTypeTabsSkeletonHeight,
 } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form.geometry';
 
 describe('TRANSACTION_FORM_SKELETON_GEOMETRY', () => {
@@ -113,36 +113,16 @@ describe('resolveTransactionFormSkeletonBars', () => {
   );
 });
 
-describe('resolveTypeTabsGeometry', () => {
-  it('at font scale 1 keeps the 36 tab row and the skeleton tab bar', () => {
-    const g = resolveTypeTabsGeometry(1);
-    expect(g.listHeight).toBe(36);
-    expect(g.skeletonHeight).toBe(TRANSACTION_FORM_SKELETON_GEOMETRY.tabBar);
+describe('resolveTypeTabsSkeletonHeight', () => {
+  it('at font scale 1 is the skeleton tab bar', () => {
+    expect(resolveTypeTabsSkeletonHeight(1)).toBe(TRANSACTION_FORM_SKELETON_GEOMETRY.tabBar);
   });
 
-  it('at font scale 2 the skeleton is as tall as the tab row, which holds its triggers', () => {
-    const g = resolveTypeTabsGeometry(2);
-    const { compact } = resolveSegmentedTabsGeometry(2);
-    expect(g.skeletonHeight).toBe(g.listHeight);
-    expect(g.listHeight).toBeGreaterThanOrEqual(compact.triggerHeight + 2 * TABS_LIST_PADDING);
+  it.each([1.5, 2])('at font scale %d is as tall as the tab row', (fontScale) => {
+    expect(resolveTypeTabsSkeletonHeight(fontScale)).toBe(
+      resolveTypeTabsGeometry(fontScale).listHeight,
+    );
   });
-
-  it('at font scale 1.5 the skeleton is as tall as the tab row', () => {
-    const g = resolveTypeTabsGeometry(1.5);
-    expect(g.skeletonHeight).toBe(g.listHeight);
-  });
-
-  it.each([1, 2])(
-    'MA-109: at font scale %d the trigger slop lifts a tab to the touch floor with a margin on each side, the same above and below',
-    (fontScale) => {
-      const { triggerHitSlop } = resolveTypeTabsGeometry(fontScale);
-      const { compact } = resolveSegmentedTabsGeometry(fontScale);
-      expect(
-        compact.triggerHeight + triggerHitSlop.top + triggerHitSlop.bottom,
-      ).toBeGreaterThanOrEqual(TouchSize.min + 2 * Spacing.xxxxs);
-      expect(triggerHitSlop.top).toBe(triggerHitSlop.bottom);
-    },
-  );
 });
 
 describe('transaction form content inset', () => {

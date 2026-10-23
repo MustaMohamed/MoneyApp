@@ -83,6 +83,7 @@ jest.mock(
 );
 
 import { useRateEditorSheetState } from '@/components/ui/rate_editor_sheet.state';
+import { VALIDATION_SLOT_MIN_HEIGHT } from '@/components/ui/validation_slot';
 import { ExchangeRateRow } from '@/modules/transactions/components/exchange_rate_row';
 import { useAddTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.store';
 import { TRANSACTION_FORM_CONTENT_CONTAINER_STYLE } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form.geometry';
@@ -92,10 +93,7 @@ import {
   resolveAccountStripChips,
   resolveLockedStripChips,
 } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form.helpers';
-import {
-  TRANSACTION_FORM_ERROR_SLOT_HEIGHT,
-  TransactionFormBody,
-} from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_body';
+import { TransactionFormBody } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_body';
 import { makeTestAccount } from '@/test_helpers/transaction';
 
 // The shared fact row's height at the suite's font scale, above 1.
@@ -161,7 +159,7 @@ describe('TransactionFormBody geometry', () => {
     await render(<TransactionFormBody {...baseProps} showBudgetField />);
 
     expect(screen.getByTestId('amount-error-slot')).toHaveStyle({
-      minHeight: TRANSACTION_FORM_ERROR_SLOT_HEIGHT,
+      minHeight: VALIDATION_SLOT_MIN_HEIGHT,
     });
     for (const id of [
       'account-error-slot',
@@ -886,7 +884,7 @@ describe('MA-168 converted amount under the amount', () => {
       style: AMOUNT_MESSAGE_TEXT_STYLE,
     });
     expect(screen.queryByTestId('converted-amount-line')).toBeNull();
-    expect(slot).toHaveStyle({ minHeight: TRANSACTION_FORM_ERROR_SLOT_HEIGHT });
+    expect(slot).toHaveStyle({ minHeight: VALIDATION_SLOT_MIN_HEIGHT });
   });
 
   it('mounts no converted amount when no USD account is involved', async () => {
@@ -895,7 +893,7 @@ describe('MA-168 converted amount under the amount', () => {
 
     expect(screen.queryByTestId('converted-amount-line')).toBeNull();
     expect(screen.getByTestId('amount-error-slot')).toHaveStyle({
-      minHeight: TRANSACTION_FORM_ERROR_SLOT_HEIGHT,
+      minHeight: VALIDATION_SLOT_MIN_HEIGHT,
     });
   });
 

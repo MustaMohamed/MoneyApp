@@ -1,0 +1,280 @@
+import { act, renderHook } from '@testing-library/react-native';
+import { useController } from 'react-hook-form';
+
+import type { AccountStripChip } from '@/components/ui/form_sheet.helpers';
+import { AccountType } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
+import type { Account } from '@/modules/accounts/entities/account.entity';
+import { useAccountStore } from '@/modules/accounts/store/account.store';
+import { useCategoryStore } from '@/modules/categories/store/category.store';
+import {
+  NO_ACCOUNT_CHIP_ID,
+  applyCommitmentAmountText,
+  parseCommitmentAmountText,
+  resolveAccountIdFromChip,
+  resolveAmountHeroSyncText,
+  resolveCommitmentStripChips,
+} from '@/modules/commitments/screens/commitments/commitment_form.helpers';
+import { useAddCommitment } from '@/modules/commitments/screens/commitments/commitment_form/add_commitment.hook';
+import { useAddCommitmentState } from '@/modules/commitments/screens/commitments/commitment_form/add_commitment.state';
+import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
+import { resolveHollowGraphiteTile } from '@/modules/transactions/components/transaction_row.helpers';
+import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
+import { makeTestAccount } from '@/test_helpers/transaction';
+
+jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: unknown) => sel }));
+jest.mock('expo-router', () => ({
+  useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
+}));
+jest.mock('@/modules/commitments/store/commitment.store', () => ({
+  useCommitmentStore: jest.fn(),
+}));
+jest.mock('@/modules/accounts/store/account.store', () => ({
+  EMPTY_ACCOUNTS: [],
+  useAccountStore: jest.fn(),
+}));
+jest.mock('@/modules/categories/store/category.store', () => ({ useCategoryStore: jest.fn() }));
+jest.mock('@/modules/commitments/screens/commitments/commitment_form/add_commitment.state', () => ({
+  useAddCommitmentState: jest.fn(),
+}));
+
+const cash = makeTestAccount({ id: 'acc-cash', name: 'Cash', type: AccountType.PhysicalWallet });
+const bank = makeTestAccount({
+  id: 'acc-bank',
+  name: 'Bank',
+  type: AccountType.Bank,
+  color: '#2255aa',
+});
+const archived = makeTestAccount({
+  id: 'acc-archived',
+  name: 'Old savings',
+  type: AccountType.PhysicalSavings,
+  color: '#aa5522',
+  is_archived: 1,
+});
+const deleted = makeTestAccount({
+  id: 'acc-deleted',
+  name: 'Closed card',
+  type: AccountType.CreditCard,
+  color: '#22aa55',
+  is_deleted: 1,
+});
+
+const activeAccounts: readonly Account[] = [cash, bank];
+const accountsById: ReadonlyMap<string, Account> = new Map(
+  [cash, bank, archived, deleted].map((account) => [account.id, account]),
+);
+
+const chipOf = (account: Account, selected: boolean) => ({
+  id: account.id,
+  name: account.name,
+  tile: { color: account.color, type: account.type, hollow: false },
+  selected,
+  locked: false,
+  dimmed: false,
+});
+
+describe('resolveCommitmentStripChips', () => {
+  it('on add lights No account, first on the hollow graphite tile, then every active account unlit', () => {
+    const chips = resolveCommitmentStripChips({
+      activeAccounts,
+      accountId: undefined,
+      accountsById,
+    });
+
+    expect(chips).toEqual([
+      {
+        id: NO_ACCOUNT_CHIP_ID,
+        name: 'No account',
+        tile: resolveHollowGraphiteTile(AccountType.Bank),
+        selected: true,
+        locked: false,
+        dimmed: false,
+      },
+      chipOf(cash, false),
+      chipOf(bank, false),
+    ]);
+  });
+
+  it('on edit on an active account lights that chip and adds no extra chip', () => {
+    const chips = resolveCommitmentStripChips({ activeAccounts, accountId: bank.id, accountsById });
+
+    expect(chips.map((chip: AccountStripChip) => chip.id)).toEqual([
+      NO_ACCOUNT_CHIP_ID,
+      cash.id,
+      bank.id,
+    ]);
+    expect(chips.map((chip: AccountStripChip) => chip.selected)).toEqual([false, false, true]);
+  });
+
+  it('on edit on an archived account lights it at index 1 with its name on its own tile', () => {
+    const chips = resolveCommitmentStripChips({
+      activeAccounts,
+      accountId: archived.id,
+      accountsById,
+    });
+
+    expect(chips).toHaveLength(4);
+    expect(chips[0]).toMatchObject({ id: NO_ACCOUNT_CHIP_ID, selected: false });
+    expect(chips[1]).toEqual(chipOf(archived, true));
+    expect(chips.slice(2)).toEqual([chipOf(cash, false), chipOf(bank, false)]);
+  });
+
+  it('on edit on a deleted account lights Deleted Account at index 1 on the hollow graphite tile', () => {
+    const chips = resolveCommitmentStripChips({
+      activeAccounts,
+      accountId: deleted.id,
+      accountsById,
+    });
+
+    expect(chips).toHaveLength(4);
+    expect(chips[1]).toEqual({
+      id: deleted.id,
+      name: Strings.deletedAccount,
+      tile: resolveHollowGraphiteTile(AccountType.CreditCard),
+      selected: true,
+      locked: false,
+      dimmed: false,
+    });
+    expect(chips[1].tile.hollow).toBe(true);
+  });
+
+  it('names an id missing from the map Unknown account on the hollow tile', () => {
+    const chips = resolveCommitmentStripChips({
+      activeAccounts,
+      accountId: 'acc-missing',
+      accountsById,
+    });
+
+    expect(chips[1]).toEqual({
+      id: 'acc-missing',
+      name: Strings.unknownAccount,
+      tile: resolveHollowGraphiteTile(AccountType.Bank),
+      selected: true,
+      locked: false,
+      dimmed: false,
+    });
+  });
+});
+
+describe('resolveAccountIdFromChip', () => {
+  it('reads No account as no account and any other chip as its account id', () => {
+    expect(resolveAccountIdFromChip(NO_ACCOUNT_CHIP_ID)).toBeUndefined();
+    expect(resolveAccountIdFromChip(bank.id)).toBe(bank.id);
+  });
+});
+
+describe('parseCommitmentAmountText', () => {
+  it.each([
+    ['', undefined],
+    ['.', undefined],
+    ['0', 0],
+    ['0.', 0],
+    ['48.', 48],
+    ['12.5', 12.5],
+    ['0.001', 0.001],
+  ] as const)('parses %p to %p, unrounded', (text, amount) => {
+    expect(parseCommitmentAmountText(text)).toBe(amount);
+  });
+});
+
+describe('resolveAmountHeroSyncText', () => {
+  it.each([
+    ['', 900, '900'],
+    ['12', 12.5, '12.5'],
+    ['12', undefined, ''],
+  ] as const)('replaces the text %p under the stored %p with %p', (text, value, next) => {
+    expect(resolveAmountHeroSyncText(text, value)).toBe(next);
+  });
+
+  it.each([
+    ['900', 900],
+    ['48.', 48],
+    ['0.', 0],
+    ['.', undefined],
+    ['', undefined],
+  ] as const)('keeps the text %p over the stored %p', (text, value) => {
+    expect(resolveAmountHeroSyncText(text, value)).toBeUndefined();
+  });
+});
+
+describe('applyCommitmentAmountText after a refused Save (MA-115)', () => {
+  const onSaved = jest.fn();
+  const addCommitmentMock = jest.fn().mockResolvedValue(undefined);
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
+      commitments: [],
+      payments: [],
+      addCommitment: addCommitmentMock,
+      generatePayments: jest.fn().mockResolvedValue(undefined),
+    }));
+    attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({ accounts: [] }));
+    attachMockSelectorStore(useCategoryStore as unknown as jest.Mock, () => ({ categories: [] }));
+    attachMockSelectorStore(useAddCommitmentState as unknown as jest.Mock, () => ({
+      saving: false,
+      saveError: undefined,
+      setSaving: jest.fn(),
+      setSaveError: jest.fn(),
+      reset: jest.fn(),
+    }));
+  });
+
+  function useAddWithAmountField() {
+    const hook = useAddCommitment({ onSaved });
+    const { field } = useController({ control: hook.form.control, name: 'amount' });
+    return { ...hook, field };
+  }
+
+  type Mounted = { current: ReturnType<typeof useAddWithAmountField> };
+
+  const amountError = (result: Mounted) =>
+    result.current.form.getFieldState('amount').error?.message;
+
+  async function mountRefused(): Promise<Mounted> {
+    const { result } = await renderHook(() => useAddWithAmountField());
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+    expect(addCommitmentMock).not.toHaveBeenCalled();
+    expect(amountError(result)).toBe(Strings.commitmentsErrAmountRequired);
+    return result;
+  }
+
+  async function type(result: Mounted, text: string) {
+    await act(async () => {
+      applyCommitmentAmountText(result.current.form, text, result.current.field.onChange);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+  }
+
+  it("holds '0.' as 0 and clears the amount error", async () => {
+    const result = await mountRefused();
+
+    await type(result, '0.');
+
+    expect(result.current.form.getValues('amount')).toBe(0);
+    expect(amountError(result)).toBeUndefined();
+  });
+
+  it("stores '0.001' unrounded and validates it to the floor message", async () => {
+    const result = await mountRefused();
+
+    await type(result, '0.001');
+
+    expect(result.current.form.getValues('amount')).toBe(0.001);
+    expect(amountError(result)).toBe(Strings.commitmentsErrAmountPositive);
+  });
+
+  it("validates '' after a held '0.' back to the required message", async () => {
+    const result = await mountRefused();
+    await type(result, '0.');
+    expect(amountError(result)).toBeUndefined();
+
+    await type(result, '');
+
+    expect(result.current.form.getValues('amount')).toBeUndefined();
+    expect(amountError(result)).toBe(Strings.commitmentsErrAmountRequired);
+  });
+});
