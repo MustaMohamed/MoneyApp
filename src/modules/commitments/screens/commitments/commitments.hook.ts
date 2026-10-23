@@ -9,6 +9,7 @@ import {
 } from '@/modules/accounts/store/account_lookup.helpers';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
+import { commitmentDetailRoute } from '@/modules/navigation/domain/stacked_route';
 import { toLocalDateString } from '@/utils/format_date';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
 import { useDebouncedValue } from '@/utils/use_debounced_value.hook';
@@ -309,7 +310,7 @@ export function useCommitments() {
   }, [loadAccountLookup, rowAccountIds]);
 
   const goToDetail = useCallback((commitmentId: string, paymentId: string) => {
-    router.push(`/commitments/${commitmentId}?cycle=${paymentId}`);
+    router.push(commitmentDetailRoute('', commitmentId, paymentId));
   }, []);
 
   const goToAdd = useCallback(() => {

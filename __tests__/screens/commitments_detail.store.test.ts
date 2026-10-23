@@ -47,7 +47,7 @@ describe('useCommitmentDetailStore', () => {
 
     useCommitmentDetailStore.getState().setDetail('owner-a', 'commitment-1', {
       commitment,
-      payments,
+      allPayments: payments,
       cycleId: 'pay-1',
       loadedOn: LOADED_ON,
     });
@@ -65,7 +65,7 @@ describe('useCommitmentDetailStore', () => {
   it('setDetail keeps a read that found no commitment as an undefined commitment and cycle', () => {
     useCommitmentDetailStore.getState().setDetail('owner-a', 'commitment-missing', {
       commitment: undefined,
-      payments: [],
+      allPayments: [],
       cycleId: undefined,
       loadedOn: LOADED_ON,
     });
@@ -85,14 +85,14 @@ describe('useCommitmentDetailStore', () => {
     const stopped = makeCommitment({ is_active: 0 });
     useCommitmentDetailStore.getState().setDetail('owner-a', 'commitment-1', {
       commitment: makeCommitment(),
-      payments: first,
+      allPayments: first,
       cycleId: 'pay-1',
       loadedOn: LOADED_ON,
     });
 
     useCommitmentDetailStore.getState().setDetail('owner-a', 'commitment-1', {
       commitment: stopped,
-      payments: second,
+      allPayments: second,
       cycleId: 'pay-2',
       loadedOn: '2026-05-09',
     });
@@ -108,7 +108,7 @@ describe('useCommitmentDetailStore owner isolation', () => {
   it('a second copy loading leaves the first copy detail intact', () => {
     useCommitmentDetailStore.getState().setDetail('owner-a', 'commitment-1', {
       commitment: makeCommitment(),
-      payments: [makePayment({ id: 'pay-1' })],
+      allPayments: [makePayment({ id: 'pay-1' })],
       cycleId: 'pay-1',
       loadedOn: LOADED_ON,
     });
@@ -116,7 +116,7 @@ describe('useCommitmentDetailStore owner isolation', () => {
 
     useCommitmentDetailStore.getState().setDetail('owner-b', 'commitment-2', {
       commitment: makeCommitment({ id: 'commitment-2' }),
-      payments: [makePayment({ id: 'pay-2', commitment_id: 'commitment-2' })],
+      allPayments: [makePayment({ id: 'pay-2', commitment_id: 'commitment-2' })],
       cycleId: 'pay-2',
       loadedOn: LOADED_ON,
     });
@@ -131,7 +131,7 @@ describe('useCommitmentDetailStore release', () => {
   function seed(owner: string, commitmentId: string): void {
     useCommitmentDetailStore.getState().setDetail(owner, commitmentId, {
       commitment: makeCommitment({ id: commitmentId }),
-      payments: [makePayment({ commitment_id: commitmentId })],
+      allPayments: [makePayment({ commitment_id: commitmentId })],
       cycleId: 'pay-1',
       loadedOn: LOADED_ON,
     });

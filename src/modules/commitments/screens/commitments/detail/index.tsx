@@ -20,7 +20,7 @@ import { useCommitmentDetail } from './detail.hook';
 export default function CommitmentDetailScreen() {
   const { state, confirmSkip, skipPayment, cancelSkip, reload, openPaySheet, goToEdit, goBack } =
     useCommitmentDetail();
-  const showsBody = state.viewState === 'ready' || state.viewState === 'refreshErrorWithData';
+  const showsBody = commitmentDetailShowsEdit(state.viewState);
 
   return (
     <Screen edges={['top', 'bottom']}>

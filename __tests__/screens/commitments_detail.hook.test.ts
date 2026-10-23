@@ -16,7 +16,12 @@ import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
 import { deferred } from '@/test_helpers/deferred';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
-type DetailParams = { id: string; cycle?: string; originTxId?: string; originTxCopy?: string };
+type DetailParams = {
+  id: string;
+  cycle?: string | string[];
+  originTxId?: string;
+  originTxCopy?: string;
+};
 
 const mockGetById = jest.fn();
 const mockGetPaymentsByCommitment = jest.fn();
@@ -191,16 +196,22 @@ describe('useCommitmentDetail', () => {
   });
 
   it('reads the commitment and its rows by the route id, the commitment id', async () => {
-    seedRent();
+    jest.useFakeTimers().setSystemTime(new Date(2026, 0, 31, 10));
+    try {
+      seedRent();
 
-    const { result } = await renderHook(() => useCommitmentDetail());
+      const { result } = await renderHook(() => useCommitmentDetail());
 
-    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
-    expect(mockGetById).toHaveBeenCalledWith(commitment.id);
-    expect(mockGetPaymentsByCommitment).toHaveBeenCalledWith(commitment.id);
-    expect(result.current.state.commitment).toEqual(commitment);
-    expect(result.current.state.payment?.id).toBe(payment.id);
-    expect(result.current.state.allPayments).toEqual(rentHistory);
+      await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+      expect(mockGetById).toHaveBeenCalledWith(commitment.id);
+      expect(mockGetPaymentsByCommitment).toHaveBeenCalledWith(commitment.id);
+      expect(result.current.state.commitment).toEqual(commitment);
+      expect(result.current.state.payment?.id).toBe(payment.id);
+      expect(result.current.state.allPayments).toEqual(rentHistory);
+      expect(result.current.state.today).toBe('2026-01-31');
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('opens a carried row from an earlier month while the month store holds nothing', async () => {
@@ -319,6 +330,19 @@ describe('useCommitmentDetail', () => {
 
     await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
     expect(result.current.state.payment?.id).toBe('pay-apr');
+  });
+
+  it('a repeated cycle param opens at its first value', async () => {
+    const unpaidApril: CommitmentPayment = { ...payment, id: 'pay-apr', due_date: '2026-04-01' };
+    const unpaidJune: CommitmentPayment = { ...payment, id: 'pay-2', due_date: '2026-06-01' };
+    commitmentsById = { [commitment.id]: commitment };
+    historyById = { [commitment.id]: [unpaidApril, payment, unpaidJune] };
+    mockParams = { id: commitment.id, cycle: ['pay-2', 'pay-2'] };
+
+    const { result } = await renderHook(() => useCommitmentDetail());
+
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+    expect(result.current.state.payment?.id).toBe('pay-2');
   });
 
   it('a commitment with no rows draws ready without a cycle, never not found', async () => {

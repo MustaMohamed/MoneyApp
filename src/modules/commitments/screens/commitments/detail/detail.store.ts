@@ -14,12 +14,9 @@ interface CommitmentDetailEntry {
   loadedOn: string | undefined;
 }
 
-interface CommitmentDetailRead {
-  commitment: Commitment | undefined;
-  payments: CommitmentPayment[];
-  cycleId: string | undefined;
+type CommitmentDetailRead = Omit<CommitmentDetailEntry, 'commitmentId' | 'loadedOn'> & {
   loadedOn: string;
-}
+};
 
 type CommitmentDetailStoreShape = KeyedEntries<CommitmentDetailEntry>;
 
@@ -46,16 +43,8 @@ const initialState = (): CommitmentDetailStoreShape => ({ entries: {} });
 export const useCommitmentDetailStore = createMoneyAppSelectors(
   create<CommitmentDetailStore>((set) => ({
     ...initialState(),
-    setDetail: (owner, commitmentId, { commitment, payments, cycleId, loadedOn }) =>
-      set((state) =>
-        withEntry(state, owner, {
-          commitmentId,
-          commitment,
-          allPayments: payments,
-          cycleId,
-          loadedOn,
-        }),
-      ),
+    setDetail: (owner, commitmentId, detail) =>
+      set((state) => withEntry(state, owner, { ...detail, commitmentId })),
     release: (owner) => set((state) => withoutEntry(state, owner)),
     reset: () => set(initialState()),
   })),

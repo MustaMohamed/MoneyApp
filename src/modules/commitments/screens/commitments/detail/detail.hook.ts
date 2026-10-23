@@ -61,15 +61,17 @@ export function useCommitmentDetail() {
   const owner = useId();
   const {
     id: commitmentId,
-    cycle,
+    cycle: cycleParam,
     originTxId,
     originTxCopy,
   } = useLocalSearchParams<{
     id: string;
-    cycle?: string;
+    cycle?: string | string[];
     originTxId?: string;
     originTxCopy?: string;
   }>();
+  // expo-router hands a repeated query param over as an array.
+  const cycle = Array.isArray(cycleParam) ? cycleParam[0] : cycleParam;
   const stackedPrefix = stackedPrefixOf(usePathname());
 
   const payments = useCommitmentStore((s) => s.payments);
@@ -112,7 +114,7 @@ export function useCommitmentDetail() {
         if (cancelled) return;
         setDetail(owner, commitmentId, {
           commitment: found,
-          payments: rows,
+          allPayments: rows,
           cycleId: resolveCommitmentDetailCycle(rows, cycle, previousDueDate)?.id,
           loadedOn,
         });
