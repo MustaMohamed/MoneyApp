@@ -180,6 +180,7 @@ describe('TransactionRow ownership actions', () => {
     const lead = screen.getByText('Split with Omar at the counter');
     expect(lead.props.numberOfLines).toBe(1);
     expect(lead).toHaveProp('allowFontScaling', false);
+    expect(lead.props.adjustsFontSizeToFit).toBeUndefined();
     expect(lead).toHaveStyle({
       ...scaledTextStyle(TRANSACTION_ROW_CAPTION_FONT_SIZE, fontScale),
       flexShrink: 1,
@@ -188,6 +189,7 @@ describe('TransactionRow ownership actions', () => {
     const time = screen.getByText(/^\d{1,2}:\d{2} [AP]M$/);
     expect(time.props.numberOfLines).toBe(1);
     expect(time).toHaveProp('allowFontScaling', false);
+    expect(time.props.adjustsFontSizeToFit).toBeUndefined();
     expect(time).toHaveStyle(scaledTextStyle(TRANSACTION_ROW_CAPTION_FONT_SIZE, fontScale));
     const title = screen.getByText(Strings.uncategorized);
     expect(title).toHaveProp('allowFontScaling', false);

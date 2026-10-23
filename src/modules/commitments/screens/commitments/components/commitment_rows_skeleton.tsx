@@ -4,13 +4,13 @@ import { View, useWindowDimensions } from 'react-native';
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { Strings } from '@/constants/strings';
 import { Radius, Size, lineHeightFor } from '@/constants/theme';
+import { RowCaptionSkeleton } from '@/modules/transactions/components/row_caption';
 
 import {
   COMMITMENT_ROW_AMOUNT_FONT_SIZE,
   COMMITMENT_ROW_CAPTION_FONT_SIZE,
   COMMITMENT_ROW_LINE_GAP,
   COMMITMENT_ROW_TITLE_FONT_SIZE,
-  resolveCommitmentRowCaptionLines,
   resolveCommitmentRowHeight,
 } from './commitment_row.helpers';
 
@@ -44,22 +44,7 @@ export function CommitmentRowsSkeleton(): React.ReactElement {
                   className={row % 2 === 0 ? 'w-36 rounded-md' : 'w-28 rounded-md'}
                   style={{ height: lineBar(COMMITMENT_ROW_TITLE_FONT_SIZE) }}
                 />
-                <SkeletonGroup.Item
-                  className="w-20 rounded-md"
-                  style={{
-                    height: lineBar(COMMITMENT_ROW_CAPTION_FONT_SIZE),
-                    marginTop: COMMITMENT_ROW_LINE_GAP,
-                  }}
-                />
-                {resolveCommitmentRowCaptionLines(fontScale) === 2 ? (
-                  <SkeletonGroup.Item
-                    className="w-14 rounded-md"
-                    style={{
-                      height: lineBar(COMMITMENT_ROW_CAPTION_FONT_SIZE),
-                      marginTop: COMMITMENT_ROW_LINE_GAP,
-                    }}
-                  />
-                ) : null}
+                <RowCaptionSkeleton />
               </View>
               <View style={{ alignItems: 'flex-end' }}>
                 <SkeletonGroup.Item

@@ -21,20 +21,18 @@ import type { Category } from '@/modules/categories/entities/category.entity';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { useDragCancelledPress } from '@/utils/use_drag_cancelled_press.hook';
 
+import { RowCaption } from './row_caption';
 import { useRowPressScale } from './transaction_row.anim';
 import {
   buildTransactionRowPresentation,
   type RowTileSet,
   TRANSACTION_ROW_AMOUNT_FONT_SIZE,
-  TRANSACTION_ROW_CAPTION_FONT_SIZE,
-  TRANSACTION_ROW_CAPTION_SEPARATOR,
   TRANSACTION_ROW_CODE_FONT_SIZE,
   TRANSACTION_ROW_DUAL_OFFSET,
   TRANSACTION_ROW_DUAL_RING,
   TRANSACTION_ROW_DUAL_RING_COLOR,
   TRANSACTION_ROW_LINE_GAP,
   TRANSACTION_ROW_TITLE_FONT_SIZE,
-  resolveTransactionRowCaptionLines,
   resolveTransactionRowHeight,
   resolveTransactionRowValueTrackMaxWidth,
   type TransactionRowPresentation,
@@ -134,7 +132,6 @@ export function TransactionRowBody({
   const { fontScale } = useWindowDimensions();
   // Above 1.0 the badge and the label give up their width before the title does.
   const badgeShrinks = fontScale > 1;
-  const captionStacked = resolveTransactionRowCaptionLines(fontScale) === 2;
   const primaryText = resolveFitAmountTextProps(TRANSACTION_ROW_AMOUNT_FONT_SIZE, fontScale);
   const secondaryText = resolveFitAmountTextProps(TRANSACTION_ROW_CODE_FONT_SIZE, fontScale);
 
@@ -199,41 +196,11 @@ export function TransactionRowBody({
                 </YieldingSlot>
               ) : null}
             </View>
-            {/* The lead clips first; the time never ellipsizes, and above 1.0 takes its own line. */}
-            <View
-              style={{
-                flexDirection: captionStacked ? 'column' : 'row',
-                gap: captionStacked ? TRANSACTION_ROW_LINE_GAP : undefined,
-                marginTop: TRANSACTION_ROW_LINE_GAP,
-              }}
-            >
-              {presentation.captionLead === undefined ? null : (
-                <Text
-                  allowFontScaling={false}
-                  className="font-inter text-content-secondary"
-                  style={{
-                    ...scaledTextStyle(TRANSACTION_ROW_CAPTION_FONT_SIZE, fontScale),
-                    flexShrink: 1,
-                  }}
-                  numberOfLines={1}
-                >
-                  {presentation.captionLead}
-                </Text>
-              )}
-              <Text
-                allowFontScaling={false}
-                className="font-inter text-content-secondary"
-                style={{
-                  ...scaledTextStyle(TRANSACTION_ROW_CAPTION_FONT_SIZE, fontScale),
-                  flexShrink: 0,
-                }}
-                numberOfLines={1}
-              >
-                {captionStacked || presentation.captionLead === undefined
-                  ? presentation.captionTime
-                  : `${TRANSACTION_ROW_CAPTION_SEPARATOR}${presentation.captionTime}`}
-              </Text>
-            </View>
+            <RowCaption
+              lead={presentation.captionLead}
+              trail={presentation.captionTime}
+              fit="ellipsis"
+            />
           </View>
           <View
             testID="transaction-row-value-track"
