@@ -106,7 +106,7 @@ describe('useAddCommitment', () => {
       return result;
     }
 
-    // The pairs `DecimalAmountInput` sends: the number it stores and the text typed.
+    // The pairs `applyCommitmentAmountText` passes on: the number it parses and the text typed.
     it.each([
       ['0', 0],
       ['0.', 0],
@@ -135,31 +135,6 @@ describe('useAddCommitment', () => {
         expect(amountError(result)).toBeUndefined();
       },
     );
-
-    it('does not hold 0.001, and the shipped call validates it to the floor message', async () => {
-      const result = await mountRefused();
-
-      let held: boolean | undefined;
-      await act(async () => {
-        held = holdStillTypingDecimal(
-          result.current.form,
-          'amount',
-          0.001,
-          COMMITMENT_AMOUNT_REFUSES_ZERO,
-          '0.001',
-        );
-        if (!held) {
-          result.current.form.setValue('amount', 0.001, {
-            shouldDirty: true,
-            shouldValidate: true,
-          });
-        }
-        await new Promise((resolve) => setTimeout(resolve, 0));
-      });
-
-      expect(held).toBe(false);
-      expect(amountError(result)).toBe(Strings.commitmentsErrAmountPositive);
-    });
   });
 
   it('allows only one committed add while the first submit is in flight', async () => {

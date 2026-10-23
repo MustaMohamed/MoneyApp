@@ -152,12 +152,6 @@ describe('strings the transactions module shares with other modules', () => {
     ['addTxRateReset', PAY_SHEET_RATE_CARD, Strings.addTxRateReset, 'Reset to global'],
     ['addTxRateSourceCustom', PAY_SHEET_RATE_CARD, Strings.addTxRateSourceCustom, 'Custom rate'],
     [
-      'addTxPickAccountTitle',
-      'modules/commitments/screens/commitments/components/commitment_form_body.tsx',
-      Strings.addTxPickAccountTitle,
-      'Select Account',
-    ],
-    [
       'addTxPickCategoryTitle',
       'modules/commitments/screens/commitments/components/commitment_form_body.tsx',
       Strings.addTxPickCategoryTitle,

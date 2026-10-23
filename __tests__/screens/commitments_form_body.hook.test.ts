@@ -37,7 +37,7 @@ describe('useCommitmentFormBodyPickers', () => {
 
   it('unmounting one copy leaves the other copy open picker as it was', async () => {
     const { lower, lowerOwner, upper } = await mountTwoCopies();
-    await act(async () => lower.result.current.setAccountPickerVisible(true));
+    await act(async () => lower.result.current.setCategoryPickerVisible(true));
     const shown = entries()[lowerOwner];
 
     expect(Object.keys(entries())).toHaveLength(2);
@@ -46,7 +46,7 @@ describe('useCommitmentFormBodyPickers', () => {
 
     expect(Object.keys(entries())).toEqual([lowerOwner]);
     expect(entries()[lowerOwner]).toBe(shown);
-    expect(lower.result.current.state.accountPickerVisible).toBe(true);
+    expect(lower.result.current.state.categoryPickerVisible).toBe(true);
   });
 
   it('unmounting both copies leaves no entry behind', async () => {
@@ -78,9 +78,11 @@ describe('useCommitmentFormStripAccounts', () => {
     });
   });
 
-  afterEach(() => {
-    useAccountStore.setState({ loadAccountLookup: originalLoadAccountLookup });
-    useAccountStore.getState().reset();
+  afterEach(async () => {
+    await act(async () => {
+      useAccountStore.setState({ loadAccountLookup: originalLoadAccountLookup });
+      useAccountStore.getState().reset();
+    });
   });
 
   it('resolves the active, the archived and the lookup-held deleted account by id', async () => {
