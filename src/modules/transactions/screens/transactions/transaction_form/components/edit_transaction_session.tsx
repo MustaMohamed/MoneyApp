@@ -7,16 +7,16 @@ import { TransactionFormDataError } from '@/modules/transactions/screens/transac
 import { TransactionFormLoading } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_loading';
 import { useEditTransaction } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.hook';
 import { TransactionFormBody } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_body';
+import { useTransactionFormState } from '@/modules/transactions/store/transaction_form_host.state';
+import { type RegisterFormSessionSubmit, useFormSession } from '@/utils/use_form_session.hook';
 
 import { resolveTransactionFormFooterVisible } from '../transaction_form.helpers';
-import type { RegisterTransactionFormSubmit } from '../transaction_form_host.hook';
 import { useTransactionFormPrerequisites } from '../transaction_form_prerequisites.hook';
-import { useTransactionFormSession } from '../transaction_form_session.hook';
 
 export interface EditTransactionSessionProps {
   sessionId: number;
   tx: Transaction;
-  onRegisterSubmit: RegisterTransactionFormSubmit;
+  onRegisterSubmit: RegisterFormSessionSubmit;
   onClose: () => void;
   onSaved: (sessionId: number) => void;
 }
@@ -35,7 +35,7 @@ export function EditTransactionSession(props: EditTransactionSessionProps): Reac
     hook.state.budgetsLoading ||
     Boolean(hook.state.budgetLookupError);
 
-  useTransactionFormSession({
+  useFormSession({
     sessionId: props.sessionId,
     submit: hook.handleSave,
     footer: {
@@ -49,6 +49,7 @@ export function EditTransactionSession(props: EditTransactionSessionProps): Reac
       status: hook.state.status,
     },
     onRegisterSubmit: props.onRegisterSubmit,
+    publishFooter: useTransactionFormState.getState().publishFooter,
   });
 
   return (

@@ -8,15 +8,15 @@ import { BudgetPickerSheet } from '@/modules/transactions/screens/transactions/t
 import { TransactionFormDataError } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_data_error';
 import { TransactionFormLoading } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_loading';
 import { TransactionFormBody } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_body';
+import { useTransactionFormState } from '@/modules/transactions/store/transaction_form_host.state';
+import { type RegisterFormSessionSubmit, useFormSession } from '@/utils/use_form_session.hook';
 
 import { resolveTransactionFormFooterVisible } from '../transaction_form.helpers';
-import type { RegisterTransactionFormSubmit } from '../transaction_form_host.hook';
 import { useTransactionFormPrerequisites } from '../transaction_form_prerequisites.hook';
-import { useTransactionFormSession } from '../transaction_form_session.hook';
 
 export interface AddTransactionSessionProps {
   sessionId: number;
-  onRegisterSubmit: RegisterTransactionFormSubmit;
+  onRegisterSubmit: RegisterFormSessionSubmit;
   onSaved: (sessionId: number) => void;
   onRequestAccountCreation: (sessionId: number) => void;
 }
@@ -36,7 +36,7 @@ export function AddTransactionSession(props: AddTransactionSessionProps): React.
     hook.state.budgetsLoading ||
     Boolean(hook.state.budgetLookupError);
 
-  useTransactionFormSession({
+  useFormSession({
     sessionId: props.sessionId,
     submit: hook.handleSave,
     footer: {
@@ -46,6 +46,7 @@ export function AddTransactionSession(props: AddTransactionSessionProps): React.
       status: hook.state.status,
     },
     onRegisterSubmit: props.onRegisterSubmit,
+    publishFooter: useTransactionFormState.getState().publishFooter,
   });
 
   return (
