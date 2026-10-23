@@ -48,6 +48,7 @@ No route: one sheet host for add and edit, `src/modules/commitments/screens/comm
 - MA-220: at 2.0, `label="Category"` matches the `Category` button and its `CATEGORY` caption; tap the button at its centre from `mqa bounds` instead.
 - MA-220: the lift row's keyboard top is the `InputMethod` window's `touchable region` top in `adb -s <serial> shell dumpsys window windows`, 1048 px (399.2 dp) at 1.0. With the keyboard up, `sheet-footer` read 301.7 to 399.2, Name 104.4 to 152.4 and Notes 229.7 to 301.7, so Notes ends at the footer's top.
 - MA-239: a typed-then-blurred field followed by `mqa scroll` leaves the host at `closing` with the sheet drawn; Save, Deactivate and Back are then dead for that session. Blur by `adb` tap and do not `mqa scroll` after typing.
+- MA-239, the lift row: under `MQA_UI=uiautomator` a `scroll --until 'text="Add a note (optional)"'` stops at once, since the dump lists Notes while it sits under the footer. Bring Notes into view under agent-device (`$MQA scroll down --in 'id="commitment-form-scroll"' --until 'label="Deactivate Commitment"'` on edit), read its centre from `mqa bounds`, then `mqa down` and `MQA_UI=uiautomator $MQA tapxy` there. After `mqa down`, agent-device needs `$MQA open <route>` before its next verb, and a uiautomator `tap 'id="sheet-close-btn"'` after the keyboard went down hit a stale y and missed; close under agent-device.
 
 ## Seeding and forcing states
 
