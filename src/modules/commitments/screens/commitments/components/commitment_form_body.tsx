@@ -3,7 +3,7 @@ import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { Input, PressableFeedback } from 'heroui-native';
 import { useMemo } from 'react';
-import { Controller, useFormState, useWatch, type UseFormReturn } from 'react-hook-form';
+import { Controller, useWatch, type UseFormReturn } from 'react-hook-form';
 import { Platform, View, useWindowDimensions } from 'react-native';
 
 import { AccountStrip } from '@/components/ui/account_strip';
@@ -49,13 +49,13 @@ import {
   COMMITMENT_FORM_TOP_BLEED_STYLE,
 } from './commitment_form.geometry';
 import {
+  useCommitmentFormBodyFaults,
   useCommitmentFormBodyPickers,
   useCommitmentFormStripAccounts,
+  useCommitmentFormStripError,
 } from './commitment_form_body.hook';
 import { DurationPicker } from './duration_picker';
 import { RecurrencePicker } from './recurrence_picker';
-
-const BODY_FAULT_FIELDS = ['name', 'amount', 'categoryId', 'startDate', 'notes'] as const;
 
 interface CommitmentFormBodyProps {
   form: UseFormReturn<CommitmentFormValues>;
@@ -140,6 +140,7 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
     [categories],
   );
   const accountsById = useCommitmentFormStripAccounts(accountId);
+  const stripError = useCommitmentFormStripError(accountId, accountsById);
   const stripChips = resolveCommitmentStripChips({
     activeAccounts: accounts,
     accountId,
@@ -153,15 +154,7 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
     setShowEndDatePicker,
   } = useCommitmentFormBodyPickers();
 
-  // Subscribes the body to its own faults: a compiled host reuses this element when `form` keeps its identity.
-  const formState = useFormState({ control: form.control, name: BODY_FAULT_FIELDS });
-  const errors = {
-    name: form.getFieldState('name', formState).error?.message,
-    amount: form.getFieldState('amount', formState).error?.message,
-    category: form.getFieldState('categoryId', formState).error?.message,
-    startDate: form.getFieldState('startDate', formState).error?.message,
-    notes: form.getFieldState('notes', formState).error?.message,
-  };
+  const { faults: errors, isSubmitted } = useCommitmentFormBodyFaults(form);
 
   const startDateAsDate = startDate ? new Date(startDate + 'T00:00:00') : new Date();
   const formattedStartDate = startDate
@@ -170,6 +163,7 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
 
   function handleAmountTypeChange(v: AmountType) {
     form.setValue('amountType', v, SET_OPTS);
+    if (isSubmitted) void form.trigger('amount');
   }
 
   function handleRecurrencePresetChange(preset: ReturnType<typeof detectPreset>) {
@@ -263,6 +257,7 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
           >
             <AccountStrip
               chips={stripChips}
+              error={stripError}
               onSelect={
                 locked
                   ? undefined
@@ -353,8 +348,8 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
               color={CoreTokens.text2}
             />
           </View>
-          {errors.category ? (
-            <Text className="font-inter text-danger text-[11px]">{errors.category}</Text>
+          {errors.categoryId ? (
+            <Text className="font-inter text-danger text-[11px]">{errors.categoryId}</Text>
           ) : null}
         </PressableFeedback>
 

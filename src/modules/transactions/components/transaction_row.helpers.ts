@@ -2,7 +2,7 @@ import type MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIco
 import type React from 'react';
 import { PixelRatio } from 'react-native';
 
-import type { AccountStripTile } from '@/components/ui/form_sheet.helpers';
+import type { AccountStripChip, AccountStripTile } from '@/components/ui/form_sheet.helpers';
 import {
   resolveKeptSpaceHeight,
   resolveRowStacking,
@@ -173,6 +173,15 @@ export function resolveRowTile(account: Account | undefined): RowTile {
     return resolveHollowGraphiteTile(account?.type ?? AccountType.Bank);
   }
   return { color: account.color, type: account.type, hollow: false };
+}
+
+/** A strip chip for an account in any state: its row name and tile, then the caller's flags. */
+export function toAccountStripChip(
+  id: string,
+  account: Account | undefined,
+  state: Pick<AccountStripChip, 'selected' | 'locked' | 'dimmed'>,
+): AccountStripChip {
+  return { id, name: resolveAccountName(account), tile: resolveRowTile(account), ...state };
 }
 
 function titleFor(tx: Transaction, account?: Account, category?: Category): string {

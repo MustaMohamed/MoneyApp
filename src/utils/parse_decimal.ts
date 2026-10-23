@@ -36,3 +36,12 @@ export function isStillTypingDecimal(text: string, refusesZero: boolean): boolea
   if (trimmed.startsWith('.') || trimmed.endsWith('.')) return true;
   return refusesZero && parseDecimalText(trimmed) === 0;
 }
+
+/** A decimal as typed so far: a trailing or leading point reads as its digits, and a bare point is `undefined`. */
+export function parseTypingDecimalText(text: string): number | undefined {
+  const trimmed = text.trim();
+  if (trimmed === '.') return undefined;
+  if (trimmed.endsWith('.')) return parseDecimalText(trimmed.slice(0, -1));
+  if (trimmed.startsWith('.')) return parseDecimalText(`0${trimmed}`);
+  return parseDecimalText(trimmed);
+}

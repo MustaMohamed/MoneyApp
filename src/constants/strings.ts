@@ -1120,7 +1120,6 @@ export const Strings = {
 
   // Commitments: placeholders
   commitmentsNamePlaceholder: 'e.g. Rent',
-  commitmentsAmountPlaceholder: '0.00',
   commitmentDateInputFormat: 'YYYY-MM-DD',
   commitmentsAfterCountPlaceholder: '0',
 
@@ -1152,6 +1151,7 @@ export const Strings = {
   // Commitments: C5 Pay Sheet
   commitmentsPayTitle: (name: string) => `Pay ${name}`,
   commitmentsPayAmount: 'Amount',
+  commitmentsAmountPlaceholder: '0.00',
   commitmentsPayAccount: 'Pay from Account',
   commitmentsPayDate: 'Payment Date',
   commitmentsPayDatePlaceholder: 'Select date',

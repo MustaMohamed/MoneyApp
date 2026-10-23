@@ -1,11 +1,18 @@
 import { useEffect, useId, useMemo } from 'react';
+import { useFormState, type UseFormReturn } from 'react-hook-form';
 import { useShallow } from 'zustand/react/shallow';
 
+import { Strings } from '@/constants/strings';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { mergeAccountsById } from '@/modules/accounts/store/account_lookup.helpers';
 
+import type { CommitmentFormValues } from '../commitment_form.shared';
 import { INITIAL_PICKER_ENTRY, useCommitmentFormBodyState } from './commitment_form_body.state';
+
+const BODY_FAULT_FIELDS = ['name', 'amount', 'categoryId', 'startDate'] as const;
+
+type BodyFaultField = (typeof BODY_FAULT_FIELDS)[number];
 
 export function useCommitmentFormBodyPickers() {
   const owner = useId();
@@ -60,4 +67,33 @@ export function useCommitmentFormStripAccounts(
     () => mergeAccountsById(accounts, archivedAccounts, accountLookupById),
     [accounts, archivedAccounts, accountLookupById],
   );
+}
+
+/** The body's own subscription to its faults: a compiled host reuses the body while `form` keeps its identity. */
+export function useCommitmentFormBodyFaults(form: UseFormReturn<CommitmentFormValues>): {
+  faults: Record<BodyFaultField, string | undefined>;
+  isSubmitted: boolean;
+} {
+  const formState = useFormState({ control: form.control, name: BODY_FAULT_FIELDS });
+  const faultOf = (field: BodyFaultField) => form.getFieldState(field, formState).error?.message;
+  return {
+    faults: {
+      name: faultOf('name'),
+      amount: faultOf('amount'),
+      categoryId: faultOf('categoryId'),
+      startDate: faultOf('startDate'),
+    },
+    isSubmitted: formState.isSubmitted,
+  };
+}
+
+/** The strip's message while the form's account failed to load and the strip cannot name it. */
+export function useCommitmentFormStripError(
+  accountId: string | undefined,
+  accountsById: ReadonlyMap<string, Account>,
+): string | undefined {
+  const lookupFailed = useAccountStore((s) => s.accountLookupError);
+  return lookupFailed && accountId !== undefined && !accountsById.has(accountId)
+    ? Strings.transactionsAccountLookupError
+    : undefined;
 }

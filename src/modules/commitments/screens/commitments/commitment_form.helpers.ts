@@ -6,10 +6,10 @@ import { Strings } from '@/constants/strings';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import {
   resolveHollowGraphiteTile,
-  resolveRowTile,
+  toAccountStripChip,
 } from '@/modules/transactions/components/transaction_row.helpers';
-import { resolveAccountName } from '@/utils/account_name';
 import { formatStoredMoneyText } from '@/utils/money_text';
+import { parseTypingDecimalText } from '@/utils/parse_decimal';
 import { holdStillTypingDecimal } from '@/utils/use_zod_form.hook';
 
 import {
@@ -18,17 +18,6 @@ import {
 } from './commitment_form.shared';
 
 export const NO_ACCOUNT_CHIP_ID = 'no-account';
-
-function toChip(id: string, account: Account | undefined, selected: boolean): AccountStripChip {
-  return {
-    id,
-    name: resolveAccountName(account),
-    tile: resolveRowTile(account),
-    selected,
-    locked: false,
-    dimmed: false,
-  };
-}
 
 /** No account first; an archived or deleted account the form holds follows it, lit, until another chip is picked. */
 export function resolveCommitmentStripChips(input: {
@@ -47,12 +36,24 @@ export function resolveCommitmentStripChips(input: {
   };
   const held =
     accountId !== undefined && !activeAccounts.some((account) => account.id === accountId)
-      ? [toChip(accountId, accountsById.get(accountId), true)]
+      ? [
+          toAccountStripChip(accountId, accountsById.get(accountId), {
+            selected: true,
+            locked: false,
+            dimmed: false,
+          }),
+        ]
       : [];
   return [
     noAccount,
     ...held,
-    ...activeAccounts.map((account) => toChip(account.id, account, account.id === accountId)),
+    ...activeAccounts.map((account) =>
+      toAccountStripChip(account.id, account, {
+        selected: account.id === accountId,
+        locked: false,
+        dimmed: false,
+      }),
+    ),
   ];
 }
 
@@ -62,9 +63,7 @@ export function resolveAccountIdFromChip(chipId: string): string | undefined {
 
 /** Unrounded: `roundMoney` at the repository write is the one rounding. */
 export function parseCommitmentAmountText(text: string): number | undefined {
-  if (text === '' || text === '.') return undefined;
-  const amount = Number.parseFloat(text);
-  return Number.isNaN(amount) ? undefined : amount;
+  return parseTypingDecimalText(text);
 }
 
 /** The hero's text for a stored amount; `undefined` keeps the text, which already parses to it. */

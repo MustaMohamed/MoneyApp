@@ -43,7 +43,7 @@ interface Props {
   tone: AmountHeroTone;
   currency: Currency;
   invalid?: boolean;
-  accessibilityLabel?: string;
+  accessibilityLabel: string;
 }
 
 export function AmountHero({
@@ -52,7 +52,7 @@ export function AmountHero({
   tone,
   currency,
   invalid = false,
-  accessibilityLabel = Strings.addTxAmountInputAccessibility,
+  accessibilityLabel,
 }: Props): React.ReactElement {
   const { onFocus, onBlur } = useBottomSheetAwareHandlers();
   const { fontScale } = useWindowDimensions();
