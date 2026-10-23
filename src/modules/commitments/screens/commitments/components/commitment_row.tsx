@@ -196,21 +196,33 @@ function CommitmentRowComponent({
                   </View>
                 </YieldingSlot>
               </View>
-              {/* One line clipped at its head with a leg, so the due day yields to a whole `…` and the EGP leg stays whole. */}
-              <Text
-                allowFontScaling={false}
-                className="font-inter text-content-secondary"
-                style={{
-                  ...scaledTextStyle(COMMITMENT_ROW_CAPTION_FONT_SIZE, fontScale),
-                  marginTop: COMMITMENT_ROW_LINE_GAP,
-                }}
-                numberOfLines={1}
-                ellipsizeMode={row.captionLeg === undefined ? 'tail' : 'head'}
-              >
-                {row.captionLeg === undefined
-                  ? row.dueDay
-                  : `${row.dueDay}${TRANSACTION_ROW_CAPTION_SEPARATOR}${row.captionLeg}`}
-              </Text>
+              {/* The due day clips first; the EGP leg never ellipsizes. */}
+              <View style={{ flexDirection: 'row', marginTop: COMMITMENT_ROW_LINE_GAP }}>
+                <Text
+                  allowFontScaling={false}
+                  className="font-inter text-content-secondary"
+                  style={{
+                    ...scaledTextStyle(COMMITMENT_ROW_CAPTION_FONT_SIZE, fontScale),
+                    flexShrink: 1,
+                  }}
+                  numberOfLines={1}
+                >
+                  {row.dueDay}
+                </Text>
+                {row.captionLeg === undefined ? null : (
+                  <Text
+                    allowFontScaling={false}
+                    className="font-inter text-content-secondary"
+                    style={{
+                      ...scaledTextStyle(COMMITMENT_ROW_CAPTION_FONT_SIZE, fontScale),
+                      flexShrink: 0,
+                    }}
+                    numberOfLines={1}
+                  >
+                    {`${TRANSACTION_ROW_CAPTION_SEPARATOR}${row.captionLeg}`}
+                  </Text>
+                )}
+              </View>
             </View>
             <View
               testID="commitment-row-value-track"
