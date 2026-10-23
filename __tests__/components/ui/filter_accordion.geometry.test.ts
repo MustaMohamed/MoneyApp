@@ -4,10 +4,13 @@ import {
   FILTER_ACCORDION_CONTENT_PADDING_BOTTOM,
   FILTER_AMOUNT_ERROR_SLOT_HEIGHT,
   FILTER_AMOUNT_FIELD_SLOT_HEIGHT,
+  FILTER_AMOUNT_TABS_MARGIN_BOTTOM,
   FILTER_OPTION_LIST_EDGE,
+  resolveFilterAmountCurrencyHitSlop,
   resolveFilterAmountSlotStyle,
 } from '@/components/ui/filter_accordion.geometry';
-import { Type, lineHeightFor } from '@/constants/theme';
+import { TABS_LIST_PADDING, resolveDrawnDefaultTriggerHeight } from '@/components/ui/tabs.geometry';
+import { TouchSize, Type, lineHeightFor } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
 describe('FILTER_OPTION_LIST_EDGE', () => {
@@ -59,4 +62,19 @@ describe('resolveFilterAmountSlotStyle', () => {
     expect(field).not.toHaveProperty('height');
     expect(range).not.toHaveProperty('height');
   });
+});
+
+describe('resolveFilterAmountCurrencyHitSlop', () => {
+  it.each([1, 2])(
+    'MA-242: at font scale %p each Amount currency segment reaches the floor inside the list padding above and the gap to the Min label below',
+    (fontScale) => {
+      const slop = resolveFilterAmountCurrencyHitSlop(fontScale);
+
+      expect(slop.top).toBeLessThanOrEqual(TABS_LIST_PADDING);
+      expect(slop.bottom).toBeLessThanOrEqual(TABS_LIST_PADDING + FILTER_AMOUNT_TABS_MARGIN_BOTTOM);
+      expect(
+        resolveDrawnDefaultTriggerHeight(fontScale) + slop.top + slop.bottom,
+      ).toBeGreaterThanOrEqual(TouchSize.min);
+    },
+  );
 });

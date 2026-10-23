@@ -1,4 +1,5 @@
 import type { ButtonSize, ButtonVariant } from 'heroui-native';
+import type { PressableProps } from 'react-native';
 
 import { Strings } from '@/constants/strings';
 import { Colors, Radius } from '@/constants/theme';
@@ -52,6 +53,14 @@ export function resolveFlatButtonStyle({
     style: { borderRadius: Radius.cta },
     labelClass: tone === 'danger' ? 'text-danger' : 'text-foreground',
   };
+}
+
+/** A flat button that takes a slop unclips its root and draws its press inside its own corners: HeroUI's root clips, and Android drops a slop outside a clipping view (MA-122). */
+export function resolveFlatButtonUnclips(
+  flatStyle: FlatButtonStyle | undefined,
+  hitSlop: PressableProps['hitSlop'],
+): boolean {
+  return flatStyle !== undefined && hitSlop != null;
 }
 
 export interface ButtonContentInput {

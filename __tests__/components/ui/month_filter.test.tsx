@@ -4,12 +4,14 @@ import { Dimensions } from 'react-native';
 
 import { MonthFilter } from '@/components/ui/month_filter';
 import {
-  MONTH_STEP_HIT_SLOP,
+  MONTH_PICKER_CELL_GAP,
   resolveMonthPillGeometry,
   resolveMonthStepHitSlop,
+  resolveMonthYearStepHitSlop,
 } from '@/components/ui/month_filter.geometry';
+import type { MonthStepSide } from '@/components/ui/month_filter.geometry';
 import { Strings } from '@/constants/strings';
-import { HIT_SLOP_UNCLIPPED_STYLE } from '@/constants/theme';
+import { HIT_SLOP_UNCLIPPED_STYLE, Size, touchFloorHitSlop } from '@/constants/theme';
 
 const ROW_HIT_SLOP = { top: 9, bottom: 5 };
 
@@ -96,7 +98,7 @@ describe('MonthFilter', () => {
     expect(onSelectedMonthChange).toHaveBeenCalledWith('2027-02');
   });
 
-  it('MA-109: a row slop reaches the pill and both step buttons only when its caller sets one, and never the year arrows', async () => {
+  it('MA-109, MA-242: a row slop reaches the pill and both step buttons only when its caller sets one; the year arrows and cells take the touch-floor slop, the arrows from the year row layout', async () => {
     const { getByLabelText, getByTestId, rerender } = await render(
       <MonthFilter selectedMonth="2026-08" onSelectedMonthChange={jest.fn()} />,
     );
@@ -132,13 +134,42 @@ describe('MonthFilter', () => {
 
     await fireEvent.press(getByLabelText(Strings.monthFilterOpenA11y('August 2026')));
 
-    expect(getByLabelText(Strings.monthPickerPreviousYearA11y).props.hitSlop).toBe(
-      MONTH_STEP_HIT_SLOP,
-    );
-    expect(getByLabelText(Strings.monthPickerNextYearA11y).props.hitSlop).toBe(MONTH_STEP_HIT_SLOP);
-    for (const label of [Strings.monthPickerPreviousYearA11y, Strings.monthPickerNextYearA11y]) {
+    const yearArrows: ReadonlyArray<[MonthStepSide, string]> = [
+      ['previous', Strings.monthPickerPreviousYearA11y],
+      ['next', Strings.monthPickerNextYearA11y],
+    ];
+    for (const [side, label] of yearArrows) {
+      expect(getByLabelText(label).props.hitSlop).toEqual(
+        resolveMonthYearStepHitSlop(undefined, side),
+      );
       expect(getByLabelText(label)).toHaveStyle({ width: expect.any(Number) });
-      expect(getByLabelText(label)).not.toHaveStyle({ overflow: expect.anything() });
+      expect(getByLabelText(label)).toHaveStyle(HIT_SLOP_UNCLIPPED_STYLE);
+    }
+
+    const halfCellGap = MONTH_PICKER_CELL_GAP / 2;
+    for (const label of ['Feb 2026', 'Nov 2026']) {
+      expect(getByLabelText(label).props.hitSlop).toEqual({
+        top: halfCellGap,
+        bottom: halfCellGap,
+        left: halfCellGap,
+        right: halfCellGap,
+      });
+      expect(getByLabelText(label)).toHaveStyle(HIT_SLOP_UNCLIPPED_STYLE);
+    }
+
+    const yearRowHeight =
+      Size.monthYearStepTrack + 2 * touchFloorHitSlop(Size.monthYearStepTrack).top;
+    expect(resolveMonthYearStepHitSlop(yearRowHeight, 'next')).not.toEqual(
+      resolveMonthYearStepHitSlop(undefined, 'next'),
+    );
+    await fireEvent(getByTestId('month-picker-year-row'), 'layout', {
+      nativeEvent: { layout: { x: 0, y: 0, width: 300, height: yearRowHeight } },
+    });
+
+    for (const [side, label] of yearArrows) {
+      expect(getByLabelText(label).props.hitSlop).toEqual(
+        resolveMonthYearStepHitSlop(yearRowHeight, side),
+      );
     }
   });
 });

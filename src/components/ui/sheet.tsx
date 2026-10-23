@@ -6,10 +6,20 @@ import { Keyboard, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useSheetVisibilityStore } from '@/components/ui/sheet_visibility.state';
-import { Colors, FontFamily, Spacing, Type, lineHeightFor } from '@/constants/theme';
+import {
+  Colors,
+  FontFamily,
+  HIT_SLOP_UNCLIPPED_STYLE,
+  Size,
+  Spacing,
+  Type,
+  lineHeightFor,
+} from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
+import { PressHighlight } from './press_highlight';
 import {
+  SHEET_HEADER_PADDING_BOTTOM,
   type FocusedInput,
   type SheetSize,
   type SnapPoint,
@@ -20,7 +30,7 @@ import {
   resolveSnapPoints,
   shouldBlurInputOnClose,
 } from './sheet.helpers';
-import { useSheetCloseLifecycle } from './sheet.hook';
+import { useSheetCloseHitSlop, useSheetCloseLifecycle } from './sheet.hook';
 
 // Keyboard inputs: wire this onto an `Input`'s `onFocus`/`onBlur` inside a sheet.
 export { useBottomSheetAwareHandlers } from 'heroui-native';
@@ -78,6 +88,7 @@ export function Sheet({
   const [footerHeight, setFooterHeight] = useState(0);
   const { closeLifecycle, handleSheetIndexChange, handleSheetClosed, handleSheetCloseRequest } =
     useSheetCloseLifecycle(isOpen, onCloseComplete, onOpenComplete);
+  const closeTouch = useSheetCloseHitSlop();
   // Plain View props, which no animated style writes: a sheet closed at rest stays hidden whatever redraws its content.
   const closedAtRestProps = resolveSheetClosedAtRestProps(closeLifecycle);
   const handleOpenChange = (open: boolean) => {
@@ -181,11 +192,12 @@ export function Sheet({
               // No `asChild`: `CloseButton`'s animated layers crash `Slot.Pressable` and Reanimated.
               <View
                 testID="sheet-header"
+                onLayout={showCloseButton ? closeTouch.onHeaderLayout : undefined}
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
                   paddingHorizontal: Spacing.md,
-                  paddingBottom: Spacing.xs,
+                  paddingBottom: SHEET_HEADER_PADDING_BOTTOM,
                 }}
               >
                 <BottomSheet.Title
@@ -204,6 +216,10 @@ export function Sheet({
                     testID="sheet-close-btn"
                     isDisabled={!isDismissable}
                     iconProps={{ size: ms(24), color: Colors.dark.text2 }}
+                    hitSlop={closeTouch.hitSlop}
+                    style={HIT_SLOP_UNCLIPPED_STYLE}
+                    feedbackVariant="scale"
+                    background={<PressHighlight radius={Size.sheetCloseTrack / 2} />}
                   />
                 ) : null}
               </View>

@@ -155,10 +155,14 @@ export const Size = {
   smallButtonTrack: 40,
   // Raw 28 for the same reason: the compact segment's `h-7` track at scale 1.
   compactSegmentTrack: 28,
+  // Raw 36 for the same reason: HeroUI's default `.tabs__trigger` at scale 1, a 24 line and 6 padding-block each side (tabs.css).
+  defaultSegmentTrack: 36,
   // Raw 32 for the same reason: the month pill's `h-8` track at scale 1.
   monthPillTrack: 32,
   // Raw 32 for the same reason: the month picker's year arrows, formerly `h-8 w-8`.
   monthYearStepTrack: 32,
+  // Raw 32 for the same reason: HeroUI's sheet close button, `h-8` (close-button.css).
+  sheetCloseTrack: 32,
   // Raw 36 for the same reason: the transaction form's type tab row, `h-9`, at scale 1.
   typeTabsTrack: 36,
   // Raw 36 for the same reason: every header action's and back button's box, formerly `h-9 w-9`, at scale 1.

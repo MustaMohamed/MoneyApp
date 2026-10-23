@@ -21,6 +21,7 @@ import {
   resolveBalanceField,
   resolveBalanceRowLabelLines,
   resolveCurrencyTabsBoxHeight,
+  resolveCurrencyTabsHitSlop,
 } from './account_form.geometry';
 import { AccountTypeSelector } from './account_type_selector';
 import { BalanceCurrencySuffix } from './balance_currency_suffix';
@@ -110,6 +111,7 @@ export function AccountForm({ form, ownerId }: AccountFormProps) {
                   onChange={onChange}
                   segmentWidth={CURRENCY_SEGMENT_WIDTH}
                   maxFontScale={CURRENCY_TABS_MAX_FONT_SCALE}
+                  triggerHitSlop={resolveCurrencyTabsHitSlop(fontScale)}
                 />
               )}
             />

@@ -3,6 +3,7 @@ import { View, useWindowDimensions } from 'react-native';
 
 import { AccountColorTile } from '@/components/ui/account_color_tile';
 import { Button } from '@/components/ui/button';
+import { resolveCompactCtaHitSlop } from '@/components/ui/button.geometry';
 import {
   resolveOneLineTextProps,
   scaledTextStyleAboveOne,
@@ -14,6 +15,7 @@ import { resolveAccountName } from '@/utils/account_name';
 import { resolveAccountRowA11yLabel } from '../../../../constants/account_row_a11y_label';
 import {
   ACCOUNTS_LIST_ARCHIVED_ROW_STYLE,
+  ACCOUNTS_LIST_ARCHIVED_UNARCHIVE_ROOM,
   ACCOUNTS_LIST_ROW_CAPTION_STYLE,
 } from '../accounts_list.geometry';
 import type { ArchivedAccountRowVM } from './archived_card.helpers';
@@ -99,6 +101,11 @@ export function ArchivedAccountRow({
             isLoading={isUnarchiving}
             isDisabled={isUnarchiving || isLocked}
             onPress={() => onUnarchive(account.id)}
+            hitSlop={resolveCompactCtaHitSlop(
+              'sm',
+              fontScale,
+              ACCOUNTS_LIST_ARCHIVED_UNARCHIVE_ROOM,
+            )}
           />
         </ListGroup.ItemSuffix>
       </ListGroup.Item>

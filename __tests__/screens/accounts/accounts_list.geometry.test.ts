@@ -1,3 +1,4 @@
+import { resolveCompactCtaHeight, resolveCompactCtaHitSlop } from '@/components/ui/button.geometry';
 import { TABS_LIST_PADDING, resolveSegmentedTabsGeometry } from '@/components/ui/tabs.geometry';
 import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import {
@@ -14,7 +15,9 @@ import {
 import {
   ACCOUNTS_LIST_ARCHIVED_CARD_STYLE,
   ACCOUNTS_LIST_ARCHIVED_HEADER_STYLE,
+  ACCOUNTS_LIST_ARCHIVED_ROW_PADDING_Y,
   ACCOUNTS_LIST_ARCHIVED_ROW_STYLE,
+  ACCOUNTS_LIST_ARCHIVED_UNARCHIVE_ROOM,
   ACCOUNTS_LIST_CARD_STYLE,
   ACCOUNTS_LIST_DROP_SLOT_STYLE,
   ACCOUNTS_LIST_EDGE_SCROLL,
@@ -427,6 +430,27 @@ describe('ACCOUNTS_LIST_TYPE_TRIGGER_HIT_SLOP', () => {
 
       expect(top).toBeLessThanOrEqual(Spacing.xxs + TABS_LIST_PADDING);
       expect(height + top + bottom).toBeGreaterThanOrEqual(TouchSize.min);
+    },
+  );
+});
+
+describe('the archived row Unarchive slop', () => {
+  it('MA-242: the archived row reads its vertical padding from the named constant', () => {
+    expect(ACCOUNTS_LIST_ARCHIVED_ROW_STYLE.paddingVertical).toBe(
+      ACCOUNTS_LIST_ARCHIVED_ROW_PADDING_Y,
+    );
+  });
+
+  it.each([1, 2])(
+    'MA-242: at font scale %p the row Unarchive reaches the floor, neither side past the row padding',
+    (fontScale) => {
+      const slop = resolveCompactCtaHitSlop('sm', fontScale, ACCOUNTS_LIST_ARCHIVED_UNARCHIVE_ROOM);
+
+      expect(
+        resolveCompactCtaHeight('sm', fontScale) + slop.top + slop.bottom,
+      ).toBeGreaterThanOrEqual(TouchSize.min);
+      expect(slop.top).toBeLessThanOrEqual(ACCOUNTS_LIST_ARCHIVED_UNARCHIVE_ROOM.top ?? -1);
+      expect(slop.bottom).toBeLessThanOrEqual(ACCOUNTS_LIST_ARCHIVED_UNARCHIVE_ROOM.bottom ?? -1);
     },
   );
 });

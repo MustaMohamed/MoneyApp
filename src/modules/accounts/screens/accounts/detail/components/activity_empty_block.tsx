@@ -6,7 +6,20 @@ import { View, useWindowDimensions } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { resolveOneLineTextProps, scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Strings } from '@/constants/strings';
-import { Colors, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
+import {
+  Colors,
+  HIT_SLOP_UNCLIPPED_STYLE,
+  Size,
+  Spacing,
+  Type,
+  lineHeightFor,
+} from '@/constants/theme';
+
+import {
+  ACTIVITY_EMPTY_BLOCK_PADDING_Y,
+  ACTIVITY_EMPTY_LINK_MARGIN_TOP,
+  resolveActivityEmptyLinkHitSlop,
+} from './account_detail_touch.geometry';
 
 interface Props {
   onAdd: () => void;
@@ -16,7 +29,7 @@ interface Props {
 export function ActivityEmptyBlock({ onAdd }: Props): React.ReactElement {
   const { fontScale } = useWindowDimensions();
   return (
-    <View className="items-center px-4 py-5">
+    <View className="items-center px-4" style={{ paddingVertical: ACTIVITY_EMPTY_BLOCK_PADDING_Y }}>
       <View
         className="bg-surface-secondary items-center justify-center rounded-full"
         style={{ width: Size.activityEmptyCircle, height: Size.activityEmptyCircle }}
@@ -48,7 +61,8 @@ export function ActivityEmptyBlock({ onAdd }: Props): React.ReactElement {
         onPress={onAdd}
         accessibilityRole="button"
         accessibilityLabel={Strings.accountActivityEmptyCta}
-        style={{ marginTop: Spacing.sm }}
+        hitSlop={resolveActivityEmptyLinkHitSlop(fontScale)}
+        style={{ marginTop: ACTIVITY_EMPTY_LINK_MARGIN_TOP, ...HIT_SLOP_UNCLIPPED_STYLE }}
       >
         <LinkButton.Label
           {...resolveOneLineTextProps(scaledTextStyle(Type.caption, fontScale))}

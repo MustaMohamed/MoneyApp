@@ -4,10 +4,11 @@ import {
   resolveButtonLabelStyle,
   resolveButtonRootStyle,
   resolveCompactCtaHeight,
+  resolveCompactCtaHitSlop,
   resolveSmallButtonHeight,
 } from '@/components/ui/button.geometry';
 import { scaledFontSize } from '@/components/ui/text_scale.geometry';
-import { Radius, Size, Type, lineHeightFor } from '@/constants/theme';
+import { Radius, Size, Type, lineHeightFor, touchFloorHitSlop } from '@/constants/theme';
 
 const SIZES: ButtonSize[] = ['sm', 'md', 'lg'];
 
@@ -72,4 +73,20 @@ describe('resolveButtonRootStyle', () => {
     const accent = { borderRadius: Radius.cta, height: Size.compactCtaTrack };
     expect(resolveButtonRootStyle('sm', 1, accent)).toEqual(accent);
   });
+});
+
+describe('resolveCompactCtaHitSlop', () => {
+  it.each<[ButtonSize, number]>([
+    ['sm', 1],
+    ['sm', 2],
+    ['md', 1],
+    ['md', 2],
+  ])(
+    'MA-242: with no neighbour the %s compact CTA at font scale %p takes the touch-floor slop at its own height',
+    (size, fontScale) => {
+      expect(resolveCompactCtaHitSlop(size, fontScale, {})).toEqual(
+        touchFloorHitSlop(resolveCompactCtaHeight(size, fontScale)),
+      );
+    },
+  );
 });

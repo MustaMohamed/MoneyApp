@@ -1,10 +1,21 @@
 import {
-  MONTH_STEP_HIT_SLOP,
+  MONTH_PICKER_GRID_EDGE,
+  MONTH_PICKER_YEAR_ROW_GAP,
+  type MonthStepSide,
   resolveMonthPillGeometry,
   resolveMonthStepHitSlop,
+  resolveMonthYearStepHitSlop,
 } from '@/components/ui/month_filter.geometry';
+import { SHEET_HEADER_PADDING_BOTTOM } from '@/components/ui/sheet.helpers';
 import { scaledFontSize } from '@/components/ui/text_scale.geometry';
-import { Spacing, Type, lineHeightFor, touchFloorHitSlop } from '@/constants/theme';
+import {
+  Size,
+  Spacing,
+  TouchSize,
+  Type,
+  lineHeightFor,
+  touchFloorHitSlop,
+} from '@/constants/theme';
 
 describe('resolveMonthPillGeometry', () => {
   it('at font scale 1 draws the pill at 32 with the Type.micro label', () => {
@@ -55,8 +66,43 @@ describe('resolveMonthStepHitSlop', () => {
       right: floor,
     });
   });
+});
 
-  it('MA-236: the year arrows keep MONTH_STEP_HIT_SLOP at 8', () => {
-    expect(MONTH_STEP_HIT_SLOP).toBe(8);
+describe('resolveMonthYearStepHitSlop', () => {
+  const SIDES: MonthStepSide[] = ['previous', 'next'];
+  const total = (slop: { top: number; bottom: number }) =>
+    Size.monthYearStepTrack + slop.top + slop.bottom;
+  const roomTop = (inset: number, side: MonthStepSide) =>
+    inset + (side === 'next' ? SHEET_HEADER_PADDING_BOTTOM / 2 : SHEET_HEADER_PADDING_BOTTOM);
+
+  it('MA-242: before layout next stops at half the gap to the close and to the cells, under the floor, and previous reaches it', () => {
+    const next = resolveMonthYearStepHitSlop(undefined, 'next');
+    const previous = resolveMonthYearStepHitSlop(undefined, 'previous');
+
+    expect(next.top).toBeCloseTo(SHEET_HEADER_PADDING_BOTTOM / 2, 6);
+    expect(next.bottom).toBeLessThanOrEqual(MONTH_PICKER_YEAR_ROW_GAP / 2);
+    expect(total(next)).toBeLessThan(TouchSize.min);
+    expect(total(previous)).toBeGreaterThanOrEqual(TouchSize.min);
+  });
+
+  it.each(SIDES)(
+    'MA-242: a year row the label grows by twice the floor slop lifts %s to the floor, no side past its room',
+    (side) => {
+      const k = touchFloorHitSlop(Size.monthYearStepTrack).top;
+      const slop = resolveMonthYearStepHitSlop(Size.monthYearStepTrack + 2 * k, side);
+
+      expect(total(slop)).toBeGreaterThanOrEqual(TouchSize.min);
+      expect(slop.top).toBeLessThanOrEqual(roomTop(k, side));
+      expect(slop.bottom).toBeLessThanOrEqual(k + MONTH_PICKER_YEAR_ROW_GAP / 2);
+    },
+  );
+
+  it('MA-242: the top row of cells and next meet inside the year row gap', () => {
+    const next = resolveMonthYearStepHitSlop(undefined, 'next');
+
+    expect(MONTH_PICKER_GRID_EDGE.top).toBeDefined();
+    expect((MONTH_PICKER_GRID_EDGE.top ?? Infinity) + next.bottom).toBeLessThanOrEqual(
+      MONTH_PICKER_YEAR_ROW_GAP,
+    );
   });
 });

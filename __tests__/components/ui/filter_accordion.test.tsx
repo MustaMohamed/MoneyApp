@@ -12,6 +12,7 @@ import {
 import {
   FILTER_OPTION_LIST_EDGE,
   FILTER_OPTION_PILL_GAP,
+  resolveFilterAmountCurrencyHitSlop,
   resolveFilterAmountSlotStyle,
 } from '@/components/ui/filter_accordion.geometry';
 import { FilterAccountAccordion } from '@/components/ui/filter_account_accordion';
@@ -90,18 +91,25 @@ jest.mock('@/components/ui/tabs', () => ({
     value,
     onValueChange,
     accessibilityLabel,
+    triggerHitSlop,
   }: {
     segments: ReadonlyArray<{ value: Currency; label: string }>;
     value: Currency;
     onValueChange: (value: Currency) => void;
     accessibilityLabel: string;
+    triggerHitSlop?: Insets;
   }) => {
     const { Pressable, Text, View } =
       jest.requireActual<typeof import('react-native')>('react-native');
     return (
       <View accessibilityLabel={accessibilityLabel}>
         {segments.map((segment) => (
-          <Pressable key={segment.value} onPress={() => onValueChange(segment.value)}>
+          <Pressable
+            key={segment.value}
+            testID={`currency-segment-${segment.value}`}
+            hitSlop={triggerHitSlop}
+            onPress={() => onValueChange(segment.value)}
+          >
             <Text>{segment.value === value ? `${segment.label} selected` : segment.label}</Text>
           </Pressable>
         ))}
@@ -297,6 +305,28 @@ describe('AmountRangeFilterContent', () => {
     expect(screen.getAllByTestId('amount-field-error-slot')).toHaveLength(2);
     expect(screen.getByTestId('amount-range-error-slot')).toHaveStyle(rangeSlot);
     expect(screen.getByText('Minimum cannot exceed maximum')).toBeTruthy();
+  });
+
+  it('MA-242: each currency segment takes the touch-floor slop at the window font scale', async () => {
+    const { getByTestId } = await render(
+      <AmountRangeFilterContent
+        amountCurrency={Currency.EGP}
+        minValue=""
+        maxValue=""
+        onChangeCurrency={jest.fn()}
+        onChangeMinText={jest.fn()}
+        onChangeMaxText={jest.fn()}
+        accessibilityLabel="Amount currency"
+        minError={undefined}
+        maxError={undefined}
+        rangeError={undefined}
+      />,
+    );
+
+    const slop = resolveFilterAmountCurrencyHitSlop(Dimensions.get('window').fontScale);
+    for (const currency of [Currency.EGP, Currency.USD]) {
+      expect(getByTestId(`currency-segment-${currency}`).props.hitSlop).toEqual(slop);
+    }
   });
 });
 

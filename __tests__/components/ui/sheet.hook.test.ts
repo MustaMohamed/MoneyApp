@@ -1,7 +1,13 @@
 import { act, renderHook } from '@testing-library/react-native';
+import type { LayoutChangeEvent } from 'react-native';
 
-import { resolveSheetClosedAtRestProps } from '@/components/ui/sheet.helpers';
-import { useSheetCloseLifecycle } from '@/components/ui/sheet.hook';
+import {
+  SHEET_HEADER_PADDING_BOTTOM,
+  resolveSheetCloseHitSlop,
+  resolveSheetClosedAtRestProps,
+} from '@/components/ui/sheet.helpers';
+import { useSheetCloseHitSlop, useSheetCloseLifecycle } from '@/components/ui/sheet.hook';
+import { Size, touchFloorHitSlop } from '@/constants/theme';
 
 const HIDDEN = { opacity: 0, pointerEvents: 'none' };
 const SHOWN = { opacity: 1, pointerEvents: 'box-none' };
@@ -345,5 +351,24 @@ describe.each([
     expect(sheet.renderCount()).toBe(rendersAtOpen);
     expect(sheet.drawn()).toEqual(SHOWN);
     expect(sheet.onCloseComplete).not.toHaveBeenCalled();
+  });
+});
+
+describe('useSheetCloseHitSlop', () => {
+  const layoutOf = (height: number) =>
+    ({ nativeEvent: { layout: { x: 0, y: 0, width: 411, height } } }) as LayoutChangeEvent;
+
+  it('MA-242: before layout the close takes the slop of an unmeasured header, and after the header lays out the slop of its height', async () => {
+    const headerHeight =
+      SHEET_HEADER_PADDING_BOTTOM +
+      Size.sheetCloseTrack +
+      2 * touchFloorHitSlop(Size.sheetCloseTrack).top;
+    expect(resolveSheetCloseHitSlop(headerHeight)).not.toEqual(resolveSheetCloseHitSlop(undefined));
+
+    const hook = await renderHook(() => useSheetCloseHitSlop());
+    expect(hook.result.current.hitSlop).toEqual(resolveSheetCloseHitSlop(undefined));
+
+    await act(() => hook.result.current.onHeaderLayout(layoutOf(headerHeight)));
+    expect(hook.result.current.hitSlop).toEqual(resolveSheetCloseHitSlop(headerHeight));
   });
 });
