@@ -10,6 +10,7 @@ import {
   COMMITMENT_ROW_CAPTION_FONT_SIZE,
   COMMITMENT_ROW_LINE_GAP,
   COMMITMENT_ROW_TITLE_FONT_SIZE,
+  resolveCommitmentRowCaptionLines,
   resolveCommitmentRowHeight,
 } from './commitment_row.helpers';
 
@@ -50,6 +51,15 @@ export function CommitmentRowsSkeleton(): React.ReactElement {
                     marginTop: COMMITMENT_ROW_LINE_GAP,
                   }}
                 />
+                {resolveCommitmentRowCaptionLines(fontScale) === 2 ? (
+                  <SkeletonGroup.Item
+                    className="w-14 rounded-md"
+                    style={{
+                      height: lineBar(COMMITMENT_ROW_CAPTION_FONT_SIZE),
+                      marginTop: COMMITMENT_ROW_LINE_GAP,
+                    }}
+                  />
+                ) : null}
               </View>
               <View style={{ alignItems: 'flex-end' }}>
                 <SkeletonGroup.Item

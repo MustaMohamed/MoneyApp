@@ -7,7 +7,11 @@ import { AccountColorTile } from '@/components/ui/account_color_tile';
 import { StatusBadge, resolveStatusBadgeXsMinWidth } from '@/components/ui/status_badge';
 import { SwipeableRow, type SwipeAction } from '@/components/ui/swipeable_row';
 import { Text } from '@/components/ui/text';
-import { resolveFitAmountTextProps, scaledTextStyle } from '@/components/ui/text_scale.geometry';
+import {
+  resolveFitAmountTextProps,
+  resolveFitLineTextProps,
+  scaledTextStyle,
+} from '@/components/ui/text_scale.geometry';
 import { YieldingSlot } from '@/components/ui/yielding_slot';
 import { Strings } from '@/constants/strings';
 import { Size } from '@/constants/theme';
@@ -31,6 +35,7 @@ import {
   COMMITMENT_ROW_LINE_GAP,
   COMMITMENT_ROW_TITLE_FONT_SIZE,
   buildCommitmentRowPresentation,
+  resolveCommitmentRowCaptionLines,
   resolveCommitmentRowHeight,
 } from './commitment_row.helpers';
 
@@ -89,6 +94,8 @@ function CommitmentRowComponent({
   const { fontScale } = useWindowDimensions();
   const badgeShrinks = fontScale > 1;
   const amountProps = resolveFitAmountTextProps(COMMITMENT_ROW_AMOUNT_FONT_SIZE, fontScale);
+  const captionStacked = resolveCommitmentRowCaptionLines(fontScale) === 2;
+  const captionLine = resolveFitLineTextProps(COMMITMENT_ROW_CAPTION_FONT_SIZE, fontScale);
   const rowHeight = useMemo(() => resolveCommitmentRowHeight(fontScale), [fontScale]);
   const valueTrackMaxWidth = useMemo(
     () => resolveTransactionRowValueTrackMaxWidth(fontScale),
@@ -193,30 +200,30 @@ function CommitmentRowComponent({
                   </View>
                 </YieldingSlot>
               </View>
-              {/* The due day clips first; the EGP leg never ellipsizes. */}
-              <View style={{ flexDirection: 'row', marginTop: COMMITMENT_ROW_LINE_GAP }}>
+              {/* Above 1.0 the EGP leg takes its own line under the due day, and each line fits no smaller than at 1.0. */}
+              <View
+                style={{
+                  flexDirection: captionStacked ? 'column' : 'row',
+                  gap: captionStacked ? COMMITMENT_ROW_LINE_GAP : undefined,
+                  marginTop: COMMITMENT_ROW_LINE_GAP,
+                }}
+              >
                 <Text
-                  allowFontScaling={false}
                   className="font-inter text-content-secondary"
-                  style={{
-                    ...scaledTextStyle(COMMITMENT_ROW_CAPTION_FONT_SIZE, fontScale),
-                    flexShrink: 1,
-                  }}
-                  numberOfLines={1}
+                  {...captionLine}
+                  style={{ ...captionLine.style, flexShrink: 1 }}
                 >
                   {row.dueDay}
                 </Text>
                 {row.captionLeg === undefined ? null : (
                   <Text
-                    allowFontScaling={false}
                     className="font-inter text-content-secondary"
-                    style={{
-                      ...scaledTextStyle(COMMITMENT_ROW_CAPTION_FONT_SIZE, fontScale),
-                      flexShrink: 0,
-                    }}
-                    numberOfLines={1}
+                    {...captionLine}
+                    style={{ ...captionLine.style, flexShrink: 0 }}
                   >
-                    {`${TRANSACTION_ROW_CAPTION_SEPARATOR}${row.captionLeg}`}
+                    {captionStacked
+                      ? row.captionLeg
+                      : `${TRANSACTION_ROW_CAPTION_SEPARATOR}${row.captionLeg}`}
                   </Text>
                 )}
               </View>
