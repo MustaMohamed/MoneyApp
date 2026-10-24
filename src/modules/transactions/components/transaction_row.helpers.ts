@@ -23,6 +23,10 @@ import {
   GoldTokens,
   InfoTokens,
 } from '@/constants/theme_tokens';
+import {
+  NON_TEXT_MIN_CONTRAST_RATIO,
+  contrastRatio,
+} from '@/modules/accounts/constants/account_palette';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { requiresDestination } from '@/modules/transactions/domain/transaction_amounts';
@@ -290,6 +294,12 @@ export function resolveCategoryGlyph(category: Category | undefined): RowGlyph {
     glyphName: toIconName(category?.icon, FALLBACK_ICON),
     glyphColor: category?.color ?? GoldTokens[500],
   };
+}
+
+export function resolveHeroTileGlyphColor(fill: string): string {
+  return contrastRatio(fill, CoreTokens.text1) >= NON_TEXT_MIN_CONTRAST_RATIO
+    ? CoreTokens.text1
+    : CoreTokens.bg;
 }
 
 export function buildTransactionRowPresentation(

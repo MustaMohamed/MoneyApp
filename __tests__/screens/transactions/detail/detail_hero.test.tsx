@@ -3,11 +3,11 @@ import type { ReactNode } from 'react';
 import { Dimensions } from 'react-native';
 
 import { DetailHero } from '@/components/ui/detail_hero';
+import { resolveDetailHeroGeometry } from '@/components/ui/detail_hero.geometry';
 import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { AccountType, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Type } from '@/constants/theme';
-import { resolveDetailHeroGeometry } from '@/modules/transactions/screens/transactions/detail/components/detail.geometry';
 import { buildTransactionDetailPresentation } from '@/modules/transactions/screens/transactions/detail/detail.helpers';
 import { makeTestAccount, makeTestCategory, makeTestTransaction } from '@/test_helpers/transaction';
 

@@ -2,6 +2,7 @@ import { render, within } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 import { Dimensions, type ViewStyle } from 'react-native';
 
+import { resolveDetailHeroGeometry } from '@/components/ui/detail_hero.geometry';
 import { resolveFactRowHeight } from '@/components/ui/fact_row.geometry';
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { Currency, TransactionType } from '@/constants/enums';
@@ -9,7 +10,6 @@ import { Radius, Size, Type, lineHeightFor } from '@/constants/theme';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import {
   DETAIL_NOTE_MIN_HEIGHT,
-  resolveDetailHeroGeometry,
   resolveTransferCardHeight,
   resolveTransferSkeletonCellHeight,
 } from '@/modules/transactions/screens/transactions/detail/components/detail.geometry';

@@ -3,12 +3,6 @@ import { Typography } from 'heroui-native';
 import React from 'react';
 import { View, useWindowDimensions } from 'react-native';
 
-import { HeroShell } from '@/components/ui/hero_shell';
-import { StatusBadge } from '@/components/ui/status_badge';
-import { Strings } from '@/constants/strings';
-import { Radius, Size, lineHeightFor } from '@/constants/theme';
-
-import type { TransactionDetailHero } from '../detail.helpers';
 import {
   DETAIL_HERO_BADGE_GAP,
   DETAIL_HERO_CAPTION_GAP,
@@ -19,22 +13,48 @@ import {
   DETAIL_HERO_SHELL_STYLE,
   DETAIL_HERO_TILE_GAP,
   resolveDetailHeroGeometry,
-} from './detail.geometry';
+} from '@/components/ui/detail_hero.geometry';
+import { HeroShell, type HeroShellProps } from '@/components/ui/hero_shell';
+import { StatusBadge } from '@/components/ui/status_badge';
+import { Strings } from '@/constants/strings';
+import { Radius, Size, lineHeightFor } from '@/constants/theme';
 
-interface Props {
-  hero: TransactionDetailHero;
+type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+
+export interface DetailHeroModel {
+  title: string;
+  badgeLabel: string;
+  badgeIcon: IconName;
+  badgeFill: string;
+  badgeForeground: string;
+  tileColor: string;
+  tileGlyph: IconName;
+  tileGlyphColor: string;
+  amountValue: string;
+  amountCode: string;
+  amountColor: string;
+  amountAccessibilityLabel: string;
+  caption: string;
 }
 
-export function DetailHero({ hero }: Props): React.ReactElement {
+export type DetailHeroBadge = Pick<
+  DetailHeroModel,
+  'badgeLabel' | 'badgeIcon' | 'badgeFill' | 'badgeForeground'
+>;
+
+interface Props {
+  hero: DetailHeroModel;
+  testID: string;
+  entering?: HeroShellProps['entering'];
+}
+
+export function DetailHero({ hero, testID, entering }: Props): React.ReactElement {
   const { fontScale } = useWindowDimensions();
   const geometry = resolveDetailHeroGeometry(fontScale);
 
   return (
-    <HeroShell glowColor={hero.tileColor} style={DETAIL_HERO_SHELL_STYLE}>
-      <View
-        testID="transaction-detail-hero"
-        style={{ padding: DETAIL_HERO_PADDING, height: geometry.height }}
-      >
+    <HeroShell glowColor={hero.tileColor} style={DETAIL_HERO_SHELL_STYLE} entering={entering}>
+      <View testID={testID} style={{ padding: DETAIL_HERO_PADDING, height: geometry.height }}>
         <View
           style={{
             flexDirection: 'row',
@@ -74,10 +94,10 @@ export function DetailHero({ hero }: Props): React.ReactElement {
             {/* A column child stretches by default, which would run the pill the full width. */}
             <View style={{ alignSelf: 'flex-start', marginTop: DETAIL_HERO_BADGE_GAP }}>
               <StatusBadge
-                label={hero.typeLabel}
+                label={hero.badgeLabel}
                 fill={hero.badgeFill}
                 foreground={hero.badgeForeground}
-                icon={hero.typeIcon}
+                icon={hero.badgeIcon}
                 size="md"
                 fontScale={fontScale}
               />
@@ -116,7 +136,7 @@ export function DetailHero({ hero }: Props): React.ReactElement {
             className="font-sora-bold tabular-nums"
             style={{
               flexShrink: 1,
-              color: hero.typeColor,
+              color: hero.amountColor,
               fontSize: geometry.amountFontSize,
               lineHeight: lineHeightFor(geometry.amountFontSize),
             }}
@@ -128,7 +148,7 @@ export function DetailHero({ hero }: Props): React.ReactElement {
             className="font-sora-semibold"
             style={{
               flexShrink: 0,
-              color: hero.typeColor,
+              color: hero.amountColor,
               opacity: DETAIL_HERO_CODE_OPACITY,
               fontSize: geometry.codeFontSize,
               lineHeight: lineHeightFor(geometry.codeFontSize),

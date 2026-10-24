@@ -1,30 +1,12 @@
-import { DISPLAY_HEADLINE_MAX_FONT_SCALE } from '@/components/ui/display_headline.geometry';
 import { resolveFactRowHeight } from '@/components/ui/fact_row.geometry';
 import type { ConvertedAmount } from '@/components/ui/form_sheet.helpers';
-import { STATUS_BADGE_PADDING_VERTICAL } from '@/components/ui/status_badge';
-import {
-  FITTED_LINE_SLACK,
-  resolveKeptSpaceHeight,
-  scaledFontSize,
-  scaledLineHeight,
-  scaledTextStyle,
-} from '@/components/ui/text_scale.geometry';
+import { resolveKeptSpaceHeight, scaledLineHeight } from '@/components/ui/text_scale.geometry';
 import { Currency } from '@/constants/enums';
 import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { requiresDestination } from '@/modules/transactions/domain/transaction_amounts';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { ms } from '@/utils/responsive';
 
-export const DETAIL_HERO_AMOUNT_MAX_FONT_SCALE = DISPLAY_HEADLINE_MAX_FONT_SCALE;
-export const DETAIL_HERO_SHELL_STYLE = { marginTop: Spacing.xs };
-export const DETAIL_HERO_PADDING = Spacing.md;
-export const DETAIL_HERO_TILE_GAP = Spacing.sm;
-export const DETAIL_HERO_BADGE_GAP = Spacing.xxs;
-export const DETAIL_HERO_OVERLINE_GAP = Spacing.md;
-export const DETAIL_HERO_CAPTION_GAP = Spacing.xxs;
-export const DETAIL_HERO_CODE_GAP = ms(6);
-export const DETAIL_HERO_CODE_OPACITY = 0.8;
-const DETAIL_HERO_BADGE_CHROME = 2 * STATUS_BADGE_PADDING_VERTICAL;
 export const DETAIL_TRANSFER_MIN_HEIGHT = ms(126);
 // Canvas `.note-card` holding one line: its 12 padding, the overline, a 4 gap and the body line.
 export const DETAIL_NOTE_MIN_HEIGHT =
@@ -38,59 +20,6 @@ export const DETAIL_TRANSFER_CELL_GAP = Spacing.xxs;
 const DETAIL_TRANSFER_CELL_CHROME = DETAIL_TRANSFER_TILE + 3 * DETAIL_TRANSFER_CELL_GAP;
 // Raw, never ms(): the skeleton transfer cell's `h-20` at scale 1 and below.
 const DETAIL_TRANSFER_SKELETON_CELL_HEIGHT = 80;
-
-interface DetailHeroGeometry {
-  titleFontSize: number;
-  overlineFontSize: number;
-  amountFontSize: number;
-  codeFontSize: number;
-  captionFontSize: number;
-  titleLineHeight: number;
-  overlineLineHeight: number;
-  captionLineHeight: number;
-  badgeHeight: number;
-  topHeight: number;
-  amountHeight: number;
-  height: number;
-}
-
-/** The loaded hero and its skeleton both stand at `height`; the amount line is fitted, so it keeps one device pixel of slack. */
-export function resolveDetailHeroGeometry(fontScale: number): DetailHeroGeometry {
-  const title = scaledTextStyle(Type.headline, fontScale);
-  // The overline, the caption and the badge label are one step.
-  const micro = scaledTextStyle(Type.micro, fontScale);
-  const amount = scaledTextStyle(Type.detailHero, fontScale, DETAIL_HERO_AMOUNT_MAX_FONT_SCALE);
-  const codeFontSize = scaledFontSize(Type.subhead, fontScale, DETAIL_HERO_AMOUNT_MAX_FONT_SCALE);
-  const badgeHeight = micro.lineHeight + DETAIL_HERO_BADGE_CHROME;
-  const topHeight = Math.max(
-    Size.detailHeroTile,
-    title.lineHeight + DETAIL_HERO_BADGE_GAP + badgeHeight,
-  );
-  const amountHeight = amount.lineHeight + FITTED_LINE_SLACK;
-  const height =
-    2 * DETAIL_HERO_PADDING +
-    topHeight +
-    DETAIL_HERO_OVERLINE_GAP +
-    micro.lineHeight +
-    amountHeight +
-    DETAIL_HERO_CAPTION_GAP +
-    micro.lineHeight;
-
-  return {
-    titleFontSize: title.fontSize,
-    overlineFontSize: micro.fontSize,
-    amountFontSize: amount.fontSize,
-    codeFontSize,
-    captionFontSize: micro.fontSize,
-    titleLineHeight: title.lineHeight,
-    overlineLineHeight: micro.lineHeight,
-    captionLineHeight: micro.lineHeight,
-    badgeHeight,
-    topHeight,
-    amountHeight,
-    height,
-  };
-}
 
 export interface DetailSkeletonGeometry {
   rowHeights: readonly number[];

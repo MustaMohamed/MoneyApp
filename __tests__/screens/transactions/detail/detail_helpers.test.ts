@@ -14,7 +14,10 @@ import { contrastRatio } from '@/modules/accounts/constants/account_palette';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 import { STACKED_PREFIX } from '@/modules/navigation/domain/stacked_route';
-import { buildTransactionRowPresentation } from '@/modules/transactions/components/transaction_row.helpers';
+import {
+  buildTransactionRowPresentation,
+  resolveHeroTileGlyphColor,
+} from '@/modules/transactions/components/transaction_row.helpers';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import {
   buildDetailSkeletonGeometry,
@@ -27,7 +30,6 @@ import {
   resolveDetailActionBarCount,
   resolveDetailActionSet,
   resolveDetailViewState,
-  resolveHeroTileGlyphColor,
   resolveTransferFlowView,
   type DetailFact,
   type TransactionDetailPresentation,
