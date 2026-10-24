@@ -1,7 +1,9 @@
 import { act, renderHook } from '@testing-library/react-native';
 
+import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import {
+  resolveCommitmentFormStripError,
   useCommitmentFormBodyPickers,
   useCommitmentFormStripAccounts,
 } from '@/modules/commitments/screens/commitments/components/commitment_form_body.hook';
@@ -88,9 +90,9 @@ describe('useCommitmentFormStripAccounts', () => {
   it('resolves the active, the archived and the lookup-held deleted account by id', async () => {
     const { result } = await renderHook(() => useCommitmentFormStripAccounts(deleted.id));
 
-    expect(result.current.get(active.id)).toBe(active);
-    expect(result.current.get(archived.id)).toBe(archived);
-    expect(result.current.get(deleted.id)).toBe(deleted);
+    expect(result.current.accountsById.get(active.id)).toBe(active);
+    expect(result.current.accountsById.get(archived.id)).toBe(archived);
+    expect(result.current.accountsById.get(deleted.id)).toBe(deleted);
   });
 
   it("looks up the commitment's account when it has one", async () => {
@@ -103,5 +105,68 @@ describe('useCommitmentFormStripAccounts', () => {
     await renderHook(() => useCommitmentFormStripAccounts(undefined));
 
     expect(loadAccountLookup).not.toHaveBeenCalled();
+  });
+});
+
+// The strip's own read feeds the resolver, as the body composes them.
+const useStripError = (accountId: string | undefined) =>
+  resolveCommitmentFormStripError(useCommitmentFormStripAccounts(accountId), accountId);
+
+describe('resolveCommitmentFormStripError', () => {
+  const originalLoadAccountLookup = useAccountStore.getState().loadAccountLookup;
+  const active = makeTestAccount({ id: 'acc-active', name: 'Cash' });
+  const archived = makeTestAccount({ id: 'acc-archived', name: 'Old savings', is_archived: 1 });
+  const deleted = makeTestAccount({ id: 'acc-deleted', name: 'Closed card', is_deleted: 1 });
+  const missingId = 'acc-missing';
+
+  beforeEach(() => {
+    useAccountStore.getState().reset();
+    useAccountStore.setState({
+      accounts: [active],
+      archivedAccounts: [archived],
+      accountLookupById: { [deleted.id]: deleted },
+      accountLookupError: true,
+      loadAccountLookup: jest.fn().mockResolvedValue(undefined),
+    });
+  });
+
+  afterEach(async () => {
+    await act(async () => {
+      useAccountStore.setState({ loadAccountLookup: originalLoadAccountLookup });
+      useAccountStore.getState().reset();
+    });
+  });
+
+  it('names the lookup error while the lookup failed and the id is unresolved', async () => {
+    const { result } = await renderHook(() => useStripError(missingId));
+
+    expect(result.current).toBe(Strings.transactionsAccountLookupError);
+  });
+
+  it('reads undefined for an id the shared read resolves, the cache-only one included', async () => {
+    const { result } = await renderHook(() => useStripError(deleted.id));
+
+    expect(result.current).toBeUndefined();
+  });
+
+  it('reads undefined once the lookup no longer fails', async () => {
+    const { result } = await renderHook(() => useStripError(missingId));
+    expect(result.current).toBe(Strings.transactionsAccountLookupError);
+
+    await act(async () => useAccountStore.setState({ accountLookupError: false }));
+
+    expect(result.current).toBeUndefined();
+  });
+
+  it('reads undefined for an undefined id', async () => {
+    const hook = await renderHook(
+      (props: { accountId: string | undefined }) => useStripError(props.accountId),
+      { initialProps: { accountId: missingId } },
+    );
+    expect(hook.result.current).toBe(Strings.transactionsAccountLookupError);
+
+    await hook.rerender({ accountId: undefined });
+
+    expect(hook.result.current).toBeUndefined();
   });
 });
