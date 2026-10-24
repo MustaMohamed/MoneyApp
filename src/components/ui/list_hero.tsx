@@ -39,7 +39,7 @@ export interface ListHeroModel {
   rail: ListHeroRailModel;
 }
 
-// The rail owns the space above the hero; 0 and not dropped, since `HeroShell`'s frame defaults to a top margin.
+// The tab's month row owns the space above the hero; 0 and not dropped, since `HeroShell`'s frame defaults to a top margin.
 const HERO_SHELL_STYLE = { marginTop: 0, marginBottom: HERO_SHELL_MARGIN_BOTTOM } as const;
 const HERO_BODY_STYLE = { gap: Spacing.sm } as const;
 const COLUMNS_ROW_STYLE = { flexDirection: 'row', gap: Spacing.xs } as const;
@@ -106,9 +106,9 @@ function HeroSkeleton({
       <Skeleton className="w-2/5 rounded-md" style={{ height: geometry.header }} />
       <Skeleton className="w-1/2 rounded-md" style={{ height: geometry.amount }} />
       <View style={COLUMNS_ROW_STYLE}>
-        {columns.map((column) => (
+        {columns.map((_column, index) => (
           <Skeleton
-            key={column.label}
+            key={index}
             className="rounded-md"
             style={{ flex: 1, height: geometry.columns }}
           />
@@ -208,8 +208,8 @@ export function ListHero({
         </View>
 
         <View style={[COLUMNS_ROW_STYLE, { height: geometry.columns }]}>
-          {model.columns.map((column) => (
-            <HeroColumn key={column.label} column={column} geometry={geometry} />
+          {model.columns.map((column, index) => (
+            <HeroColumn key={index} column={column} geometry={geometry} />
           ))}
         </View>
 
