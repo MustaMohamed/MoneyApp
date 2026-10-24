@@ -2,7 +2,7 @@ import type { BottomSheetScrollViewMethods } from '@gorhom/bottom-sheet';
 import { act, renderHook } from '@testing-library/react-native';
 import type { LayoutChangeEvent } from 'react-native';
 
-import { useTransactionFormNoteReveal } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_note_reveal.hook';
+import { useNoteReveal } from '@/components/ui/note_reveal.hook';
 
 const REST_HEIGHT = 377.9;
 const MID_LIFT_HEIGHT = 300;
@@ -14,7 +14,7 @@ const layoutOf = (height: number) =>
 
 async function mountReveal({ withScroll = true }: { withScroll?: boolean } = {}) {
   const scrollToEnd = jest.fn();
-  const hook = await renderHook(() => useTransactionFormNoteReveal());
+  const hook = await renderHook(() => useNoteReveal());
   if (withScroll) {
     hook.result.current.scrollRef.current = {
       scrollToEnd,
@@ -35,7 +35,7 @@ const runFrame = () =>
     jest.advanceTimersByTime(FRAME_MS);
   });
 
-describe('useTransactionFormNoteReveal', () => {
+describe('useNoteReveal', () => {
   beforeEach(() => jest.useFakeTimers());
   afterEach(() => jest.useRealTimers());
 

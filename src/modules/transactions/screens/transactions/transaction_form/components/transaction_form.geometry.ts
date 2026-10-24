@@ -7,26 +7,8 @@ import {
   resolveTypeTabsGeometry,
 } from '@/components/ui/form_sheet.geometry';
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
-import { type ScaledTextStyle, scaledTextStyleAboveOne } from '@/components/ui/text_scale.geometry';
-import { Spacing, Type, lineHeightFor } from '@/constants/theme';
+import { Type, lineHeightFor } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
-
-/** The gap between the status track and Save. */
-export const TRANSACTION_FORM_STATUS_GAP = Spacing.xs;
-
-/** Above scale 1 the app scales the Note's text: Android draws the hint without the line box, and an OS-scaled line box is shorter than the hint's own lines; the floor is the shared fact row's height. */
-export function resolveNoteInputGeometry(fontScale: number): {
-  minHeight: number;
-  text: ScaledTextStyle | undefined;
-} {
-  const text = scaledTextStyleAboveOne(Type.body, fontScale);
-  return { minHeight: resolveFactRowHeight(fontScale), text };
-}
-
-export const TRANSACTION_FORM_CONTENT_CONTAINER_STYLE = {
-  padding: Spacing.md,
-  gap: Spacing.xs,
-};
 
 export const TRANSACTION_FORM_SKELETON_GEOMETRY = {
   tabBar: ms(36),

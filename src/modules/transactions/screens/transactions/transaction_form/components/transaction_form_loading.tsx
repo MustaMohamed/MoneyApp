@@ -7,6 +7,7 @@ import {
   ACCOUNT_STRIP_GAP,
   ACCOUNT_STRIP_INSET_X,
   ACCOUNT_STRIP_PADDING_Y,
+  FORM_SHEET_CONTENT_CONTAINER_STYLE,
 } from '@/components/ui/form_sheet.geometry';
 import { ListCard } from '@/components/ui/list_card';
 import { Strings } from '@/constants/strings';
@@ -14,7 +15,6 @@ import { Radius } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
 import {
-  TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
   TRANSACTION_FORM_SKELETON_GEOMETRY,
   resolveTransactionFormSkeletonBars,
   resolveTypeTabsSkeletonHeight,
@@ -88,7 +88,7 @@ export function TransactionFormLoading(): React.ReactElement {
         <BottomSheetScrollView
           testID="transaction-form-skeleton-scroll"
           style={{ flex: 1 }}
-          contentContainerStyle={TRANSACTION_FORM_CONTENT_CONTAINER_STYLE}
+          contentContainerStyle={FORM_SHEET_CONTENT_CONTAINER_STYLE}
           showsVerticalScrollIndicator={false}
         >
           <ListCard testID="transaction-form-skeleton-fact-group">

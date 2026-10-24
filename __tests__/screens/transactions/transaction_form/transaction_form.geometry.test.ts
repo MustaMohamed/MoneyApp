@@ -8,11 +8,9 @@ import {
   resolveTypeTabsGeometry,
 } from '@/components/ui/form_sheet.geometry';
 import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
-import { Spacing, Type, lineHeightFor } from '@/constants/theme';
+import { Type, lineHeightFor } from '@/constants/theme';
 import {
-  TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
   TRANSACTION_FORM_SKELETON_GEOMETRY,
-  resolveNoteInputGeometry,
   resolveTransactionFormSkeletonBars,
   resolveTypeTabsSkeletonHeight,
 } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form.geometry';
@@ -122,34 +120,6 @@ describe('resolveTypeTabsSkeletonHeight', () => {
     expect(resolveTypeTabsSkeletonHeight(fontScale)).toBe(
       resolveTypeTabsGeometry(fontScale).listHeight,
     );
-  });
-});
-
-describe('transaction form content inset', () => {
-  it('MA-123: pads the fact group and the skeleton by Spacing.md on every side, with no footer clearance', () => {
-    expect(TRANSACTION_FORM_CONTENT_CONTAINER_STYLE).toEqual({
-      padding: Spacing.md,
-      gap: Spacing.xs,
-    });
-  });
-});
-
-describe('resolveNoteInputGeometry', () => {
-  it.each([1, 2, 3, 4])(
-    'MA-197: stands the Note at the shared fact row height at font scale %s',
-    (fontScale) => {
-      expect(resolveNoteInputGeometry(fontScale).minHeight).toBe(resolveFactRowHeight(fontScale));
-    },
-  );
-
-  it('MA-163: leaves the Note text to the OS at scale 1 and scales it in the app above it', () => {
-    expect(resolveNoteInputGeometry(1).text).toBeUndefined();
-    expect(resolveNoteInputGeometry(2).text).toEqual(scaledTextStyle(Type.body, 2));
-    expect(resolveNoteInputGeometry(4).text).toEqual(scaledTextStyle(Type.body, 4));
-  });
-
-  it('MA-197: gives the Note at 4 its padded line, past the bare line box the floor held before', () => {
-    expect(resolveNoteInputGeometry(4).minHeight).toBeGreaterThan(lineHeightFor(4 * Type.body));
   });
 });
 

@@ -1,6 +1,12 @@
-import { resolveTypeTabsGeometry } from '@/components/ui/form_sheet.geometry';
+import { resolveFactRowHeight } from '@/components/ui/fact_row.geometry';
+import {
+  FORM_SHEET_CONTENT_CONTAINER_STYLE,
+  resolveNoteInputGeometry,
+  resolveTypeTabsGeometry,
+} from '@/components/ui/form_sheet.geometry';
 import { TABS_LIST_PADDING, resolveSegmentedTabsGeometry } from '@/components/ui/tabs.geometry';
-import { Spacing, TouchSize } from '@/constants/theme';
+import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
+import { Spacing, TouchSize, Type, lineHeightFor } from '@/constants/theme';
 
 describe('resolveTypeTabsGeometry', () => {
   it('at font scale 1 keeps the 36 tab row and returns only the list height and the slop', () => {
@@ -27,4 +33,32 @@ describe('resolveTypeTabsGeometry', () => {
       expect(triggerHitSlop.top).toBe(triggerHitSlop.bottom);
     },
   );
+});
+
+describe('form sheet content inset', () => {
+  it('MA-123: pads the fact group and the skeleton by Spacing.md on every side, with no footer clearance', () => {
+    expect(FORM_SHEET_CONTENT_CONTAINER_STYLE).toEqual({
+      padding: Spacing.md,
+      gap: Spacing.xs,
+    });
+  });
+});
+
+describe('resolveNoteInputGeometry', () => {
+  it.each([1, 2, 3, 4])(
+    'MA-197: stands the Note at the shared fact row height at font scale %s',
+    (fontScale) => {
+      expect(resolveNoteInputGeometry(fontScale).minHeight).toBe(resolveFactRowHeight(fontScale));
+    },
+  );
+
+  it('MA-163: leaves the Note text to the OS at scale 1 and scales it in the app above it', () => {
+    expect(resolveNoteInputGeometry(1).text).toBeUndefined();
+    expect(resolveNoteInputGeometry(2).text).toEqual(scaledTextStyle(Type.body, 2));
+    expect(resolveNoteInputGeometry(4).text).toEqual(scaledTextStyle(Type.body, 4));
+  });
+
+  it('MA-197: gives the Note at 4 its padded line, past the bare line box the floor held before', () => {
+    expect(resolveNoteInputGeometry(4).minHeight).toBeGreaterThan(lineHeightFor(4 * Type.body));
+  });
 });
