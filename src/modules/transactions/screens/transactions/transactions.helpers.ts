@@ -1,5 +1,6 @@
 import type { DayHeaderFigures, DayHeaderSection } from '@/components/ui/day_header';
 import type { PolaritySignal } from '@/components/ui/flow_polarity';
+import type { ListHeroModel } from '@/components/ui/list_hero';
 import type { SearchTallyModel } from '@/components/ui/search_tally';
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { Currency } from '@/constants/enums';
@@ -276,6 +277,42 @@ export function buildTransactionsHeroModel(input: TransactionsHeroInput): Transa
     railAccessibilityLabel: share.accessibilityLabel,
     shareCaption: heroShareCaption(share),
     lastMonthChange: resolveLastMonthChange(current.expenseEgp, input.previous, input.yearMonth),
+  };
+}
+
+export function buildListHeroModel(model: TransactionsHeroModel): ListHeroModel {
+  return {
+    mode: model.mode === 'skeleton' ? 'skeleton' : 'loaded',
+    title: model.title,
+    monthLabel: model.monthLabel,
+    amount: model.out,
+    currencyCode: model.currencyCode,
+    amountAccessibilityLabel: model.outAccessibilityLabel,
+    columns: [
+      {
+        label: Strings.transactionsHeroIn,
+        value: model.in,
+        align: 'left',
+        polarity: model.inPolarity,
+      },
+      {
+        label: Strings.transactionsHeroNet,
+        value: model.net,
+        align: 'center',
+        polarity: model.netPolarity,
+      },
+      {
+        label: Strings.transactionsHeroLeftOfIncome,
+        value: model.leftOfIncome,
+        align: 'right',
+        polarity: 'neutral',
+      },
+    ],
+    rail: {
+      pct: model.railPct,
+      tone: model.railDanger ? 'danger' : 'success',
+      accessibilityLabel: model.railAccessibilityLabel,
+    },
   };
 }
 

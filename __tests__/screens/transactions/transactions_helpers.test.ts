@@ -6,6 +6,7 @@ import {
   buildDaySections,
   composeDayHeaderAccessibilityLabel,
   type DaySectionsInput,
+  buildListHeroModel,
   buildTransactionsHeroModel,
   currentYearMonth,
   resolvePeriod,
@@ -632,6 +633,101 @@ describe('buildTransactionsHeroModel', () => {
       ],
     ])('prints no change when %s', (_case, overrides, caption) => {
       expect(hero(overrides)).toMatchObject({ lastMonthChange: undefined, caption });
+    });
+  });
+});
+
+describe('buildListHeroModel', () => {
+  const DASH = '—';
+
+  function source(overrides: Partial<TransactionsHeroInput> = {}) {
+    return buildTransactionsHeroModel({
+      mode: 'figures',
+      current: { incomeEgp: 22_300, expenseEgp: 9_400, netEgp: 12_900 },
+      previous: { incomeEgp: 20_000, expenseEgp: 16_900, netEgp: 3_100 },
+      yearMonth: '2026-09',
+      today: '2026-09-24',
+      ...overrides,
+    });
+  }
+
+  it('hands the piece the month within income: Out, the three columns and a success rail (A1)', () => {
+    expect(buildListHeroModel(source())).toEqual({
+      mode: 'loaded',
+      title: 'Out this month',
+      monthLabel: 'September',
+      amount: '9,400',
+      currencyCode: 'EGP',
+      amountAccessibilityLabel: '9,400 EGP',
+      columns: [
+        { label: Strings.transactionsHeroIn, value: '22,300', align: 'left', polarity: 'good' },
+        { label: Strings.transactionsHeroNet, value: '+12,900', align: 'center', polarity: 'good' },
+        {
+          label: Strings.transactionsHeroLeftOfIncome,
+          value: '58%',
+          align: 'right',
+          polarity: 'neutral',
+        },
+      ],
+      rail: { pct: 42, tone: 'success', accessibilityLabel: Strings.totalsExpenseShareA11y(42) },
+    });
+  });
+
+  it('copies the scoped title and the month the source names', () => {
+    const model = source({ accountLabel: 'Wallet', yearMonth: '2026-08', today: '2026-09-24' });
+
+    expect(buildListHeroModel(model)).toMatchObject({
+      title: model.title,
+      monthLabel: model.monthLabel,
+      currencyCode: model.currencyCode,
+    });
+    expect(buildListHeroModel(model).title).toBe('Out this month · Wallet');
+    expect(buildListHeroModel(model).monthLabel).toBe('August');
+  });
+
+  it('fills the rail in danger past income, Net bad and Left of income neutral', () => {
+    const model = buildListHeroModel(
+      source({ current: { incomeEgp: 1_000, expenseEgp: 1_200, netEgp: -200 } }),
+    );
+
+    expect(model.rail).toEqual({
+      pct: 100,
+      tone: 'danger',
+      accessibilityLabel: Strings.totalsExpenseShareA11y(120),
+    });
+    expect(model.columns.map((column) => [column.label, column.value, column.polarity])).toEqual([
+      [Strings.transactionsHeroIn, '1,000', 'good'],
+      [Strings.transactionsHeroNet, '−200', 'bad'],
+      [Strings.transactionsHeroLeftOfIncome, '−20%', 'neutral'],
+    ]);
+  });
+
+  it('keeps the skeleton a skeleton with its three columns in order', () => {
+    const model = buildListHeroModel(source({ mode: 'skeleton', current: null }));
+
+    expect(model.mode).toBe('skeleton');
+    expect(model.columns.map((column) => [column.label, column.align])).toEqual([
+      [Strings.transactionsHeroIn, 'left'],
+      [Strings.transactionsHeroNet, 'center'],
+      [Strings.transactionsHeroLeftOfIncome, 'right'],
+    ]);
+  });
+
+  it('draws the dashes as a loaded hero: every value a dash and the load-error rail label', () => {
+    const model = buildListHeroModel(source({ mode: 'dashes', current: null }));
+
+    expect(model.mode).toBe('loaded');
+    expect(model.amount).toBe(DASH);
+    expect(model.columns.map((column) => column.value)).toEqual([DASH, DASH, DASH]);
+    expect(model.columns.map((column) => column.polarity)).toEqual([
+      'neutral',
+      'neutral',
+      'neutral',
+    ]);
+    expect(model.rail).toEqual({
+      pct: 0,
+      tone: 'success',
+      accessibilityLabel: Strings.transactionsTotalsLoadError,
     });
   });
 });
