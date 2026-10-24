@@ -1,6 +1,7 @@
 import { resolveFactRowHeight } from '@/components/ui/fact_row.geometry';
 import {
   FORM_SHEET_CONTENT_CONTAINER_STYLE,
+  resolveFormSupportLineProps,
   resolveNoteInputGeometry,
   resolveTypeTabsGeometry,
 } from '@/components/ui/form_sheet.geometry';
@@ -60,5 +61,39 @@ describe('resolveNoteInputGeometry', () => {
 
   it('MA-197: gives the Note at 4 its padded line, past the bare line box the floor held before', () => {
     expect(resolveNoteInputGeometry(4).minHeight).toBeGreaterThan(lineHeightFor(4 * Type.body));
+  });
+});
+
+describe('resolveFormSupportLineProps', () => {
+  const atOne = { fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) };
+
+  it('one line at font scale 1 ends in an ellipsis and leaves the OS to scale', () => {
+    expect(resolveFormSupportLineProps(false, 1)).toEqual({
+      numberOfLines: 1,
+      allowFontScaling: true,
+      style: { ...atOne, flexShrink: 1 },
+    });
+  });
+
+  it('one line at font scale 2 takes the JS-scaled size with OS scaling off', () => {
+    expect(resolveFormSupportLineProps(false, 2)).toEqual({
+      numberOfLines: 1,
+      allowFontScaling: false,
+      style: { ...scaledTextStyle(Type.micro, 2), flexShrink: 1 },
+    });
+  });
+
+  it('a wrapping line at font scale 1 has no line cap and leaves the OS to scale', () => {
+    expect(resolveFormSupportLineProps(true, 1)).toEqual({
+      allowFontScaling: true,
+      style: atOne,
+    });
+  });
+
+  it('a wrapping line at font scale 2 has no line cap and takes the JS-scaled size', () => {
+    expect(resolveFormSupportLineProps(true, 2)).toEqual({
+      allowFontScaling: false,
+      style: scaledTextStyle(Type.micro, 2),
+    });
   });
 });

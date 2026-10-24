@@ -8,7 +8,11 @@ import {
   type TabsTriggerHitSlop,
   resolveSegmentedTabsGeometry,
 } from '@/components/ui/tabs.geometry';
-import { type ScaledTextStyle, scaledTextStyleAboveOne } from '@/components/ui/text_scale.geometry';
+import {
+  type ScaledTextStyle,
+  resolveOneLineTextProps,
+  scaledTextStyleAboveOne,
+} from '@/components/ui/text_scale.geometry';
 import {
   Radius,
   Size,
@@ -123,6 +127,24 @@ export function resolveTypeTabsGeometry(fontScale: number): {
     listHeight: Math.max(Size.typeTabsTrack, compact.listHeight),
     triggerHitSlop: touchFloorHitSlop(compact.triggerHeight),
   };
+}
+
+export interface FormSupportLineProps {
+  numberOfLines?: 1;
+  allowFontScaling: boolean;
+  style: { fontSize: number; lineHeight: number; flexShrink?: 1 };
+}
+
+/** The line under a form's type tabs: one line ending in `…`, or wrapping when `wrap`; JS-scaled above font scale 1 either way. */
+export function resolveFormSupportLineProps(
+  wrap: boolean,
+  fontScale: number,
+): FormSupportLineProps {
+  const scaled = scaledTextStyleAboveOne(Type.micro, fontScale);
+  const atOne = { fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) };
+  if (wrap) return { allowFontScaling: scaled === undefined, style: { ...atOne, ...scaled } };
+  const oneLine = resolveOneLineTextProps(scaled);
+  return { ...oneLine, style: { ...atOne, ...oneLine.style } };
 }
 
 interface AccountStripRevealInput {

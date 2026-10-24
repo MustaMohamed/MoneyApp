@@ -4,19 +4,16 @@ import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/d
 import { Input, PressableFeedback } from 'heroui-native';
 import { useMemo } from 'react';
 import { Controller, useWatch, type UseFormReturn } from 'react-hook-form';
-import { Platform, View, useWindowDimensions } from 'react-native';
+import { Platform, View } from 'react-native';
 
 import { AccountStrip } from '@/components/ui/account_strip';
 import { Button } from '@/components/ui/button';
 import { FormErrorText } from '@/components/ui/form_error_text';
-import {
-  ACCOUNT_STRIP_WRAPPER_PADDING_Y,
-  resolveTypeTabsGeometry,
-} from '@/components/ui/form_sheet.geometry';
+import { FORM_SHEET_CONTENT_CONTAINER_STYLE } from '@/components/ui/form_sheet.geometry';
+import { FormStrip, FormSupportLine, FormTypeTabs } from '@/components/ui/form_type_tabs';
 import { useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { SegmentedTabs } from '@/components/ui/tabs';
 import { Text } from '@/components/ui/text';
-import { scaledTextStyleAboveOne } from '@/components/ui/text_scale.geometry';
 import { ValidationSlot } from '@/components/ui/validation_slot';
 import {
   AmountType,
@@ -43,11 +40,7 @@ import {
   detectPreset,
 } from '../commitment_form.shared';
 import { CommitmentAmountHero } from './commitment_amount_hero';
-import {
-  COMMITMENT_FORM_CONTENT_CONTAINER_STYLE,
-  COMMITMENT_FORM_TABS_SLOP,
-  COMMITMENT_FORM_TOP_BLEED_STYLE,
-} from './commitment_form.geometry';
+import { COMMITMENT_FORM_TABS_SLOP } from './commitment_form.geometry';
 import {
   resolveCommitmentFormStripError,
   useCommitmentFormBodyFaults,
@@ -103,9 +96,6 @@ export function CommitmentFormFooter({
 export function CommitmentFormBody(props: CommitmentFormBodyProps) {
   const { form, categories, accounts, locked, afterFields } = props;
   const { onFocus: onInputFocus, onBlur: onInputBlur } = useBottomSheetAwareHandlers();
-  const { fontScale } = useWindowDimensions();
-  const typeTabs = resolveTypeTabsGeometry(fontScale);
-  const supportingText = scaledTextStyleAboveOne(Type.micro, fontScale);
   const [
     amountType,
     currency,
@@ -213,229 +203,212 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
       <BottomSheetScrollView
         testID="commitment-form-scroll"
         style={{ flex: 1 }}
-        contentContainerStyle={COMMITMENT_FORM_CONTENT_CONTAINER_STYLE}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View style={COMMITMENT_FORM_TOP_BLEED_STYLE}>
-          <View className="border-separator border-b px-4 py-2">
-            <SegmentedTabs<AmountType>
-              segments={[
-                { value: AmountType.Fixed, label: Strings.commitmentsTypeFixedAmount },
-                { value: AmountType.Variable, label: Strings.commitmentsTypeVariesEachTime },
-              ]}
-              value={amountType}
-              onValueChange={handleAmountTypeChange}
-              variant="solid-gold"
-              density="compact"
-              corners="form"
-              listClassName="w-full"
-              listStyle={{ height: typeTabs.listHeight }}
-              triggerHitSlop={typeTabs.triggerHitSlop}
-              accessibilityLabel={Strings.commitmentsAmountTypeSelectorA11y}
-              isDisabled={locked}
-            />
-          </View>
-          <View className="min-h-8 justify-center px-4 py-1.5">
-            <Text
-              className="font-inter text-muted"
-              allowFontScaling={supportingText === undefined}
-              style={{
-                fontSize: Type.micro,
-                lineHeight: lineHeightFor(Type.micro),
-                ...supportingText,
-              }}
-            >
-              {amountType === AmountType.Variable
-                ? Strings.commitmentsTypeVariableSupport
-                : Strings.commitmentsTypeFixedSupport}
-            </Text>
-          </View>
-          <View
-            className="border-separator border-b"
-            style={{ paddingVertical: ACCOUNT_STRIP_WRAPPER_PADDING_Y }}
-          >
-            <AccountStrip
-              chips={stripChips}
-              error={stripError}
-              onSelect={
-                locked
-                  ? undefined
-                  : (id) => form.setValue('accountId', resolveAccountIdFromChip(id), SET_OPTS)
-              }
-            />
-          </View>
-          <CommitmentAmountHero
-            form={form}
-            currency={currency}
-            invalid={errors.amount !== undefined}
-          />
-          <ValidationSlot
-            testID="amount-error-slot"
-            liveTestID="amount-error-live"
-            message={errors.amount}
-          />
-        </View>
-
-        <View className="bg-default gap-1 rounded-2xl px-3 py-3">
-          <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
-            {Strings.commitmentsFieldName}
-          </Text>
-          <Controller
-            control={form.control}
-            name="name"
-            render={({ field: { value, onChange, onBlur } }) => (
-              <Input
-                // oxlint-disable-next-line typescript/no-unnecessary-condition -- RHF field value can be null at reset
-                value={value ?? ''}
-                onChangeText={onChange}
-                onFocus={onInputFocus}
-                onBlur={composeFieldBlur(onInputBlur, onBlur)}
-                placeholder={Strings.commitmentsNamePlaceholder}
-                maxLength={50}
-                isDisabled={locked}
-                isInvalid={!!errors.name}
-              />
-            )}
-          />
-          {errors.name ? (
-            <Text className="font-inter text-danger text-[11px]">{errors.name}</Text>
-          ) : null}
-        </View>
-
-        <View className="bg-default gap-2 rounded-2xl px-3 py-3">
-          <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
-            {Strings.commitmentsFieldCurrency}
-          </Text>
-          <SegmentedTabs<Currency>
-            segments={[
-              { value: Currency.EGP, label: Currency.EGP },
-              { value: Currency.USD, label: Currency.USD },
-            ]}
-            value={currency}
-            onValueChange={(c) => form.setValue('currency', c, SET_OPTS)}
-            variant="solid-gold"
-            listClassName="w-full"
-            isDisabled={locked}
-            accessibilityLabel={Strings.commitmentsFieldCurrency}
-            triggerHitSlop={COMMITMENT_FORM_TABS_SLOP}
-          />
-        </View>
-
-        <PressableFeedback
-          onPress={() => setCategoryPickerVisible(true)}
+        <FormTypeTabs<AmountType>
+          segments={[
+            { value: AmountType.Fixed, label: Strings.commitmentsTypeFixedAmount },
+            { value: AmountType.Variable, label: Strings.commitmentsTypeVariesEachTime },
+          ]}
+          value={amountType}
+          onValueChange={handleAmountTypeChange}
+          accessibilityLabel={Strings.commitmentsAmountTypeSelectorA11y}
           isDisabled={locked}
-          className="bg-default gap-1 rounded-2xl px-3 py-3"
-          accessibilityRole="button"
-          accessibilityLabel={Strings.commitmentsFieldCategory}
-        >
-          <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
-            {Strings.commitmentsFieldCategory}
-          </Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-2">
-            {selectedCategory ? (
-              <Text className="font-sora-semibold text-foreground flex-1 text-[15px]">
-                {selectedCategory.name}
-              </Text>
-            ) : (
-              <Text className="font-inter text-muted flex-1 text-[15px]">
-                {Strings.addTxPickCategoryTitle}
-              </Text>
-            )}
-            <MaterialCommunityIcons
-              name={locked ? 'lock-outline' : 'chevron-right'}
-              size={18}
-              color={CoreTokens.text2}
-            />
-          </View>
-          {errors.categoryId ? (
-            <Text className="font-inter text-danger text-[11px]">{errors.categoryId}</Text>
-          ) : null}
-        </PressableFeedback>
-
-        <RecurrencePicker
+        />
+        <FormSupportLine
+          text={
+            amountType === AmountType.Variable
+              ? Strings.commitmentsTypeVariableSupport
+              : Strings.commitmentsTypeFixedSupport
+          }
+          wrap
+        />
+        <FormStrip>
+          <AccountStrip
+            chips={stripChips}
+            error={stripError}
+            onSelect={
+              locked
+                ? undefined
+                : (id) => form.setValue('accountId', resolveAccountIdFromChip(id), SET_OPTS)
+            }
+          />
+        </FormStrip>
+        <CommitmentAmountHero
           form={form}
-          recurrencePreset={recurrencePreset}
-          onPresetChange={handleRecurrencePresetChange}
+          currency={currency}
+          invalid={errors.amount !== undefined}
+        />
+        <ValidationSlot
+          testID="amount-error-slot"
+          liveTestID="amount-error-live"
+          message={errors.amount}
         />
 
-        <PressableFeedback
-          onPress={openStartDatePicker}
-          isDisabled={locked}
-          className="bg-default gap-1 rounded-2xl px-3 py-3"
-          accessibilityRole="button"
-          accessibilityLabel={Strings.commitmentsFieldStartDate}
-        >
-          <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
-            {Strings.commitmentsFieldStartDate}
-          </Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-2">
-            <Text
-              className={
-                startDate
-                  ? 'font-sora-semibold text-foreground flex-1 text-[15px]'
-                  : 'font-inter text-muted flex-1 text-[15px]'
-              }
-            >
-              {formattedStartDate}
-            </Text>
-            <MaterialCommunityIcons
-              name={locked ? 'lock-outline' : 'calendar'}
-              size={18}
-              color={CoreTokens.text2}
-            />
-          </View>
-          {errors.startDate ? (
-            <Text className="font-inter text-danger text-[11px]">{errors.startDate}</Text>
-          ) : null}
-        </PressableFeedback>
-
-        {showStartDatePicker ? (
-          <DateTimePicker
-            value={startDateAsDate}
-            mode="date"
-            display="spinner"
-            themeVariant="dark"
-            onValueChange={(_, d) => form.setValue('startDate', toLocalDateString(d), SET_OPTS)}
-          />
-        ) : null}
-
-        <DurationPicker
-          form={form}
-          durationType={durationType}
-          onDurationTypeChange={handleDurationTypeChange}
-          showEndDatePicker={showEndDatePicker}
-          setShowEndDatePicker={(v) => {
-            setShowEndDatePicker(v);
-            if (v) setShowStartDatePicker(false);
-          }}
-        />
-
-        <View className="bg-default gap-1 rounded-2xl px-3 py-3">
-          <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-1">
+        <View style={FORM_SHEET_CONTENT_CONTAINER_STYLE}>
+          <View className="bg-default gap-1 rounded-2xl px-3 py-3">
             <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
-              {Strings.commitmentsFieldNotes}
+              {Strings.commitmentsFieldName}
             </Text>
-            <Text className="font-inter text-muted text-[10px]">{Strings.commitmentsOptional}</Text>
+            <Controller
+              control={form.control}
+              name="name"
+              render={({ field: { value, onChange, onBlur } }) => (
+                <Input
+                  // oxlint-disable-next-line typescript/no-unnecessary-condition -- RHF field value can be null at reset
+                  value={value ?? ''}
+                  onChangeText={onChange}
+                  onFocus={onInputFocus}
+                  onBlur={composeFieldBlur(onInputBlur, onBlur)}
+                  placeholder={Strings.commitmentsNamePlaceholder}
+                  maxLength={50}
+                  isDisabled={locked}
+                  isInvalid={!!errors.name}
+                />
+              )}
+            />
+            {errors.name ? (
+              <Text className="font-inter text-danger text-[11px]">{errors.name}</Text>
+            ) : null}
           </View>
-          <Controller
-            control={form.control}
-            name="notes"
-            render={({ field: { value, onChange, onBlur } }) => (
-              <Input
-                value={value ?? ''}
-                onChangeText={(v) => onChange(v || undefined)}
-                onFocus={onInputFocus}
-                onBlur={composeFieldBlur(onInputBlur, onBlur)}
-                placeholder={Strings.addTxNotePlaceholder}
-                multiline
-                numberOfLines={3}
-                style={{ minHeight: 72, textAlignVertical: 'top' }}
+
+          <View className="bg-default gap-2 rounded-2xl px-3 py-3">
+            <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
+              {Strings.commitmentsFieldCurrency}
+            </Text>
+            <SegmentedTabs<Currency>
+              segments={[
+                { value: Currency.EGP, label: Currency.EGP },
+                { value: Currency.USD, label: Currency.USD },
+              ]}
+              value={currency}
+              onValueChange={(c) => form.setValue('currency', c, SET_OPTS)}
+              variant="solid-gold"
+              listClassName="w-full"
+              isDisabled={locked}
+              accessibilityLabel={Strings.commitmentsFieldCurrency}
+              triggerHitSlop={COMMITMENT_FORM_TABS_SLOP}
+            />
+          </View>
+
+          <PressableFeedback
+            onPress={() => setCategoryPickerVisible(true)}
+            isDisabled={locked}
+            className="bg-default gap-1 rounded-2xl px-3 py-3"
+            accessibilityRole="button"
+            accessibilityLabel={Strings.commitmentsFieldCategory}
+          >
+            <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
+              {Strings.commitmentsFieldCategory}
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-2">
+              {selectedCategory ? (
+                <Text className="font-sora-semibold text-foreground flex-1 text-[15px]">
+                  {selectedCategory.name}
+                </Text>
+              ) : (
+                <Text className="font-inter text-muted flex-1 text-[15px]">
+                  {Strings.addTxPickCategoryTitle}
+                </Text>
+              )}
+              <MaterialCommunityIcons
+                name={locked ? 'lock-outline' : 'chevron-right'}
+                size={18}
+                color={CoreTokens.text2}
               />
-            )}
+            </View>
+            {errors.categoryId ? (
+              <Text className="font-inter text-danger text-[11px]">{errors.categoryId}</Text>
+            ) : null}
+          </PressableFeedback>
+
+          <RecurrencePicker
+            form={form}
+            recurrencePreset={recurrencePreset}
+            onPresetChange={handleRecurrencePresetChange}
           />
+
+          <PressableFeedback
+            onPress={openStartDatePicker}
+            isDisabled={locked}
+            className="bg-default gap-1 rounded-2xl px-3 py-3"
+            accessibilityRole="button"
+            accessibilityLabel={Strings.commitmentsFieldStartDate}
+          >
+            <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
+              {Strings.commitmentsFieldStartDate}
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-2">
+              <Text
+                className={
+                  startDate
+                    ? 'font-sora-semibold text-foreground flex-1 text-[15px]'
+                    : 'font-inter text-muted flex-1 text-[15px]'
+                }
+              >
+                {formattedStartDate}
+              </Text>
+              <MaterialCommunityIcons
+                name={locked ? 'lock-outline' : 'calendar'}
+                size={18}
+                color={CoreTokens.text2}
+              />
+            </View>
+            {errors.startDate ? (
+              <Text className="font-inter text-danger text-[11px]">{errors.startDate}</Text>
+            ) : null}
+          </PressableFeedback>
+
+          {showStartDatePicker ? (
+            <DateTimePicker
+              value={startDateAsDate}
+              mode="date"
+              display="spinner"
+              themeVariant="dark"
+              onValueChange={(_, d) => form.setValue('startDate', toLocalDateString(d), SET_OPTS)}
+            />
+          ) : null}
+
+          <DurationPicker
+            form={form}
+            durationType={durationType}
+            onDurationTypeChange={handleDurationTypeChange}
+            showEndDatePicker={showEndDatePicker}
+            setShowEndDatePicker={(v) => {
+              setShowEndDatePicker(v);
+              if (v) setShowStartDatePicker(false);
+            }}
+          />
+
+          <View className="bg-default gap-1 rounded-2xl px-3 py-3">
+            <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-1">
+              <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
+                {Strings.commitmentsFieldNotes}
+              </Text>
+              <Text className="font-inter text-muted text-[10px]">
+                {Strings.commitmentsOptional}
+              </Text>
+            </View>
+            <Controller
+              control={form.control}
+              name="notes"
+              render={({ field: { value, onChange, onBlur } }) => (
+                <Input
+                  value={value ?? ''}
+                  onChangeText={(v) => onChange(v || undefined)}
+                  onFocus={onInputFocus}
+                  onBlur={composeFieldBlur(onInputBlur, onBlur)}
+                  placeholder={Strings.addTxNotePlaceholder}
+                  multiline
+                  numberOfLines={3}
+                  style={{ minHeight: 72, textAlignVertical: 'top' }}
+                />
+              )}
+            />
+          </View>
+          {afterFields}
         </View>
-        {afterFields}
       </BottomSheetScrollView>
 
       <CategoryPickerSheet
