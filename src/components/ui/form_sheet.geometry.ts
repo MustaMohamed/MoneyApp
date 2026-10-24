@@ -87,7 +87,7 @@ export const AMOUNT_CODE_STYLE = {
 /** A money figure at entry size stops growing at the top of the gated text scale range. */
 export const AMOUNT_ENTRY_MAX_FONT_SCALE = DISPLAY_HEADLINE_MAX_FONT_SCALE;
 
-/** The gap between the status track and Save. */
+/** The gap between the status track and the flat button. */
 export const FORM_SHEET_STATUS_GAP = Spacing.xs;
 
 export const FORM_SHEET_CONTENT_CONTAINER_STYLE = {

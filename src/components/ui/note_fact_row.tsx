@@ -14,9 +14,8 @@ interface NoteFactRowProps {
   placeholder: string;
   value: string;
   onChangeText: (text: string) => void;
-  onFocus?: () => void;
-  onBlur?: () => void;
-  testID?: string;
+  onFocus: () => void;
+  onBlur: () => void;
 }
 
 /** A form card's last row; it renders inside a `Sheet`'s children, where the sheet-aware handlers reach gorhom. */
@@ -27,22 +26,21 @@ export function NoteFactRow({
   onChangeText,
   onFocus,
   onBlur,
-  testID = 'note-row',
 }: NoteFactRowProps): ReactElement {
   const { onFocus: onSheetFocus, onBlur: onSheetBlur } = useBottomSheetAwareHandlers();
   const { fontScale } = useWindowDimensions();
   const noteGeometry = resolveNoteInputGeometry(fontScale);
   const handleFocus: typeof onSheetFocus = (event) => {
     onSheetFocus(event);
-    onFocus?.();
+    onFocus();
   };
   const handleBlur: typeof onSheetBlur = (event) => {
     onSheetBlur(event);
-    onBlur?.();
+    onBlur();
   };
 
   return (
-    <FactRow testID={testID} label={label} showDivider={false}>
+    <FactRow testID="note-row" label={label} showDivider={false}>
       <Input
         value={value}
         onChangeText={onChangeText}
