@@ -3,7 +3,7 @@
 - **Date:** 2026-09-26
 - **Status:** accepted
 - **Ticket:** #564 (MA-103)
-- **Applies to:** `src/database/migrations/021_recolour_category_palette.ts`, `src/constants/theme.ts` (`CategoryColors`), `src/modules/commitments/screens/commitments/detail/components/detail_hero.tsx`, `src/modules/dashboard/screens/dashboard/components/account_card.tsx`
+- **Applies to:** `src/database/migrations/021_recolour_category_palette.ts`, `src/constants/theme.ts` (`CategoryColors`), `src/components/ui/detail_hero.tsx`, `src/modules/dashboard/screens/dashboard/components/account_card.tsx`
 
 Category glyphs are drawn in the stored category colour, and the old palette held background tones: `#1B2B4B` reads 1.06:1 on the dark chip. Migration 021 rewrites every stored category colour that is one of the 13 old hexes to its new tone, and the category form's swatch list moves to the same 12 tones.
 
@@ -30,3 +30,5 @@ The `UPDATE` matches the 13 old hexes by exact, uppercase value, never by id or 
 Label text painted in a category colour holds only the 3:1 glyph floor, so it is allowed only beside its glyph on a pill tinted in the same family: the transaction detail hero pill. The commitment detail hero amount is a money figure and renders in the foreground text colour (`docs/adr/2026-08-27-money-colour-vocabulary.md`).
 
 **Amended 2026-10-14 (#721, MA-180).** The transaction detail hero has no pill, so no label on the detail is drawn in a category colour. The category colour fills the hero's 48 tile and tints its glow. The tile glyph is `CoreTokens.text1` where it clears 3:1 on the fill and `CoreTokens.bg` elsewhere (`resolveHeroTileGlyphColor`, `detail.helpers.ts`), which clears 3:1 on every fill.
+
+**Amended 2026-10-24 (#861, MA-260).** The commitment detail hero is the shared `src/components/ui/detail_hero.tsx`, so it fills its 48 tile in the category colour with the contrast-picked glyph, as the transaction detail hero does. `resolveHeroTileGlyphColor` now sits in `src/modules/transactions/components/transaction_row.helpers.ts`.
