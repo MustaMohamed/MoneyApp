@@ -10,10 +10,15 @@ import { DangerRing } from '@/components/ui/danger_ring';
 import { DateRow } from '@/components/ui/date_row';
 import { FactRow } from '@/components/ui/fact_row';
 import { FormPickerRow } from '@/components/ui/form_picker_row';
-import { ACCOUNT_STRIP_WRAPPER_PADDING_Y } from '@/components/ui/form_sheet.geometry';
+import {
+  ACCOUNT_STRIP_WRAPPER_PADDING_Y,
+  FORM_SHEET_CONTENT_CONTAINER_STYLE,
+  resolveNoteInputGeometry,
+} from '@/components/ui/form_sheet.geometry';
 import type { AccountStripChip } from '@/components/ui/form_sheet.helpers';
 import { INPUT_NO_FOCUS_BORDER_COLOR } from '@/components/ui/input';
 import { ListCard } from '@/components/ui/list_card';
+import { useNoteReveal } from '@/components/ui/note_reveal.hook';
 import { RateRow } from '@/components/ui/rate_row';
 import { useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
@@ -35,10 +40,6 @@ import { toIconName } from '@/utils/icon_name_guard';
 
 import { TransactionAmountHero } from './components/transaction_amount_hero';
 import {
-  resolveNoteInputGeometry,
-  TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
-} from './components/transaction_form.geometry';
-import {
   TransactionConvertedAmountLine,
   TransactionRateEditor,
 } from './components/transaction_rate_preview';
@@ -46,7 +47,6 @@ import type { RatePreviewInput } from './components/transaction_rate_preview.hoo
 import { TypeTabs } from './components/type_tabs';
 import { resolveBudgetFieldError, resolveToRowFace } from './transaction_form.helpers';
 import type { TransactionFormMode } from './transaction_form.types';
-import { useTransactionFormNoteReveal } from './transaction_form_note_reveal.hook';
 
 interface BaseProps {
   datePickerOwnerId: string;
@@ -134,8 +134,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
     currency,
   } = props;
   const { onFocus: onInputFocus, onBlur: onInputBlur } = useBottomSheetAwareHandlers();
-  const { scrollRef, handleScrollLayout, handleNoteFocus, handleNoteBlur } =
-    useTransactionFormNoteReveal();
+  const { scrollRef, handleScrollLayout, handleNoteFocus, handleNoteBlur } = useNoteReveal();
   const handleNoteInputFocus: typeof onInputFocus = (event) => {
     onInputFocus(event);
     handleNoteFocus();
@@ -229,7 +228,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
         ) : null}
       </ValidationSlot>
 
-      <View testID="transaction-form-fact-inset" style={TRANSACTION_FORM_CONTENT_CONTAINER_STYLE}>
+      <View testID="transaction-form-fact-inset" style={FORM_SHEET_CONTENT_CONTAINER_STYLE}>
         <ListCard testID="transaction-form-fact-group">
           {isTransferOrCC ? (
             <View className={FACT_CELL_CLASS}>
