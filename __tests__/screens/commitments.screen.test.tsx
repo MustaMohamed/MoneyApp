@@ -7,7 +7,10 @@ import type { CommitmentMonthPayment } from '@/modules/commitments/entities/comm
 import CommitmentsScreen from '@/modules/commitments/screens/commitments';
 import type { CommitmentsSection } from '@/modules/commitments/screens/commitments/commitments.helpers';
 import { useCommitments } from '@/modules/commitments/screens/commitments/commitments.hook';
-import { resolveCommitmentRowHeight } from '@/modules/commitments/screens/commitments/components/commitment_row.helpers';
+import {
+  resolveCommitmentRowCaptionLines,
+  resolveCommitmentRowHeight,
+} from '@/modules/commitments/screens/commitments/components/commitment_row.helpers';
 import { buildCommitmentsHeroModel } from '@/modules/commitments/screens/commitments/components/commitments_hero.helpers';
 import { makeTestMonthPayment } from '@/test_helpers/commitment';
 
@@ -306,7 +309,7 @@ describe('CommitmentsScreen', () => {
     expect(queryByText('spinner')).toBeNull();
   });
 
-  it('draws each row skeleton at the loaded row height with tile, name, due-day, amount and day-indicator bars', async () => {
+  it('draws each row skeleton at the loaded row height with tile, name, a due-day bar per caption line, amount and day-indicator bars', async () => {
     mockUseCommitments({
       hasCommitments: true,
       paymentsLoaded: false,
@@ -317,13 +320,16 @@ describe('CommitmentsScreen', () => {
 
     const { getAllByTestId } = await render(<CommitmentsScreen />);
 
+    const { fontScale } = Dimensions.get('window');
     const rows = getAllByTestId('commitment-row-skeleton');
     expect(rows.length).toBeGreaterThan(0);
+    // MA-243: jest's font scale is 2, so the due-day bar takes a second line, as the loaded subline does.
+    expect(fontScale).toBe(2);
     for (const row of rows) {
-      expect(row).toHaveStyle({
-        height: resolveCommitmentRowHeight(Dimensions.get('window').fontScale),
-      });
-      expect(within(row).getAllByTestId('skeleton-item')).toHaveLength(5);
+      expect(row).toHaveStyle({ height: resolveCommitmentRowHeight(fontScale) });
+      expect(within(row).getAllByTestId('skeleton-item')).toHaveLength(
+        4 + resolveCommitmentRowCaptionLines(fontScale),
+      );
     }
   });
 

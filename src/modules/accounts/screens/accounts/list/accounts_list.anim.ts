@@ -18,10 +18,12 @@ import { scheduleOnRN } from 'react-native-worklets';
 
 import { ACCOUNTS_LIST_EDGE_SCROLL, ACCOUNTS_LIST_GRIP_HIT_SLOP } from './accounts_list.geometry';
 import {
+  type RowBox,
   resolveDropIndex,
   resolveEdgeScrollOffset,
   resolveEdgeScrollRate,
   resolveRowShift,
+  resolveSlotOffset,
 } from './accounts_list.reorder';
 
 /** The FAB's long-press value (`fab.tsx`), so a long-press lifts after the same hold everywhere. */
@@ -30,12 +32,13 @@ const LIFT_SCALE = 1.02;
 export const LIFT_DURATION_MS = 150;
 export const SHIFT_DURATION_MS = 150;
 
-/** One drag per screen; `-1` in both indices means no row is lifted. `translationY` is the finger's plus the edge scroll since the lift, in the card's coordinates. */
+/** One drag per screen; `-1` in both indices means no row is lifted. `translationY` is the finger's plus the edge scroll since the lift, in the card's coordinates. `rowBoxes[i]` is the box of the row at index `i`. */
 export interface ListDrag {
   liftedIndex: SharedValue<number>;
   targetIndex: SharedValue<number>;
   translationY: SharedValue<number>;
   cellHeight: SharedValue<number>;
+  rowBoxes: SharedValue<RowBox[]>;
   fingerTranslationY: SharedValue<number>;
   fingerAbsoluteY: SharedValue<number>;
   isHolding: SharedValue<boolean>;
@@ -52,7 +55,7 @@ function trackLiftedRow(drag: ListDrag, count: number) {
   drag.targetIndex.value = resolveDropIndex({
     fromIndex: drag.liftedIndex.value,
     translationY: drag.translationY.value,
-    cellHeight: drag.cellHeight.value,
+    boxes: drag.rowBoxes.value,
     count,
   });
 }
@@ -68,6 +71,7 @@ export function useAccountsListDragAnim(input: {
   const targetIndex = useSharedValue(-1);
   const translationY = useSharedValue(0);
   const cellHeight = useSharedValue(0);
+  const rowBoxes = useSharedValue<RowBox[]>([]);
   const fingerTranslationY = useSharedValue(0);
   const fingerAbsoluteY = useSharedValue(0);
   const isHolding = useSharedValue(false);
@@ -88,6 +92,7 @@ export function useAccountsListDragAnim(input: {
       targetIndex,
       translationY,
       cellHeight,
+      rowBoxes,
       fingerTranslationY,
       fingerAbsoluteY,
       isHolding,
@@ -105,6 +110,7 @@ export function useAccountsListDragAnim(input: {
       liftScrollOffset,
       liftedIndex,
       reducedMotion,
+      rowBoxes,
       scrollOffset,
       targetIndex,
       translationY,
@@ -189,7 +195,17 @@ export function useAccountsListDragAnim(input: {
     () => ({
       height: cellHeight.value,
       opacity: isLifted ? 1 : 0,
-      transform: [{ translateY: isLifted ? targetIndex.value * cellHeight.value : 0 }],
+      transform: [
+        {
+          translateY: isLifted
+            ? resolveSlotOffset({
+                fromIndex: liftedIndex.value,
+                toIndex: targetIndex.value,
+                boxes: rowBoxes.value,
+              })
+            : 0,
+        },
+      ],
     }),
     [isLifted],
   );
@@ -201,7 +217,14 @@ export function useAccountsListDragAnim(input: {
     return {
       opacity: timed(1),
       transform: [
-        { translateY: liftedIndex.value * cellHeight.value + translationY.value },
+        {
+          translateY:
+            resolveSlotOffset({
+              fromIndex: liftedIndex.value,
+              toIndex: liftedIndex.value,
+              boxes: rowBoxes.value,
+            }) + translationY.value,
+        },
         { scale: timed(LIFT_SCALE) },
       ],
     };
@@ -221,13 +244,18 @@ export function useLiftGesture(input: {
   onRelease: (id: string, fromIndex: number, toIndex: number) => Promise<void>;
 }): { gesture: PanGesture; onLayout: (e: LayoutChangeEvent) => void } {
   const { drag, id, index, count, enabled, onLift, onRelease } = input;
-  const rowHeight = useSharedValue(0);
-
   const onLayout = useCallback(
     (e: LayoutChangeEvent) => {
-      rowHeight.value = e.nativeEvent.layout.height;
+      const { y, height } = e.nativeEvent.layout;
+      // `modify` writes on the UI runtime in call order: two rows laid out in one tick keep both boxes.
+      drag.rowBoxes.modify((boxes) => {
+        'worklet';
+        const next = boxes.slice();
+        next[index] = { top: y, height };
+        return next;
+      });
     },
-    [rowHeight],
+    [drag, index],
   );
 
   const gesture = useMemo(
@@ -244,7 +272,8 @@ export function useLiftGesture(input: {
             drag.liftedIndex.value = index;
             drag.targetIndex.value = index;
             drag.translationY.value = 0;
-            drag.cellHeight.value = rowHeight.value;
+            const liftBoxes = drag.rowBoxes.value;
+            drag.cellHeight.value = index in liftBoxes ? liftBoxes[index].height : 0;
             drag.isHolding.value = true;
             drag.fingerTranslationY.value = 0;
             drag.fingerAbsoluteY.value = e.absoluteY;
@@ -268,11 +297,14 @@ export function useLiftGesture(input: {
           if (ownsLift) {
             drag.isHolding.value = false;
             drag.targetIndex.value = to;
-            drag.translationY.value = (to - index) * drag.cellHeight.value;
+            const boxes = drag.rowBoxes.value;
+            drag.translationY.value =
+              resolveSlotOffset({ fromIndex: index, toIndex: to, boxes }) -
+              resolveSlotOffset({ fromIndex: index, toIndex: index, boxes });
           }
           scheduleOnRN(onRelease, id, index, to);
         }),
-    [count, drag, enabled, id, index, onLift, onRelease, rowHeight],
+    [count, drag, enabled, id, index, onLift, onRelease],
   );
 
   return { gesture, onLayout };

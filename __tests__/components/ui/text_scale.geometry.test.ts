@@ -3,6 +3,7 @@ import { PixelRatio } from 'react-native';
 import {
   FITTED_LINE_SLACK,
   resolveFitAmountTextProps,
+  resolveFitLineTextProps,
   resolveLoneWordLines,
   resolveMessageGlyphShift,
   resolveKeptSpaceHeight,
@@ -190,6 +191,45 @@ describe('resolveFitAmountTextProps', () => {
       adjustsFontSizeToFit: true,
       style: scaledTextStyle(Type.title, 2),
     });
+  });
+});
+
+describe('resolveFitLineTextProps (MA-243)', () => {
+  it.each([0.85, 1])(
+    'at font scale %s holds one line at its scaled size that does not shrink',
+    (s) => {
+      const props = resolveFitLineTextProps(Type.micro, s);
+      expect(props).toEqual({
+        numberOfLines: 1,
+        allowFontScaling: false,
+        adjustsFontSizeToFit: false,
+        minimumFontScale: undefined,
+        style: scaledTextStyle(Type.micro, s),
+      });
+      expect(props.minimumFontScale).toBeUndefined();
+    },
+  );
+
+  it.each([1.3, 2])(
+    'at font scale %s holds one line that shrinks to fit, floored at 1 / scale',
+    (s) => {
+      const props = resolveFitLineTextProps(Type.micro, s);
+      expect(props).toEqual({
+        numberOfLines: 1,
+        allowFontScaling: false,
+        adjustsFontSizeToFit: true,
+        minimumFontScale: 1 / s,
+        style: scaledTextStyle(Type.micro, s),
+      });
+    },
+  );
+
+  it.each([1.3, 2])('at font scale %s never shrinks below its 1.0 size', (s) => {
+    const props = resolveFitLineTextProps(Type.micro, s);
+    expect(props.style.fontSize * (props.minimumFontScale ?? Number.NaN)).toBeCloseTo(
+      Type.micro,
+      6,
+    );
   });
 });
 

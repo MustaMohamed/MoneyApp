@@ -133,6 +133,18 @@ export function resolveFitAmountTextProps(fontSize: number, fontScale: number): 
   };
 }
 
+export interface FitLineTextProps extends FitAmountTextProps {
+  minimumFontScale: number | undefined;
+}
+
+/** One line that shrinks to fit above font scale 1, floored at its 1.0 size; past the floor it ends in `…`. */
+export function resolveFitLineTextProps(fontSize: number, fontScale: number): FitLineTextProps {
+  return {
+    ...resolveFitAmountTextProps(fontSize, fontScale),
+    minimumFontScale: fontScale > 1 ? 1 / fontScale : undefined,
+  };
+}
+
 /** How far a glyph beside a message moves so its offset from the first line's centre stays as at scale 1; `0` until that line is measured. */
 export function resolveMessageGlyphShift(
   lineHeightAtOne: number,

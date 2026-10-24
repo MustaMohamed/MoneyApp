@@ -11,13 +11,12 @@ import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry'
 import { Strings } from '@/constants/strings';
 import { Radius, Size, lineHeightFor } from '@/constants/theme';
 
+import { RowCaptionSkeleton } from './row_caption';
 import {
   TRANSACTION_ROW_AMOUNT_FONT_SIZE,
-  TRANSACTION_ROW_CAPTION_FONT_SIZE,
   TRANSACTION_ROW_CODE_FONT_SIZE,
   TRANSACTION_ROW_LINE_GAP,
   TRANSACTION_ROW_TITLE_FONT_SIZE,
-  resolveTransactionRowCaptionLines,
   resolveTransactionRowHeight,
 } from './transaction_row.helpers';
 
@@ -63,22 +62,7 @@ function SkeletonRow({ row, showSeparator, showTile }: RowProps): React.ReactEle
             className={row % 2 === 0 ? 'w-32 rounded-md' : 'w-24 rounded-md'}
             style={{ height: lineBar(TRANSACTION_ROW_TITLE_FONT_SIZE) }}
           />
-          <SkeletonGroup.Item
-            className="w-20 rounded-md"
-            style={{
-              height: lineBar(TRANSACTION_ROW_CAPTION_FONT_SIZE),
-              marginTop: TRANSACTION_ROW_LINE_GAP,
-            }}
-          />
-          {resolveTransactionRowCaptionLines(fontScale) === 2 ? (
-            <SkeletonGroup.Item
-              className="w-14 rounded-md"
-              style={{
-                height: lineBar(TRANSACTION_ROW_CAPTION_FONT_SIZE),
-                marginTop: TRANSACTION_ROW_LINE_GAP,
-              }}
-            />
-          ) : null}
+          <RowCaptionSkeleton />
         </View>
         <View testID="transaction-row-skeleton-value" style={{ alignItems: 'flex-end' }}>
           <SkeletonGroup.Item

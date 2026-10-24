@@ -59,18 +59,59 @@ export function applyPendingOrder<T>(
   return ordered;
 }
 
-/** The slot's index under a drag: the nearest cell to the translation, clamped to the rows on screen. */
+/** A row's measured box in the list, from its `onLayout`. */
+export interface RowBox {
+  top: number;
+  height: number;
+}
+
+/** `undefined` for a hole or an index past the boxes measured so far. */
+function boxAt(boxes: readonly RowBox[], index: number): RowBox | undefined {
+  'worklet';
+  return index in boxes ? boxes[index] : undefined;
+}
+
+/** The slot's top, from the first row's top, once the row at `fromIndex` moves to `toIndex` by remove-then-insert; `0` before the boxes it reads are measured. */
+export function resolveSlotOffset(input: {
+  fromIndex: number;
+  toIndex: number;
+  boxes: readonly RowBox[];
+}): number {
+  'worklet';
+  const { fromIndex, toIndex, boxes } = input;
+  const first = boxAt(boxes, 0);
+  const lifted = boxAt(boxes, fromIndex);
+  const target = boxAt(boxes, toIndex);
+  if (first === undefined || lifted === undefined || target === undefined) return 0;
+  if (toIndex <= fromIndex) return target.top - first.top;
+  return target.top + target.height - lifted.height - first.top;
+}
+
+/** The slot's index under a drag: the row whose slot sits nearest the lifted row's own slot plus the translation, a tie taking the higher index. */
 export function resolveDropIndex(input: {
   fromIndex: number;
   translationY: number;
-  cellHeight: number;
+  boxes: readonly RowBox[];
   count: number;
 }): number {
   'worklet';
-  const { fromIndex, translationY, cellHeight, count } = input;
-  if (count <= 0 || cellHeight <= 0) return fromIndex;
-  const target = fromIndex + Math.round(translationY / cellHeight);
-  return Math.min(Math.max(target, 0), count - 1);
+  const { fromIndex, translationY, boxes, count } = input;
+  if (count <= 0 || boxes.length < count) return fromIndex;
+  for (let i = 0; i < count; i += 1) {
+    const box = boxAt(boxes, i);
+    if (box === undefined || box.height <= 0) return fromIndex;
+  }
+  const aim = resolveSlotOffset({ fromIndex, toIndex: fromIndex, boxes }) + translationY;
+  let nearest = fromIndex;
+  let nearestGap = Infinity;
+  for (let i = 0; i < count; i += 1) {
+    const gap = Math.abs(resolveSlotOffset({ fromIndex, toIndex: i, boxes }) - aim);
+    if (gap <= nearestGap) {
+      nearest = i;
+      nearestGap = gap;
+    }
+  }
+  return nearest;
 }
 
 /** The cells a row moves to make room for the slot: rows between the lift and its target shift one toward the lift. */

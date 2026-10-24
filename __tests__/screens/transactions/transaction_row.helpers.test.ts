@@ -1,6 +1,10 @@
 import { PixelRatio } from 'react-native';
 
-import { scaledFontSize } from '@/components/ui/text_scale.geometry';
+import {
+  resolveFitLineTextProps,
+  scaledFontSize,
+  scaledTextStyle,
+} from '@/components/ui/text_scale.geometry';
 import { AccountType, CategoryType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Type, lineHeightFor } from '@/constants/theme';
@@ -15,12 +19,15 @@ import {
 import {
   buildTransactionRowPresentation,
   resolveCategoryGlyph,
+  resolveRowCaptionTextProps,
+  resolveRowCaptionTrail,
   resolveRowTile,
   resolveTransactionRowCaptionLines,
   resolveTransactionRowHeight,
   resolveTransactionRowValueTrackMaxWidth,
   TRANSACTION_ROW_AMOUNT_FONT_SIZE,
   TRANSACTION_ROW_CAPTION_FONT_SIZE,
+  TRANSACTION_ROW_CAPTION_SEPARATOR,
   TRANSACTION_ROW_CODE_FONT_SIZE,
   TRANSACTION_ROW_DUAL_RING_COLOR,
   TRANSACTION_ROW_HEIGHT,
@@ -841,5 +848,61 @@ describe('transaction row value track', () => {
 describe('transaction row dual ring', () => {
   it('rings the second tile in the card surface', () => {
     expect(TRANSACTION_ROW_DUAL_RING_COLOR).toBe(CoreTokens.surface);
+  });
+});
+
+describe('resolveRowCaptionTextProps (MA-243)', () => {
+  it.each([0.85, 1, 2])(
+    "'ellipsis' at font scale %s keeps the transaction caption's one clipped line and no fit",
+    (s) => {
+      const props = resolveRowCaptionTextProps('ellipsis', s);
+      expect(props).toStrictEqual({
+        numberOfLines: 1,
+        allowFontScaling: false,
+        style: scaledTextStyle(TRANSACTION_ROW_CAPTION_FONT_SIZE, s),
+      });
+      expect(props).not.toHaveProperty('adjustsFontSizeToFit');
+      expect(props).not.toHaveProperty('minimumFontScale');
+    },
+  );
+
+  it.each([0.85, 1, 2])(
+    "'whole' at font scale %s is the shared fit-line props at the caption size",
+    (s) => {
+      expect(resolveRowCaptionTextProps('whole', s)).toEqual(
+        resolveFitLineTextProps(TRANSACTION_ROW_CAPTION_FONT_SIZE, s),
+      );
+    },
+  );
+});
+
+describe('resolveRowCaptionTrail (MA-243)', () => {
+  const trail = '\u2248 123,456 EGP';
+
+  it('is nothing with no trail, stacked or not, with or without a lead', () => {
+    for (const stacked of [false, true]) {
+      expect(resolveRowCaptionTrail({ lead: 'Sun 28 Dec 2025', trail: undefined, stacked })).toBe(
+        undefined,
+      );
+      expect(resolveRowCaptionTrail({ lead: undefined, trail: undefined, stacked })).toBe(
+        undefined,
+      );
+    }
+  });
+
+  it('is the trail alone when stacked under its lead', () => {
+    expect(resolveRowCaptionTrail({ lead: 'Sun 28 Dec 2025', trail, stacked: true })).toBe(trail);
+  });
+
+  it('is the trail alone with no lead, stacked or not', () => {
+    expect(resolveRowCaptionTrail({ lead: undefined, trail, stacked: false })).toBe(trail);
+    expect(resolveRowCaptionTrail({ lead: undefined, trail, stacked: true })).toBe(trail);
+  });
+
+  it('follows the lead on one line after the separator', () => {
+    expect(resolveRowCaptionTrail({ lead: 'Sun 28 Dec 2025', trail, stacked: false })).toBe(
+      `${TRANSACTION_ROW_CAPTION_SEPARATOR}${trail}`,
+    );
+    expect(TRANSACTION_ROW_CAPTION_SEPARATOR).toBe(' \u00b7 ');
   });
 });

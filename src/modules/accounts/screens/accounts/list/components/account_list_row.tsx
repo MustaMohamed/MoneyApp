@@ -37,6 +37,7 @@ import {
   type ReorderDirection,
   resolveMoveActionDirection,
 } from '../accounts_list.reorder';
+import { AccountRowCaption } from './account_row_caption';
 
 // The grip's own press absorbs a tap, so it never reaches the row and opens the account.
 const absorbGripPress = () => undefined;
@@ -66,7 +67,6 @@ export function AccountListRowBody({ account, caption }: { account: Account; cap
   const tile = resolveAccountTileColors(account.color);
   const { fontScale } = useWindowDimensions();
   const nameLine = resolveOneLineTextProps(scaledTextStyleAboveOne(Type.bodyStrong, fontScale));
-  const captionLine = resolveOneLineTextProps(scaledTextStyleAboveOne(Type.micro, fontScale));
 
   return (
     <>
@@ -103,13 +103,7 @@ export function AccountListRowBody({ account, caption }: { account: Account; cap
         </ListGroup.ItemTitle>
 
         {/* Not ItemDescription: its muted colour is 2.36:1. */}
-        <Typography
-          className="text-content-secondary font-inter tabular-nums"
-          {...captionLine}
-          style={[ACCOUNTS_LIST_ROW_CAPTION_STYLE, captionLine.style]}
-        >
-          {caption}
-        </Typography>
+        <AccountRowCaption caption={caption} />
       </ListGroup.ItemContent>
 
       {/* Passing children replaces the slot's default chevron outright. */}

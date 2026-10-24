@@ -4,6 +4,7 @@ import type { Account } from '@/modules/accounts/entities/account.entity';
 import {
   resolveAccountCaption,
   resolveAccountsListContent,
+  splitCaptionUnits,
 } from '@/modules/accounts/screens/accounts/list/accounts_list.helpers';
 import { makeTestAccount } from '@/test_helpers/transaction';
 
@@ -232,5 +233,54 @@ describe('resolveAccountCaption — only the smart wallet equivalent carries a c
       expect(text).not.toContain(Currency.EGP);
       expect(text).not.toContain(Currency.USD);
     }
+  });
+});
+
+describe('splitCaptionUnits (MA-243)', () => {
+  it('keeps an amount whole and joins a `·` to the unit before it, each unit but the last keeping its space', () => {
+    expect(splitCaptionUnits('Month start 1,234,567 · 0')).toEqual([
+      'Month ',
+      'start ',
+      '1,234,567 · ',
+      '0',
+    ]);
+    expect(splitCaptionUnits('Limit 1,250,000 · available 150,000')).toEqual([
+      'Limit ',
+      '1,250,000 · ',
+      'available ',
+      '150,000',
+    ]);
+  });
+
+  it('keeps a signed amount with its currency code, the `·` on the line before', () => {
+    expect(splitCaptionUnits('Bank · \u22122,500 EGP')).toEqual(['Bank · ', '\u22122,500 EGP']);
+    expect(splitCaptionUnits('Bank · 4,820 EGP')).toEqual(['Bank · ', '4,820 EGP']);
+  });
+
+  it('keeps a leading `≈` with its amount and its currency code', () => {
+    expect(splitCaptionUnits('≈ 68,875 EGP at 52.14')).toEqual(['≈ 68,875 EGP ', 'at ', '52.14']);
+  });
+
+  it('gives a one-word caption alone', () => {
+    expect(splitCaptionUnits('Bank')).toEqual(['Bank']);
+  });
+
+  it('gives no units for an empty caption', () => {
+    expect(splitCaptionUnits('')).toEqual([]);
+  });
+
+  it('splits on U+0020 only, so a no-break space stays inside its unit', () => {
+    expect(splitCaptionUnits('Limit 120,000\u00a0EGP')).toEqual(['Limit ', '120,000\u00a0EGP']);
+  });
+
+  it.each([
+    'Month start 1,234,567 · 0',
+    'Bank · \u22122,500 EGP',
+    '≈ 68,875 EGP at 52.14',
+    'Bank',
+    '',
+    'Limit 1,250,000 · 150,000 available',
+  ])('joins back to %j', (caption) => {
+    expect(splitCaptionUnits(caption).join('')).toBe(caption);
   });
 });

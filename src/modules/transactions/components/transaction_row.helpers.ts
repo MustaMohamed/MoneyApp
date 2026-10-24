@@ -4,9 +4,12 @@ import { PixelRatio } from 'react-native';
 
 import type { AccountStripChip, AccountStripTile } from '@/components/ui/form_sheet.helpers';
 import {
+  type ScaledTextStyle,
+  resolveFitLineTextProps,
   resolveKeptSpaceHeight,
   resolveRowStacking,
   scaledLineHeight,
+  scaledTextStyle,
 } from '@/components/ui/text_scale.geometry';
 import { TYPE_BADGE_VERTICAL_CHROME } from '@/components/ui/type_badge';
 import { CURRENCY_CONFIG } from '@/constants/currency';
@@ -61,6 +64,41 @@ export const TRANSACTION_ROW_VALUE_TRACK_MAX_SHARE = 50;
 /** Above font scale 1 the time takes its own line under the note. */
 export function resolveTransactionRowCaptionLines(fontScale: number): 1 | 2 {
   return resolveRowStacking(fontScale) === 'stacked' ? 2 : 1;
+}
+
+export type RowCaptionFit = 'ellipsis' | 'whole';
+
+export interface RowCaptionTextProps {
+  numberOfLines: 1;
+  allowFontScaling: false;
+  style: ScaledTextStyle;
+  adjustsFontSizeToFit?: boolean;
+  minimumFontScale?: number | undefined;
+}
+
+/** `'ellipsis'` clips a caption line in `…`; `'whole'` fits it no smaller than its 1.0 size. */
+export function resolveRowCaptionTextProps(
+  fit: RowCaptionFit,
+  fontScale: number,
+): RowCaptionTextProps {
+  if (fit === 'whole') return resolveFitLineTextProps(TRANSACTION_ROW_CAPTION_FONT_SIZE, fontScale);
+  return {
+    numberOfLines: 1,
+    allowFontScaling: false,
+    style: scaledTextStyle(TRANSACTION_ROW_CAPTION_FONT_SIZE, fontScale),
+  };
+}
+
+/** The trail's text: alone when stacked or with no lead, else after the separator. */
+export function resolveRowCaptionTrail(input: {
+  lead: string | undefined;
+  trail: string | undefined;
+  stacked: boolean;
+}): string | undefined {
+  if (input.trail === undefined) return undefined;
+  return input.stacked || input.lead === undefined
+    ? input.trail
+    : `${TRANSACTION_ROW_CAPTION_SEPARATOR}${input.trail}`;
 }
 
 /** `undefined` at or below scale 1, where the track hugs its content; above, a wide rate line cannot take the note's room. */

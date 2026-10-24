@@ -18,6 +18,7 @@ type MockShared<T> = {
   value: T;
   get: () => T;
   set: (next: T | ((prev: T) => T)) => void;
+  modify: (modifier?: (prev: T) => T, forceUpdate?: boolean) => void;
 };
 
 function mockSharedOf<T>(initial: T): MockShared<T> {
@@ -26,6 +27,9 @@ function mockSharedOf<T>(initial: T): MockShared<T> {
     get: () => shared.value,
     set: (next) => {
       shared.value = typeof next === 'function' ? (next as (prev: T) => T)(shared.value) : next;
+    },
+    modify: (modifier) => {
+      if (modifier) shared.value = modifier(shared.value);
     },
   };
   return shared;
@@ -187,11 +191,27 @@ import {
   ACCOUNTS_LIST_EDGE_SCROLL,
   ACCOUNTS_LIST_GRIP_HIT_SLOP,
 } from '@/modules/accounts/screens/accounts/list/accounts_list.geometry';
+import {
+  type RowBox,
+  resolveSlotOffset,
+} from '@/modules/accounts/screens/accounts/list/accounts_list.reorder';
 
 const CELL = 65;
 const COUNT = 5;
 const ROW_ID = 'account-b';
 const REST = { opacity: 1, transform: [{ translateY: 0 }] };
+const EQUAL_BOXES: readonly RowBox[] = Array.from({ length: COUNT }, (_, i) => ({
+  top: i * CELL,
+  height: CELL,
+}));
+// Row 1 stands taller than the rest, as a caption that wraps at font scale 2 makes it (MA-243).
+const UNEQUAL_BOXES: readonly RowBox[] = [
+  { top: 0, height: 60 },
+  { top: 60, height: 100 },
+  { top: 160, height: 60 },
+  { top: 220, height: 60 },
+  { top: 280, height: 60 },
+];
 
 const FRAME_MS = 16;
 const STEP = (ACCOUNTS_LIST_EDGE_SCROLL.maxRatePerSecond * FRAME_MS) / 1000;
@@ -274,13 +294,25 @@ function argsOf(screen: Screen, name: string) {
     .map((call) => call.args);
 }
 
-const layoutOf = (height: number) =>
-  ({ nativeEvent: { layout: { x: 0, y: 0, width: 320, height } } }) as LayoutChangeEvent;
+const layoutOf = (height: number, y = 0) =>
+  ({ nativeEvent: { layout: { x: 0, y, width: 320, height } } }) as LayoutChangeEvent;
 
-async function dragBy(screen: Screen, translationY: number, fromY = GRIP_ABSOLUTE_Y) {
+// Every row's box as its own `onLayout` writes it, then the gripped row's own `onLayout`.
+async function layOutRows(screen: Screen, boxes: readonly RowBox[]) {
+  screen.result.current.drag.rowBoxes.value = boxes.map((box) => ({ ...box }));
+  const own = boxes[screen.props.index];
   await act(() => {
-    screen.result.current.lift.onLayout(layoutOf(CELL));
+    screen.result.current.lift.onLayout(layoutOf(own.height, own.top));
   });
+}
+
+async function dragBy(
+  screen: Screen,
+  translationY: number,
+  fromY = GRIP_ABSOLUTE_Y,
+  boxes: readonly RowBox[] = EQUAL_BOXES,
+) {
+  await layOutRows(screen, boxes);
   await act(() => {
     handler(screen, 'onStart')({ translationY: 0, absoluteY: fromY });
   });
@@ -516,7 +548,7 @@ describe('useLiftGesture: the grip pan', () => {
   it('releases a grip that never lifted without touching the lift of another row', async () => {
     const screen = await renderScreen();
     await act(() => {
-      screen.result.current.lift.onLayout(layoutOf(CELL));
+      screen.result.current.lift.onLayout(layoutOf(CELL, CELL));
     });
     await liftedAt(screen, 0, 2);
     await finalize(screen, false);
@@ -545,11 +577,94 @@ describe('useLiftGesture: the grip pan', () => {
   });
 });
 
+describe('useLiftGesture: rows of different heights (MA-243)', () => {
+  it("writes its row's box at its own index on layout and keeps the other rows' boxes", async () => {
+    const screen = await renderScreen();
+    const { drag } = screen.result.current;
+    expect(drag.rowBoxes.value).toEqual([]);
+
+    drag.rowBoxes.value = UNEQUAL_BOXES.map((box) => ({ ...box }));
+    await act(() => {
+      screen.result.current.lift.onLayout(layoutOf(120, 70));
+    });
+
+    expect(drag.rowBoxes.value).toEqual([
+      UNEQUAL_BOXES[0],
+      { top: 70, height: 120 },
+      UNEQUAL_BOXES[2],
+      UNEQUAL_BOXES[3],
+      UNEQUAL_BOXES[4],
+    ]);
+  });
+
+  it('writes the first box it lays out at its own index', async () => {
+    const screen = await renderScreen({ index: 2 });
+    await act(() => {
+      screen.result.current.lift.onLayout(layoutOf(60, 160));
+    });
+
+    expect(screen.result.current.drag.rowBoxes.value[2]).toEqual({ top: 160, height: 60 });
+  });
+
+  it('places the slot, the copy and the parked copy by the boxes when a tall row moves over short ones', async () => {
+    const screen = await renderScreen();
+    await dragBy(screen, 60, GRIP_ABSOLUTE_Y, UNEQUAL_BOXES);
+    await screen.setLifted(true);
+    const { drag } = screen.result.current;
+    const slot = resolveSlotOffset({ fromIndex: 1, toIndex: 2, boxes: UNEQUAL_BOXES });
+    const home = resolveSlotOffset({ fromIndex: 1, toIndex: 1, boxes: UNEQUAL_BOXES });
+
+    expect(drag.targetIndex.value).toBe(2);
+    expect(screen.result.current.slotStyle).toEqual({
+      height: 100,
+      opacity: 1,
+      transform: [{ translateY: slot }],
+    });
+    expect(screen.result.current.liftedStyle).toEqual({
+      opacity: 1,
+      transform: [{ translateY: home + 60 }, { scale: 1.02 }],
+    });
+
+    await finalize(screen, true);
+    expect(screen.props.onRelease).toHaveBeenCalledWith(ROW_ID, 1, 2);
+    expect(valuesOf(drag)).toEqual({ liftedIndex: 1, targetIndex: 2, translationY: slot - home });
+  });
+
+  it('places the slot, the copy and the parked copy by the boxes when a short row moves over a tall one', async () => {
+    const screen = await renderScreen({ index: 0 });
+    await dragBy(screen, 40, GRIP_ABSOLUTE_Y, UNEQUAL_BOXES);
+    const { drag } = screen.result.current;
+    expect(drag.targetIndex.value).toBe(0);
+
+    await act(() => {
+      handler(screen, 'onUpdate')({ translationY: 70, absoluteY: GRIP_ABSOLUTE_Y + 70 });
+    });
+    await screen.setLifted(true);
+    const slot = resolveSlotOffset({ fromIndex: 0, toIndex: 1, boxes: UNEQUAL_BOXES });
+    const home = resolveSlotOffset({ fromIndex: 0, toIndex: 0, boxes: UNEQUAL_BOXES });
+
+    expect(drag.targetIndex.value).toBe(1);
+    expect(screen.result.current.slotStyle).toEqual({
+      height: 60,
+      opacity: 1,
+      transform: [{ translateY: slot }],
+    });
+    expect(screen.result.current.liftedStyle).toEqual({
+      opacity: 1,
+      transform: [{ translateY: home + 70 }, { scale: 1.02 }],
+    });
+
+    await finalize(screen, true);
+    expect(screen.props.onRelease).toHaveBeenCalledWith(ROW_ID, 0, 1);
+    expect(valuesOf(drag)).toEqual({ liftedIndex: 0, targetIndex: 1, translationY: slot - home });
+  });
+});
+
 describe('useLiftGesture: a second grip while another row owns the lift', () => {
   async function ownedByRowZero() {
     const screen = await renderScreen();
     await act(() => {
-      screen.result.current.lift.onLayout(layoutOf(CELL + 10));
+      screen.result.current.lift.onLayout(layoutOf(CELL + 10, CELL));
     });
     await liftedAt(screen, 0, 2);
     return screen;

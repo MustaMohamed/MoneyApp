@@ -15,10 +15,8 @@ import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import type { PaymentDaySettlement } from '@/modules/commitments/domain/payment_day_distance';
 import type { DayIndicatorTone } from '@/modules/commitments/utils/day_indicator';
-import {
-  TRANSACTION_ROW_CAPTION_SEPARATOR,
-  resolveTransactionRowValueTrackMaxWidth,
-} from '@/modules/transactions/components/transaction_row.helpers';
+import { RowCaption } from '@/modules/transactions/components/row_caption';
+import { resolveTransactionRowValueTrackMaxWidth } from '@/modules/transactions/components/transaction_row.helpers';
 import { ms } from '@/utils/responsive';
 import { useDragCancelledPress } from '@/utils/use_drag_cancelled_press.hook';
 
@@ -196,33 +194,7 @@ function CommitmentRowComponent({
                   </View>
                 </YieldingSlot>
               </View>
-              {/* The due day clips first; the EGP leg never ellipsizes. */}
-              <View style={{ flexDirection: 'row', marginTop: COMMITMENT_ROW_LINE_GAP }}>
-                <Text
-                  allowFontScaling={false}
-                  className="font-inter text-content-secondary"
-                  style={{
-                    ...scaledTextStyle(COMMITMENT_ROW_CAPTION_FONT_SIZE, fontScale),
-                    flexShrink: 1,
-                  }}
-                  numberOfLines={1}
-                >
-                  {row.dueDay}
-                </Text>
-                {row.captionLeg === undefined ? null : (
-                  <Text
-                    allowFontScaling={false}
-                    className="font-inter text-content-secondary"
-                    style={{
-                      ...scaledTextStyle(COMMITMENT_ROW_CAPTION_FONT_SIZE, fontScale),
-                      flexShrink: 0,
-                    }}
-                    numberOfLines={1}
-                  >
-                    {`${TRANSACTION_ROW_CAPTION_SEPARATOR}${row.captionLeg}`}
-                  </Text>
-                )}
-              </View>
+              <RowCaption lead={row.dueDay} trail={row.captionLeg} fit="whole" />
             </View>
             <View
               testID="commitment-row-value-track"
