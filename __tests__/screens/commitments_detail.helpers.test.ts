@@ -1,13 +1,22 @@
+import { AmountType, Currency } from '@/constants/enums';
+import { CoreTokens, GoldTokens } from '@/constants/theme_tokens';
+import { BADGE_TEXT_MIN_CONTRAST } from '@/modules/accounts/constants/account_badge_color';
+import { contrastRatio } from '@/modules/accounts/constants/account_palette';
+import type { Category } from '@/modules/categories/entities/category.entity';
+import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import {
+  buildCommitmentDetailHero,
   commitmentDetailShowsEdit,
   overlayStorePayments,
+  resolveCommitmentCadenceBadge,
   resolveCommitmentDetailCycle,
   resolveCommitmentDetailViewState,
   type CommitmentDetailViewState,
   type CommitmentDetailViewStateInput,
 } from '@/modules/commitments/screens/commitments/detail/detail.helpers';
-import { makeTestPayment } from '@/test_helpers/commitment';
+import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
+import { makeTestCategory } from '@/test_helpers/transaction';
 
 function makePayment(overrides: Partial<CommitmentPayment> = {}): CommitmentPayment {
   return makeTestPayment({
@@ -208,5 +217,216 @@ describe('overlayStorePayments', () => {
 
     expect(overlayStorePayments(rows, [makePayment({ id: 'pay-9' })])).toBe(rows);
     expect(overlayStorePayments(rows, [])).toBe(rows);
+  });
+});
+
+const TODAY = '2026-05-08';
+const bills: Category = makeTestCategory({
+  id: 'housing',
+  name: 'Bills',
+  color: '#5C7FC4',
+  icon: 'cart',
+});
+const variableCommitment = (overrides: Partial<Commitment> = {}): Commitment =>
+  makeTestCommitment({ amount_type: AmountType.Variable, amount: 500, ...overrides });
+
+describe('resolveCommitmentCadenceBadge', () => {
+  it('reads Every month on a fixed monthly commitment, the clock glyph on a legible fill', () => {
+    const badge = resolveCommitmentCadenceBadge(makeTestCommitment());
+
+    expect(badge.badgeLabel).toBe('Every month');
+    expect(badge.badgeIcon).toBe('clock-outline');
+    expect(contrastRatio(badge.badgeFill, badge.badgeForeground)).toBeGreaterThanOrEqual(
+      BADGE_TEXT_MIN_CONTRAST,
+    );
+  });
+
+  it('appends · varies on a variable commitment', () => {
+    const badge = resolveCommitmentCadenceBadge(variableCommitment());
+
+    expect(badge.badgeLabel).toBe('Every month · varies');
+    expect(badge.badgeIcon).toBe('clock-outline');
+    expect(contrastRatio(badge.badgeFill, badge.badgeForeground)).toBeGreaterThanOrEqual(
+      BADGE_TEXT_MIN_CONTRAST,
+    );
+  });
+});
+
+describe('buildCommitmentDetailHero', () => {
+  it('heroes an unpaid fixed EGP cycle: name, cadence badge, category tile and the neutral amount', () => {
+    const commitment = makeTestCommitment();
+
+    const hero = buildCommitmentDetailHero({
+      commitment,
+      payment: makeTestPayment(),
+      category: bills,
+      today: TODAY,
+    });
+
+    expect(hero).toEqual({
+      ...resolveCommitmentCadenceBadge(commitment),
+      title: 'Rent',
+      tileColor: '#5C7FC4',
+      tileGlyph: 'cart',
+      tileGlyphColor: CoreTokens.text1,
+      amountValue: '8,000',
+      amountCode: 'EGP',
+      amountColor: CoreTokens.text1,
+      amountAccessibilityLabel: '8,000 EGP',
+      caption: 'Bills · since Thu 1 Jan 2026',
+    });
+  });
+
+  it('reads ~ before an unpaid variable estimate', () => {
+    const hero = buildCommitmentDetailHero({
+      commitment: variableCommitment(),
+      payment: makeTestPayment({ amount_due: 600 }),
+      category: bills,
+      today: TODAY,
+    });
+
+    expect(hero).toMatchObject({
+      amountValue: '~ 600',
+      amountCode: 'EGP',
+      amountAccessibilityLabel: '~ 600 EGP',
+      amountColor: CoreTokens.text1,
+    });
+  });
+
+  it('reads ~ alone on a variable commitment with no estimate', () => {
+    const hero = buildCommitmentDetailHero({
+      commitment: variableCommitment({ amount: null }),
+      payment: makeTestPayment({ amount_due: null }),
+      category: bills,
+      today: TODAY,
+    });
+
+    expect(hero).toMatchObject({
+      amountValue: '~',
+      amountCode: 'EGP',
+      amountAccessibilityLabel: '~ EGP',
+    });
+  });
+
+  it('reads — on a fixed commitment with no amount', () => {
+    const hero = buildCommitmentDetailHero({
+      commitment: makeTestCommitment({ amount: null }),
+      payment: makeTestPayment({ amount_due: null }),
+      category: bills,
+      today: TODAY,
+    });
+
+    expect(hero).toMatchObject({
+      amountValue: '—',
+      amountCode: 'EGP',
+      amountAccessibilityLabel: '— EGP',
+    });
+  });
+
+  it('reads the amount paid on a paid variable cycle, with no ~', () => {
+    const hero = buildCommitmentDetailHero({
+      commitment: variableCommitment(),
+      payment: makeTestPayment({ amount_due: 600, paid_date: '2026-09-01', amount_paid: 640 }),
+      category: bills,
+      today: TODAY,
+    });
+
+    expect(hero).toMatchObject({ amountValue: '640', amountAccessibilityLabel: '640 EGP' });
+    expect(hero.amountValue).not.toContain('~');
+    expect(hero.amountAccessibilityLabel).not.toContain('~');
+  });
+
+  it('reads a USD amount at its own two decimals and code', () => {
+    const hero = buildCommitmentDetailHero({
+      commitment: makeTestCommitment({ currency: Currency.USD, amount: 12.5 }),
+      payment: makeTestPayment({ currency: Currency.USD, amount_due: 12.5 }),
+      category: bills,
+      today: TODAY,
+    });
+
+    expect(hero).toMatchObject({
+      amountValue: '12.50',
+      amountCode: 'USD',
+      amountAccessibilityLabel: '12.50 USD',
+    });
+  });
+
+  it("reads the commitment's own amount with no payment", () => {
+    const hero = buildCommitmentDetailHero({
+      commitment: makeTestCommitment({ amount: 7500 }),
+      payment: undefined,
+      category: bills,
+      today: TODAY,
+    });
+
+    expect(hero).toMatchObject({ amountValue: '7,500', amountAccessibilityLabel: '7,500 EGP' });
+  });
+
+  it('puts · varies on the badge alone, never on the amount or the caption', () => {
+    const hero = buildCommitmentDetailHero({
+      commitment: variableCommitment(),
+      payment: makeTestPayment({ amount_due: 600 }),
+      category: bills,
+      today: TODAY,
+    });
+
+    expect(hero.badgeLabel).toBe('Every month · varies');
+    expect(hero.amountValue).not.toContain('· varies');
+    expect(hero.amountAccessibilityLabel).not.toContain('· varies');
+    expect(hero.caption).not.toContain('· varies');
+  });
+
+  it.each([
+    [
+      'a month-end start, the day before',
+      '2026-01-31',
+      '2026-01-30',
+      'Bills · starts Sat 31 Jan 2026',
+    ],
+    ['a month-end start, on the day', '2026-01-31', '2026-01-31', 'Bills · since Sat 31 Jan 2026'],
+    [
+      'a start after a 30-day month ends, the day before',
+      '2026-05-01',
+      '2026-04-30',
+      'Bills · starts Fri 1 May 2026',
+    ],
+    [
+      'a start after a 30-day month ends, on the day',
+      '2026-05-01',
+      '2026-05-01',
+      'Bills · since Fri 1 May 2026',
+    ],
+    [
+      'a leap-day start, the day before',
+      '2028-02-29',
+      '2028-02-28',
+      'Bills · starts Tue 29 Feb 2028',
+    ],
+    ['a leap-day start, on the day', '2028-02-29', '2028-02-29', 'Bills · since Tue 29 Feb 2028'],
+  ])('captions %s', (_name, startDate, today, caption) => {
+    const hero = buildCommitmentDetailHero({
+      commitment: makeTestCommitment({ start_date: startDate }),
+      payment: makeTestPayment(),
+      category: bills,
+      today,
+    });
+
+    expect(hero.caption).toBe(caption);
+  });
+
+  it('captions Uncategorized on the gold fallback tile when no category resolves', () => {
+    const hero = buildCommitmentDetailHero({
+      commitment: makeTestCommitment(),
+      payment: makeTestPayment(),
+      category: undefined,
+      today: TODAY,
+    });
+
+    expect(hero).toMatchObject({
+      caption: 'Uncategorized · since Thu 1 Jan 2026',
+      tileColor: GoldTokens[500],
+      tileGlyph: 'shape-outline',
+      tileGlyphColor: CoreTokens.bg,
+    });
   });
 });

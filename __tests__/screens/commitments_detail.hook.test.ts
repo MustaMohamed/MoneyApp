@@ -2,6 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { router } from 'expo-router';
 import { createContext, createElement, useContext, type PropsWithChildren } from 'react';
 
+import { AmountType } from '@/constants/enums';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
@@ -15,6 +16,7 @@ import { useCommitmentFormHostState } from '@/modules/commitments/store/commitme
 import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
 import { deferred } from '@/test_helpers/deferred';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
+import { makeTestCategory } from '@/test_helpers/transaction';
 
 type DetailParams = {
   id: string;
@@ -209,6 +211,32 @@ describe('useCommitmentDetail', () => {
       expect(result.current.state.payment?.id).toBe(payment.id);
       expect(result.current.state.allPayments).toEqual(rentHistory);
       expect(result.current.state.today).toBe('2026-01-31');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('heroes a variable commitment starting tomorrow with the varies badge and the starts caption, leaving recurrenceLabel bare', async () => {
+    jest.useFakeTimers().setSystemTime(new Date(2026, 0, 30, 10));
+    try {
+      const variable: Commitment = {
+        ...commitment,
+        amount_type: AmountType.Variable,
+        start_date: '2026-01-31',
+      };
+      commitmentsById = { [variable.id]: variable };
+      historyById = { [variable.id]: rentHistory };
+      attachMockSelectorStore(useCategoryStore as unknown as jest.Mock, () => ({
+        categories: [makeTestCategory({ id: 'category-1', name: 'Bills' })],
+      }));
+
+      const { result } = await renderHook(() => useCommitmentDetail());
+
+      await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+      expect(result.current.state.today).toBe('2026-01-30');
+      expect(result.current.state.hero?.badgeLabel).toBe('Every month · varies');
+      expect(result.current.state.hero?.caption).toBe('Bills · starts Sat 31 Jan 2026');
+      expect(result.current.state.recurrenceLabel).toBe('Every month');
     } finally {
       jest.useRealTimers();
     }

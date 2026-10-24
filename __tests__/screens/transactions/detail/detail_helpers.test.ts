@@ -248,7 +248,7 @@ describe('buildTransactionDetailPresentation', () => {
         title: Strings.cardCreditTitle,
         amountAccessibilityLabel: '+250 EGP',
         amountValue: '+250',
-        typeColor: InfoTokens[500],
+        amountColor: InfoTokens[500],
       },
     });
   });
@@ -396,9 +396,9 @@ describe('buildTransactionDetailPresentation — hero (MA-180)', () => {
 
     expect(presentation.hero).toEqual({
       title: 'Groceries',
-      typeLabel: 'Expense',
-      typeIcon: 'arrow-up',
-      typeColor: SemanticTokens.negative,
+      badgeLabel: 'Expense',
+      badgeIcon: 'arrow-up',
+      amountColor: SemanticTokens.negative,
       badgeFill: badge.fill,
       badgeForeground: badge.foreground,
       tileColor: '#5C7FC4',
@@ -416,9 +416,9 @@ describe('buildTransactionDetailPresentation — hero (MA-180)', () => {
   it('frame C2: an income takes the Income badge in the success colour, signed plus', () => {
     expect(buildTransactionDetailPresentation(incomeInput).hero).toMatchObject({
       title: 'Salary',
-      typeLabel: 'Income',
-      typeIcon: 'arrow-down',
-      typeColor: SemanticTokens.positive,
+      badgeLabel: 'Income',
+      badgeIcon: 'arrow-down',
+      amountColor: SemanticTokens.positive,
       tileColor: '#478D6E',
       tileGlyph: 'briefcase',
       amountValue: '+22,300',
@@ -429,9 +429,9 @@ describe('buildTransactionDetailPresentation — hero (MA-180)', () => {
   it('frame C3: a transfer takes the swap glyph on info blue, unsigned', () => {
     expect(buildTransactionDetailPresentation(transferInput).hero).toMatchObject({
       title: 'Transfer',
-      typeLabel: 'Transfer',
-      typeIcon: 'swap-horizontal',
-      typeColor: InfoTokens[500],
+      badgeLabel: 'Transfer',
+      badgeIcon: 'swap-horizontal',
+      amountColor: InfoTokens[500],
       tileColor: InfoTokens[500],
       tileGlyph: 'swap-horizontal',
       tileGlyphColor: CoreTokens.bg,
@@ -444,9 +444,9 @@ describe('buildTransactionDetailPresentation — hero (MA-180)', () => {
   it('frame C4: a card payment is titled CC Payment, the refund glyph on the card accent, unsigned', () => {
     expect(buildTransactionDetailPresentation(cardPaymentInput).hero).toMatchObject({
       title: 'CC Payment',
-      typeLabel: 'CC Payment',
-      typeIcon: 'credit-card-refund',
-      typeColor: AccentCCTokens[500],
+      badgeLabel: 'CC Payment',
+      badgeIcon: 'credit-card-refund',
+      amountColor: AccentCCTokens[500],
       tileColor: AccentCCTokens[500],
       tileGlyph: 'credit-card-refund',
       tileGlyphColor: CoreTokens.text1,
@@ -459,9 +459,9 @@ describe('buildTransactionDetailPresentation — hero (MA-180)', () => {
 
     expect(buildTransactionDetailPresentation(cardCreditInput).hero).toMatchObject({
       title: 'Card credit',
-      typeLabel: 'Card credit',
-      typeIcon: 'credit-card-refund',
-      typeColor: InfoTokens[500],
+      badgeLabel: 'Card credit',
+      badgeIcon: 'credit-card-refund',
+      amountColor: InfoTokens[500],
       badgeFill: badge.fill,
       badgeForeground: badge.foreground,
       tileColor: InfoTokens[500],
@@ -508,7 +508,7 @@ describe('buildTransactionDetailPresentation — hero (MA-180)', () => {
       tx: { ...expenseInput.tx, commitment_payment_id: 'payment' },
     });
 
-    expect(owned.hero).toMatchObject({ typeLabel: 'Expense' });
+    expect(owned.hero).toMatchObject({ badgeLabel: 'Expense' });
     expect(owned.hero).toEqual(plain.hero);
     expect(sourceOf(owned)).toBe('commitment');
   });

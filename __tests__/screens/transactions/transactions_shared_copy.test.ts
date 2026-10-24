@@ -157,6 +157,12 @@ describe('strings the transactions module shares with other modules', () => {
       Strings.addTxPickCategoryTitle,
       'Select Category',
     ],
+    [
+      'detailAmountOverline',
+      'components/ui/detail_hero.tsx, drawn by both details',
+      Strings.detailAmountOverline,
+      'Amount',
+    ],
   ])('%s, read by %s, stays as shipped', (_key, _readers, value, expected) => {
     expect(value).toBe(expected);
   });

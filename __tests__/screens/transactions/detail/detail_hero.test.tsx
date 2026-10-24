@@ -2,12 +2,12 @@ import { render } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 import { Dimensions } from 'react-native';
 
+import { DetailHero } from '@/components/ui/detail_hero';
 import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { AccountType, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Type } from '@/constants/theme';
 import { resolveDetailHeroGeometry } from '@/modules/transactions/screens/transactions/detail/components/detail.geometry';
-import { DetailHero } from '@/modules/transactions/screens/transactions/detail/components/detail_hero';
 import { buildTransactionDetailPresentation } from '@/modules/transactions/screens/transactions/detail/detail.helpers';
 import { makeTestAccount, makeTestCategory, makeTestTransaction } from '@/test_helpers/transaction';
 
@@ -35,7 +35,7 @@ describe('DetailHero', () => {
       account: makeTestAccount({ type: AccountType.CreditCard }),
     });
 
-    const screen = await render(<DetailHero hero={hero} />);
+    const screen = await render(<DetailHero hero={hero} testID="transaction-detail-hero" />);
 
     // Tree order: the title, then the badge label.
     const cardCredit = screen.getAllByText(Strings.cardCreditTitle);
@@ -73,7 +73,7 @@ describe('DetailHero', () => {
       category: makeTestCategory({ color: '#5C7FC4', icon: 'cart' }),
     });
 
-    const screen = await render(<DetailHero hero={hero} />);
+    const screen = await render(<DetailHero hero={hero} testID="transaction-detail-hero" />);
 
     const shell = screen.getByTestId('detail-hero-shell');
     expect(shell).toHaveProp('accessibilityLabel', '#5C7FC4');
