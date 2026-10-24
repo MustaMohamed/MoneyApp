@@ -16,6 +16,8 @@ jest.mock('@/components/ui/load_error_alert.hook', () => ({
 // `jest.config.js` leaves uniwind's TypeScript source untransformed.
 jest.mock('uniwind', () => ({ withUniwind: <T,>(component: T): T => component }));
 
+import { DetailLoadError } from '@/components/ui/detail_load_error';
+import type { DetailLoadErrorCopy } from '@/components/ui/detail_load_error.helpers';
 import {
   HEADER_ACTION_HIT_SLOP,
   resolveStackHeaderGeometry,
@@ -27,7 +29,6 @@ import { resolveRowTile } from '@/modules/transactions/components/transaction_ro
 import { ActionRow } from '@/modules/transactions/screens/transactions/detail/components/action_row';
 import { resolveTransferCellHeight } from '@/modules/transactions/screens/transactions/detail/components/detail.geometry';
 import { DetailHeader } from '@/modules/transactions/screens/transactions/detail/components/detail_header';
-import { DetailLoadError } from '@/modules/transactions/screens/transactions/detail/components/detail_load_error';
 import { TransferFlowCard } from '@/modules/transactions/screens/transactions/detail/components/transfer_flow_card';
 import {
   type TransferFlow,
@@ -168,9 +169,18 @@ describe('transaction detail actions', () => {
 });
 
 describe('transaction detail load errors (MA-182)', () => {
+  const copy: DetailLoadErrorCopy = {
+    loadTitle: Strings.detailLoadErrorTitle,
+    refreshTitle: Strings.detailRefreshErrorTitle,
+    description: Strings.detailLoadErrorDescription,
+    retryLabel: Strings.detailLoadRetry,
+  };
+
   it('frame C9: the first load draws the flat error block, and Try again retries once', async () => {
     const onRetry = jest.fn();
-    const screen = await render(<DetailLoadError onRetry={onRetry} />);
+    const screen = await render(
+      <DetailLoadError copy={copy} testID="detail-load-error" onRetry={onRetry} />,
+    );
 
     expect(screen.getByText(Strings.detailLoadErrorTitle)).toBeTruthy();
     expect(screen.getByText(Strings.detailLoadErrorDescription)).toBeTruthy();
@@ -183,7 +193,9 @@ describe('transaction detail load errors (MA-182)', () => {
 
   it('frame C12: a refresh failure floats the alert with a flat Try again, which retries once', async () => {
     const onRetry = jest.fn();
-    const screen = await render(<DetailLoadError floating onRetry={onRetry} />);
+    const screen = await render(
+      <DetailLoadError copy={copy} testID="detail-load-error" floating onRetry={onRetry} />,
+    );
 
     expect(screen.getByText(Strings.detailRefreshErrorTitle)).toBeTruthy();
     expect(screen.getByText(Strings.detailLoadRetry).parent).toHaveStyle({

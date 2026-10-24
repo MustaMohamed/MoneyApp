@@ -1,9 +1,11 @@
 import { act, renderHook } from '@testing-library/react-native';
 
+import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import {
   useCommitmentFormBodyPickers,
   useCommitmentFormStripAccounts,
+  useCommitmentFormStripError,
 } from '@/modules/commitments/screens/commitments/components/commitment_form_body.hook';
 import { useCommitmentFormBodyState } from '@/modules/commitments/screens/commitments/components/commitment_form_body.state';
 import { makeTestAccount } from '@/test_helpers/transaction';
@@ -103,5 +105,59 @@ describe('useCommitmentFormStripAccounts', () => {
     await renderHook(() => useCommitmentFormStripAccounts(undefined));
 
     expect(loadAccountLookup).not.toHaveBeenCalled();
+  });
+});
+
+describe('useCommitmentFormStripError', () => {
+  const active = makeTestAccount({ id: 'acc-active', name: 'Cash' });
+  const archived = makeTestAccount({ id: 'acc-archived', name: 'Old savings', is_archived: 1 });
+  const deleted = makeTestAccount({ id: 'acc-deleted', name: 'Closed card', is_deleted: 1 });
+  const missingId = 'acc-missing';
+
+  beforeEach(() => {
+    useAccountStore.getState().reset();
+    useAccountStore.setState({
+      accounts: [active],
+      archivedAccounts: [archived],
+      accountLookupById: { [deleted.id]: deleted },
+      accountLookupError: true,
+    });
+  });
+
+  afterEach(async () => {
+    await act(async () => useAccountStore.getState().reset());
+  });
+
+  it('names the lookup error while the lookup failed and the id is unresolved', async () => {
+    const { result } = await renderHook(() => useCommitmentFormStripError(missingId));
+
+    expect(result.current).toBe(Strings.transactionsAccountLookupError);
+  });
+
+  it('reads undefined for an id the shared read resolves, the cache-only one included', async () => {
+    const { result } = await renderHook(() => useCommitmentFormStripError(deleted.id));
+
+    expect(result.current).toBeUndefined();
+  });
+
+  it('reads undefined once the lookup no longer fails', async () => {
+    const { result } = await renderHook(() => useCommitmentFormStripError(missingId));
+    expect(result.current).toBe(Strings.transactionsAccountLookupError);
+
+    await act(async () => useAccountStore.setState({ accountLookupError: false }));
+
+    expect(result.current).toBeUndefined();
+  });
+
+  it('reads undefined for an undefined id', async () => {
+    const hook = await renderHook(
+      (props: { accountId: string | undefined }) => useCommitmentFormStripError(props.accountId),
+      { initialProps: { accountId: missingId } },
+    );
+    expect(hook.result.current).toBe(Strings.transactionsAccountLookupError);
+
+    await hook.rerender({ accountId: undefined });
+
+    expect(hook.result.current).toBeUndefined();
   });
 });

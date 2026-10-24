@@ -1,8 +1,11 @@
 import {
+  type AccountsByIdRead,
   dropCopiesReadBeforeDelete,
   findMissingAccountIds,
   getTransactionAccountIds,
+  lookupLeavesUnresolved,
   mergeAccountsById,
+  readAccountsById,
 } from '@/modules/accounts/store/account_lookup.helpers';
 import { makeTestAccount, makeTestTransaction } from '@/test_helpers/transaction';
 
@@ -100,5 +103,66 @@ describe('dropCopiesReadBeforeDelete', () => {
 
   it('returns an empty array for no rows', () => {
     expect(dropCopiesReadBeforeDelete([], new Set(['gone']))).toEqual([]);
+  });
+});
+
+describe('readAccountsById', () => {
+  it('gives the active row over the archived row over the cached row of one id', () => {
+    const cached = makeTestAccount({ id: 'a', name: 'Cached name' });
+    const archived = makeTestAccount({ id: 'a', name: 'Archived name', is_archived: 1 });
+    const active = makeTestAccount({ id: 'a', name: 'Active name' });
+
+    expect(
+      readAccountsById({
+        accounts: [active],
+        archivedAccounts: [archived],
+        accountLookupById: { a: cached },
+      }).get('a'),
+    ).toBe(active);
+    expect(
+      readAccountsById({
+        accounts: [],
+        archivedAccounts: [archived],
+        accountLookupById: { a: cached },
+      }).get('a'),
+    ).toBe(archived);
+  });
+
+  it('keeps an id only the lookup cache holds', () => {
+    const active = makeTestAccount({ id: 'a' });
+    const archived = makeTestAccount({ id: 'b', is_archived: 1 });
+    const deleted = makeTestAccount({ id: 'gone', name: '', is_deleted: 1, is_archived: 1 });
+
+    const accountsById = readAccountsById({
+      accounts: [active],
+      archivedAccounts: [archived],
+      accountLookupById: { gone: deleted },
+    });
+
+    expect([...accountsById.keys()].sort()).toEqual(['a', 'b', 'gone']);
+    expect(accountsById.get('gone')).toBe(deleted);
+  });
+});
+
+describe('lookupLeavesUnresolved', () => {
+  const accountsById = new Map([['a', makeTestAccount({ id: 'a' })]]);
+  const failed: AccountsByIdRead = { accountsById, lookupFailed: true };
+
+  it('is false for a missing id while the lookup has not failed', () => {
+    expect(lookupLeavesUnresolved({ accountsById, lookupFailed: false }, ['a', 'missing'])).toBe(
+      false,
+    );
+  });
+
+  it('is false when the lookup failed and every id resolves', () => {
+    expect(lookupLeavesUnresolved(failed, ['a'])).toBe(false);
+  });
+
+  it('is true when the lookup failed and one id is missing', () => {
+    expect(lookupLeavesUnresolved(failed, ['a', 'missing'])).toBe(true);
+  });
+
+  it('is false for no ids', () => {
+    expect(lookupLeavesUnresolved(failed, [])).toBe(false);
   });
 });
