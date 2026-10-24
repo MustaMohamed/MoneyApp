@@ -10,7 +10,7 @@ import { GoldTokens, SemanticTokens } from '@/constants/theme_tokens';
 import {
   resolveButtonContent,
   resolveFlatButtonStyle,
-  resolveFlatButtonUnclips,
+  resolveButtonUnclipRadius,
   type FlatButtonTone,
 } from './button.content';
 import { resolveButtonLabelStyle, resolveButtonRootStyle } from './button.geometry';
@@ -68,7 +68,6 @@ export function Button({
   const flatStyle = resolveFlatButtonStyle({ variant, flat, tone, fontScale, size });
   const labelProps = resolveOneLineTextProps(resolveButtonLabelStyle(size, fontScale));
   const rootStyle = resolveButtonRootStyle(size, fontScale, flatStyle?.style);
-  const unclips = resolveFlatButtonUnclips(flatStyle, props.hitSlop);
 
   if (variant === 'primary' && flat) {
     return (
@@ -113,6 +112,7 @@ export function Button({
     );
   }
 
+  const unclipRadius = resolveButtonUnclipRadius(flatStyle, size, props.hitSlop);
   const iconColor =
     tone === 'danger'
       ? SemanticTokens.negative
@@ -125,14 +125,14 @@ export function Button({
       size={size}
       isDisabled={disabledState}
       className={cn(flatStyle?.rootClass, className)}
-      {...(unclips && flatStyle !== undefined
+      {...(unclipRadius !== undefined
         ? {
             feedbackVariant: 'scale' as const,
-            background: <PressHighlight radius={flatStyle.style.borderRadius} />,
+            background: <PressHighlight radius={unclipRadius} />,
           }
         : {})}
       {...props}
-      style={unclips ? { ...rootStyle, ...HIT_SLOP_UNCLIPPED_STYLE } : rootStyle}
+      style={unclipRadius !== undefined ? { ...rootStyle, ...HIT_SLOP_UNCLIPPED_STYLE } : rootStyle}
       // A glyph sibling stops RN deriving the label from the text child — restate it.
       accessibilityLabel={icon ? text : undefined}
     >
