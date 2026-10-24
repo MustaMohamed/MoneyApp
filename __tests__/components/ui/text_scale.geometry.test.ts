@@ -8,9 +8,11 @@ import {
   resolveMessageGlyphShift,
   resolveKeptSpaceHeight,
   resolveOneLineTextProps,
+  resolveOneLineTextPropsAt,
   resolveRowStacking,
   resolveUncappedLinesAboveOne,
   resolveWordSafeLines,
+  resolveWrappingTextPropsAt,
   scaledFontSize,
   scaledLineHeight,
   scaledTextStyle,
@@ -248,5 +250,42 @@ describe('resolveMessageGlyphShift', () => {
 
   it('MA-184: at font scale 0.85 moves the glyph up by half the shrink of the drawn first line', () => {
     expect(resolveMessageGlyphShift(20, 17.14, 0.85)).toBeCloseTo(-1.43, 6);
+  });
+});
+
+describe('resolveOneLineTextPropsAt', () => {
+  it.each([Type.micro, Type.pillLabel])(
+    'at font scale 1 sets size %d, ends in an ellipsis and leaves the OS to scale',
+    (fontSize) => {
+      expect(resolveOneLineTextPropsAt(fontSize, 1)).toEqual({
+        numberOfLines: 1,
+        allowFontScaling: true,
+        style: { fontSize, lineHeight: lineHeightFor(fontSize), flexShrink: 1 },
+      });
+    },
+  );
+
+  it('at font scale 2 takes the JS-scaled size with OS scaling off', () => {
+    expect(resolveOneLineTextPropsAt(Type.pillLabel, 2)).toEqual({
+      numberOfLines: 1,
+      allowFontScaling: false,
+      style: { ...scaledTextStyle(Type.pillLabel, 2), flexShrink: 1 },
+    });
+  });
+});
+
+describe('resolveWrappingTextPropsAt', () => {
+  it('at font scale 1 sets the size with no line cap and leaves the OS to scale', () => {
+    expect(resolveWrappingTextPropsAt(Type.micro, 1)).toEqual({
+      allowFontScaling: true,
+      style: { fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) },
+    });
+  });
+
+  it('at font scale 2 has no line cap and takes the JS-scaled size', () => {
+    expect(resolveWrappingTextPropsAt(Type.micro, 2)).toEqual({
+      allowFontScaling: false,
+      style: scaledTextStyle(Type.micro, 2),
+    });
   });
 });

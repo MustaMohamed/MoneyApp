@@ -1,7 +1,5 @@
-import { View, useWindowDimensions } from 'react-native';
-
-import { resolveTypeTabsGeometry } from '@/components/ui/form_sheet.geometry';
-import { SegmentedTabs, type TabSegment } from '@/components/ui/tabs';
+import { FormTypeTabs } from '@/components/ui/form_type_tabs';
+import type { TabSegment } from '@/components/ui/tabs';
 import { TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { TRANSACTION_TYPE_ICONS } from '@/constants/transaction_type_icons';
@@ -37,26 +35,17 @@ interface Props {
 }
 
 export function TypeTabs({ active, incomeLabel, onSelect, isDisabled }: Props): React.ReactElement {
-  const { listHeight, triggerHitSlop } = resolveTypeTabsGeometry(useWindowDimensions().fontScale);
   const segments = TYPE_SEGMENTS.map((segment) =>
     segment.value === TransactionType.Income ? { ...segment, label: incomeLabel } : segment,
   );
 
   return (
-    <View className="border-separator border-b px-4 py-2">
-      <SegmentedTabs<TransactionType>
-        segments={segments}
-        value={active}
-        onValueChange={onSelect}
-        variant="solid-gold"
-        density="compact"
-        corners="form"
-        listClassName="w-full"
-        listStyle={{ height: listHeight }}
-        triggerHitSlop={triggerHitSlop}
-        accessibilityLabel={Strings.addTxTypeSelectorA11y}
-        isDisabled={isDisabled}
-      />
-    </View>
+    <FormTypeTabs<TransactionType>
+      segments={segments}
+      value={active}
+      onValueChange={onSelect}
+      accessibilityLabel={Strings.addTxTypeSelectorA11y}
+      isDisabled={isDisabled}
+    />
   );
 }

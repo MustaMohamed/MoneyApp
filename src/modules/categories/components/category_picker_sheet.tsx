@@ -5,6 +5,8 @@ import { useWindowDimensions, View } from 'react-native';
 
 import { Sheet } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
+import { resolveOneLineTextPropsAt } from '@/components/ui/text_scale.geometry';
+import { Type } from '@/constants/theme';
 import { CoreTokens, GoldTokens } from '@/constants/theme_tokens';
 import { toIconName } from '@/utils/icon_name_guard';
 
@@ -43,7 +45,8 @@ export function CategoryPickerSheet({
   onCloseComplete,
 }: Props): React.ReactElement {
   // A fixed cell width keeps every cell identical; `flex: 1` stretches the last partial row.
-  const { width: screenWidth } = useWindowDimensions();
+  const { width: screenWidth, fontScale } = useWindowDimensions();
+  const cellLabel = resolveOneLineTextPropsAt(Type.pillLabel, fontScale);
   const cellWidth = (screenWidth - PADDING * 2 - GAP * (NUM_COLUMNS - 1)) / NUM_COLUMNS;
 
   const rows = chunk(categories, NUM_COLUMNS);
@@ -94,8 +97,8 @@ export function CategoryPickerSheet({
                       color={iconColor}
                     />
                     <Text
-                      className={`font-inter mt-1 text-[10px] ${isSelected ? 'text-accent' : 'text-foreground'}`}
-                      numberOfLines={1}
+                      className={`font-inter mt-1 ${isSelected ? 'text-accent' : 'text-foreground'}`}
+                      {...cellLabel}
                     >
                       {cat.name}
                     </Text>

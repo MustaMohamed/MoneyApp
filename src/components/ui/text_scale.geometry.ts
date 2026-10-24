@@ -74,6 +74,27 @@ export function resolveOneLineTextProps(scaled: ScaledTextStyle | undefined): On
   };
 }
 
+export interface SizedTextProps {
+  numberOfLines?: 1;
+  allowFontScaling: boolean;
+  style: { fontSize: number; lineHeight: number; flexShrink?: 1 };
+}
+
+/** `resolveOneLineTextProps` at `fontSize`, which the style carries at scale 1 too. */
+export function resolveOneLineTextPropsAt(fontSize: number, fontScale: number): SizedTextProps {
+  const oneLine = resolveOneLineTextProps(scaledTextStyleAboveOne(fontSize, fontScale));
+  return { ...oneLine, style: { fontSize, lineHeight: lineHeightFor(fontSize), ...oneLine.style } };
+}
+
+/** Wrapping text at `fontSize` with no line cap, JS-scaled above font scale 1. */
+export function resolveWrappingTextPropsAt(fontSize: number, fontScale: number): SizedTextProps {
+  const scaled = scaledTextStyleAboveOne(fontSize, fontScale);
+  return {
+    allowFontScaling: scaled === undefined,
+    style: { fontSize, lineHeight: lineHeightFor(fontSize), ...scaled },
+  };
+}
+
 /** One device pixel in dp, added to a fixed-height box around a line under `adjustsFontSizeToFit`: RN ceils the line box to a whole px and a layout past its bound fails the fit. */
 export const FITTED_LINE_SLACK = 1 / PixelRatio.get();
 

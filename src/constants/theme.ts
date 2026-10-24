@@ -276,6 +276,7 @@ export const Size = {
   summaryValueSlot: ms(52), // N4 value slot, sized for `Type.amountEntry` (40)
   summaryCaptionSlot: ms(34), // N4 two-line caption
   summaryPillTrack: ms(24), // N4 pill row, one line
+  notesInputMinHeight: ms(72),
   statusTrack: ms(34), // footer footnote <-> error track: twice one line's box; idle hugs one line, and a message past one line grows the footer
   progressRail: ms(55), // onboarding progress rail, bar plus step label
   // Unscaled, to match HeroUI Input's own `min-height: 48`.
