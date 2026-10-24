@@ -1,6 +1,8 @@
 import { useLocalSearchParams } from 'expo-router';
 import React from 'react';
 
+import { DetailLoadError } from '@/components/ui/detail_load_error';
+import { NotFoundState } from '@/components/ui/detail_not_found_state';
 import { DetailRowsCard } from '@/components/ui/detail_rows_card';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 
@@ -9,9 +11,7 @@ import { ActionRow } from './components/action_row';
 import { DetailFactRow } from './components/detail_fact_row';
 import { DetailHeader } from './components/detail_header';
 import { DetailHero } from './components/detail_hero';
-import { DetailLoadError } from './components/detail_load_error';
 import { TransactionDetailSkeleton, TransferFlowSkeletonCard } from './components/detail_skeleton';
-import { NotFoundState } from './components/not_found_state';
 import { NoteCard } from './components/note_card';
 import { TransferFlowCard } from './components/transfer_flow_card';
 import { useTransactionDetail } from './detail.hook';
