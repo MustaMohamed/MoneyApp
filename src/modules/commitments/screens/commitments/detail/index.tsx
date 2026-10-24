@@ -1,21 +1,27 @@
-import { HeaderIconAction } from '@/components/ui/header_icon_action';
+import { DetailEditAction } from '@/components/ui/detail_edit_action';
+import { DetailLoadError } from '@/components/ui/detail_load_error';
+import type { DetailLoadErrorCopy } from '@/components/ui/detail_load_error.helpers';
+import { DetailNotFoundState } from '@/components/ui/detail_not_found_state';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { StackHeader } from '@/components/ui/stack_header';
 import { Strings } from '@/constants/strings';
-import { Size } from '@/constants/theme';
-import { GoldTokens } from '@/constants/theme_tokens';
 
 import { CurrentCycleCard } from './components/current_cycle_card';
 import { DetailHero } from './components/detail_hero';
-import { DetailLoadError } from './components/detail_load_error';
 import { CommitmentDetailSkeleton } from './components/detail_skeleton';
 import { DetailsCard } from './components/details_card';
-import { CommitmentDetailNotFound } from './components/not_found_state';
 import { PaySheet } from './components/pay_sheet';
 import { PaymentHistory } from './components/payment_history';
 import { SkipConfirmSheet } from './components/skip_confirm_sheet';
 import { commitmentDetailShowsEdit } from './detail.helpers';
 import { useCommitmentDetail } from './detail.hook';
+
+const LOAD_ERROR_COPY: DetailLoadErrorCopy = {
+  loadTitle: Strings.commitmentsDetailLoadErrorTitle,
+  refreshTitle: Strings.commitmentsDetailRefreshErrorTitle,
+  description: Strings.commitmentsDetailLoadErrorDescription,
+  retryLabel: Strings.commitmentsDetailLoadRetry,
+};
 
 export default function CommitmentDetailScreen() {
   const { state, confirmSkip, skipPayment, cancelSkip, reload, openPaySheet, goToEdit, goBack } =
@@ -29,10 +35,7 @@ export default function CommitmentDetailScreen() {
         onBack={goBack}
         right={
           commitmentDetailShowsEdit(state.viewState) ? (
-            <HeaderIconAction
-              icon="pencil-outline"
-              iconSize={Size.iconSm}
-              iconColor={GoldTokens[500]}
+            <DetailEditAction
               accessibilityLabel={Strings.commitmentsDetailEditAccessibility}
               onPress={goToEdit}
             />
@@ -42,9 +45,21 @@ export default function CommitmentDetailScreen() {
 
       {state.viewState === 'loading' ? <CommitmentDetailSkeleton /> : null}
 
-      {state.viewState === 'notFound' ? <CommitmentDetailNotFound /> : null}
+      {state.viewState === 'notFound' ? (
+        <DetailNotFoundState
+          title={Strings.commitmentsDetailNotFoundTitle}
+          body={Strings.commitmentsDetailNotFoundBody}
+          testID="commitment-detail-not-found"
+        />
+      ) : null}
 
-      {state.viewState === 'firstLoadError' ? <DetailLoadError onRetry={reload} /> : null}
+      {state.viewState === 'firstLoadError' ? (
+        <DetailLoadError
+          copy={LOAD_ERROR_COPY}
+          testID="commitment-detail-load-error"
+          onRetry={reload}
+        />
+      ) : null}
 
       {showsBody && state.commitment && state.today !== undefined ? (
         <ScreenScroll
@@ -81,7 +96,12 @@ export default function CommitmentDetailScreen() {
       ) : null}
 
       {state.viewState === 'refreshErrorWithData' ? (
-        <DetailLoadError floating onRetry={reload} />
+        <DetailLoadError
+          copy={LOAD_ERROR_COPY}
+          testID="commitment-detail-load-error"
+          floating
+          onRetry={reload}
+        />
       ) : null}
 
       <PaySheet owner={state.owner} commitment={state.commitment} payment={state.payment} />

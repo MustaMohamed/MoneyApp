@@ -2,9 +2,11 @@ import { useLocalSearchParams } from 'expo-router';
 import React from 'react';
 
 import { DetailLoadError } from '@/components/ui/detail_load_error';
-import { NotFoundState } from '@/components/ui/detail_not_found_state';
+import type { DetailLoadErrorCopy } from '@/components/ui/detail_load_error.helpers';
+import { DetailNotFoundState } from '@/components/ui/detail_not_found_state';
 import { DetailRowsCard } from '@/components/ui/detail_rows_card';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
+import { Strings } from '@/constants/strings';
 
 import { TxDeleteDialog } from '../components/tx_delete_dialog';
 import { ActionRow } from './components/action_row';
@@ -15,6 +17,13 @@ import { TransactionDetailSkeleton, TransferFlowSkeletonCard } from './component
 import { NoteCard } from './components/note_card';
 import { TransferFlowCard } from './components/transfer_flow_card';
 import { useTransactionDetail } from './detail.hook';
+
+const LOAD_ERROR_COPY: DetailLoadErrorCopy = {
+  loadTitle: Strings.detailLoadErrorTitle,
+  refreshTitle: Strings.detailRefreshErrorTitle,
+  description: Strings.detailLoadErrorDescription,
+  retryLabel: Strings.detailLoadRetry,
+};
 
 export default function TransactionDetailScreen(): React.ReactElement {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -48,9 +57,12 @@ export default function TransactionDetailScreen(): React.ReactElement {
           actionSet={state.loadingActionSet}
         />
       ) : state.viewState === 'notFound' ? (
-        <NotFoundState />
+        <DetailNotFoundState
+          title={Strings.detailNotFoundTitle}
+          body={Strings.detailNotFoundBody}
+        />
       ) : state.viewState === 'firstLoadError' ? (
-        <DetailLoadError onRetry={reload} />
+        <DetailLoadError copy={LOAD_ERROR_COPY} testID="detail-load-error" onRetry={reload} />
       ) : hasDetailContent ? (
         <>
           <ScreenScroll>
@@ -95,7 +107,14 @@ export default function TransactionDetailScreen(): React.ReactElement {
             }}
           />
 
-          {state.refreshError ? <DetailLoadError floating onRetry={reload} /> : null}
+          {state.refreshError ? (
+            <DetailLoadError
+              copy={LOAD_ERROR_COPY}
+              testID="detail-load-error"
+              floating
+              onRetry={reload}
+            />
+          ) : null}
         </>
       ) : null}
     </Screen>
