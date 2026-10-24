@@ -82,11 +82,11 @@ jest.mock(
   () => ({ TypeTabs: () => null }),
 );
 
+import { FORM_SHEET_CONTENT_CONTAINER_STYLE } from '@/components/ui/form_sheet.geometry';
 import { useRateEditorSheetState } from '@/components/ui/rate_editor_sheet.state';
 import { VALIDATION_SLOT_MIN_HEIGHT } from '@/components/ui/validation_slot';
 import { ExchangeRateRow } from '@/modules/transactions/components/exchange_rate_row';
 import { useAddTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.store';
-import { TRANSACTION_FORM_CONTENT_CONTAINER_STYLE } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form.geometry';
 import { TransactionFormLoading } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_loading';
 import { useEditTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.store';
 import {
@@ -980,7 +980,7 @@ describe('TransactionFormLoading', () => {
     await render(<TransactionFormBody {...baseProps} />);
     const insetStyle = screen.getByTestId('transaction-form-fact-inset').props.style;
 
-    expect(insetStyle).toBe(TRANSACTION_FORM_CONTENT_CONTAINER_STYLE);
+    expect(insetStyle).toBe(FORM_SHEET_CONTENT_CONTAINER_STYLE);
     expect(skeletonStyle).toBe(insetStyle);
   });
 });
