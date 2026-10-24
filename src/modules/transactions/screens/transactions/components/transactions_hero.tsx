@@ -7,15 +7,12 @@ import { withUniwind } from 'uniwind';
 import { FLOW_CLASS, type PolaritySignal } from '@/components/ui/flow_polarity';
 import { HeroShell } from '@/components/ui/hero_shell';
 import { HERO_SHELL_MARGIN_BOTTOM } from '@/components/ui/hero_shell.geometry';
+import { type ListHeroGeometry, resolveListHeroGeometry } from '@/components/ui/list_text.geometry';
 import { Strings } from '@/constants/strings';
 import { Spacing, lineHeightFor } from '@/constants/theme';
 import type { DeltaDirection } from '@/modules/transactions/utils/totals_presentation';
 
 import type { TransactionsHeroChange, TransactionsHeroModel } from '../transactions.helpers';
-import {
-  type TransactionsHeroGeometry,
-  resolveTransactionsHeroGeometry,
-} from './transactions_text.geometry';
 
 const HERO_ROW_GAP = Spacing.sm;
 // The rail owns the space above the hero; 0 and not dropped, since `HeroShell`'s frame defaults to a top margin.
@@ -57,7 +54,7 @@ function HeroColumn({
   value: string;
   align: ColumnAlign;
   valueClassName: string;
-  geometry: TransactionsHeroGeometry;
+  geometry: ListHeroGeometry;
 }): React.ReactElement {
   return (
     <View
@@ -92,7 +89,7 @@ function LastMonthChange({
   geometry,
 }: {
   change: TransactionsHeroChange;
-  geometry: TransactionsHeroGeometry;
+  geometry: ListHeroGeometry;
 }): React.ReactElement {
   return (
     <View
@@ -117,7 +114,7 @@ function LastMonthChange({
   );
 }
 
-function HeroSkeleton({ geometry }: { geometry: TransactionsHeroGeometry }): React.ReactElement {
+function HeroSkeleton({ geometry }: { geometry: ListHeroGeometry }): React.ReactElement {
   return (
     <View testID="transactions-hero-skeleton" className="px-4 py-4" style={HERO_BODY_STYLE}>
       <Skeleton className="w-2/5 rounded-md" style={{ height: geometry.header }} />
@@ -130,7 +127,7 @@ function HeroSkeleton({ geometry }: { geometry: TransactionsHeroGeometry }): Rea
 }
 
 export function TransactionsHero({ model }: { model: TransactionsHeroModel }): React.ReactElement {
-  const geometry = resolveTransactionsHeroGeometry(useWindowDimensions().fontScale);
+  const geometry = resolveListHeroGeometry(useWindowDimensions().fontScale);
   if (model.mode === 'skeleton') {
     return (
       <HeroShell style={HERO_SHELL_STYLE}>
