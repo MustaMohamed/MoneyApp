@@ -3,9 +3,12 @@ import { useFormState, type UseFormReturn } from 'react-hook-form';
 import { useShallow } from 'zustand/react/shallow';
 
 import { Strings } from '@/constants/strings';
-import type { Account } from '@/modules/accounts/entities/account.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
-import { mergeAccountsById } from '@/modules/accounts/store/account_lookup.helpers';
+import {
+  type AccountsByIdRead,
+  lookupLeavesUnresolved,
+} from '@/modules/accounts/store/account_lookup.helpers';
+import { useAccountsById } from '@/modules/accounts/store/use_accounts_by_id.hook';
 
 import type { CommitmentFormValues } from '../commitment_form.shared';
 import { INITIAL_PICKER_ENTRY, useCommitmentFormBodyState } from './commitment_form_body.state';
@@ -42,16 +45,8 @@ export function useCommitmentFormBodyPickers() {
 }
 
 /** Every account the strip can name: active, archived, and the commitment's own when it was deleted. */
-export function useCommitmentFormStripAccounts(
-  accountId: string | undefined,
-): ReadonlyMap<string, Account> {
-  const { accounts, archivedAccounts, accountLookupById } = useAccountStore(
-    useShallow((s) => ({
-      accounts: s.accounts,
-      archivedAccounts: s.archivedAccounts,
-      accountLookupById: s.accountLookupById,
-    })),
-  );
+export function useCommitmentFormStripAccounts(accountId: string | undefined): AccountsByIdRead {
+  const accountRead = useAccountsById();
 
   useEffect(() => {
     // A failure sets the store's `accountLookupError`; the chip reads `Unknown account` meanwhile.
@@ -63,10 +58,7 @@ export function useCommitmentFormStripAccounts(
     }
   }, [accountId]);
 
-  return useMemo(
-    () => mergeAccountsById(accounts, archivedAccounts, accountLookupById),
-    [accounts, archivedAccounts, accountLookupById],
-  );
+  return accountRead;
 }
 
 /** The body's own subscription to its faults: a compiled host reuses the body while `form` keeps its identity. */
@@ -88,12 +80,11 @@ export function useCommitmentFormBodyFaults(form: UseFormReturn<CommitmentFormVa
 }
 
 /** The strip's message while the form's account failed to load and the strip cannot name it. */
-export function useCommitmentFormStripError(
+export function resolveCommitmentFormStripError(
+  accountRead: AccountsByIdRead,
   accountId: string | undefined,
-  accountsById: ReadonlyMap<string, Account>,
 ): string | undefined {
-  const lookupFailed = useAccountStore((s) => s.accountLookupError);
-  return lookupFailed && accountId !== undefined && !accountsById.has(accountId)
+  return lookupLeavesUnresolved(accountRead, accountId === undefined ? [] : [accountId])
     ? Strings.transactionsAccountLookupError
     : undefined;
 }

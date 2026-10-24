@@ -1,19 +1,24 @@
 import { useLocalSearchParams } from 'expo-router';
 import React from 'react';
 
+import { DetailLoadError } from '@/components/ui/detail_load_error';
+import { DetailNotFoundState } from '@/components/ui/detail_not_found_state';
 import { DetailRowsCard } from '@/components/ui/detail_rows_card';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
+import { Strings } from '@/constants/strings';
 
 import { TxDeleteDialog } from '../components/tx_delete_dialog';
 import { ActionRow } from './components/action_row';
 import { DetailFactRow } from './components/detail_fact_row';
 import { DetailHeader } from './components/detail_header';
 import { DetailHero } from './components/detail_hero';
-import { DetailLoadError } from './components/detail_load_error';
 import { TransactionDetailSkeleton, TransferFlowSkeletonCard } from './components/detail_skeleton';
-import { NotFoundState } from './components/not_found_state';
 import { NoteCard } from './components/note_card';
 import { TransferFlowCard } from './components/transfer_flow_card';
+import {
+  TRANSACTION_DETAIL_LOAD_ERROR_COPY,
+  TRANSACTION_DETAIL_LOAD_ERROR_TEST_ID,
+} from './detail.helpers';
 import { useTransactionDetail } from './detail.hook';
 
 export default function TransactionDetailScreen(): React.ReactElement {
@@ -48,9 +53,16 @@ export default function TransactionDetailScreen(): React.ReactElement {
           actionSet={state.loadingActionSet}
         />
       ) : state.viewState === 'notFound' ? (
-        <NotFoundState />
+        <DetailNotFoundState
+          title={Strings.detailNotFoundTitle}
+          body={Strings.detailNotFoundBody}
+        />
       ) : state.viewState === 'firstLoadError' ? (
-        <DetailLoadError onRetry={reload} />
+        <DetailLoadError
+          copy={TRANSACTION_DETAIL_LOAD_ERROR_COPY}
+          testID={TRANSACTION_DETAIL_LOAD_ERROR_TEST_ID}
+          onRetry={reload}
+        />
       ) : hasDetailContent ? (
         <>
           <ScreenScroll>
@@ -95,7 +107,14 @@ export default function TransactionDetailScreen(): React.ReactElement {
             }}
           />
 
-          {state.refreshError ? <DetailLoadError floating onRetry={reload} /> : null}
+          {state.refreshError ? (
+            <DetailLoadError
+              copy={TRANSACTION_DETAIL_LOAD_ERROR_COPY}
+              testID={TRANSACTION_DETAIL_LOAD_ERROR_TEST_ID}
+              floating
+              onRetry={reload}
+            />
+          ) : null}
         </>
       ) : null}
     </Screen>
