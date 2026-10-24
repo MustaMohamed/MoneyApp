@@ -40,7 +40,7 @@ fi
 [ -n "$PY" ] || die "no runnable python3 (set MQA_PYTHON)"
 
 # --- device leases ----------------------------------------------------------
-# Three tickets verify in parallel, so a session must own one device outright.
+# Four tickets verify in parallel, so a session must own one device outright.
 # The claim cannot live in MQA_SERIAL: an agent's shell calls do not carry env
 # between them, and a lost export puts us back on "first device wins", which is
 # the silent cross-talk this whole mechanism exists to stop. The lease is keyed
@@ -48,7 +48,7 @@ fi
 # that worktree resolves the same device, with nothing to remember.
 LEASE_DIR="${MQA_LEASE_DIR:-$HOME/.mqa/leases}"
 LEASE_TTL="${MQA_LEASE_TTL:-7200}"
-read -r -a SLOT_AVDS <<<"${MQA_SLOTS:-Pixel_2_API_34 Pixel_2_API_34_2 Pixel_2_API_34_3}"
+read -r -a SLOT_AVDS <<<"${MQA_SLOTS:-Pixel_2_API_34 Pixel_2_API_34_2 Pixel_2_API_34_3 Pixel_2_API_34_4}"
 SLOT_MAX="${#SLOT_AVDS[@]}"
 
 # Slot N is pinned to console port 5554+2(N-1) and Metro 8081+N, and `claim`
@@ -248,7 +248,7 @@ cmd_clear() {
 
 # --- lifecycle --------------------------------------------------------------
 # Boots the AVD for one slot on its pinned console port. Waits on that serial
-# specifically: `adb wait-for-device` with three emulators up returns for
+# specifically: `adb wait-for-device` with four emulators up returns for
 # whichever one answers first, which need not be the one being booted.
 boot_slot() {
   local slot="$1" avd serial
@@ -1219,7 +1219,7 @@ engine      agent-device (default when installed) or MQA_UI=uiautomator; one per
 files       Metro log and pulled DB: $TMPDIR/mqa/<serial>/ (metro.log, metro.head, db/)
 env         MQA_UI MQA_SERIAL MQA_PORT MQA_PKG MQA_APK MQA_WORK MQA_SLOTS MQA_LEASE_DIR MQA_LEASE_TTL MQA_PYTHON MQA_READY_MS
 
-Slots: 1 emulator-5554 :8082 · 2 emulator-5556 :8083 · 3 emulator-5558 :8084, one per worktree.
+Slots: 1 emulator-5554 :8082 · 2 emulator-5556 :8083 · 3 emulator-5558 :8084 · 4 emulator-5560 :8085, one per worktree.
 
 A run is two lifecycle calls around one walk:
   mqa up                    # on build: REBUILD, a /ship implementer builds: mqa build, then mqa install, one call each, then up again; any other session asks first, the render lens never builds
