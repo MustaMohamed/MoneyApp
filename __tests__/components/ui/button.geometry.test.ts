@@ -2,6 +2,7 @@ import type { ButtonSize } from 'heroui-native';
 
 import {
   resolveButtonLabelStyle,
+  resolveButtonRadius,
   resolveButtonRootStyle,
   resolveCompactCtaHeight,
   resolveCompactCtaHitSlop,
@@ -89,4 +90,17 @@ describe('resolveCompactCtaHitSlop', () => {
       );
     },
   );
+});
+
+describe('resolveButtonRadius', () => {
+  it.each<ButtonSize>(['sm', 'md'])(
+    "MA-248: the %s root's corners are HeroUI's sm and md button radius",
+    (size) => {
+      expect(resolveButtonRadius(size)).toBe(Radius.heroButton);
+    },
+  );
+
+  it("MA-248: the lg root's corners are HeroUI's lg button radius", () => {
+    expect(resolveButtonRadius('lg')).toBe(Radius.heroButtonLg);
+  });
 });

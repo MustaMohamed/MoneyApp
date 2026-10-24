@@ -2,8 +2,8 @@ import type { ButtonVariant } from 'heroui-native';
 
 import {
   resolveButtonContent,
+  resolveButtonUnclipRadius,
   resolveFlatButtonStyle,
-  resolveFlatButtonUnclips,
   type FlatButtonStyle,
   type FlatButtonTone,
 } from '@/components/ui/button.content';
@@ -202,7 +202,7 @@ describe('resolveFlatButtonStyle', () => {
   });
 });
 
-describe('resolveFlatButtonUnclips', () => {
+describe('resolveButtonUnclipRadius', () => {
   const flatStyle = resolveFlatButtonStyle({
     variant: 'secondary',
     flat: true,
@@ -211,11 +211,24 @@ describe('resolveFlatButtonUnclips', () => {
   });
   const slop = { top: 3, bottom: 3 };
 
-  it('MA-242: a flat button with a slop unclips; a flat one without a slop and a non-flat one with a slop do not', () => {
+  it('MA-242: a flat secondary sm button with a slop unclips at its own flat corners', () => {
     expect(flatStyle).toBeDefined();
-    expect(resolveFlatButtonUnclips(flatStyle, slop)).toBe(true);
-    expect(resolveFlatButtonUnclips(flatStyle, undefined)).toBe(false);
-    expect(resolveFlatButtonUnclips(flatStyle, null)).toBe(false);
-    expect(resolveFlatButtonUnclips(undefined, slop)).toBe(false);
+    expect(resolveButtonUnclipRadius(flatStyle, 'sm', slop)).toBe(Radius.cta);
+  });
+
+  it("MA-248: a non-flat button with a slop unclips at HeroUI's root corners for its size", () => {
+    expect(resolveButtonUnclipRadius(undefined, 'sm', slop)).toBe(Radius.heroButton);
+    expect(resolveButtonUnclipRadius(undefined, 'lg', slop)).toBe(Radius.heroButtonLg);
+  });
+
+  it('MA-248: a non-flat sm button with a number slop unclips at the sm root corners', () => {
+    expect(resolveButtonUnclipRadius(undefined, 'sm', 3)).toBe(Radius.heroButton);
+  });
+
+  it('MA-248: a button with no slop does not unclip, flat or not', () => {
+    expect(resolveButtonUnclipRadius(flatStyle, 'sm', undefined)).toBeUndefined();
+    expect(resolveButtonUnclipRadius(flatStyle, 'sm', null)).toBeUndefined();
+    expect(resolveButtonUnclipRadius(undefined, 'sm', undefined)).toBeUndefined();
+    expect(resolveButtonUnclipRadius(undefined, 'sm', null)).toBeUndefined();
   });
 });
