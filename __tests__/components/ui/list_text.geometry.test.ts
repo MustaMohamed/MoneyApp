@@ -1,10 +1,10 @@
-import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import {
-  TRANSACTIONS_HERO_MAX_FONT_SCALE,
-  resolveTransactionsHeroGeometry,
-} from '@/modules/transactions/screens/transactions/components/transactions_text.geometry';
+  LIST_HERO_MAX_FONT_SCALE,
+  resolveListHeroGeometry,
+} from '@/components/ui/list_text.geometry';
+import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 
-describe('resolveTransactionsHeroGeometry', () => {
+describe('resolveListHeroGeometry', () => {
   function heroAt(scale: number) {
     const size = (fontSize: number) => fontSize * scale;
     return {
@@ -23,8 +23,8 @@ describe('resolveTransactionsHeroGeometry', () => {
   }
 
   it("keeps today's sizes and rows at font scale 1.0", () => {
-    expect(resolveTransactionsHeroGeometry(1)).toEqual(heroAt(1));
-    expect(resolveTransactionsHeroGeometry(1)).toMatchObject({
+    expect(resolveListHeroGeometry(1)).toEqual(heroAt(1));
+    expect(resolveListHeroGeometry(1)).toMatchObject({
       header: lineHeightFor(Type.overline),
       amount: lineHeightFor(Type.hero),
       columns: lineHeightFor(Type.micro) + Spacing.xxxs + lineHeightFor(Type.body),
@@ -33,11 +33,11 @@ describe('resolveTransactionsHeroGeometry', () => {
   });
 
   it('scales every size and row at the cap, 1.3', () => {
-    expect(TRANSACTIONS_HERO_MAX_FONT_SCALE).toBe(1.3);
-    expect(resolveTransactionsHeroGeometry(1.3)).toEqual(heroAt(1.3));
+    expect(LIST_HERO_MAX_FONT_SCALE).toBe(1.3);
+    expect(resolveListHeroGeometry(1.3)).toEqual(heroAt(1.3));
   });
 
   it('returns the capped values at font scale 2.0', () => {
-    expect(resolveTransactionsHeroGeometry(2)).toEqual(heroAt(TRANSACTIONS_HERO_MAX_FONT_SCALE));
+    expect(resolveListHeroGeometry(2)).toEqual(heroAt(LIST_HERO_MAX_FONT_SCALE));
   });
 });

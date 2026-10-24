@@ -1,4 +1,5 @@
 import type { DetailHeroBadge, DetailHeroModel } from '@/components/ui/detail_hero';
+import type { DetailLoadErrorCopy } from '@/components/ui/detail_load_error.helpers';
 import { HERO_GRADIENT_COLORS } from '@/components/ui/hero_gradient';
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AmountType, type Currency } from '@/constants/enums';
@@ -79,6 +80,15 @@ export function overlayStorePayments(
   if (!rows.some((row) => storeById.has(row.id))) return rows;
   return rows.map((row) => storeById.get(row.id) ?? row);
 }
+
+export const COMMITMENT_DETAIL_LOAD_ERROR_COPY: DetailLoadErrorCopy = {
+  loadTitle: Strings.commitmentsDetailLoadErrorTitle,
+  refreshTitle: Strings.commitmentsDetailRefreshErrorTitle,
+  description: Strings.commitmentsDetailLoadErrorDescription,
+  retryLabel: Strings.commitmentsDetailLoadRetry,
+};
+
+export const COMMITMENT_DETAIL_LOAD_ERROR_TEST_ID = 'commitment-detail-load-error';
 
 // Frame C1 `.badge`: `text2` at a 0.22 share of the fill over the hero gradient's middle stop, `text1` ink.
 const CADENCE_BADGE_COLORS = resolveBadgeColors({

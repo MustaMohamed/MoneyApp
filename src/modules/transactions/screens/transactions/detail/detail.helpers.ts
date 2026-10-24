@@ -1,4 +1,5 @@
 import type { DetailHeroModel } from '@/components/ui/detail_hero';
+import type { DetailLoadErrorCopy } from '@/components/ui/detail_load_error.helpers';
 import type { ConvertedAmount } from '@/components/ui/form_sheet.helpers';
 import type { AccountTypeIconName } from '@/constants/account_type_icons';
 import { CURRENCY_CONFIG } from '@/constants/currency';
@@ -407,3 +408,12 @@ export function getCommitmentPaymentRoute(
   if (originPrefix === '') return `${route}&originTxCopy=${TABBED_ORIGIN}`;
   return route;
 }
+
+export const TRANSACTION_DETAIL_LOAD_ERROR_COPY: DetailLoadErrorCopy = {
+  loadTitle: Strings.detailLoadErrorTitle,
+  refreshTitle: Strings.detailRefreshErrorTitle,
+  description: Strings.detailLoadErrorDescription,
+  retryLabel: Strings.detailLoadRetry,
+};
+
+export const TRANSACTION_DETAIL_LOAD_ERROR_TEST_ID = 'detail-load-error';

@@ -9,8 +9,9 @@ import { useAccountActivityStore } from '@/modules/accounts/store/account_activi
 import {
   findMissingAccountIds,
   getTransactionAccountIds,
-  mergeAccountsById,
+  lookupLeavesUnresolved,
 } from '@/modules/accounts/store/account_lookup.helpers';
+import { useAccountsById } from '@/modules/accounts/store/use_accounts_by_id.hook';
 import { budgetRepository } from '@/modules/budget/repositories/budget.repository';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { commitmentRepository } from '@/modules/commitments/repositories/commitment.repository';
@@ -91,14 +92,8 @@ export function useTransactionDetail(id: string) {
 
   const getById = useTransactionStore.getState().getById;
 
-  const { accounts, archivedAccounts, accountLookupById, accountLookupError } = useAccountStore(
-    useShallow((s) => ({
-      accounts: s.accounts,
-      archivedAccounts: s.archivedAccounts,
-      accountLookupById: s.accountLookupById,
-      accountLookupError: s.accountLookupError,
-    })),
-  );
+  const accountRead = useAccountsById();
+  const { accountsById } = accountRead;
   const loadAccountLookup = useAccountStore.getState().loadAccountLookup;
   const categories = useCategoryStore.useState.categories();
   const loadingTransactionHint = useMemo(
@@ -208,10 +203,6 @@ export function useTransactionDetail(id: string) {
     };
   }, [owner, releaseData, releaseUi]);
 
-  const accountsById = useMemo(
-    () => mergeAccountsById(accounts, archivedAccounts, accountLookupById),
-    [accountLookupById, accounts, archivedAccounts],
-  );
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const navigation = useNavigation();
   const popAfterDelete = useCallback(async () => {
@@ -227,11 +218,11 @@ export function useTransactionDetail(id: string) {
   } = useTransactionDelete(owner, accountsById, popAfterDelete);
 
   const currentRevalidating = activeId === id && revalidating;
+  const currentAccountIds = currentTx === null ? [] : getTransactionAccountIds(currentTx);
   const hasUnresolvedAccount =
-    currentTx !== null &&
-    findMissingAccountIds(getTransactionAccountIds(currentTx), accountsById).length > 0;
+    currentTx !== null && findMissingAccountIds(currentAccountIds, accountsById).length > 0;
   const currentRefreshError =
-    (activeId === id && refreshError) || (accountLookupError && hasUnresolvedAccount);
+    (activeId === id && refreshError) || lookupLeavesUnresolved(accountRead, currentAccountIds);
   const viewState = resolveDetailViewState(
     currentStatus,
     currentTx !== null,

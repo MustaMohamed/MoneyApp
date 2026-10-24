@@ -4,7 +4,7 @@ import type { LayoutChangeEvent } from 'react-native';
 
 import { usePendingFrame } from '@/components/ui/pending_frame.hook';
 
-interface TransactionFormNoteReveal {
+interface NoteReveal {
   scrollRef: RefObject<BottomSheetScrollViewMethods | null>;
   handleScrollLayout: (event: LayoutChangeEvent) => void;
   handleNoteFocus: () => void;
@@ -12,7 +12,7 @@ interface TransactionFormNoteReveal {
 }
 
 /** A focus on the Note, and a shrink of the form's scroll while the Note holds focus, each end with the scroll at its end, where the Note sits. */
-export function useTransactionFormNoteReveal(): TransactionFormNoteReveal {
+export function useNoteReveal(): NoteReveal {
   const scrollRef = useRef<BottomSheetScrollViewMethods | null>(null);
   const noteFocusedRef = useRef(false);
   const lastHeightRef = useRef<number | undefined>(undefined);

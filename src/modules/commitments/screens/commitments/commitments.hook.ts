@@ -3,10 +3,8 @@ import { useCallback, useDeferredValue, useEffect, useMemo, useRef } from 'react
 import { useShallow } from 'zustand/react/shallow';
 
 import { useAccountStore } from '@/modules/accounts/store/account.store';
-import {
-  findMissingAccountIds,
-  mergeAccountsById,
-} from '@/modules/accounts/store/account_lookup.helpers';
+import { lookupLeavesUnresolved } from '@/modules/accounts/store/account_lookup.helpers';
+import { useAccountsById } from '@/modules/accounts/store/use_accounts_by_id.hook';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { commitmentDetailRoute } from '@/modules/navigation/domain/stacked_route';
@@ -97,14 +95,8 @@ export function useCommitments() {
   const skipPayment = useCommitmentStore.getState().skipPayment;
   const deactivateCommitment = useCommitmentStore.getState().deactivateCommitment;
 
-  const { accounts, archivedAccounts, accountLookupById, accountLookupError } = useAccountStore(
-    useShallow((s) => ({
-      accounts: s.accounts,
-      archivedAccounts: s.archivedAccounts,
-      accountLookupById: s.accountLookupById,
-      accountLookupError: s.accountLookupError,
-    })),
-  );
+  const accountRead = useAccountsById();
+  const { accountsById } = accountRead;
   const loadAccountLookup = useAccountStore.getState().loadAccountLookup;
   const categories = useCategoryStore.useState.categories();
   const { rate, hasLoaded: rateLoaded } = useCurrencyStore(
@@ -129,10 +121,6 @@ export function useCommitments() {
   const openFilter = useCommitmentFilterState.getState().open;
   const setFilterDraft = useCommitmentFilterStore.getState().setDraft;
 
-  const accountsById = useMemo(
-    () => mergeAccountsById(accounts, archivedAccounts, accountLookupById),
-    [accountLookupById, accounts, archivedAccounts],
-  );
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const hasMatchingSnapshot =
     commitmentsLoaded && paymentsLoaded && loadedMonth === selectedMonth && today !== undefined;
@@ -337,8 +325,7 @@ export function useCommitments() {
   }, [clearSearch, setAppliedFilters, setStatusFilter]);
 
   const presentation = resolveCommitmentsPresentation({ hasMatchingSnapshot, loadError });
-  const showAccountLookupError =
-    accountLookupError && findMissingAccountIds(rowAccountIds, accountsById).length > 0;
+  const showAccountLookupError = lookupLeavesUnresolved(accountRead, rowAccountIds);
 
   return {
     state: {

@@ -2,6 +2,7 @@ import type { Insets } from 'react-native';
 
 import { SELECTABLE_PILL_LABEL_FONT_SIZE } from '@/components/ui/chip.geometry';
 import { DISPLAY_HEADLINE_MAX_FONT_SCALE } from '@/components/ui/display_headline.geometry';
+import { resolveFactRowHeight } from '@/components/ui/fact_row.geometry';
 import { getVisibleScrollOffset } from '@/components/ui/scroll_reveal.geometry';
 import {
   type TabsTriggerHitSlop,
@@ -85,6 +86,23 @@ export const AMOUNT_CODE_STYLE = {
 
 /** A money figure at entry size stops growing at the top of the gated text scale range. */
 export const AMOUNT_ENTRY_MAX_FONT_SCALE = DISPLAY_HEADLINE_MAX_FONT_SCALE;
+
+/** The gap between the status track and the flat button. */
+export const FORM_SHEET_STATUS_GAP = Spacing.xs;
+
+export const FORM_SHEET_CONTENT_CONTAINER_STYLE = {
+  padding: Spacing.md,
+  gap: Spacing.xs,
+};
+
+/** Above scale 1 the app scales the Note's text: Android draws the hint without the line box, and an OS-scaled line box is shorter than the hint's own lines; the floor is the shared fact row's height. */
+export function resolveNoteInputGeometry(fontScale: number): {
+  minHeight: number;
+  text: ScaledTextStyle | undefined;
+} {
+  const text = scaledTextStyleAboveOne(Type.body, fontScale);
+  return { minHeight: resolveFactRowHeight(fontScale), text };
+}
 
 /** The chip's 1.0 height is its floor; `label` is `undefined` at or below scale 1, where the OS scales the name. */
 export function resolveAccountStripChipGeometry(fontScale: number): {

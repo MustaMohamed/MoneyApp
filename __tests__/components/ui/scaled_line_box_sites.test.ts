@@ -19,6 +19,10 @@ import {
   FILTER_AMOUNT_ERROR_SLOT_HEIGHT,
   resolveFilterAmountSlotStyle,
 } from '@/components/ui/filter_accordion.geometry';
+import {
+  LIST_HERO_MAX_FONT_SCALE,
+  resolveListHeroGeometry,
+} from '@/components/ui/list_text.geometry';
 import { resolveSearchTallyGeometry } from '@/components/ui/search_tally.geometry';
 import {
   STATUS_BADGE_PADDING_VERTICAL,
@@ -46,10 +50,6 @@ import {
   resolveTransactionRowCaptionLines,
   resolveTransactionRowHeight,
 } from '@/modules/transactions/components/transaction_row.helpers';
-import {
-  TRANSACTIONS_HERO_MAX_FONT_SCALE,
-  resolveTransactionsHeroGeometry,
-} from '@/modules/transactions/screens/transactions/components/transactions_text.geometry';
 import {
   DETAIL_TRANSFER_AMOUNT_FONT_SIZE,
   DETAIL_TRANSFER_LABEL_FONT_SIZE,
@@ -139,11 +139,10 @@ const SITES: Record<string, { resolve: (s: number) => unknown; expected: (s: num
           s,
         ),
     },
-    resolveTransactionsHeroGeometry: {
-      resolve: resolveTransactionsHeroGeometry,
+    resolveListHeroGeometry: {
+      resolve: resolveListHeroGeometry,
       expected: (s) => {
-        const size = (fontSize: number) =>
-          scaledFontSize(fontSize, s, TRANSACTIONS_HERO_MAX_FONT_SCALE);
+        const size = (fontSize: number) => scaledFontSize(fontSize, s, LIST_HERO_MAX_FONT_SCALE);
         return {
           overline: size(Type.overline),
           hero: size(Type.hero),
