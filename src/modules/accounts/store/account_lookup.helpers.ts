@@ -1,5 +1,16 @@
 import type { Account } from '../entities/account.entity';
 
+export interface AccountLookupSources {
+  accounts: readonly Account[];
+  archivedAccounts: readonly Account[];
+  accountLookupById: Readonly<Record<string, Account>>;
+}
+
+export interface AccountsByIdRead {
+  accountsById: ReadonlyMap<string, Account>;
+  lookupFailed: boolean;
+}
+
 // Later entries replace earlier ones, so the active and archived lists win over a cached copy.
 export function mergeAccountsById(
   accounts: readonly Account[],
@@ -12,6 +23,10 @@ export function mergeAccountsById(
       account,
     ]),
   );
+}
+
+export function readAccountsById(sources: AccountLookupSources): Map<string, Account> {
+  return mergeAccountsById(sources.accounts, sources.archivedAccounts, sources.accountLookupById);
 }
 
 export function getTransactionAccountIds(transaction: {
@@ -28,6 +43,10 @@ export function findMissingAccountIds(
   accountsById: ReadonlyMap<string, Account>,
 ): string[] {
   return ids.filter((id) => !accountsById.has(id));
+}
+
+export function lookupLeavesUnresolved(read: AccountsByIdRead, ids: readonly string[]): boolean {
+  return read.lookupFailed && findMissingAccountIds(ids, read.accountsById).length > 0;
 }
 
 // A delete is terminal, so a row of a deleted id that is not marked deleted was read before the delete.

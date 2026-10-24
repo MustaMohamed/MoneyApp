@@ -12,7 +12,7 @@ import {
 import {
   dropCopiesReadBeforeDelete,
   findMissingAccountIds,
-  mergeAccountsById,
+  readAccountsById,
 } from './account_lookup.helpers';
 
 export type { Account, NewAccountInput, UpdateAccountInput };
@@ -128,8 +128,8 @@ export function createAccountStore(repo: IAccountRepository) {
 
         loadAccountLookup: async (ids) => {
           const ownerLifecycle = lifecycleGeneration;
-          const { accounts, archivedAccounts, accountLookupById, accountLookupError } = get();
-          const known = mergeAccountsById(accounts, archivedAccounts, accountLookupById);
+          const { accountLookupError } = get();
+          const known = readAccountsById(get());
           const missing = findMissingAccountIds([...new Set(ids)], known);
           if (missing.length === 0) return;
           const outstanding = findMissingAccountIds([...failedLookupIds], known);
