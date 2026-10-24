@@ -2,7 +2,7 @@ import { Strings } from '@/constants/strings';
 import {
   resolveDetailLoadErrorAlertProps,
   resolveDetailLoadErrorTitle,
-} from '@/modules/transactions/screens/transactions/detail/components/detail_load_error.helpers';
+} from '@/components/ui/detail_load_error.helpers';
 
 const ROWS = [
   [false, Strings.detailLoadErrorTitle],
