@@ -140,7 +140,7 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
     [categories],
   );
   const accountsById = useCommitmentFormStripAccounts(accountId);
-  const stripError = useCommitmentFormStripError(accountId, accountsById);
+  const stripError = useCommitmentFormStripError(accountId);
   const stripChips = resolveCommitmentStripChips({
     activeAccounts: accounts,
     accountId,
