@@ -4,7 +4,7 @@ import type { PressableProps } from 'react-native';
 import { Strings } from '@/constants/strings';
 import { Colors, Radius } from '@/constants/theme';
 
-import { resolveCompactCtaHeight } from './button.geometry';
+import { resolveButtonRadius, resolveCompactCtaHeight } from './button.geometry';
 
 const FLAT_VARIANTS: ButtonVariant[] = ['primary', 'secondary', 'ghost', 'danger'];
 
@@ -55,12 +55,14 @@ export function resolveFlatButtonStyle({
   };
 }
 
-/** A flat button that takes a slop unclips its root and draws its press inside its own corners: HeroUI's root clips, and Android drops a slop outside a clipping view (MA-122). */
-export function resolveFlatButtonUnclips(
+/** A button that takes a slop unclips its root and draws its press inside its own corners: HeroUI's root clips, and Android drops a slop outside a clipping view (MA-122). */
+export function resolveButtonUnclipRadius(
   flatStyle: FlatButtonStyle | undefined,
+  size: ButtonSize,
   hitSlop: PressableProps['hitSlop'],
-): boolean {
-  return flatStyle !== undefined && hitSlop != null;
+): number | undefined {
+  if (hitSlop == null) return undefined;
+  return flatStyle?.style.borderRadius ?? resolveButtonRadius(size);
 }
 
 export interface ButtonContentInput {

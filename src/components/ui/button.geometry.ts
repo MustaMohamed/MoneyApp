@@ -6,6 +6,7 @@ import {
   scaledTextStyleAboveOne,
 } from '@/components/ui/text_scale.geometry';
 import {
+  Radius,
   Size,
   type TouchFloorHitSlop,
   type TouchFloorRoom,
@@ -17,6 +18,16 @@ const LABEL_FONT_SIZE: Record<ButtonSize, number> = {
   md: HEROUI_TEXT_TYPE.base,
   lg: HEROUI_TEXT_TYPE.lg,
 };
+
+const ROOT_RADIUS: Record<ButtonSize, number> = {
+  sm: Radius.heroButton,
+  md: Radius.heroButton,
+  lg: Radius.heroButtonLg,
+};
+
+export function resolveButtonRadius(size: ButtonSize): number {
+  return ROOT_RADIUS[size];
+}
 
 export function resolveButtonLabelStyle(
   size: ButtonSize,

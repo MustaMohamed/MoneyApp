@@ -142,6 +142,10 @@ export const Radius = {
   xl: ms(28),
   pill: ms(11),
   cta: ms(13),
+  // Raw 24, never ms(): HeroUI's size="sm" and size="md" root corners, --radius-3xl (button.css:47,54).
+  heroButton: 24,
+  // Raw 32 for the same reason: HeroUI's size="lg" root corners, --radius-4xl (button.css:61).
+  heroButtonLg: 32,
 } as const;
 
 /** Touch targets use `TouchSize` instead, so they never fall below the platform floor. */
