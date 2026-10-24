@@ -1,6 +1,15 @@
 import { SkeletonGroup } from 'heroui-native';
 import { View, useWindowDimensions } from 'react-native';
 
+import {
+  DETAIL_HERO_BADGE_GAP,
+  DETAIL_HERO_CAPTION_GAP,
+  DETAIL_HERO_OVERLINE_GAP,
+  DETAIL_HERO_PADDING,
+  DETAIL_HERO_SHELL_STYLE,
+  DETAIL_HERO_TILE_GAP,
+  resolveDetailHeroGeometry,
+} from '@/components/ui/detail_hero.geometry';
 import { DetailRowsCard } from '@/components/ui/detail_rows_card';
 import { HeroShell } from '@/components/ui/hero_shell';
 import { ScreenScroll } from '@/components/ui/screen';
@@ -10,17 +19,7 @@ import { Radius, Size, Type, lineHeightFor } from '@/constants/theme';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 
 import { resolveDetailActionBarCount, type DetailActionSet } from '../detail.helpers';
-import {
-  buildDetailSkeletonGeometry,
-  DETAIL_HERO_BADGE_GAP,
-  DETAIL_HERO_CAPTION_GAP,
-  DETAIL_HERO_OVERLINE_GAP,
-  DETAIL_HERO_PADDING,
-  DETAIL_HERO_SHELL_STYLE,
-  DETAIL_HERO_TILE_GAP,
-  resolveDetailHeroGeometry,
-  resolveTransferSkeletonCellHeight,
-} from './detail.geometry';
+import { buildDetailSkeletonGeometry, resolveTransferSkeletonCellHeight } from './detail.geometry';
 import { NoteCardFrame, TransferFlowCardFrame } from './detail_card_frames';
 
 interface Props {

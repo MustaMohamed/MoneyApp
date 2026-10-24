@@ -1,16 +1,13 @@
+import type { DetailHeroModel } from '@/components/ui/detail_hero';
 import type { DetailLoadErrorCopy } from '@/components/ui/detail_load_error.helpers';
 import type { ConvertedAmount } from '@/components/ui/form_sheet.helpers';
 import type { AccountTypeIconName } from '@/constants/account_type_icons';
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { CoreTokens, InfoTokens } from '@/constants/theme_tokens';
+import { InfoTokens } from '@/constants/theme_tokens';
 import { TRANSACTION_TYPE_ICONS } from '@/constants/transaction_type_icons';
 import { resolveAccountBadgeColors } from '@/modules/accounts/constants/account_badge_color';
-import {
-  NON_TEXT_MIN_CONTRAST_RATIO,
-  contrastRatio,
-} from '@/modules/accounts/constants/account_palette';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import { getTransactionAccountIds } from '@/modules/accounts/store/account_lookup.helpers';
 import { isFrozenAccount } from '@/modules/accounts/utils/is_frozen_account';
@@ -27,6 +24,7 @@ import {
   isCardCredit,
   primaryAmountFor,
   resolveCategoryGlyph,
+  resolveHeroTileGlyphColor,
   resolveHollowGraphiteTile,
   resolveRowTile,
   type RowTile,
@@ -88,12 +86,6 @@ const BARE_ARROW_ICON: Partial<Record<TransactionType, IconName>> = {
 
 const CARD_CREDIT_ICON: IconName = 'credit-card-refund';
 
-export function resolveHeroTileGlyphColor(fill: string): string {
-  return contrastRatio(fill, CoreTokens.text1) >= NON_TEXT_MIN_CONTRAST_RATIO
-    ? CoreTokens.text1
-    : CoreTokens.bg;
-}
-
 export interface TransactionDetailPresentationInput {
   tx: Transaction;
   account?: Account;
@@ -102,24 +94,8 @@ export interface TransactionDetailPresentationInput {
   budget?: Budget;
 }
 
-export interface TransactionDetailHero {
-  title: string;
-  typeLabel: string;
-  typeIcon: IconName;
-  typeColor: string;
-  badgeFill: string;
-  badgeForeground: string;
-  tileColor: string;
-  tileGlyph: IconName;
-  tileGlyphColor: string;
-  amountValue: string;
-  amountCode: string;
-  amountAccessibilityLabel: string;
-  caption: string;
-}
-
 export interface TransactionDetailPresentation {
-  hero: TransactionDetailHero;
+  hero: DetailHeroModel;
   facts: readonly DetailFact[];
   transferFlow: TransferFlow | null;
 }
@@ -384,11 +360,11 @@ export function buildTransactionDetailPresentation({
   return {
     hero: {
       title: row.title,
-      typeLabel,
-      typeIcon: cardCredit
+      badgeLabel: typeLabel,
+      badgeIcon: cardCredit
         ? CARD_CREDIT_ICON
         : (BARE_ARROW_ICON[tx.type] ?? TRANSACTION_TYPE_ICONS[tx.type].name),
-      typeColor,
+      amountColor: typeColor,
       badgeFill: badge.fill,
       badgeForeground: badge.foreground,
       tileColor: row.glyphColor,

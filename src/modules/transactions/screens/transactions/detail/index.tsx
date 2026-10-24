@@ -1,6 +1,7 @@
 import { useLocalSearchParams } from 'expo-router';
 import React from 'react';
 
+import { DetailHero } from '@/components/ui/detail_hero';
 import { DetailLoadError } from '@/components/ui/detail_load_error';
 import { DetailNotFoundState } from '@/components/ui/detail_not_found_state';
 import { DetailRowsCard } from '@/components/ui/detail_rows_card';
@@ -11,7 +12,6 @@ import { TxDeleteDialog } from '../components/tx_delete_dialog';
 import { ActionRow } from './components/action_row';
 import { DetailFactRow } from './components/detail_fact_row';
 import { DetailHeader } from './components/detail_header';
-import { DetailHero } from './components/detail_hero';
 import { TransactionDetailSkeleton, TransferFlowSkeletonCard } from './components/detail_skeleton';
 import { NoteCard } from './components/note_card';
 import { TransferFlowCard } from './components/transfer_flow_card';
@@ -66,7 +66,7 @@ export default function TransactionDetailScreen(): React.ReactElement {
       ) : hasDetailContent ? (
         <>
           <ScreenScroll>
-            <DetailHero hero={detail.hero} />
+            <DetailHero hero={detail.hero} testID="transaction-detail-hero" />
 
             {state.transferFlowView.kind === 'pending' ? (
               <TransferFlowSkeletonCard />

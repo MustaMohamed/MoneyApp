@@ -1,4 +1,5 @@
 import { DetailEditAction } from '@/components/ui/detail_edit_action';
+import { DetailHero } from '@/components/ui/detail_hero';
 import { DetailLoadError } from '@/components/ui/detail_load_error';
 import { DetailNotFoundState } from '@/components/ui/detail_not_found_state';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
@@ -6,12 +7,12 @@ import { StackHeader } from '@/components/ui/stack_header';
 import { Strings } from '@/constants/strings';
 
 import { CurrentCycleCard } from './components/current_cycle_card';
-import { DetailHero } from './components/detail_hero';
 import { CommitmentDetailSkeleton } from './components/detail_skeleton';
 import { DetailsCard } from './components/details_card';
 import { PaySheet } from './components/pay_sheet';
 import { PaymentHistory } from './components/payment_history';
 import { SkipConfirmSheet } from './components/skip_confirm_sheet';
+import { heroEntering } from './detail.anim';
 import {
   COMMITMENT_DETAIL_LOAD_ERROR_COPY,
   COMMITMENT_DETAIL_LOAD_ERROR_TEST_ID,
@@ -57,17 +58,12 @@ export default function CommitmentDetailScreen() {
         />
       ) : null}
 
-      {showsBody && state.commitment && state.today !== undefined ? (
+      {showsBody && state.commitment && state.today !== undefined && state.hero !== undefined ? (
         <ScreenScroll
           contentContainerStyle={{ paddingBottom: 40 }}
           showsVerticalScrollIndicator={false}
         >
-          <DetailHero
-            commitment={state.commitment}
-            category={state.category}
-            payment={state.payment}
-            recurrenceLabel={state.recurrenceLabel}
-          />
+          <DetailHero hero={state.hero} testID="commitment-detail-hero" entering={heroEntering} />
           {state.payment ? (
             <CurrentCycleCard
               payment={state.payment}

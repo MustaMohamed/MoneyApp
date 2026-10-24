@@ -2,6 +2,14 @@ import { PixelRatio } from 'react-native';
 
 import { resolveDayHeaderGeometry } from '@/components/ui/day_header.geometry';
 import {
+  DETAIL_HERO_AMOUNT_MAX_FONT_SCALE,
+  DETAIL_HERO_BADGE_GAP,
+  DETAIL_HERO_CAPTION_GAP,
+  DETAIL_HERO_OVERLINE_GAP,
+  DETAIL_HERO_PADDING,
+  resolveDetailHeroGeometry,
+} from '@/components/ui/detail_hero.geometry';
+import {
   DETAIL_ROW_HEIGHT,
   DETAIL_ROW_LABEL_FONT_SIZE,
   DETAIL_ROW_VALUE_FONT_SIZE,
@@ -43,16 +51,10 @@ import {
   resolveTransactionRowHeight,
 } from '@/modules/transactions/components/transaction_row.helpers';
 import {
-  DETAIL_HERO_AMOUNT_MAX_FONT_SCALE,
-  DETAIL_HERO_BADGE_GAP,
-  DETAIL_HERO_CAPTION_GAP,
-  DETAIL_HERO_OVERLINE_GAP,
-  DETAIL_HERO_PADDING,
   DETAIL_TRANSFER_AMOUNT_FONT_SIZE,
   DETAIL_TRANSFER_LABEL_FONT_SIZE,
   DETAIL_TRANSFER_MIN_HEIGHT,
   DETAIL_TRANSFER_NAME_FONT_SIZE,
-  resolveDetailHeroGeometry,
   resolveTransferCardHeight,
 } from '@/modules/transactions/screens/transactions/detail/components/detail.geometry';
 
