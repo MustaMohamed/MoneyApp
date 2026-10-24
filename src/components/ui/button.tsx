@@ -68,7 +68,6 @@ export function Button({
   const flatStyle = resolveFlatButtonStyle({ variant, flat, tone, fontScale, size });
   const labelProps = resolveOneLineTextProps(resolveButtonLabelStyle(size, fontScale));
   const rootStyle = resolveButtonRootStyle(size, fontScale, flatStyle?.style);
-  const unclipRadius = resolveButtonUnclipRadius(flatStyle, size, props.hitSlop);
 
   if (variant === 'primary' && flat) {
     return (
@@ -113,6 +112,7 @@ export function Button({
     );
   }
 
+  const unclipRadius = resolveButtonUnclipRadius(flatStyle, size, props.hitSlop);
   const iconColor =
     tone === 'danger'
       ? SemanticTokens.negative

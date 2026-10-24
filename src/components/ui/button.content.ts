@@ -55,7 +55,7 @@ export function resolveFlatButtonStyle({
   };
 }
 
-/** A button that takes a slop unclips its root and draws its press inside its own corners: HeroUI's root clips, and Android drops a slop outside a clipping view (MA-122). */
+/** A non-primary button that takes a slop unclips its root and draws its press inside its own corners: HeroUI's root clips, and Android drops a slop outside a clipping view (MA-122). */
 export function resolveButtonUnclipRadius(
   flatStyle: FlatButtonStyle | undefined,
   size: ButtonSize,
