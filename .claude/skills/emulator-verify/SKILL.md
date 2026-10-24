@@ -109,7 +109,7 @@ Check a slot with `adb -s <serial> shell dumpsys window lastanr`.
 
 ## The device claim
 
-Three tickets verify at once, so there are three emulators and a session owns one
+Four tickets verify at once, so there are four emulators and a session owns one
 outright. **`mqa up` takes the claim** when this worktree holds none, preferring a free slot
 whose Metro port no other worktree's leftover server holds; `mqa claim <slot>` picks one by hand.
 
@@ -118,6 +118,7 @@ whose Metro port no other worktree's leftover server holds; `mqa claim <slot>` p
 | 1 | `Pixel_2_API_34` | emulator-5554 | 8082 |
 | 2 | `Pixel_2_API_34_2` | emulator-5556 | 8083 |
 | 3 | `Pixel_2_API_34_3` | emulator-5558 | 8084 |
+| 4 | `Pixel_2_API_34_4` | emulator-5560 | 8085 |
 
 The claim is keyed on the **git worktree**, not on an environment variable. An agent's
 shell calls do not carry env between them, so an exported `MQA_SERIAL` is gone by the next
@@ -132,10 +133,12 @@ wrong Metro, two dumps at once returned a screen the app was not on, and state-s
 A lease goes stale when its worktree is deleted, or after `MQA_LEASE_TTL` (default 2h)
 without a call; every `mqa` call touches its own. `mqa claims` shows a stale lease as free
 and names its old holder. `mqa release` gives the slot back and stops this worktree's Metro
-on its port, which would otherwise make the next holder's `up` refuse the port. A fourth
-concurrent ticket waits: `/queue` holds a fourth `Verify emulator` ticket on `mqa claims` and
-never calls `mqa claim` for a run. To run four at once, add a slot by creating another AVD
-and extending `MQA_SLOTS`. A `/prep` probe's worktree holds its own slot from its first
+on its port, which would otherwise make the next holder's `up` refuse the port. A fifth
+concurrent ticket waits: `/queue` holds a fifth `Verify emulator` ticket on `mqa claims` and
+never calls `mqa claim` for a run. To run five at once, add a slot: create another AVD from
+slot 1's system image and `config.ini`, append it to the `MQA_SLOTS` default in `mqa.sh`,
+`mqa boot <slot>`, and `adb install` the dev client pulled off a running slot whose APK
+postdates main's newest native-surface commit; no Gradle build. A `/prep` probe's worktree holds its own slot from its first
 `mqa` call and runs `mqa release` before that worktree is removed; with no row free, `/prep`
 dispatches review round 1 at once and waits on `mqa claims` before it
 dispatches the probe.

@@ -1,3 +1,6 @@
+import type { DetailLoadErrorCopy } from '@/components/ui/detail_load_error.helpers';
+import { Strings } from '@/constants/strings';
+
 import { isUnpaidPayment } from '../../../domain/payment_state';
 import type { CommitmentPayment } from '../../../entities/commitment_payment.entity';
 import type { CommitmentDetailLoadStatus } from './detail.state';
@@ -61,3 +64,12 @@ export function overlayStorePayments(
   if (!rows.some((row) => storeById.has(row.id))) return rows;
   return rows.map((row) => storeById.get(row.id) ?? row);
 }
+
+export const COMMITMENT_DETAIL_LOAD_ERROR_COPY: DetailLoadErrorCopy = {
+  loadTitle: Strings.commitmentsDetailLoadErrorTitle,
+  refreshTitle: Strings.commitmentsDetailRefreshErrorTitle,
+  description: Strings.commitmentsDetailLoadErrorDescription,
+  retryLabel: Strings.commitmentsDetailLoadRetry,
+};
+
+export const COMMITMENT_DETAIL_LOAD_ERROR_TEST_ID = 'commitment-detail-load-error';

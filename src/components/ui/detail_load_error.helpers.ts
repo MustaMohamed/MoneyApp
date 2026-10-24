@@ -1,8 +1,14 @@
 import type { LoadErrorAlertProps } from '@/components/ui/load_error_alert';
-import { Strings } from '@/constants/strings';
 
-export function resolveDetailLoadErrorTitle(floating: boolean): string {
-  return floating ? Strings.detailRefreshErrorTitle : Strings.detailLoadErrorTitle;
+export interface DetailLoadErrorCopy {
+  loadTitle: string;
+  refreshTitle: string;
+  description: string;
+  retryLabel: string;
+}
+
+export function resolveDetailLoadErrorTitle(floating: boolean, copy: DetailLoadErrorCopy): string {
+  return floating ? copy.refreshTitle : copy.loadTitle;
 }
 
 // `satisfies`, since the JSX spread these reach the alert through runs no excess-key check.

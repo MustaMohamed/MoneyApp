@@ -1,17 +1,23 @@
 import {
+  type AccountsByIdRead,
   dropCopiesReadBeforeDelete,
   findMissingAccountIds,
   getTransactionAccountIds,
-  mergeAccountsById,
+  lookupLeavesUnresolved,
+  readAccountsById,
 } from '@/modules/accounts/store/account_lookup.helpers';
 import { makeTestAccount, makeTestTransaction } from '@/test_helpers/transaction';
 
-describe('mergeAccountsById', () => {
+describe('readAccountsById', () => {
   it('lets the active list win over a cached row with the same id', () => {
     const cached = makeTestAccount({ id: 'a', name: 'Old name', is_archived: 1 });
     const active = makeTestAccount({ id: 'a', name: 'Restored name' });
 
-    const merged = mergeAccountsById([active], [], { a: cached });
+    const merged = readAccountsById({
+      accounts: [active],
+      archivedAccounts: [],
+      accountLookupById: { a: cached },
+    });
 
     expect(merged.get('a')?.name).toBe('Restored name');
   });
@@ -20,7 +26,11 @@ describe('mergeAccountsById', () => {
     const cached = makeTestAccount({ id: 'a', name: 'Old name' });
     const archived = makeTestAccount({ id: 'a', name: 'Archived name', is_archived: 1 });
 
-    const merged = mergeAccountsById([], [archived], { a: cached });
+    const merged = readAccountsById({
+      accounts: [],
+      archivedAccounts: [archived],
+      accountLookupById: { a: cached },
+    });
 
     expect(merged.get('a')?.name).toBe('Archived name');
   });
@@ -28,18 +38,41 @@ describe('mergeAccountsById', () => {
   it('keeps a row only the cache holds', () => {
     const deleted = makeTestAccount({ id: 'gone', name: '', is_deleted: 1, is_archived: 1 });
 
-    const merged = mergeAccountsById(
-      [makeTestAccount({ id: 'a' })],
-      [makeTestAccount({ id: 'b' })],
-      { gone: deleted },
-    );
+    const merged = readAccountsById({
+      accounts: [makeTestAccount({ id: 'a' })],
+      archivedAccounts: [makeTestAccount({ id: 'b' })],
+      accountLookupById: { gone: deleted },
+    });
 
     expect([...merged.keys()].sort()).toEqual(['a', 'b', 'gone']);
     expect(merged.get('gone')).toBe(deleted);
   });
 
   it('yields an empty map from empty inputs', () => {
-    expect(mergeAccountsById([], [], {}).size).toBe(0);
+    expect(
+      readAccountsById({ accounts: [], archivedAccounts: [], accountLookupById: {} }).size,
+    ).toBe(0);
+  });
+
+  it('gives the active row over the archived row over the cached row of one id', () => {
+    const cached = makeTestAccount({ id: 'a', name: 'Cached name' });
+    const archived = makeTestAccount({ id: 'a', name: 'Archived name', is_archived: 1 });
+    const active = makeTestAccount({ id: 'a', name: 'Active name' });
+
+    expect(
+      readAccountsById({
+        accounts: [active],
+        archivedAccounts: [archived],
+        accountLookupById: { a: cached },
+      }).get('a'),
+    ).toBe(active);
+    expect(
+      readAccountsById({
+        accounts: [],
+        archivedAccounts: [archived],
+        accountLookupById: { a: cached },
+      }).get('a'),
+    ).toBe(archived);
   });
 });
 
@@ -59,15 +92,21 @@ describe('getTransactionAccountIds', () => {
 
 describe('findMissingAccountIds', () => {
   it('returns the ids the map does not hold, in request order', () => {
-    const accountsById = mergeAccountsById([makeTestAccount({ id: 'a' })], [], {
-      c: makeTestAccount({ id: 'c' }),
+    const accountsById = readAccountsById({
+      accounts: [makeTestAccount({ id: 'a' })],
+      archivedAccounts: [],
+      accountLookupById: { c: makeTestAccount({ id: 'c' }) },
     });
 
     expect(findMissingAccountIds(['b', 'a', 'c', 'd'], accountsById)).toEqual(['b', 'd']);
   });
 
   it('returns nothing when the map holds every id', () => {
-    const accountsById = mergeAccountsById([makeTestAccount({ id: 'a' })], [], {});
+    const accountsById = readAccountsById({
+      accounts: [makeTestAccount({ id: 'a' })],
+      archivedAccounts: [],
+      accountLookupById: {},
+    });
 
     expect(findMissingAccountIds(['a'], accountsById)).toEqual([]);
   });
@@ -100,5 +139,28 @@ describe('dropCopiesReadBeforeDelete', () => {
 
   it('returns an empty array for no rows', () => {
     expect(dropCopiesReadBeforeDelete([], new Set(['gone']))).toEqual([]);
+  });
+});
+
+describe('lookupLeavesUnresolved', () => {
+  const accountsById = new Map([['a', makeTestAccount({ id: 'a' })]]);
+  const failed: AccountsByIdRead = { accountsById, lookupFailed: true };
+
+  it('is false for a missing id while the lookup has not failed', () => {
+    expect(lookupLeavesUnresolved({ accountsById, lookupFailed: false }, ['a', 'missing'])).toBe(
+      false,
+    );
+  });
+
+  it('is false when the lookup failed and every id resolves', () => {
+    expect(lookupLeavesUnresolved(failed, ['a'])).toBe(false);
+  });
+
+  it('is true when the lookup failed and one id is missing', () => {
+    expect(lookupLeavesUnresolved(failed, ['a', 'missing'])).toBe(true);
+  });
+
+  it('is false for no ids', () => {
+    expect(lookupLeavesUnresolved(failed, [])).toBe(false);
   });
 });

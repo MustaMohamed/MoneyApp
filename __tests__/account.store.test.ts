@@ -5,7 +5,7 @@ import {
   EMPTY_ACCOUNT_LOOKUP,
   EMPTY_ACCOUNTS,
 } from '@/modules/accounts/store/account.store';
-import { mergeAccountsById } from '@/modules/accounts/store/account_lookup.helpers';
+import { readAccountsById } from '@/modules/accounts/store/account_lookup.helpers';
 import type {
   IAccountRepository,
   NewAccountInput,
@@ -156,8 +156,7 @@ describe('accountStore.loadAccountLookup', () => {
 
     activeList.resolve([mockAccount]);
     await reload;
-    const { accounts, archivedAccounts, accountLookupById } = store.getState();
-    const known = mergeAccountsById(accounts, archivedAccounts, accountLookupById);
+    const known = readAccountsById(store.getState());
 
     expect(known.get(deletedB.id)).toBe(deletedB);
     expect(known.get(archivedA.id)).toBe(archivedA);
