@@ -17,7 +17,6 @@ jest.mock('@/components/ui/load_error_alert.hook', () => ({
 jest.mock('uniwind', () => ({ withUniwind: <T,>(component: T): T => component }));
 
 import { DetailLoadError } from '@/components/ui/detail_load_error';
-import type { DetailLoadErrorCopy } from '@/components/ui/detail_load_error.helpers';
 import {
   HEADER_ACTION_HIT_SLOP,
   resolveStackHeaderGeometry,
@@ -31,6 +30,8 @@ import { resolveTransferCellHeight } from '@/modules/transactions/screens/transa
 import { DetailHeader } from '@/modules/transactions/screens/transactions/detail/components/detail_header';
 import { TransferFlowCard } from '@/modules/transactions/screens/transactions/detail/components/transfer_flow_card';
 import {
+  TRANSACTION_DETAIL_LOAD_ERROR_COPY,
+  TRANSACTION_DETAIL_LOAD_ERROR_TEST_ID,
   type TransferFlow,
   transferCellAmountText,
 } from '@/modules/transactions/screens/transactions/detail/detail.helpers';
@@ -169,17 +170,14 @@ describe('transaction detail actions', () => {
 });
 
 describe('transaction detail load errors (MA-182)', () => {
-  const copy: DetailLoadErrorCopy = {
-    loadTitle: Strings.detailLoadErrorTitle,
-    refreshTitle: Strings.detailRefreshErrorTitle,
-    description: Strings.detailLoadErrorDescription,
-    retryLabel: Strings.detailLoadRetry,
-  };
-
   it('frame C9: the first load draws the flat error block, and Try again retries once', async () => {
     const onRetry = jest.fn();
     const screen = await render(
-      <DetailLoadError copy={copy} testID="detail-load-error" onRetry={onRetry} />,
+      <DetailLoadError
+        copy={TRANSACTION_DETAIL_LOAD_ERROR_COPY}
+        testID={TRANSACTION_DETAIL_LOAD_ERROR_TEST_ID}
+        onRetry={onRetry}
+      />,
     );
 
     expect(screen.getByText(Strings.detailLoadErrorTitle)).toBeTruthy();
@@ -194,7 +192,12 @@ describe('transaction detail load errors (MA-182)', () => {
   it('frame C12: a refresh failure floats the alert with a flat Try again, which retries once', async () => {
     const onRetry = jest.fn();
     const screen = await render(
-      <DetailLoadError copy={copy} testID="detail-load-error" floating onRetry={onRetry} />,
+      <DetailLoadError
+        copy={TRANSACTION_DETAIL_LOAD_ERROR_COPY}
+        testID={TRANSACTION_DETAIL_LOAD_ERROR_TEST_ID}
+        floating
+        onRetry={onRetry}
+      />,
     );
 
     expect(screen.getByText(Strings.detailRefreshErrorTitle)).toBeTruthy();

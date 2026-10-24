@@ -218,15 +218,11 @@ export function useTransactionDetail(id: string) {
   } = useTransactionDelete(owner, accountsById, popAfterDelete);
 
   const currentRevalidating = activeId === id && revalidating;
+  const currentAccountIds = currentTx === null ? [] : getTransactionAccountIds(currentTx);
   const hasUnresolvedAccount =
-    currentTx !== null &&
-    findMissingAccountIds(getTransactionAccountIds(currentTx), accountsById).length > 0;
+    currentTx !== null && findMissingAccountIds(currentAccountIds, accountsById).length > 0;
   const currentRefreshError =
-    (activeId === id && refreshError) ||
-    lookupLeavesUnresolved(
-      accountRead,
-      currentTx === null ? [] : getTransactionAccountIds(currentTx),
-    );
+    (activeId === id && refreshError) || lookupLeavesUnresolved(accountRead, currentAccountIds);
   const viewState = resolveDetailViewState(
     currentStatus,
     currentTx !== null,

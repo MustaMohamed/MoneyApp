@@ -1,23 +1,10 @@
 import {
-  type DetailLoadErrorCopy,
   resolveDetailLoadErrorAlertProps,
   resolveDetailLoadErrorTitle,
 } from '@/components/ui/detail_load_error.helpers';
 import { Strings } from '@/constants/strings';
-
-const TRANSACTION_COPY: DetailLoadErrorCopy = {
-  loadTitle: Strings.detailLoadErrorTitle,
-  refreshTitle: Strings.detailRefreshErrorTitle,
-  description: Strings.detailLoadErrorDescription,
-  retryLabel: Strings.detailLoadRetry,
-};
-
-const COMMITMENT_COPY: DetailLoadErrorCopy = {
-  loadTitle: Strings.commitmentsDetailLoadErrorTitle,
-  refreshTitle: Strings.commitmentsDetailRefreshErrorTitle,
-  description: Strings.commitmentsDetailLoadErrorDescription,
-  retryLabel: Strings.commitmentsDetailLoadRetry,
-};
+import { COMMITMENT_DETAIL_LOAD_ERROR_COPY as COMMITMENT_COPY } from '@/modules/commitments/screens/commitments/detail/detail.helpers';
+import { TRANSACTION_DETAIL_LOAD_ERROR_COPY as TRANSACTION_COPY } from '@/modules/transactions/screens/transactions/detail/detail.helpers';
 
 const ROWS = [
   ['transaction', false, TRANSACTION_COPY, Strings.detailLoadErrorTitle],

@@ -1,6 +1,6 @@
 import type { Account } from '../entities/account.entity';
 
-export interface AccountLookupSources {
+interface AccountLookupSources {
   accounts: readonly Account[];
   archivedAccounts: readonly Account[];
   accountLookupById: Readonly<Record<string, Account>>;
@@ -12,7 +12,7 @@ export interface AccountsByIdRead {
 }
 
 // Later entries replace earlier ones, so the active and archived lists win over a cached copy.
-export function mergeAccountsById(
+function mergeAccountsById(
   accounts: readonly Account[],
   archivedAccounts: readonly Account[],
   lookupById: Readonly<Record<string, Account>>,

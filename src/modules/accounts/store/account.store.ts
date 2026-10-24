@@ -128,12 +128,12 @@ export function createAccountStore(repo: IAccountRepository) {
 
         loadAccountLookup: async (ids) => {
           const ownerLifecycle = lifecycleGeneration;
-          const { accountLookupError } = get();
-          const known = readAccountsById(get());
+          const state = get();
+          const known = readAccountsById(state);
           const missing = findMissingAccountIds([...new Set(ids)], known);
           if (missing.length === 0) return;
           const outstanding = findMissingAccountIds([...failedLookupIds], known);
-          if (accountLookupError && outstanding.every((id) => missing.includes(id))) {
+          if (state.accountLookupError && outstanding.every((id) => missing.includes(id))) {
             set({ accountLookupError: false });
           }
 

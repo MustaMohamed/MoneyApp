@@ -49,10 +49,10 @@ import {
   COMMITMENT_FORM_TOP_BLEED_STYLE,
 } from './commitment_form.geometry';
 import {
+  resolveCommitmentFormStripError,
   useCommitmentFormBodyFaults,
   useCommitmentFormBodyPickers,
   useCommitmentFormStripAccounts,
-  useCommitmentFormStripError,
 } from './commitment_form_body.hook';
 import { DurationPicker } from './duration_picker';
 import { RecurrencePicker } from './recurrence_picker';
@@ -139,12 +139,12 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
     () => categories.filter((c) => c.type === CategoryType.Expense),
     [categories],
   );
-  const accountsById = useCommitmentFormStripAccounts(accountId);
-  const stripError = useCommitmentFormStripError(accountId);
+  const accountRead = useCommitmentFormStripAccounts(accountId);
+  const stripError = resolveCommitmentFormStripError(accountRead, accountId);
   const stripChips = resolveCommitmentStripChips({
     activeAccounts: accounts,
     accountId,
-    accountsById,
+    accountsById: accountRead.accountsById,
   });
 
   const {

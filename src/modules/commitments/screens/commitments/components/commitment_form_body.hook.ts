@@ -3,9 +3,11 @@ import { useFormState, type UseFormReturn } from 'react-hook-form';
 import { useShallow } from 'zustand/react/shallow';
 
 import { Strings } from '@/constants/strings';
-import type { Account } from '@/modules/accounts/entities/account.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
-import { lookupLeavesUnresolved } from '@/modules/accounts/store/account_lookup.helpers';
+import {
+  type AccountsByIdRead,
+  lookupLeavesUnresolved,
+} from '@/modules/accounts/store/account_lookup.helpers';
 import { useAccountsById } from '@/modules/accounts/store/use_accounts_by_id.hook';
 
 import type { CommitmentFormValues } from '../commitment_form.shared';
@@ -43,10 +45,8 @@ export function useCommitmentFormBodyPickers() {
 }
 
 /** Every account the strip can name: active, archived, and the commitment's own when it was deleted. */
-export function useCommitmentFormStripAccounts(
-  accountId: string | undefined,
-): ReadonlyMap<string, Account> {
-  const { accountsById } = useAccountsById();
+export function useCommitmentFormStripAccounts(accountId: string | undefined): AccountsByIdRead {
+  const accountRead = useAccountsById();
 
   useEffect(() => {
     // A failure sets the store's `accountLookupError`; the chip reads `Unknown account` meanwhile.
@@ -58,7 +58,7 @@ export function useCommitmentFormStripAccounts(
     }
   }, [accountId]);
 
-  return accountsById;
+  return accountRead;
 }
 
 /** The body's own subscription to its faults: a compiled host reuses the body while `form` keeps its identity. */
@@ -80,8 +80,10 @@ export function useCommitmentFormBodyFaults(form: UseFormReturn<CommitmentFormVa
 }
 
 /** The strip's message while the form's account failed to load and the strip cannot name it. */
-export function useCommitmentFormStripError(accountId: string | undefined): string | undefined {
-  const accountRead = useAccountsById();
+export function resolveCommitmentFormStripError(
+  accountRead: AccountsByIdRead,
+  accountId: string | undefined,
+): string | undefined {
   return lookupLeavesUnresolved(accountRead, accountId === undefined ? [] : [accountId])
     ? Strings.transactionsAccountLookupError
     : undefined;

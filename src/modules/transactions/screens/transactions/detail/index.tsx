@@ -2,7 +2,6 @@ import { useLocalSearchParams } from 'expo-router';
 import React from 'react';
 
 import { DetailLoadError } from '@/components/ui/detail_load_error';
-import type { DetailLoadErrorCopy } from '@/components/ui/detail_load_error.helpers';
 import { DetailNotFoundState } from '@/components/ui/detail_not_found_state';
 import { DetailRowsCard } from '@/components/ui/detail_rows_card';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
@@ -16,14 +15,11 @@ import { DetailHero } from './components/detail_hero';
 import { TransactionDetailSkeleton, TransferFlowSkeletonCard } from './components/detail_skeleton';
 import { NoteCard } from './components/note_card';
 import { TransferFlowCard } from './components/transfer_flow_card';
+import {
+  TRANSACTION_DETAIL_LOAD_ERROR_COPY,
+  TRANSACTION_DETAIL_LOAD_ERROR_TEST_ID,
+} from './detail.helpers';
 import { useTransactionDetail } from './detail.hook';
-
-const LOAD_ERROR_COPY: DetailLoadErrorCopy = {
-  loadTitle: Strings.detailLoadErrorTitle,
-  refreshTitle: Strings.detailRefreshErrorTitle,
-  description: Strings.detailLoadErrorDescription,
-  retryLabel: Strings.detailLoadRetry,
-};
 
 export default function TransactionDetailScreen(): React.ReactElement {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -62,7 +58,11 @@ export default function TransactionDetailScreen(): React.ReactElement {
           body={Strings.detailNotFoundBody}
         />
       ) : state.viewState === 'firstLoadError' ? (
-        <DetailLoadError copy={LOAD_ERROR_COPY} testID="detail-load-error" onRetry={reload} />
+        <DetailLoadError
+          copy={TRANSACTION_DETAIL_LOAD_ERROR_COPY}
+          testID={TRANSACTION_DETAIL_LOAD_ERROR_TEST_ID}
+          onRetry={reload}
+        />
       ) : hasDetailContent ? (
         <>
           <ScreenScroll>
@@ -109,8 +109,8 @@ export default function TransactionDetailScreen(): React.ReactElement {
 
           {state.refreshError ? (
             <DetailLoadError
-              copy={LOAD_ERROR_COPY}
-              testID="detail-load-error"
+              copy={TRANSACTION_DETAIL_LOAD_ERROR_COPY}
+              testID={TRANSACTION_DETAIL_LOAD_ERROR_TEST_ID}
               floating
               onRetry={reload}
             />

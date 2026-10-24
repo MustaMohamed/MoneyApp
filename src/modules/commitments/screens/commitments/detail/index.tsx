@@ -1,6 +1,5 @@
 import { DetailEditAction } from '@/components/ui/detail_edit_action';
 import { DetailLoadError } from '@/components/ui/detail_load_error';
-import type { DetailLoadErrorCopy } from '@/components/ui/detail_load_error.helpers';
 import { DetailNotFoundState } from '@/components/ui/detail_not_found_state';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { StackHeader } from '@/components/ui/stack_header';
@@ -13,15 +12,12 @@ import { DetailsCard } from './components/details_card';
 import { PaySheet } from './components/pay_sheet';
 import { PaymentHistory } from './components/payment_history';
 import { SkipConfirmSheet } from './components/skip_confirm_sheet';
-import { commitmentDetailShowsEdit } from './detail.helpers';
+import {
+  COMMITMENT_DETAIL_LOAD_ERROR_COPY,
+  COMMITMENT_DETAIL_LOAD_ERROR_TEST_ID,
+  commitmentDetailShowsEdit,
+} from './detail.helpers';
 import { useCommitmentDetail } from './detail.hook';
-
-const LOAD_ERROR_COPY: DetailLoadErrorCopy = {
-  loadTitle: Strings.commitmentsDetailLoadErrorTitle,
-  refreshTitle: Strings.commitmentsDetailRefreshErrorTitle,
-  description: Strings.commitmentsDetailLoadErrorDescription,
-  retryLabel: Strings.commitmentsDetailLoadRetry,
-};
 
 export default function CommitmentDetailScreen() {
   const { state, confirmSkip, skipPayment, cancelSkip, reload, openPaySheet, goToEdit, goBack } =
@@ -55,8 +51,8 @@ export default function CommitmentDetailScreen() {
 
       {state.viewState === 'firstLoadError' ? (
         <DetailLoadError
-          copy={LOAD_ERROR_COPY}
-          testID="commitment-detail-load-error"
+          copy={COMMITMENT_DETAIL_LOAD_ERROR_COPY}
+          testID={COMMITMENT_DETAIL_LOAD_ERROR_TEST_ID}
           onRetry={reload}
         />
       ) : null}
@@ -97,8 +93,8 @@ export default function CommitmentDetailScreen() {
 
       {state.viewState === 'refreshErrorWithData' ? (
         <DetailLoadError
-          copy={LOAD_ERROR_COPY}
-          testID="commitment-detail-load-error"
+          copy={COMMITMENT_DETAIL_LOAD_ERROR_COPY}
+          testID={COMMITMENT_DETAIL_LOAD_ERROR_TEST_ID}
           floating
           onRetry={reload}
         />
