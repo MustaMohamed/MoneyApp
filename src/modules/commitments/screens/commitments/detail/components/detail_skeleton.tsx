@@ -1,6 +1,15 @@
 import { Card, SkeletonGroup } from 'heroui-native';
 import { View, useWindowDimensions, type ViewStyle } from 'react-native';
 
+import {
+  DETAIL_HERO_BADGE_GAP,
+  DETAIL_HERO_CAPTION_GAP,
+  DETAIL_HERO_OVERLINE_GAP,
+  DETAIL_HERO_PADDING,
+  DETAIL_HERO_SHELL_STYLE,
+  DETAIL_HERO_TILE_GAP,
+  resolveDetailHeroGeometry,
+} from '@/components/ui/detail_hero.geometry';
 import { resolveDetailRowHeight } from '@/components/ui/detail_row.geometry';
 import { DetailRowsCard } from '@/components/ui/detail_rows_card';
 import { HeroShell } from '@/components/ui/hero_shell';
@@ -8,16 +17,6 @@ import { ScreenScroll } from '@/components/ui/screen';
 import { ScaledBar } from '@/components/ui/skeleton_bar';
 import { Strings } from '@/constants/strings';
 import { Radius, Size, Type, lineHeightFor } from '@/constants/theme';
-
-import {
-  COMMITMENT_DETAIL_SKELETON_BADGE_GAP,
-  COMMITMENT_DETAIL_SKELETON_CAPTION_GAP,
-  COMMITMENT_DETAIL_SKELETON_HERO_PADDING,
-  COMMITMENT_DETAIL_SKELETON_OVERLINE_GAP,
-  COMMITMENT_DETAIL_SKELETON_SHELL_STYLE,
-  COMMITMENT_DETAIL_SKELETON_TILE_GAP,
-  resolveCommitmentDetailSkeletonHero,
-} from './detail_skeleton.geometry';
 
 const DETAIL_ROW_COUNT = 6;
 const CYCLE_BUTTON_COUNT = 2;
@@ -29,7 +28,7 @@ const CYCLE_CARD_FRAME_STYLE: Readonly<ViewStyle> = Object.freeze({
 
 export function CommitmentDetailSkeleton(): React.ReactElement {
   const { fontScale } = useWindowDimensions();
-  const hero = resolveCommitmentDetailSkeletonHero(fontScale);
+  const hero = resolveDetailHeroGeometry(fontScale);
   const rowHeight = resolveDetailRowHeight(fontScale);
   return (
     <ScreenScroll
@@ -37,13 +36,14 @@ export function CommitmentDetailSkeleton(): React.ReactElement {
       accessibilityLabel={Strings.commitmentsDetailLoadingA11y}
     >
       <SkeletonGroup isLoading isSkeletonOnly>
-        <HeroShell glowOpacity={0} style={COMMITMENT_DETAIL_SKELETON_SHELL_STYLE}>
-          <View style={{ padding: COMMITMENT_DETAIL_SKELETON_HERO_PADDING }}>
+        <HeroShell glowOpacity={0} style={DETAIL_HERO_SHELL_STYLE}>
+          <View style={{ padding: DETAIL_HERO_PADDING, height: hero.height }}>
             <View
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
-                gap: COMMITMENT_DETAIL_SKELETON_TILE_GAP,
+                gap: DETAIL_HERO_TILE_GAP,
+                height: hero.topHeight,
               }}
             >
               <SkeletonGroup.Item
@@ -62,7 +62,7 @@ export function CommitmentDetailSkeleton(): React.ReactElement {
                   className="w-16 rounded-full"
                   style={{
                     height: hero.badgeHeight,
-                    marginTop: COMMITMENT_DETAIL_SKELETON_BADGE_GAP,
+                    marginTop: DETAIL_HERO_BADGE_GAP,
                   }}
                 />
               </View>
@@ -71,7 +71,7 @@ export function CommitmentDetailSkeleton(): React.ReactElement {
               className="w-15 rounded-md"
               style={{
                 height: hero.overlineLineHeight,
-                marginTop: COMMITMENT_DETAIL_SKELETON_OVERLINE_GAP,
+                marginTop: DETAIL_HERO_OVERLINE_GAP,
               }}
             />
             <SkeletonGroup.Item className="w-45 rounded-lg" style={{ height: hero.amountHeight }} />
@@ -79,7 +79,7 @@ export function CommitmentDetailSkeleton(): React.ReactElement {
               className="w-38 rounded-md"
               style={{
                 height: hero.captionLineHeight,
-                marginTop: COMMITMENT_DETAIL_SKELETON_CAPTION_GAP,
+                marginTop: DETAIL_HERO_CAPTION_GAP,
               }}
             />
           </View>
