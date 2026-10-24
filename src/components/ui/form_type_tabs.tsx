@@ -1,12 +1,7 @@
 import { View, useWindowDimensions } from 'react-native';
 
-import {
-  ACCOUNT_STRIP_WRAPPER_PADDING_Y,
-  resolveFormSupportLineProps,
-  resolveTypeTabsGeometry,
-} from '@/components/ui/form_sheet.geometry';
+import { resolveTypeTabsGeometry } from '@/components/ui/form_sheet.geometry';
 import { SegmentedTabs, type TabSegment } from '@/components/ui/tabs';
-import { Text } from '@/components/ui/text';
 
 interface FormTypeTabsProps<T extends string> {
   segments: TabSegment<T>[];
@@ -40,35 +35,6 @@ export function FormTypeTabs<T extends string>({
         accessibilityLabel={accessibilityLabel}
         isDisabled={isDisabled}
       />
-    </View>
-  );
-}
-
-export function FormSupportLine({
-  text,
-  wrap,
-}: {
-  text: string;
-  wrap: boolean;
-}): React.ReactElement {
-  const line = resolveFormSupportLineProps(wrap, useWindowDimensions().fontScale);
-
-  return (
-    <View className="min-h-8 justify-center px-4 py-1.5">
-      <Text className="font-inter text-muted" {...line}>
-        {text}
-      </Text>
-    </View>
-  );
-}
-
-export function FormStrip({ children }: { children: React.ReactNode }): React.ReactElement {
-  return (
-    <View
-      className="border-separator border-b"
-      style={{ paddingVertical: ACCOUNT_STRIP_WRAPPER_PADDING_Y }}
-    >
-      {children}
     </View>
   );
 }

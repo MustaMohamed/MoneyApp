@@ -23,7 +23,7 @@ import {
 import { Input } from './input';
 import { SegmentedTabs } from './tabs';
 import { Text } from './text';
-import { resolveOneLineTextProps, scaledTextStyleAboveOne } from './text_scale.geometry';
+import { resolveOneLineTextPropsAt } from './text_scale.geometry';
 import { useTouchFloorGridHitSlop } from './touch_floor.hook';
 
 interface FilterAccordionShellProps {
@@ -70,7 +70,7 @@ export function FilterAccordionShell({
   children,
 }: FilterAccordionShellProps): React.ReactElement {
   const { fontScale } = useWindowDimensions();
-  const summaryLine = resolveOneLineTextProps(scaledTextStyleAboveOne(Type.micro, fontScale));
+  const summaryLine = resolveOneLineTextPropsAt(Type.micro, fontScale);
 
   return (
     <View
@@ -112,7 +112,7 @@ export function FilterAccordionShell({
                 className="flex-row items-center gap-1.5"
                 style={{ flex: 1, minWidth: 0, justifyContent: 'flex-end' }}
               >
-                <Text className="font-inter text-foreground/60 text-[11px]" {...summaryLine}>
+                <Text className="font-inter text-foreground/60" {...summaryLine}>
                   {expanded ? '' : summary}
                 </Text>
                 <Accordion.Indicator isAnimatedStyleActive={false}>

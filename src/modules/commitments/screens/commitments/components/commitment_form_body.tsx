@@ -10,7 +10,9 @@ import { AccountStrip } from '@/components/ui/account_strip';
 import { Button } from '@/components/ui/button';
 import { FormErrorText } from '@/components/ui/form_error_text';
 import { FORM_SHEET_CONTENT_CONTAINER_STYLE } from '@/components/ui/form_sheet.geometry';
-import { FormStrip, FormSupportLine, FormTypeTabs } from '@/components/ui/form_type_tabs';
+import { FormStrip } from '@/components/ui/form_strip';
+import { FormSupportLine } from '@/components/ui/form_support_line';
+import { FormTypeTabs } from '@/components/ui/form_type_tabs';
 import { useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { SegmentedTabs } from '@/components/ui/tabs';
 import { Text } from '@/components/ui/text';
@@ -23,7 +25,7 @@ import {
   RecurrencePeriod,
 } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Type, lineHeightFor } from '@/constants/theme';
+import { Size, Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 import type { Account } from '@/database/entities/account.entity';
 import type { Category } from '@/database/entities/category.entity';
@@ -49,6 +51,10 @@ import {
 } from './commitment_form_body.hook';
 import { DurationPicker } from './duration_picker';
 import { RecurrencePicker } from './recurrence_picker';
+
+const LABEL_TEXT_STYLE = { fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) };
+const VALUE_TEXT_STYLE = { fontSize: Type.bodyStrong, lineHeight: lineHeightFor(Type.bodyStrong) };
+const HINT_TEXT_STYLE = { fontSize: Type.pillLabel, lineHeight: lineHeightFor(Type.pillLabel) };
 
 interface CommitmentFormBodyProps {
   form: UseFormReturn<CommitmentFormValues>;
@@ -248,7 +254,10 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
 
         <View style={FORM_SHEET_CONTENT_CONTAINER_STYLE}>
           <View className="bg-default gap-1 rounded-2xl px-3 py-3">
-            <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
+            <Text
+              className="font-inter text-muted tracking-wide uppercase"
+              style={LABEL_TEXT_STYLE}
+            >
               {Strings.commitmentsFieldName}
             </Text>
             <Controller
@@ -269,12 +278,17 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
               )}
             />
             {errors.name ? (
-              <Text className="font-inter text-danger text-[11px]">{errors.name}</Text>
+              <Text className="font-inter text-danger" style={LABEL_TEXT_STYLE}>
+                {errors.name}
+              </Text>
             ) : null}
           </View>
 
           <View className="bg-default gap-2 rounded-2xl px-3 py-3">
-            <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
+            <Text
+              className="font-inter text-muted tracking-wide uppercase"
+              style={LABEL_TEXT_STYLE}
+            >
               {Strings.commitmentsFieldCurrency}
             </Text>
             <SegmentedTabs<Currency>
@@ -299,27 +313,35 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
             accessibilityRole="button"
             accessibilityLabel={Strings.commitmentsFieldCategory}
           >
-            <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
+            <Text
+              className="font-inter text-muted tracking-wide uppercase"
+              style={LABEL_TEXT_STYLE}
+            >
               {Strings.commitmentsFieldCategory}
             </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-2">
               {selectedCategory ? (
-                <Text className="font-sora-semibold text-foreground flex-1 text-[15px]">
+                <Text
+                  className="font-sora-semibold text-foreground flex-1"
+                  style={VALUE_TEXT_STYLE}
+                >
                   {selectedCategory.name}
                 </Text>
               ) : (
-                <Text className="font-inter text-muted flex-1 text-[15px]">
+                <Text className="font-inter text-muted flex-1" style={VALUE_TEXT_STYLE}>
                   {Strings.addTxPickCategoryTitle}
                 </Text>
               )}
               <MaterialCommunityIcons
                 name={locked ? 'lock-outline' : 'chevron-right'}
-                size={18}
+                size={Size.iconSm}
                 color={CoreTokens.text2}
               />
             </View>
             {errors.categoryId ? (
-              <Text className="font-inter text-danger text-[11px]">{errors.categoryId}</Text>
+              <Text className="font-inter text-danger" style={LABEL_TEXT_STYLE}>
+                {errors.categoryId}
+              </Text>
             ) : null}
           </PressableFeedback>
 
@@ -336,27 +358,33 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
             accessibilityRole="button"
             accessibilityLabel={Strings.commitmentsFieldStartDate}
           >
-            <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
+            <Text
+              className="font-inter text-muted tracking-wide uppercase"
+              style={LABEL_TEXT_STYLE}
+            >
               {Strings.commitmentsFieldStartDate}
             </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-2">
               <Text
                 className={
                   startDate
-                    ? 'font-sora-semibold text-foreground flex-1 text-[15px]'
-                    : 'font-inter text-muted flex-1 text-[15px]'
+                    ? 'font-sora-semibold text-foreground flex-1'
+                    : 'font-inter text-muted flex-1'
                 }
+                style={VALUE_TEXT_STYLE}
               >
                 {formattedStartDate}
               </Text>
               <MaterialCommunityIcons
                 name={locked ? 'lock-outline' : 'calendar'}
-                size={18}
+                size={Size.iconSm}
                 color={CoreTokens.text2}
               />
             </View>
             {errors.startDate ? (
-              <Text className="font-inter text-danger text-[11px]">{errors.startDate}</Text>
+              <Text className="font-inter text-danger" style={LABEL_TEXT_STYLE}>
+                {errors.startDate}
+              </Text>
             ) : null}
           </PressableFeedback>
 
@@ -383,10 +411,13 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
 
           <View className="bg-default gap-1 rounded-2xl px-3 py-3">
             <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-1">
-              <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
+              <Text
+                className="font-inter text-muted tracking-wide uppercase"
+                style={LABEL_TEXT_STYLE}
+              >
                 {Strings.commitmentsFieldNotes}
               </Text>
-              <Text className="font-inter text-muted text-[10px]">
+              <Text className="font-inter text-muted" style={HINT_TEXT_STYLE}>
                 {Strings.commitmentsOptional}
               </Text>
             </View>
@@ -402,7 +433,8 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
                   placeholder={Strings.addTxNotePlaceholder}
                   multiline
                   numberOfLines={3}
-                  style={{ minHeight: 72, textAlignVertical: 'top' }}
+                  isDisabled={locked}
+                  style={{ minHeight: Size.notesInputMinHeight, textAlignVertical: 'top' }}
                 />
               )}
             />
