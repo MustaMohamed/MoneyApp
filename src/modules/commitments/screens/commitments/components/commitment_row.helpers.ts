@@ -21,8 +21,8 @@ import {
   STATUS_COLORS,
   STATUS_ICONS,
   STATUS_LABELS,
+  composeCommitmentAmount,
   resolveDisplayAmount,
-  type DisplayAmount,
 } from '@/modules/commitments/utils/commitment_status';
 import { resolveDayIndicator, type DayIndicator } from '@/modules/commitments/utils/day_indicator';
 import {
@@ -38,7 +38,7 @@ import {
   type RowTile,
 } from '@/modules/transactions/components/transaction_row.helpers';
 import { resolveAccountName } from '@/utils/account_name';
-import { formatDisplayAmount, formatDisplayAmountParts } from '@/utils/format_amount';
+import { formatDisplayAmount } from '@/utils/format_amount';
 import { formatShortWeekdayDate } from '@/utils/format_date';
 
 import { resolveCommitmentRowLegEgp } from '../../../domain/commitment_section_sums';
@@ -161,32 +161,6 @@ export interface CommitmentRowPresentation {
   accessibilityLabel: string;
 }
 
-function amountFor(
-  payment: CommitmentPayment,
-  displayAmount: DisplayAmount,
-  code: string,
-): { text: string; spoken: string } {
-  const { amount, showTilde } = displayAmount;
-  if (amount === undefined) {
-    return showTilde
-      ? {
-          text: Strings.commitmentRowNoEstimate,
-          spoken: Strings.commitmentRowNoEstimateLabel(code),
-        }
-      : {
-          text: Strings.commitmentRowUnavailable,
-          spoken: Strings.commitmentRowUnavailableLabel(code),
-        };
-  }
-  const { text, withCode } = formatDisplayAmountParts(amount, payment.currency);
-  return showTilde
-    ? {
-        text: Strings.commitmentRowEstimate(text),
-        spoken: Strings.commitmentRowEstimate(withCode),
-      }
-    : { text, spoken: withCode };
-}
-
 export function buildCommitmentRowPresentation({
   payment,
   commitment,
@@ -201,7 +175,7 @@ export function buildCommitmentRowPresentation({
   const dueDay = formatShortWeekdayDate(payment.due_date, today);
   const currencyCode: string = CURRENCY_CONFIG[payment.currency].code;
   const displayAmount = resolveDisplayAmount(payment, commitment);
-  const amount = amountFor(payment, displayAmount, currencyCode);
+  const amount = composeCommitmentAmount(displayAmount, payment.currency, currencyCode);
   const dayDistance = resolvePaymentDayDistance(payment, today);
   const dayIndicator = resolveDayIndicator(dayDistance);
   const leg = resolveCommitmentRowLegEgp({ payment, amount: displayAmount.amount, rate: liveRate });

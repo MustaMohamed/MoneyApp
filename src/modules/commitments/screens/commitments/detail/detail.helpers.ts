@@ -2,7 +2,7 @@ import type { DetailHeroBadge, DetailHeroModel } from '@/components/ui/detail_he
 import type { DetailLoadErrorCopy } from '@/components/ui/detail_load_error.helpers';
 import { HERO_GRADIENT_COLORS } from '@/components/ui/hero_gradient';
 import { CURRENCY_CONFIG } from '@/constants/currency';
-import { AmountType, type Currency } from '@/constants/enums';
+import { AmountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { CoreTokens } from '@/constants/theme_tokens';
 import { resolveBadgeColors } from '@/modules/accounts/constants/account_badge_color';
@@ -11,13 +11,12 @@ import {
   resolveCategoryGlyph,
   resolveHeroTileGlyphColor,
 } from '@/modules/transactions/components/transaction_row.helpers';
-import { formatDisplayAmountParts } from '@/utils/format_amount';
 import { formatWeekdayDate } from '@/utils/format_date';
 
 import { isUnpaidPayment } from '../../../domain/payment_state';
 import type { Commitment } from '../../../entities/commitment.entity';
 import type { CommitmentPayment } from '../../../entities/commitment_payment.entity';
-import { resolveDisplayAmount } from '../../../utils/commitment_status';
+import { composeCommitmentAmount, resolveDisplayAmount } from '../../../utils/commitment_status';
 import { buildRecurrenceLabel } from '../../../utils/recurrence_label';
 import type { CommitmentDetailLoadStatus } from './detail.state';
 
@@ -122,33 +121,6 @@ export interface CommitmentDetailHeroInput {
   today: string;
 }
 
-function heroAmount(
-  payment: CommitmentPayment | undefined,
-  commitment: Commitment,
-  currency: Currency,
-  code: string,
-): { value: string; spoken: string } {
-  const { amount, showTilde } = resolveDisplayAmount(payment, commitment);
-  if (amount === undefined) {
-    return showTilde
-      ? {
-          value: Strings.commitmentRowNoEstimate,
-          spoken: Strings.commitmentRowNoEstimateLabel(code),
-        }
-      : {
-          value: Strings.commitmentRowUnavailable,
-          spoken: Strings.commitmentRowUnavailableLabel(code),
-        };
-  }
-  const { text, withCode } = formatDisplayAmountParts(amount, currency);
-  return showTilde
-    ? {
-        value: Strings.commitmentRowEstimate(text),
-        spoken: Strings.commitmentRowEstimate(withCode),
-      }
-    : { value: text, spoken: withCode };
-}
-
 export function buildCommitmentDetailHero({
   commitment,
   payment,
@@ -158,7 +130,7 @@ export function buildCommitmentDetailHero({
   const { glyphName, glyphColor } = resolveCategoryGlyph(category);
   const currency = payment?.currency ?? commitment.currency;
   const code = CURRENCY_CONFIG[currency].code;
-  const amount = heroAmount(payment, commitment, currency, code);
+  const amount = composeCommitmentAmount(resolveDisplayAmount(payment, commitment), currency, code);
   const categoryName = category?.name ?? Strings.uncategorized;
   const startDate = formatWeekdayDate(commitment.start_date);
   return {
@@ -167,7 +139,7 @@ export function buildCommitmentDetailHero({
     tileColor: glyphColor,
     tileGlyph: glyphName,
     tileGlyphColor: resolveHeroTileGlyphColor(glyphColor),
-    amountValue: amount.value,
+    amountValue: amount.text,
     amountCode: code,
     amountColor: CoreTokens.text1,
     amountAccessibilityLabel: amount.spoken,

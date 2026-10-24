@@ -1,10 +1,10 @@
 import type MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import type React from 'react';
 
-import { AmountType, CommitmentPaymentStatus } from '@/constants/enums';
+import { AmountType, CommitmentPaymentStatus, type Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
-import { formatDisplayAmount } from '@/utils/format_amount';
+import { formatDisplayAmount, formatDisplayAmountParts } from '@/utils/format_amount';
 
 import { isPaidPayment } from '../domain/payment_state';
 import type { Commitment } from '../entities/commitment.entity';
@@ -63,6 +63,33 @@ export function resolveDisplayAmount(
   const baseAmount = commitment?.amount ?? undefined;
   const amount = isPaid ? (paidAmount ?? dueAmount ?? baseAmount) : (dueAmount ?? baseAmount);
   return { amount, showTilde: isVariable && !isPaid };
+}
+
+/** The display amount's text and its spoken label: `~` before an estimate, `~` alone with none, `—` with no amount. */
+export function composeCommitmentAmount(
+  display: DisplayAmount,
+  currency: Currency,
+  code: string,
+): { text: string; spoken: string } {
+  const { amount, showTilde } = display;
+  if (amount === undefined) {
+    return showTilde
+      ? {
+          text: Strings.commitmentRowNoEstimate,
+          spoken: Strings.commitmentRowNoEstimateLabel(code),
+        }
+      : {
+          text: Strings.commitmentRowUnavailable,
+          spoken: Strings.commitmentRowUnavailableLabel(code),
+        };
+  }
+  const { text, withCode } = formatDisplayAmountParts(amount, currency);
+  return showTilde
+    ? {
+        text: Strings.commitmentRowEstimate(text),
+        spoken: Strings.commitmentRowEstimate(withCode),
+      }
+    : { text, spoken: withCode };
 }
 
 export function formatCommitmentAmount(
