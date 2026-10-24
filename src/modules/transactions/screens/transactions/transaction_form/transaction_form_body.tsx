@@ -1,6 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { Input, Spinner } from 'heroui-native';
+import { Spinner } from 'heroui-native';
 import { View, useWindowDimensions } from 'react-native';
 
 import { TYPE_OPTIONS } from '@/components/account_type_pill';
@@ -8,19 +8,16 @@ import { AccountColorTile } from '@/components/ui/account_color_tile';
 import { AccountStrip } from '@/components/ui/account_strip';
 import { DangerRing } from '@/components/ui/danger_ring';
 import { DateRow } from '@/components/ui/date_row';
-import { FactRow } from '@/components/ui/fact_row';
 import { FormPickerRow } from '@/components/ui/form_picker_row';
 import {
   ACCOUNT_STRIP_WRAPPER_PADDING_Y,
   FORM_SHEET_CONTENT_CONTAINER_STYLE,
-  resolveNoteInputGeometry,
 } from '@/components/ui/form_sheet.geometry';
 import type { AccountStripChip } from '@/components/ui/form_sheet.helpers';
-import { INPUT_NO_FOCUS_BORDER_COLOR } from '@/components/ui/input';
 import { ListCard } from '@/components/ui/list_card';
+import { NoteFactRow } from '@/components/ui/note_fact_row';
 import { useNoteReveal } from '@/components/ui/note_reveal.hook';
 import { RateRow } from '@/components/ui/rate_row';
-import { useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import {
   resolveOneLineTextProps,
@@ -133,16 +130,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
     setNote,
     currency,
   } = props;
-  const { onFocus: onInputFocus, onBlur: onInputBlur } = useBottomSheetAwareHandlers();
   const { scrollRef, handleScrollLayout, handleNoteFocus, handleNoteBlur } = useNoteReveal();
-  const handleNoteInputFocus: typeof onInputFocus = (event) => {
-    onInputFocus(event);
-    handleNoteFocus();
-  };
-  const handleNoteInputBlur: typeof onInputBlur = (event) => {
-    onInputBlur(event);
-    handleNoteBlur();
-  };
 
   const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;
   const budgetFieldError = resolveBudgetFieldError(budgetError, budgetLookupError);
@@ -150,7 +138,6 @@ export function TransactionFormBody(props: Props): React.ReactElement {
   const toRowFace = resolveToRowFace({ locked, account: selectedToAccount ?? undefined });
   const { fontScale } = useWindowDimensions();
   const supportingLine = resolveOneLineTextProps(scaledTextStyleAboveOne(Type.micro, fontScale));
-  const noteGeometry = resolveNoteInputGeometry(fontScale);
   const ratePreview: RatePreviewInput = {
     mode: formMode,
     type,
@@ -363,32 +350,14 @@ export function TransactionFormBody(props: Props): React.ReactElement {
             <DateRow ownerId={datePickerOwnerId} value={date} onChange={setDate} divider={false} />
           </View>
 
-          <FactRow testID="note-row" label={Strings.addTxNoteLabel} showDivider={false}>
-            <Input
-              value={note}
-              onChangeText={setNote}
-              placeholder={Strings.addTxNotePlaceholder}
-              placeholderTextColor={CoreTokens.text2}
-              onFocus={handleNoteInputFocus}
-              onBlur={handleNoteInputBlur}
-              // Android: a single-line edit text keeps the parent's touch lock, so a drag that starts on it never scrolls the form.
-              multiline
-              allowFontScaling={noteGeometry.text === undefined}
-              submitBehavior="blurAndSubmit"
-              variant="secondary"
-              className="font-sora text-foreground rounded-none border-0 bg-transparent p-0 tabular-nums"
-              style={{
-                flex: 1,
-                minWidth: 0,
-                minHeight: noteGeometry.minHeight,
-                textAlign: 'right',
-                borderColor: INPUT_NO_FOCUS_BORDER_COLOR,
-                fontSize: Type.body,
-                lineHeight: lineHeightFor(Type.body),
-                ...noteGeometry.text,
-              }}
-            />
-          </FactRow>
+          <NoteFactRow
+            label={Strings.addTxNoteLabel}
+            placeholder={Strings.addTxNotePlaceholder}
+            value={note}
+            onChangeText={setNote}
+            onFocus={handleNoteFocus}
+            onBlur={handleNoteBlur}
+          />
         </ListCard>
       </View>
       <TransactionRateEditor
