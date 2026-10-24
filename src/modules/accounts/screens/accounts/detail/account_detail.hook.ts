@@ -18,7 +18,8 @@ import { AccountNameTakenError } from '../../../repositories/account.errors';
 import type { AccountActivityLoadInput } from '../../../repositories/account_activity.repository';
 import type { ArchivedAccountDetailLoadInput } from '../../../repositories/archived_account_detail.repository';
 import { useAccountStore } from '../../../store/account.store';
-import { getTransactionAccountIds, mergeAccountsById } from '../../../store/account_lookup.helpers';
+import { getTransactionAccountIds } from '../../../store/account_lookup.helpers';
+import { useAccountsById } from '../../../store/use_accounts_by_id.hook';
 import { resolveViewState } from './account_detail.helpers';
 import { useAccountDetailState } from './account_detail.state';
 import { useArchivedAccountDetailStore } from './archived_account_detail.store';
@@ -37,13 +38,8 @@ export function useAccountDetail() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const { accounts, archivedAccounts, accountLookupById } = useAccountStore(
-    useShallow((s) => ({
-      accounts: s.accounts,
-      archivedAccounts: s.archivedAccounts,
-      accountLookupById: s.accountLookupById,
-    })),
-  );
+  const accounts = useAccountStore((s) => s.accounts);
+  const { accountsById } = useAccountsById();
   const loadAccountLookup = useAccountStore.getState().loadAccountLookup;
   const archiveAccount = useAccountStore.getState().archiveAccount;
   const unarchiveAccount = useAccountStore.getState().unarchiveAccount;
@@ -182,10 +178,6 @@ export function useAccountDetail() {
     // The store records the failure in accountLookupError; an unresolved row reads Unknown account.
     loadAccountLookup(activityAccountIds).catch(() => {});
   }, [activityAccountIds, loadAccountLookup]);
-  const accountsById = useMemo(
-    () => mergeAccountsById(accounts, archivedAccounts, accountLookupById),
-    [accountLookupById, accounts, archivedAccounts],
-  );
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
 
   const activityRows = useMemo(() => {

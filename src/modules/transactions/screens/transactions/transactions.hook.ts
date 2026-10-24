@@ -6,10 +6,10 @@ import { useShallow } from 'zustand/react/shallow';
 import { buildAccountChips } from '@/components/ui/account_chips.helpers';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import {
-  findMissingAccountIds,
   getTransactionAccountIds,
-  mergeAccountsById,
+  lookupLeavesUnresolved,
 } from '@/modules/accounts/store/account_lookup.helpers';
+import { useAccountsById } from '@/modules/accounts/store/use_accounts_by_id.hook';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { transactionRepository } from '@/modules/transactions/repositories/transaction.repository';
@@ -127,16 +127,11 @@ export function useTransactions() {
   const refresh = useTransactionStore.getState().refresh;
   const retry = useTransactionStore.getState().retry;
 
-  const { accounts, archivedAccounts, accountLookupById, accountLookupError, accountsLoaded } =
-    useAccountStore(
-      useShallow((s) => ({
-        accounts: s.accounts,
-        archivedAccounts: s.archivedAccounts,
-        accountLookupById: s.accountLookupById,
-        accountLookupError: s.accountLookupError,
-        accountsLoaded: s.hasLoaded,
-      })),
-    );
+  const { accounts, accountsLoaded } = useAccountStore(
+    useShallow((s) => ({ accounts: s.accounts, accountsLoaded: s.hasLoaded })),
+  );
+  const accountRead = useAccountsById();
+  const { accountsById } = accountRead;
   const loadAccountLookup = useAccountStore.getState().loadAccountLookup;
   const categories = useCategoryStore.useState.categories();
 
@@ -420,10 +415,6 @@ export function useTransactions() {
     }, [loadTotals, refresh, setScrollOffset]),
   );
 
-  const accountsById = useMemo(
-    () => mergeAccountsById(accounts, archivedAccounts, accountLookupById),
-    [accountLookupById, accounts, archivedAccounts],
-  );
   const deleteOwner = useId();
   const {
     state: deleteState,
@@ -432,8 +423,7 @@ export function useTransactions() {
     cancel: cancelDelete,
   } = useTransactionDelete(deleteOwner, accountsById);
   const accountLabelsById = useMemo(() => labelAccountsById(accountsById), [accountsById]);
-  const showAccountLookupError =
-    accountLookupError && findMissingAccountIds(transactionAccountIds, accountsById).length > 0;
+  const showAccountLookupError = lookupLeavesUnresolved(accountRead, transactionAccountIds);
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const today = toLocalDateString(new Date());
   const currentMonth = today.slice(0, 7);
