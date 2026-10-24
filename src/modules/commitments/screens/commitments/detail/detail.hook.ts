@@ -24,6 +24,7 @@ import {
 } from '../../../store/commitment_form_host.state';
 import { usePaySheetState } from './components/pay_sheet.state';
 import {
+  buildCommitmentDetailHero,
   overlayStorePayments,
   resolveCommitmentDetailCycle,
   resolveCommitmentDetailViewState,
@@ -171,6 +172,14 @@ export function useCommitmentDetail() {
     [commitment],
   );
 
+  const hero = useMemo(
+    () =>
+      commitment && today !== undefined
+        ? buildCommitmentDetailHero({ commitment, payment, category, today })
+        : undefined,
+    [commitment, payment, category, today],
+  );
+
   const durationLabel = useMemo(
     () => (commitment ? buildDurationLabel(commitment) : ''),
     [commitment],
@@ -232,6 +241,7 @@ export function useCommitmentDetail() {
       category,
       account,
       today,
+      hero,
       recurrenceLabel,
       durationLabel,
       skipConfirmVisible,

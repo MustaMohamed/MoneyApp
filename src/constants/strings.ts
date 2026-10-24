@@ -1134,6 +1134,10 @@ export const Strings = {
   commitmentsDetailCurrentCycle: 'Current Cycle',
   commitmentsDetailNotes: 'Notes',
   commitmentsDetailHeader: 'Commitment',
+  commitmentsCadenceVaries: (recurrence: string) => `${recurrence} · varies`,
+  commitmentsDetailCaptionSince: (category: string, date: string) => `${category} · since ${date}`,
+  commitmentsDetailCaptionStarts: (category: string, date: string) =>
+    `${category} · starts ${date}`,
   commitmentsDetailEditAccessibility: 'Edit commitment',
   commitmentsDetailLoadingA11y: 'Loading commitment',
   commitmentsDetailNotFoundTitle: 'This commitment is gone',

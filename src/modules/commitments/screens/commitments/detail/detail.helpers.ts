@@ -1,5 +1,23 @@
+import type { DetailHeroBadge, DetailHeroModel } from '@/components/ui/detail_hero';
+import { HERO_GRADIENT_COLORS } from '@/components/ui/hero_gradient';
+import { CURRENCY_CONFIG } from '@/constants/currency';
+import { AmountType, type Currency } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
+import { CoreTokens } from '@/constants/theme_tokens';
+import { resolveBadgeColors } from '@/modules/accounts/constants/account_badge_color';
+import type { Category } from '@/modules/categories/entities/category.entity';
+import {
+  resolveCategoryGlyph,
+  resolveHeroTileGlyphColor,
+} from '@/modules/transactions/components/transaction_row.helpers';
+import { formatDisplayAmountParts } from '@/utils/format_amount';
+import { formatWeekdayDate } from '@/utils/format_date';
+
 import { isUnpaidPayment } from '../../../domain/payment_state';
+import type { Commitment } from '../../../entities/commitment.entity';
 import type { CommitmentPayment } from '../../../entities/commitment_payment.entity';
+import { resolveDisplayAmount } from '../../../utils/commitment_status';
+import { buildRecurrenceLabel } from '../../../utils/recurrence_label';
 import type { CommitmentDetailLoadStatus } from './detail.state';
 
 export type CommitmentDetailViewState =
@@ -60,4 +78,92 @@ export function overlayStorePayments(
   const storeById = new Map(storePayments.map((p) => [p.id, p]));
   if (!rows.some((row) => storeById.has(row.id))) return rows;
   return rows.map((row) => storeById.get(row.id) ?? row);
+}
+
+// Frame C1 `.badge`: `text2` at a 0.22 share of the fill over the hero gradient's middle stop, `text1` ink.
+const CADENCE_BADGE_COLORS = resolveBadgeColors({
+  tone: CoreTokens.text2,
+  backdrop: HERO_GRADIENT_COLORS[1],
+  fillShare: 0.22,
+  ink: CoreTokens.text1,
+  inkShare: 1,
+});
+
+export function resolveCommitmentCadenceBadge(
+  commitment: Pick<Commitment, 'amount_type' | 'recurrence_every' | 'recurrence_period'>,
+): DetailHeroBadge {
+  const recurrence = buildRecurrenceLabel(commitment);
+  return {
+    badgeLabel:
+      commitment.amount_type === AmountType.Variable
+        ? Strings.commitmentsCadenceVaries(recurrence)
+        : recurrence,
+    badgeIcon: 'clock-outline',
+    badgeFill: CADENCE_BADGE_COLORS.fill,
+    badgeForeground: CADENCE_BADGE_COLORS.foreground,
+  };
+}
+
+export interface CommitmentDetailHeroInput {
+  commitment: Commitment;
+  payment: CommitmentPayment | undefined;
+  category: Category | undefined;
+  /** The local calendar date, `YYYY-MM-DD`. */
+  today: string;
+}
+
+function heroAmount(
+  payment: CommitmentPayment | undefined,
+  commitment: Commitment,
+  currency: Currency,
+  code: string,
+): { value: string; spoken: string } {
+  const { amount, showTilde } = resolveDisplayAmount(payment, commitment);
+  if (amount === undefined) {
+    return showTilde
+      ? {
+          value: Strings.commitmentRowNoEstimate,
+          spoken: Strings.commitmentRowNoEstimateLabel(code),
+        }
+      : {
+          value: Strings.commitmentRowUnavailable,
+          spoken: Strings.commitmentRowUnavailableLabel(code),
+        };
+  }
+  const { text, withCode } = formatDisplayAmountParts(amount, currency);
+  return showTilde
+    ? {
+        value: Strings.commitmentRowEstimate(text),
+        spoken: Strings.commitmentRowEstimate(withCode),
+      }
+    : { value: text, spoken: withCode };
+}
+
+export function buildCommitmentDetailHero({
+  commitment,
+  payment,
+  category,
+  today,
+}: CommitmentDetailHeroInput): DetailHeroModel {
+  const { glyphName, glyphColor } = resolveCategoryGlyph(category);
+  const currency = payment?.currency ?? commitment.currency;
+  const code = CURRENCY_CONFIG[currency].code;
+  const amount = heroAmount(payment, commitment, currency, code);
+  const categoryName = category?.name ?? Strings.uncategorized;
+  const startDate = formatWeekdayDate(commitment.start_date);
+  return {
+    title: commitment.name,
+    ...resolveCommitmentCadenceBadge(commitment),
+    tileColor: glyphColor,
+    tileGlyph: glyphName,
+    tileGlyphColor: resolveHeroTileGlyphColor(glyphColor),
+    amountValue: amount.value,
+    amountCode: code,
+    amountColor: CoreTokens.text1,
+    amountAccessibilityLabel: amount.spoken,
+    caption:
+      commitment.start_date > today
+        ? Strings.commitmentsDetailCaptionStarts(categoryName, startDate)
+        : Strings.commitmentsDetailCaptionSince(categoryName, startDate),
+  };
 }

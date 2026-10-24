@@ -1,14 +1,19 @@
-import { DISPLAY_HEADLINE_MAX_FONT_SCALE } from '@/components/ui/display_headline.geometry';
-import { STATUS_BADGE_PADDING_VERTICAL } from '@/components/ui/status_badge';
-import { FITTED_LINE_SLACK, scaledTextStyle } from '@/components/ui/text_scale.geometry';
-import { Spacing, Type } from '@/constants/theme';
+import {
+  DETAIL_HERO_BADGE_GAP,
+  DETAIL_HERO_CAPTION_GAP,
+  DETAIL_HERO_OVERLINE_GAP,
+  DETAIL_HERO_PADDING,
+  DETAIL_HERO_SHELL_STYLE,
+  DETAIL_HERO_TILE_GAP,
+  resolveDetailHeroGeometry,
+} from '@/components/ui/detail_hero.geometry';
 
-export const COMMITMENT_DETAIL_SKELETON_SHELL_STYLE = Object.freeze({ marginTop: Spacing.xs });
-export const COMMITMENT_DETAIL_SKELETON_HERO_PADDING = Spacing.md;
-export const COMMITMENT_DETAIL_SKELETON_TILE_GAP = Spacing.sm;
-export const COMMITMENT_DETAIL_SKELETON_BADGE_GAP = Spacing.xxs;
-export const COMMITMENT_DETAIL_SKELETON_OVERLINE_GAP = Spacing.md;
-export const COMMITMENT_DETAIL_SKELETON_CAPTION_GAP = Spacing.xxs;
+export const COMMITMENT_DETAIL_SKELETON_SHELL_STYLE = DETAIL_HERO_SHELL_STYLE;
+export const COMMITMENT_DETAIL_SKELETON_HERO_PADDING = DETAIL_HERO_PADDING;
+export const COMMITMENT_DETAIL_SKELETON_TILE_GAP = DETAIL_HERO_TILE_GAP;
+export const COMMITMENT_DETAIL_SKELETON_BADGE_GAP = DETAIL_HERO_BADGE_GAP;
+export const COMMITMENT_DETAIL_SKELETON_OVERLINE_GAP = DETAIL_HERO_OVERLINE_GAP;
+export const COMMITMENT_DETAIL_SKELETON_CAPTION_GAP = DETAIL_HERO_CAPTION_GAP;
 
 interface CommitmentDetailSkeletonHero {
   titleLineHeight: number;
@@ -18,19 +23,16 @@ interface CommitmentDetailSkeletonHero {
   captionLineHeight: number;
 }
 
-/** The hero's bar heights at `fontScale`; the amount line is fitted, so it keeps one device pixel of slack. */
+/** The hero's bar heights at `fontScale`, read from the shared hero so the skeleton stands as tall as the loaded hero. */
 export function resolveCommitmentDetailSkeletonHero(
   fontScale: number,
 ): CommitmentDetailSkeletonHero {
-  const title = scaledTextStyle(Type.headline, fontScale);
-  // The overline, the caption and the badge label are one step.
-  const micro = scaledTextStyle(Type.micro, fontScale);
-  const amount = scaledTextStyle(Type.detailHero, fontScale, DISPLAY_HEADLINE_MAX_FONT_SCALE);
+  const hero = resolveDetailHeroGeometry(fontScale);
   return {
-    titleLineHeight: title.lineHeight,
-    badgeHeight: micro.lineHeight + 2 * STATUS_BADGE_PADDING_VERTICAL,
-    overlineLineHeight: micro.lineHeight,
-    amountHeight: amount.lineHeight + FITTED_LINE_SLACK,
-    captionLineHeight: micro.lineHeight,
+    titleLineHeight: hero.titleLineHeight,
+    badgeHeight: hero.badgeHeight,
+    overlineLineHeight: hero.overlineLineHeight,
+    amountHeight: hero.amountHeight,
+    captionLineHeight: hero.captionLineHeight,
   };
 }
