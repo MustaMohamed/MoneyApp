@@ -79,7 +79,7 @@ jest.mock('@/components/ui/date_row', () => {
 });
 jest.mock(
   '@/modules/transactions/screens/transactions/transaction_form/components/type_tabs',
-  () => ({ TypeTabs: () => null }),
+  () => ({ TypeTabs: ({ children }: { children?: React.ReactNode }) => children ?? null }),
 );
 
 import { FORM_SHEET_CONTENT_CONTAINER_STYLE } from '@/components/ui/form_sheet.geometry';
