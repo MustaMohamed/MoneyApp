@@ -37,7 +37,7 @@ export function FormTypeTabs<T extends string>({
 
   return (
     <>
-      <View className="border-separator border-b px-4 py-2">
+      <FormTypeTabsRow>
         <SegmentedTabs<T>
           segments={segments}
           value={value}
@@ -51,8 +51,8 @@ export function FormTypeTabs<T extends string>({
           accessibilityLabel={accessibilityLabel}
           isDisabled={isDisabled}
         />
-      </View>
-      <View className="min-h-8 justify-center px-4 py-1.5">
+      </FormTypeTabsRow>
+      <FormSupportLineSlot>
         <Text
           testID="form-type-tabs-support-line"
           className="font-inter text-muted"
@@ -60,10 +60,24 @@ export function FormTypeTabs<T extends string>({
         >
           {supportText}
         </Text>
-      </View>
+      </FormSupportLineSlot>
       <FormStripRow>{children}</FormStripRow>
     </>
   );
+}
+
+/** The tabs' row, which the transaction skeleton draws its bar in too. */
+export function FormTypeTabsRow({ children }: { children: React.ReactNode }): React.ReactElement {
+  return <View className="border-separator border-b px-4 py-2">{children}</View>;
+}
+
+/** The support line's slot, which the transaction skeleton draws its bar in too. */
+export function FormSupportLineSlot({
+  children,
+}: {
+  children: React.ReactNode;
+}): React.ReactElement {
+  return <View className="min-h-8 justify-center px-4 py-1.5">{children}</View>;
 }
 
 export function FormStripRow({ children }: { children: React.ReactNode }): React.ReactElement {
