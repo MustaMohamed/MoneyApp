@@ -125,6 +125,28 @@ export function resolveTypeTabsGeometry(fontScale: number): {
   };
 }
 
+export type FormSupportLines = 'one' | 'wrap';
+
+export interface FormSupportLineTextProps {
+  numberOfLines: 1 | undefined;
+  allowFontScaling: boolean;
+  style: { fontSize: number; lineHeight: number; flexShrink?: 1 };
+}
+
+/** The type tabs' support line: `'one'` ends in a tail ellipsis, `'wrap'` runs onto as many lines as it needs; above scale 1 the app scales it. */
+export function resolveFormSupportLineTextProps(
+  lines: FormSupportLines,
+  fontScale: number,
+): FormSupportLineTextProps {
+  const scaled = scaledTextStyleAboveOne(Type.micro, fontScale);
+  const text = scaled ?? { fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) };
+  const allowFontScaling = scaled === undefined;
+  if (lines === 'one') {
+    return { numberOfLines: 1, allowFontScaling, style: { ...text, flexShrink: 1 } };
+  }
+  return { numberOfLines: undefined, allowFontScaling, style: text };
+}
+
 interface AccountStripRevealInput {
   /** The chip's position in the strip, from 0. */
   index: number;
