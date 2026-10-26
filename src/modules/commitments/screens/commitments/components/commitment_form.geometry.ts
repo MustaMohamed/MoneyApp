@@ -1,11 +1,6 @@
 import { SELECTABLE_PILL_BARE_HEIGHT } from '@/components/ui/chip.geometry';
 import { resolveDefaultTriggerHeight } from '@/components/ui/tabs.geometry';
-import {
-  Spacing,
-  type TouchFloorHitSlop,
-  type TouchFloorRoom,
-  touchFloorHitSlop,
-} from '@/constants/theme';
+import { type TouchFloorHitSlop, type TouchFloorRoom, touchFloorHitSlop } from '@/constants/theme';
 
 /** Sized from the bare pill's height at scale 1, its shortest, so the touch area reaches the floor at every scale. */
 export const COMMITMENT_FORM_PILL_SLOP: TouchFloorHitSlop = touchFloorHitSlop(
@@ -49,16 +44,3 @@ export function resolvePeriodRowTopRoom(
   if (periodRowTop >= inputLineBottom) return COMMITMENT_FORM_PICKER_GAP / 2;
   return (customRowTop + periodRowTop - presetsRowBottom) / 2;
 }
-
-export const COMMITMENT_FORM_CONTENT_CONTAINER_STYLE = {
-  gap: Spacing.xs,
-  paddingHorizontal: Spacing.md,
-  paddingTop: Spacing.xs,
-  paddingBottom: Spacing.md,
-};
-
-/** The top half spans the sheet edge to edge, as the transaction sheet draws it; the cards below keep the inset. */
-export const COMMITMENT_FORM_TOP_BLEED_STYLE = {
-  marginHorizontal: -COMMITMENT_FORM_CONTENT_CONTAINER_STYLE.paddingHorizontal,
-  marginTop: -COMMITMENT_FORM_CONTENT_CONTAINER_STYLE.paddingTop,
-};

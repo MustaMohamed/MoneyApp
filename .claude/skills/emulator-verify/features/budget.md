@@ -70,6 +70,7 @@ Route `/budget`, a tab. Screen `src/modules/budget/screens/budget/index.tsx`, co
 - The allocation chip reads 33 at 411 dp, one above its `min-h-8` floor, because its two stacked line boxes are 18 + 15. That is the state's proof, not a defect (MA-087).
 - A plan seed that produces all four statuses needs dates on both sides of today; time is not an input on the emulator, so build the seed against the device date.
 - The plan card's status chip is byte-identical to the detail summary's on `spending_plan_detail.md`; one read holds on both.
+- The category picker cells are `category_picker_sheet.tsx`, read once at large font in `transaction_form.md` and `add_commitment.md`; that read holds on the set-budget and spending-plan mounts.
 - A deep link does not dismiss an open bottom sheet: the copy sheet stays mounted over the next screen and its nodes answer the reads. `am force-stop` before the next state.
 - The tab bar's clickable node carries the icon glyph before the label (`B, Budget`), so `$MQA tap 'Budget'` matches only the non-clickable text and is refused; tap the exact content-desc from `mqa ui`, or use the deep link.
 - After `adb shell am force-stop`, `mqa open` alone lands on the dev-client launcher; cold-launch with `mqa seed` before the deep link.
