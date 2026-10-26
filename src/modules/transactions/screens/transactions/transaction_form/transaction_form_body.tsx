@@ -1,7 +1,7 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { Spinner } from 'heroui-native';
-import { View, useWindowDimensions } from 'react-native';
+import { View } from 'react-native';
 
 import { TYPE_OPTIONS } from '@/components/account_type_pill';
 import { AccountColorTile } from '@/components/ui/account_color_tile';
@@ -9,24 +9,17 @@ import { AccountStrip } from '@/components/ui/account_strip';
 import { DangerRing } from '@/components/ui/danger_ring';
 import { DateRow } from '@/components/ui/date_row';
 import { FormPickerRow } from '@/components/ui/form_picker_row';
-import {
-  ACCOUNT_STRIP_WRAPPER_PADDING_Y,
-  FORM_SHEET_CONTENT_CONTAINER_STYLE,
-} from '@/components/ui/form_sheet.geometry';
+import { FORM_SHEET_CONTENT_CONTAINER_STYLE } from '@/components/ui/form_sheet.geometry';
 import type { AccountStripChip } from '@/components/ui/form_sheet.helpers';
+import { FormStripRow, FormSupportLine } from '@/components/ui/form_type_tabs';
 import { ListCard } from '@/components/ui/list_card';
 import { NoteFactRow } from '@/components/ui/note_fact_row';
 import { useNoteReveal } from '@/components/ui/note_reveal.hook';
 import { RateRow } from '@/components/ui/rate_row';
-import { Text } from '@/components/ui/text';
-import {
-  resolveOneLineTextProps,
-  scaledTextStyleAboveOne,
-} from '@/components/ui/text_scale.geometry';
 import { ValidationSlot } from '@/components/ui/validation_slot';
 import { Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Size, Type, lineHeightFor } from '@/constants/theme';
+import { Size, Type } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 import { resolveAccountGlyphColor } from '@/modules/accounts/constants/account_glyph_color';
 import type { Account } from '@/modules/accounts/entities/account.entity';
@@ -136,8 +129,6 @@ export function TransactionFormBody(props: Props): React.ReactElement {
   const budgetFieldError = resolveBudgetFieldError(budgetError, budgetLookupError);
   const stripCaption = isTransferOrCC ? Strings.addTxFromLabel : undefined;
   const toRowFace = resolveToRowFace({ locked, account: selectedToAccount ?? undefined });
-  const { fontScale } = useWindowDimensions();
-  const supportingLine = resolveOneLineTextProps(scaledTextStyleAboveOne(Type.micro, fontScale));
   const ratePreview: RatePreviewInput = {
     mode: formMode,
     type,
@@ -161,23 +152,8 @@ export function TransactionFormBody(props: Props): React.ReactElement {
         onSelect={onSelectType}
         isDisabled={locked}
       />
-      <View className="min-h-8 justify-center px-4 py-1.5">
-        <Text
-          className="font-inter text-muted"
-          {...supportingLine}
-          style={{
-            fontSize: Type.micro,
-            lineHeight: lineHeightFor(Type.micro),
-            ...supportingLine.style,
-          }}
-        >
-          {typeSupportingText}
-        </Text>
-      </View>
-      <View
-        className="border-separator border-b"
-        style={{ paddingVertical: ACCOUNT_STRIP_WRAPPER_PADDING_Y }}
-      >
+      <FormSupportLine>{typeSupportingText}</FormSupportLine>
+      <FormStripRow>
         {props.locked ? (
           <AccountStrip chips={props.lockedChips} revealKey={type} caption={stripCaption} />
         ) : (
@@ -196,7 +172,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
             }
           />
         )}
-      </View>
+      </FormStripRow>
 
       <TransactionAmountHero
         onChange={setAmountStr}
