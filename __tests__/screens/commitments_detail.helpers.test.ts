@@ -1,4 +1,10 @@
-import { AccountType, AmountType, Currency, DurationType } from '@/constants/enums';
+import {
+  AccountType,
+  AmountType,
+  CommitmentPaymentStatus,
+  Currency,
+  DurationType,
+} from '@/constants/enums';
 import { AcctTokens, CoreTokens, GoldTokens } from '@/constants/theme_tokens';
 import { BADGE_TEXT_MIN_CONTRAST } from '@/modules/accounts/constants/account_badge_color';
 import { contrastRatio } from '@/modules/accounts/constants/account_palette';
@@ -9,7 +15,9 @@ import type {
   CommitmentMonthPayment,
   CommitmentPayment,
 } from '@/modules/commitments/entities/commitment_payment.entity';
+import { COMMITMENT_STATUS_TAG_COLORS } from '@/modules/commitments/screens/commitments/components/commitment_row.helpers';
 import {
+  buildCommitmentCycleCard,
   buildCommitmentDetailFacts,
   buildCommitmentDetailHero,
   buildCommitmentEndsLabel,
@@ -232,6 +240,29 @@ describe('overlayStorePayments', () => {
     expect(overlayStorePayments(rows, [makePayment({ id: 'pay-9' })])).toBe(rows);
     expect(overlayStorePayments(rows, [])).toBe(rows);
   });
+
+  it("keeps the read row's transaction link under the store's unlinked paid row, and a store row's own link", () => {
+    const linked = makePayment({
+      id: 'pay-1',
+      paid_date: '2026-05-01',
+      amount_paid: 5000,
+      transaction_id: 'tx-1',
+    });
+    const storePaid = makePayment({ id: 'pay-1', paid_date: '2026-05-02', amount_paid: 5000 });
+    const storeRelinked = makePayment({
+      id: 'pay-1',
+      paid_date: '2026-05-02',
+      amount_paid: 5000,
+      transaction_id: 'tx-2',
+    });
+
+    const [unlinkedOverlay] = overlayStorePayments([linked], [storePaid]);
+    const [relinkedOverlay] = overlayStorePayments([linked], [storeRelinked]);
+
+    expect(unlinkedOverlay).toEqual({ ...storePaid, transaction_id: 'tx-1' });
+    expect(unlinkedOverlay.paid_date).toBe('2026-05-02');
+    expect(relinkedOverlay).toBe(storeRelinked);
+  });
 });
 
 const TODAY = '2026-05-08';
@@ -441,6 +472,263 @@ describe('buildCommitmentDetailHero', () => {
       tileColor: GoldTokens[500],
       tileGlyph: 'shape-outline',
       tileGlyphColor: CoreTokens.bg,
+    });
+  });
+});
+
+describe('buildCommitmentCycleCard (MA-262)', () => {
+  const CYCLE_TODAY = '2026-10-20';
+  const tag = (status: CommitmentPaymentStatus) => ({
+    statusFill: COMMITMENT_STATUS_TAG_COLORS[status].fill,
+    statusForeground: COMMITMENT_STATUS_TAG_COLORS[status].foreground,
+  });
+  const cycle = (overrides: Partial<CommitmentPayment> = {}): CommitmentPayment =>
+    makeTestPayment({ due_date: '2026-10-01', ...overrides });
+
+  it('cards an overdue fixed EGP cycle: the Overdue tag, the due day, the late line in danger, the amount, Pay and Skip', () => {
+    const card = buildCommitmentCycleCard({
+      payment: cycle(),
+      commitment: makeTestCommitment(),
+      today: CYCLE_TODAY,
+    });
+
+    expect(card).toEqual({
+      statusLabel: 'Overdue',
+      statusIcon: 'alert-circle',
+      ...tag(CommitmentPaymentStatus.Overdue),
+      dueDay: 'Thu 1 Oct 2026',
+      dayLine: '19 days late',
+      dayLineTone: 'danger',
+      amountText: '8,000',
+      amountCode: 'EGP',
+      amountAccessibilityLabel: '8,000 EGP',
+      action: { kind: 'paySkip' },
+    });
+  });
+
+  it('reads Due today in gold under the Due tag on the due day', () => {
+    const card = buildCommitmentCycleCard({
+      payment: cycle({ due_date: CYCLE_TODAY }),
+      commitment: makeTestCommitment(),
+      today: CYCLE_TODAY,
+    });
+
+    expect(card).toMatchObject({
+      statusLabel: 'Due',
+      statusIcon: 'clock-outline',
+      ...tag(CommitmentPaymentStatus.Due),
+      dueDay: 'Tue 20 Oct 2026',
+      dayLine: 'Due today',
+      dayLineTone: 'gold',
+      action: { kind: 'paySkip' },
+    });
+  });
+
+  it('reads in 10 days and ~ before the estimate on an upcoming variable cycle', () => {
+    const card = buildCommitmentCycleCard({
+      payment: cycle({ due_date: '2026-10-30', amount_due: 600 }),
+      commitment: variableCommitment(),
+      today: CYCLE_TODAY,
+    });
+
+    expect(card).toMatchObject({
+      statusLabel: 'Upcoming',
+      statusIcon: 'calendar-clock',
+      ...tag(CommitmentPaymentStatus.Upcoming),
+      dueDay: 'Fri 30 Oct 2026',
+      dayLine: 'in 10 days',
+      dayLineTone: 'caption',
+      amountText: '~ 600',
+      amountCode: 'EGP',
+      amountAccessibilityLabel: '~ 600 EGP',
+      action: { kind: 'paySkip' },
+    });
+  });
+
+  it('reads ~ alone on an unpaid variable cycle with no estimate', () => {
+    const card = buildCommitmentCycleCard({
+      payment: cycle({ amount_due: null }),
+      commitment: variableCommitment({ amount: null }),
+      today: CYCLE_TODAY,
+    });
+
+    expect(card).toMatchObject({
+      amountText: '~',
+      amountCode: 'EGP',
+      amountAccessibilityLabel: '~ EGP',
+    });
+  });
+
+  it('reads — on an unpaid fixed cycle with no amount', () => {
+    const card = buildCommitmentCycleCard({
+      payment: cycle({ amount_due: null }),
+      commitment: makeTestCommitment({ amount: null }),
+      today: CYCLE_TODAY,
+    });
+
+    expect(card).toMatchObject({
+      amountText: '—',
+      amountCode: 'EGP',
+      amountAccessibilityLabel: '— EGP',
+    });
+  });
+
+  it.each([
+    ['due yesterday', '2026-10-19', '1 day late', 'danger'],
+    ['due tomorrow', '2026-10-21', 'in 1 day', 'caption'],
+  ])('reads the singular on a cycle %s', (_name, dueDate, dayLine, dayLineTone) => {
+    const card = buildCommitmentCycleCard({
+      payment: cycle({ due_date: dueDate }),
+      commitment: makeTestCommitment(),
+      today: CYCLE_TODAY,
+    });
+
+    expect(card).toMatchObject({ dayLine, dayLineTone, action: { kind: 'paySkip' } });
+  });
+
+  it('reads paid · 4 days late in success, the amount paid with no ~, and View transaction on a paid variable cycle', () => {
+    const card = buildCommitmentCycleCard({
+      payment: cycle({
+        amount_due: 600,
+        paid_date: '2026-10-05',
+        amount_paid: 640,
+        transaction_id: 'tx-1',
+      }),
+      commitment: variableCommitment(),
+      today: CYCLE_TODAY,
+    });
+
+    expect(card).toEqual({
+      statusLabel: 'Paid',
+      statusIcon: 'check-circle',
+      ...tag(CommitmentPaymentStatus.Paid),
+      dueDay: 'Thu 1 Oct 2026',
+      dayLine: 'paid · 4 days late',
+      dayLineTone: 'success',
+      amountText: '640',
+      amountCode: 'EGP',
+      amountAccessibilityLabel: '640 EGP',
+      action: { kind: 'viewTransaction', transactionId: 'tx-1' },
+    });
+  });
+
+  it.each([
+    ['on the day', '2026-10-01', 'paid · on the day'],
+    ['two days early', '2026-09-29', 'paid · 2 days early'],
+  ])('reads a cycle paid %s in success with View transaction', (_name, paidDate, dayLine) => {
+    const card = buildCommitmentCycleCard({
+      payment: cycle({ paid_date: paidDate, amount_paid: 8000, transaction_id: 'tx-1' }),
+      commitment: makeTestCommitment(),
+      today: CYCLE_TODAY,
+    });
+
+    expect(card).toMatchObject({
+      dayLine,
+      dayLineTone: 'success',
+      amountText: '8,000',
+      action: { kind: 'viewTransaction', transactionId: 'tx-1' },
+    });
+  });
+
+  it('offers no action on a paid cycle with no transaction', () => {
+    const card = buildCommitmentCycleCard({
+      payment: cycle({ paid_date: '2026-10-01', amount_paid: 8000, transaction_id: null }),
+      commitment: makeTestCommitment(),
+      today: CYCLE_TODAY,
+    });
+
+    expect(card).toMatchObject({
+      statusLabel: 'Paid',
+      dayLine: 'paid · on the day',
+      action: { kind: 'none' },
+    });
+  });
+
+  it('reads skipped · 1 day early as a caption under the Skipped tag, with no action', () => {
+    const card = buildCommitmentCycleCard({
+      payment: cycle({ skipped_date: '2026-09-30' }),
+      commitment: makeTestCommitment(),
+      today: CYCLE_TODAY,
+    });
+
+    expect(card).toEqual({
+      statusLabel: 'Skipped',
+      statusIcon: 'minus-circle',
+      ...tag(CommitmentPaymentStatus.Skipped),
+      dueDay: 'Thu 1 Oct 2026',
+      dayLine: 'skipped · 1 day early',
+      dayLineTone: 'caption',
+      amountText: '8,000',
+      amountCode: 'EGP',
+      amountAccessibilityLabel: '8,000 EGP',
+      action: { kind: 'none' },
+    });
+  });
+
+  it('reads ~ before the estimate on a skipped variable cycle, with no action', () => {
+    const card = buildCommitmentCycleCard({
+      payment: cycle({ amount_due: 600, skipped_date: '2026-10-01' }),
+      commitment: variableCommitment(),
+      today: CYCLE_TODAY,
+    });
+
+    expect(card).toMatchObject({
+      dayLine: 'skipped · on the day',
+      amountText: '~ 600',
+      amountAccessibilityLabel: '~ 600 EGP',
+      action: { kind: 'none' },
+    });
+  });
+
+  it('reads a USD cycle at its own two decimals and code', () => {
+    const card = buildCommitmentCycleCard({
+      payment: cycle({ currency: Currency.USD, amount_due: 12.5 }),
+      commitment: makeTestCommitment({ currency: Currency.USD, amount: 12.5 }),
+      today: CYCLE_TODAY,
+    });
+
+    expect(card).toMatchObject({
+      amountText: '12.50',
+      amountCode: 'USD',
+      amountAccessibilityLabel: '12.50 USD',
+    });
+  });
+
+  it.each([
+    [
+      'due on a 31st, read on the last day of a 30-day month',
+      '2026-03-31',
+      '2026-04-30',
+      'Tue 31 Mar 2026',
+    ],
+    ['due on 31 Jan, read across a 28-day February', '2026-01-31', '2026-03-02', 'Sat 31 Jan 2026'],
+  ])('reads 30 days late on a cycle %s', (_name, dueDate, today, dueDay) => {
+    const card = buildCommitmentCycleCard({
+      payment: cycle({ due_date: dueDate }),
+      commitment: makeTestCommitment(),
+      today,
+    });
+
+    expect(card).toMatchObject({
+      statusLabel: 'Overdue',
+      dueDay,
+      dayLine: '30 days late',
+      dayLineTone: 'danger',
+    });
+  });
+
+  it('reads paid · 1 day late on a leap-day cycle paid on 1 March', () => {
+    const card = buildCommitmentCycleCard({
+      payment: cycle({ due_date: '2028-02-29', paid_date: '2028-03-01', amount_paid: 8000 }),
+      commitment: makeTestCommitment(),
+      today: '2028-03-10',
+    });
+
+    expect(card).toMatchObject({
+      statusLabel: 'Paid',
+      dueDay: 'Tue 29 Feb 2028',
+      dayLine: 'paid · 1 day late',
+      dayLineTone: 'success',
     });
   });
 });
