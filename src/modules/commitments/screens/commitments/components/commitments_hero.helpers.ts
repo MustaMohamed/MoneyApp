@@ -1,3 +1,4 @@
+import type { PolaritySignal } from '@/components/ui/flow_polarity';
 import type { ListHeroModel } from '@/components/ui/list_hero';
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { CommitmentPaymentStatus, Currency } from '@/constants/enums';
@@ -54,6 +55,7 @@ export interface CommitmentsHeroModel {
   paid: CommitmentsHeroFigure;
   skipped: CommitmentsHeroFigure;
   overdue: CommitmentsHeroFigure;
+  overduePolarity: PolaritySignal;
   counts: Record<CommitmentPaymentStatus, CommitmentsHeroCount>;
   paidPct: number | undefined;
   percent: string;
@@ -144,6 +146,7 @@ export function buildCommitmentsHeroModel(input: CommitmentsHeroInput): Commitme
       paid: DASH_FIGURE,
       skipped: DASH_FIGURE,
       overdue: DASH_FIGURE,
+      overduePolarity: 'neutral',
       counts: mapCounts((status) => ({
         value: Strings.commitmentsHeroUnavailable,
         accessibilityLabel: Strings.commitmentsHeroCounterUnavailableA11y(STATUS_LABELS[status]),
@@ -184,6 +187,7 @@ export function buildCommitmentsHeroModel(input: CommitmentsHeroInput): Commitme
     paid: heroFigure(totals.paid),
     skipped: heroFigure(totals.skipped),
     overdue: totals.carriedCount === 0 ? DASH_FIGURE : heroFigure(totals.overdue),
+    overduePolarity: totals.carriedCount === 0 ? 'neutral' : 'bad',
     counts: mapCounts((status) => ({
       value: String(totals.counts[status]),
       accessibilityLabel: Strings.commitmentsHeroCounterA11y(
@@ -200,7 +204,6 @@ export function buildCommitmentsHeroModel(input: CommitmentsHeroInput): Commitme
 }
 
 export function buildCommitmentsListHeroModel(model: CommitmentsHeroModel): ListHeroModel {
-  const overdueHasFigure = model.overdue.value !== Strings.commitmentsHeroUnavailable;
   return {
     mode: model.mode === 'skeleton' ? 'skeleton' : 'loaded',
     title: model.title,
@@ -231,7 +234,7 @@ export function buildCommitmentsListHeroModel(model: CommitmentsHeroModel): List
         label: Strings.commitmentsOverdue,
         value: printHeroFigure(model.overdue),
         align: 'right',
-        polarity: overdueHasFigure ? 'bad' : 'neutral',
+        polarity: model.overduePolarity,
       },
     ],
     rail: {

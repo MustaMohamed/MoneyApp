@@ -10,7 +10,7 @@ import {
 } from './commitments_hero.helpers';
 
 export function CommitmentsHero({ model }: { model: CommitmentsHeroModel }): React.ReactElement {
-  const hasRightLine = model.carried !== undefined || model.captionTrail !== undefined;
+  const hasRightLine = model.captionTrail !== undefined;
   return (
     <ListHero
       model={buildCommitmentsListHeroModel(model)}

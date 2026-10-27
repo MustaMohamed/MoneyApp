@@ -5,11 +5,7 @@ import { View, useWindowDimensions } from 'react-native';
 import { FLOW_CLASS, type PolaritySignal } from '@/components/ui/flow_polarity';
 import { HeroShell } from '@/components/ui/hero_shell';
 import { HERO_SHELL_MARGIN_BOTTOM } from '@/components/ui/hero_shell.geometry';
-import {
-  LIST_HERO_MAX_FONT_SCALE,
-  type ListHeroGeometry,
-  resolveListHeroGeometry,
-} from '@/components/ui/list_text.geometry';
+import { type ListHeroGeometry, resolveListHeroGeometry } from '@/components/ui/list_text.geometry';
 import { StatusCounter, type StatusCounterProps } from '@/components/ui/status_counter';
 import { Size, Spacing, lineHeightFor } from '@/constants/theme';
 
@@ -17,7 +13,7 @@ export type ListHeroMode = 'skeleton' | 'loaded';
 
 export type ListHeroColumnAlign = 'left' | 'center' | 'right';
 
-export type ListHeroRailTone = 'success' | 'danger' | 'accent' | 'gold';
+export type ListHeroRailTone = 'success' | 'danger' | 'gold';
 
 export interface ListHeroColumnModel {
   label: string;
@@ -73,7 +69,6 @@ const COLUMN_ALIGN: Record<ListHeroColumnAlign, 'flex-start' | 'center' | 'flex-
 const RAIL_FILL_CLASS: Record<ListHeroRailTone, string> = {
   success: 'bg-success rounded-full',
   danger: 'bg-danger rounded-full',
-  accent: 'bg-accent rounded-full',
   gold: 'bg-gold-600 rounded-full',
 };
 
@@ -276,7 +271,7 @@ export function ListHero({
                 icon={counter.icon}
                 color={counter.color}
                 value={counter.value}
-                maxFontScale={LIST_HERO_MAX_FONT_SCALE}
+                fontSize={geometry.micro}
                 accessibilityLabel={counter.accessibilityLabel}
               />
             ))}

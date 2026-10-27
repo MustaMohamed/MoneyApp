@@ -176,6 +176,7 @@ describe('buildCommitmentsHeroModel', () => {
       paid: { value: '1,200', showTilde: false },
       skipped: { value: '300', showTilde: false },
       overdue: { value: '400', showTilde: true },
+      overduePolarity: 'bad',
       counts: {
         [CommitmentPaymentStatus.Paid]: { value: '2', accessibilityLabel: 'Paid, 2 payments' },
         [CommitmentPaymentStatus.Skipped]: { value: '1', accessibilityLabel: 'Skipped, 1 payment' },
@@ -289,6 +290,7 @@ describe('buildCommitmentsHeroModel', () => {
         paid: DASH_FIGURE,
         skipped: DASH_FIGURE,
         overdue: DASH_FIGURE,
+        overduePolarity: 'neutral',
         counts: DASH_COUNTS,
         paidPct: undefined,
         percent: DASH_PERCENT,
@@ -312,6 +314,7 @@ describe('buildCommitmentsHeroModel', () => {
       paid: DASH_FIGURE,
       skipped: DASH_FIGURE,
       overdue: DASH_FIGURE,
+      overduePolarity: 'neutral',
       counts: DASH_COUNTS,
       paidPct: undefined,
       percent: DASH_PERCENT,
