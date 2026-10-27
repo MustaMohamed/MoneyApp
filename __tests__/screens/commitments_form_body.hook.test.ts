@@ -37,6 +37,21 @@ describe('useCommitmentFormBodyPickers', () => {
     expect(lower.result.current.state.showStartDatePicker).toBe(false);
   });
 
+  it('a choice sheet opened on one mounted copy stays closed on the other', async () => {
+    const { lower, upper } = await mountTwoCopies();
+
+    await act(async () => lower.result.current.setChoiceSheet('repeats'));
+
+    expect(lower.result.current.state.choiceSheet).toBe('repeats');
+    expect(upper.result.current.state.choiceSheet).toBeUndefined();
+
+    await act(async () => upper.result.current.setChoiceSheet('ends'));
+    await act(async () => lower.result.current.setChoiceSheet(undefined));
+
+    expect(lower.result.current.state.choiceSheet).toBeUndefined();
+    expect(upper.result.current.state.choiceSheet).toBe('ends');
+  });
+
   it('unmounting one copy leaves the other copy open picker as it was', async () => {
     const { lower, lowerOwner, upper } = await mountTwoCopies();
     await act(async () => lower.result.current.setCategoryPickerVisible(true));

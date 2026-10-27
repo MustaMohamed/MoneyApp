@@ -2,7 +2,7 @@ import { act, renderHook } from '@testing-library/react-native';
 import { useController } from 'react-hook-form';
 
 import type { AccountStripChip } from '@/components/ui/form_sheet.helpers';
-import { AccountType } from '@/constants/enums';
+import { AccountType, DurationType, RecurrencePeriod } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
@@ -14,9 +14,12 @@ import {
   resolveAccountIdFromChip,
   resolveAmountHeroSyncText,
   resolveCommitmentStripChips,
+  resolveEndsRowValue,
+  resolveRepeatsRowValue,
 } from '@/modules/commitments/screens/commitments/commitment_form.helpers';
 import { useAddCommitment } from '@/modules/commitments/screens/commitments/commitment_form/add_commitment.hook';
 import { useAddCommitmentState } from '@/modules/commitments/screens/commitments/commitment_form/add_commitment.state';
+import { useCommitmentFormBodyFaults } from '@/modules/commitments/screens/commitments/components/commitment_form_body.hook';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { resolveHollowGraphiteTile } from '@/modules/transactions/components/transaction_row.helpers';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
@@ -198,27 +201,31 @@ describe('resolveAmountHeroSyncText', () => {
   });
 });
 
+function attachAddCommitmentStores(addCommitment: jest.Mock) {
+  attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
+    commitments: [],
+    payments: [],
+    addCommitment,
+    generatePayments: jest.fn().mockResolvedValue(undefined),
+  }));
+  attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({ accounts: [] }));
+  attachMockSelectorStore(useCategoryStore as unknown as jest.Mock, () => ({ categories: [] }));
+  attachMockSelectorStore(useAddCommitmentState as unknown as jest.Mock, () => ({
+    saving: false,
+    saveError: undefined,
+    setSaving: jest.fn(),
+    setSaveError: jest.fn(),
+    reset: jest.fn(),
+  }));
+}
+
 describe('applyCommitmentAmountText after a refused Save (MA-115)', () => {
   const onSaved = jest.fn();
   const addCommitmentMock = jest.fn().mockResolvedValue(undefined);
 
   beforeEach(() => {
     jest.clearAllMocks();
-    attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
-      commitments: [],
-      payments: [],
-      addCommitment: addCommitmentMock,
-      generatePayments: jest.fn().mockResolvedValue(undefined),
-    }));
-    attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({ accounts: [] }));
-    attachMockSelectorStore(useCategoryStore as unknown as jest.Mock, () => ({ categories: [] }));
-    attachMockSelectorStore(useAddCommitmentState as unknown as jest.Mock, () => ({
-      saving: false,
-      saveError: undefined,
-      setSaving: jest.fn(),
-      setSaveError: jest.fn(),
-      reset: jest.fn(),
-    }));
+    attachAddCommitmentStores(addCommitmentMock);
   });
 
   function useAddWithAmountField() {
@@ -276,5 +283,144 @@ describe('applyCommitmentAmountText after a refused Save (MA-115)', () => {
 
     expect(result.current.form.getValues('amount')).toBeUndefined();
     expect(amountError(result)).toBe(Strings.commitmentsErrAmountRequired);
+  });
+});
+
+describe('resolveRepeatsRowValue (MA-255)', () => {
+  it.each([
+    [1, RecurrencePeriod.Months, 'Every month'],
+    [2, RecurrencePeriod.Weeks, 'Every 2 weeks'],
+    [0, RecurrencePeriod.Months, 'Every 0 months'],
+    [366, RecurrencePeriod.Days, 'Every 366 days'],
+    [undefined, RecurrencePeriod.Months, 'Custom'],
+  ] as const)('reads Every %p %p as %p', (every, period, label) => {
+    expect(resolveRepeatsRowValue(every, period)).toBe(label);
+  });
+});
+
+describe('resolveEndsRowValue (MA-255)', () => {
+  it.each([
+    [DurationType.Forever, undefined, undefined, 'Never'],
+    [DurationType.AfterCount, 1, undefined, 'After 1 payment'],
+    [DurationType.AfterCount, 3, undefined, 'After 3 payments'],
+    [DurationType.AfterCount, undefined, undefined, 'After N payments'],
+    [DurationType.UntilDate, undefined, '2026-10-20', 'Until Tue 20 Oct 2026'],
+    [DurationType.UntilDate, undefined, '2028-02-29', 'Until Tue 29 Feb 2028'],
+    [DurationType.UntilDate, undefined, undefined, 'Until date'],
+    [DurationType.UntilDate, undefined, '', 'Until date'],
+  ] as const)('reads %p with count %p and date %p as %p', (type, count, date, label) => {
+    expect(resolveEndsRowValue(type, count, date)).toBe(label);
+  });
+});
+
+describe('useCommitmentFormBodyFaults (MA-255)', () => {
+  const onSaved = jest.fn();
+  const addCommitmentMock = jest.fn().mockResolvedValue(undefined);
+
+  const NO_FAULTS = {
+    name: undefined,
+    amount: undefined,
+    categoryId: undefined,
+    startDate: undefined,
+    recurrenceEvery: undefined,
+    endAfterCount: undefined,
+    endDate: undefined,
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    attachAddCommitmentStores(addCommitmentMock);
+  });
+
+  function useAddWithBodyFaults() {
+    const hook = useAddCommitment({ onSaved });
+    const every = useController({ control: hook.form.control, name: 'recurrenceEvery' });
+    return { ...hook, every: every.field, body: useCommitmentFormBodyFaults(hook.form) };
+  }
+
+  type Mounted = { current: ReturnType<typeof useAddWithBodyFaults> };
+
+  // A form Save accepts, so each case's fault is the only one it adds.
+  async function mountFilled(): Promise<Mounted> {
+    const { result } = await renderHook(() => useAddWithBodyFaults());
+    await act(async () => {
+      result.current.form.setValue('name', 'Rent');
+      result.current.form.setValue('amount', 900);
+      result.current.form.setValue('categoryId', 'cat-rent');
+      result.current.form.setValue('startDate', '2026-10-20');
+    });
+    return result;
+  }
+
+  async function save(result: Mounted) {
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+  }
+
+  it.each([[undefined], [0], [366]])('rings Repeats on a Save with Every %p', async (every) => {
+    const result = await mountFilled();
+    await act(async () => result.current.every.onChange(every));
+
+    await save(result);
+
+    expect(addCommitmentMock).not.toHaveBeenCalled();
+    expect(result.current.body.faults.recurrenceEvery).toEqual(expect.any(String));
+  });
+
+  it('rings Ends on a Save with After and no count', async () => {
+    const result = await mountFilled();
+    await act(async () => result.current.form.setValue('durationType', DurationType.AfterCount));
+
+    await save(result);
+
+    expect(result.current.body.faults.endAfterCount).toBe(Strings.commitmentsErrAfterCountRequired);
+  });
+
+  it('rings Ends on a Save with Until date and no date', async () => {
+    const result = await mountFilled();
+    await act(async () => result.current.form.setValue('durationType', DurationType.UntilDate));
+
+    await save(result);
+
+    expect(result.current.body.faults.endDate).toBe(Strings.commitmentsErrEndDateRequired);
+  });
+
+  it('rings Repeats and Ends on one Save with Every emptied and After with no count', async () => {
+    const result = await mountFilled();
+    await act(async () => {
+      result.current.every.onChange(undefined);
+      result.current.form.setValue('durationType', DurationType.AfterCount);
+    });
+
+    await save(result);
+
+    expect(result.current.body.faults.recurrenceEvery).toEqual(expect.any(String));
+    expect(result.current.body.faults.endAfterCount).toBe(Strings.commitmentsErrAfterCountRequired);
+  });
+
+  it('rings Name and Category and no other row on a Save with both empty', async () => {
+    const result = await mountFilled();
+    await act(async () => {
+      result.current.form.setValue('name', '');
+      result.current.form.setValue('categoryId', '');
+    });
+
+    await save(result);
+
+    expect(result.current.body.faults).toStrictEqual({
+      ...NO_FAULTS,
+      name: Strings.commitmentsErrNameRequired,
+      categoryId: Strings.commitmentsErrCategoryRequired,
+    });
+  });
+
+  it('holds all seven faults, each undefined, after a Save it accepts', async () => {
+    const result = await mountFilled();
+
+    await save(result);
+
+    expect(addCommitmentMock).toHaveBeenCalledTimes(1);
+    expect(result.current.body.faults).toStrictEqual(NO_FAULTS);
   });
 });
