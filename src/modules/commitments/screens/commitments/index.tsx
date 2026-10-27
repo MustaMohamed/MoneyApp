@@ -30,9 +30,9 @@ import { CommitmentDeleteConfirmSheet } from './components/commitment_delete_con
 import { CommitmentRow } from './components/commitment_row';
 import { resolveCommitmentRowAccountId } from './components/commitment_row.helpers';
 import { CommitmentRowsSkeleton } from './components/commitment_rows_skeleton';
+import { CommitmentsHero } from './components/commitments_hero';
 import { CommitmentsEmptyState } from './components/empty_state';
 import { CommitmentSearchRow } from './components/search_row';
-import { SummaryHeader } from './components/summary_header';
 import { SkipConfirmSheet } from './detail/components/skip_confirm_sheet';
 import { CommitmentFilterSheet } from './filter';
 
@@ -178,14 +178,12 @@ export default function CommitmentsScreen() {
     ],
   );
 
+  const hero = useMemo(() => <CommitmentsHero model={state.hero} />, [state.hero]);
+
   const listHeaderComponent = useMemo(
     () => (
       <>
-        <SummaryHeader
-          counts={state.counts}
-          totalsByCurrency={state.totalsByCurrency}
-          isLoading={state.presentation === 'coldLoading'}
-        />
+        {hero}
         <CommitmentSearchRow
           value={state.searchQuery}
           onChange={setSearchQuery}
@@ -194,15 +192,7 @@ export default function CommitmentsScreen() {
         />
       </>
     ),
-    [
-      openFilter,
-      setSearchQuery,
-      state.activeFilterCount,
-      state.counts,
-      state.presentation,
-      state.searchQuery,
-      state.totalsByCurrency,
-    ],
+    [hero, openFilter, setSearchQuery, state.activeFilterCount, state.searchQuery],
   );
 
   const showRowsSkeleton = state.presentation === 'coldLoading';

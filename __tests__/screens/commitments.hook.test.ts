@@ -479,8 +479,6 @@ describe('useCommitments', () => {
     expect(result.current.state.hasLoaded).toBe(false);
     expect(result.current.state.presentation).toBe('coldLoading');
     expect(result.current.state.sections).toEqual([]);
-    expect(result.current.state.counts.total).toBe(0);
-    expect(result.current.state.totalsByCurrency.size).toBe(0);
     expect(result.current.state.hasCommitments).toBe(false);
   });
 
@@ -526,7 +524,6 @@ describe('useCommitments', () => {
     expect(result.current.state.hasLoaded).toBe(true);
     expect(result.current.state.presentation).toBe('contentWithError');
     expect(result.current.state.sections[0]?.data[0]?.id).toBe('payment');
-    expect(result.current.state.counts.total).toBe(1);
   });
 
   it('keeps a selected-month payment visible after its parent deactivates', async () => {
@@ -696,17 +693,9 @@ describe('useCommitments', () => {
       [Strings.commitmentsPaid, ['paid']],
       [Strings.commitmentsSkipped, ['skipped']],
     ]);
-    expect(result.current.state.counts).toEqual({
-      paid: 1,
-      overdue: 1,
-      due: 1,
-      upcoming: 1,
-      skipped: 1,
-      total: 4,
-    });
   });
 
-  it('puts a row carried from the month before first in Overdue, outside the total and the amounts', async () => {
+  it('puts a row carried from the month before first in Overdue', async () => {
     setup({
       payments: [
         makePayment('carried', CommitmentPaymentStatus.Overdue, {
@@ -724,11 +713,9 @@ describe('useCommitments', () => {
       Strings.commitmentsOverdue,
       ['carried', 'overdue'],
     ]);
-    expect(result.current.state.counts).toMatchObject({ overdue: 2, due: 1, total: 2 });
-    expect(result.current.state.totalsByCurrency).toEqual(new Map([[Currency.EGP, 200]]));
   });
 
-  it('leaves a carried row paid or skipped since out of every section and count', async () => {
+  it('leaves a carried row paid or skipped since out of every section', async () => {
     setup({
       payments: [
         makePayment('carried-paid', CommitmentPaymentStatus.Paid, { due_date: '2026-04-20' }),
@@ -744,7 +731,6 @@ describe('useCommitments', () => {
     expect(sectionIds(result.current.state.sections)).toEqual([
       [Strings.commitmentsUpcoming, ['may']],
     ]);
-    expect(result.current.state.counts).toMatchObject({ paid: 0, skipped: 0, total: 1 });
   });
 
   it('publishes each section’s figures and spoken label, and the tally, under a search', async () => {
@@ -1153,5 +1139,101 @@ describe('useCommitments account read (MA-234)', () => {
     expect(loadAccountLookupMock.mock.calls[0][0]).toEqual(
       expect.arrayContaining(['account-missing']),
     );
+  });
+});
+
+describe('useCommitments hero title (MA-258)', () => {
+  const wallet = makeAccount('account-wallet', 'Wallet');
+  const gone: Account = { ...makeAccount('account-gone', 'Gone Bank'), is_deleted: 1 };
+  const accounts = [wallet];
+  const archivedAccounts: Account[] = [];
+  const accountLookupById = { 'account-gone': gone };
+  const walletFilter = { ...EMPTY_COMMITMENT_FILTERS, accountIds: ['account-wallet'] };
+  const walletAggregate = {
+    key: monthAggregateKey('2026-05', 'account-wallet'),
+    aggregate: usdDueAggregate(),
+  };
+
+  function scoped(overrides: Parameters<typeof setup>[0] = {}) {
+    setup({
+      accounts,
+      archivedAccounts,
+      accountLookupById,
+      appliedFilters: walletFilter,
+      monthAggregate: walletAggregate,
+      ...overrides,
+    });
+  }
+
+  beforeEach(() => {
+    capturedFocusCallbacks.length = 0;
+    mockInteractionTasks.length = 0;
+    loadMonthSnapshotMock.mockReset().mockResolvedValue(undefined);
+    loadMonthAggregateMock.mockReset().mockResolvedValue(undefined);
+    loadAccountLookupMock.mockReset().mockResolvedValue(undefined);
+    currencyRate = 50;
+    currencyRateLoaded = true;
+    mockUseDeferredValue.mockReset().mockImplementation((value: unknown) => value);
+  });
+
+  it('names the one applied account in the hero title', async () => {
+    scoped();
+
+    const { result } = await renderHook(() => useCommitments());
+
+    expect(result.current.state.hero.title).toBe('Left to pay · Wallet');
+  });
+
+  it('reads Left to pay alone while the one applied account is in no list', async () => {
+    scoped({ appliedFilters: { ...EMPTY_COMMITMENT_FILTERS, accountIds: ['account-unread'] } });
+
+    const { result } = await renderHook(() => useCommitments());
+
+    expect(result.current.state.hero.title).toBe('Left to pay');
+  });
+
+  it('names a deleted applied account Deleted Account', async () => {
+    scoped({ appliedFilters: { ...EMPTY_COMMITMENT_FILTERS, accountIds: ['account-gone'] } });
+
+    const { result } = await renderHook(() => useCommitments());
+
+    expect(result.current.state.hero.title).toBe('Left to pay · Deleted Account');
+  });
+
+  it('reads Left to pay alone with two applied accounts', async () => {
+    scoped({
+      appliedFilters: {
+        ...EMPTY_COMMITMENT_FILTERS,
+        accountIds: ['account-wallet', 'account-gone'],
+      },
+    });
+
+    const { result } = await renderHook(() => useCommitments());
+
+    expect(result.current.state.hero.title).toBe('Left to pay');
+  });
+
+  it('keeps the same scoped hero object across a search keystroke', async () => {
+    scoped();
+    const hook = await renderHook(() => useCommitments());
+    const hero = hook.result.current.state.hero;
+    expect(hero.title).toBe('Left to pay · Wallet');
+
+    scoped({ searchQuery: 'rent' });
+    await hook.rerender({});
+
+    expect(hook.result.current.state.hero).toBe(hero);
+  });
+
+  it('keeps the same scoped hero object across a status tab change', async () => {
+    scoped();
+    const hook = await renderHook(() => useCommitments());
+    const hero = hook.result.current.state.hero;
+    expect(hero.title).toBe('Left to pay · Wallet');
+
+    scoped({ statusFilter: CommitmentPaymentStatus.Due });
+    await hook.rerender({});
+
+    expect(hook.result.current.state.hero).toBe(hero);
   });
 });

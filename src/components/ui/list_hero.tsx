@@ -6,13 +6,14 @@ import { FLOW_CLASS, type PolaritySignal } from '@/components/ui/flow_polarity';
 import { HeroShell } from '@/components/ui/hero_shell';
 import { HERO_SHELL_MARGIN_BOTTOM } from '@/components/ui/hero_shell.geometry';
 import { type ListHeroGeometry, resolveListHeroGeometry } from '@/components/ui/list_text.geometry';
-import { Spacing, lineHeightFor } from '@/constants/theme';
+import { StatusCounter, type StatusCounterProps } from '@/components/ui/status_counter';
+import { Size, Spacing, lineHeightFor } from '@/constants/theme';
 
 export type ListHeroMode = 'skeleton' | 'loaded';
 
 export type ListHeroColumnAlign = 'left' | 'center' | 'right';
 
-export type ListHeroRailTone = 'success' | 'danger' | 'accent';
+export type ListHeroRailTone = 'success' | 'danger' | 'gold';
 
 export interface ListHeroColumnModel {
   label: string;
@@ -28,6 +29,13 @@ export interface ListHeroRailModel {
   accessibilityLabel: string;
 }
 
+export interface ListHeroCounterModel {
+  icon: StatusCounterProps['icon'];
+  color: string;
+  value: string;
+  accessibilityLabel: string;
+}
+
 export interface ListHeroModel {
   mode: ListHeroMode;
   title: string;
@@ -37,12 +45,19 @@ export interface ListHeroModel {
   amountAccessibilityLabel: string;
   columns: readonly ListHeroColumnModel[];
   rail: ListHeroRailModel;
+  /** Absent, the hero draws no counters row. */
+  counters?: readonly ListHeroCounterModel[];
 }
 
 // The tab's month row owns the space above the hero; 0 and not dropped, since `HeroShell`'s frame defaults to a top margin.
 const HERO_SHELL_STYLE = { marginTop: 0, marginBottom: HERO_SHELL_MARGIN_BOTTOM } as const;
 const HERO_BODY_STYLE = { gap: Spacing.sm } as const;
 const COLUMNS_ROW_STYLE = { flexDirection: 'row', gap: Spacing.xs } as const;
+const COUNTERS_ROW_STYLE = {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+} as const;
 
 // Aligned by the column, not `textAlign`: Android draws a right-aligned ellipsised line past its box's leading edge.
 const COLUMN_ALIGN: Record<ListHeroColumnAlign, 'flex-start' | 'center' | 'flex-end'> = {
@@ -54,7 +69,7 @@ const COLUMN_ALIGN: Record<ListHeroColumnAlign, 'flex-start' | 'center' | 'flex-
 const RAIL_FILL_CLASS: Record<ListHeroRailTone, string> = {
   success: 'bg-success rounded-full',
   danger: 'bg-danger rounded-full',
-  accent: 'bg-accent rounded-full',
+  gold: 'bg-gold-600 rounded-full',
 };
 
 function HeroColumn({
@@ -94,10 +109,12 @@ function HeroColumn({
 
 function HeroSkeleton({
   columns,
+  counters,
   geometry,
   testID,
 }: {
   columns: readonly ListHeroColumnModel[];
+  counters: readonly ListHeroCounterModel[] | undefined;
   geometry: ListHeroGeometry;
   testID: string;
 }): React.ReactElement {
@@ -115,6 +132,21 @@ function HeroSkeleton({
         ))}
       </View>
       <Skeleton className="w-full rounded-full" style={{ height: geometry.rail }} />
+      {counters !== undefined && (
+        <View style={[COUNTERS_ROW_STYLE, { height: geometry.counters }]}>
+          {counters.map((counter, index) => (
+            <View key={index} accessible accessibilityLabel={counter.accessibilityLabel}>
+              <Skeleton
+                className="rounded-md"
+                style={{
+                  width: Size.statusCounterIcon + Spacing.xxs + geometry.micro,
+                  height: geometry.counters,
+                }}
+              />
+            </View>
+          ))}
+        </View>
+      )}
       <Skeleton className="w-3/5 rounded-md" style={{ height: geometry.caption }} />
     </View>
   );
@@ -133,7 +165,12 @@ export function ListHero({
   if (model.mode === 'skeleton') {
     return (
       <HeroShell style={HERO_SHELL_STYLE}>
-        <HeroSkeleton columns={model.columns} geometry={geometry} testID={`${testID}-skeleton`} />
+        <HeroSkeleton
+          columns={model.columns}
+          counters={model.counters}
+          geometry={geometry}
+          testID={`${testID}-skeleton`}
+        />
       </HeroShell>
     );
   }
@@ -225,6 +262,21 @@ export function ListHero({
             style={{ height: geometry.rail, width: `${model.rail.pct}%` }}
           />
         </View>
+
+        {model.counters !== undefined && (
+          <View style={[COUNTERS_ROW_STYLE, { height: geometry.counters }]}>
+            {model.counters.map((counter, index) => (
+              <StatusCounter
+                key={index}
+                icon={counter.icon}
+                color={counter.color}
+                value={counter.value}
+                fontSize={geometry.micro}
+                accessibilityLabel={counter.accessibilityLabel}
+              />
+            ))}
+          </View>
+        )}
 
         <View
           style={{

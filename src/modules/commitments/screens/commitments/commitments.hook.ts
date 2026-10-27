@@ -8,12 +8,12 @@ import { useAccountsById } from '@/modules/accounts/store/use_accounts_by_id.hoo
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { commitmentDetailRoute } from '@/modules/navigation/domain/stacked_route';
+import { resolveAccountName } from '@/utils/account_name';
 import { toLocalDateString } from '@/utils/format_date';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
 import { useDebouncedValue } from '@/utils/use_debounced_value.hook';
 import { shiftYearMonth } from '@/utils/year_month';
 
-import { emptyMonthPaymentSummary, summarizeMonthPayments } from '../../domain/payment_summary';
 import type { Commitment } from '../../entities/commitment.entity';
 import type { CommitmentMonthPayment } from '../../entities/commitment_payment.entity';
 import { monthAggregateKey, useCommitmentStore } from '../../store/commitment.store';
@@ -185,13 +185,6 @@ export function useCommitments() {
     today,
   ]);
 
-  const { counts, totalsByCurrency } = useMemo(
-    () =>
-      today === undefined
-        ? emptyMonthPaymentSummary()
-        : summarizeMonthPayments(activePayments, selectedMonth, today),
-    [activePayments, selectedMonth, today],
-  );
   const isEmpty = activePayments.length === 0;
   const activeFilterCount = useMemo(
     () => countActiveCommitmentFilters(appliedFilters),
@@ -209,6 +202,8 @@ export function useCommitments() {
     rateLoaded,
   });
   const heroToday = toLocalDateString(new Date());
+  const heroAccount = heroAccountId === undefined ? undefined : accountsById.get(heroAccountId);
+  const heroAccountLabel = heroAccount === undefined ? undefined : resolveAccountName(heroAccount);
   const hero = useMemo(
     () =>
       buildCommitmentsHeroModel({
@@ -217,8 +212,9 @@ export function useCommitments() {
         rate,
         yearMonth: selectedMonth,
         today: heroToday,
+        accountLabel: heroAccountLabel,
       }),
-    [heroMode, monthAggregate, rate, selectedMonth, heroToday],
+    [heroMode, monthAggregate, rate, selectedMonth, heroToday, heroAccountLabel],
   );
 
   const selectedMonthRef = useRef(selectedMonth);
@@ -334,8 +330,6 @@ export function useCommitments() {
       liveRate,
       selectedMonth,
       today,
-      counts,
-      totalsByCurrency,
       hero,
       refreshing,
       isEmpty,
