@@ -2,11 +2,14 @@ import { router, useLocalSearchParams, usePathname } from 'expo-router';
 import { useCallback, useEffect, useId, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
+import type { DetailFact } from '@/components/ui/detail_fact_row.helpers';
 import { DurationType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
+import { useAccountsById } from '@/modules/accounts/store/use_accounts_by_id.hook';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { buildRecurrenceLabel } from '@/modules/commitments/utils/recurrence_label';
+import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import {
   STACKED_PREFIX,
   TABBED_ORIGIN,
@@ -24,7 +27,9 @@ import {
 } from '../../../store/commitment_form_host.state';
 import { usePaySheetState } from './components/pay_sheet.state';
 import {
+  buildCommitmentDetailFacts,
   buildCommitmentDetailHero,
+  type CommitmentDetailFactKind,
   overlayStorePayments,
   resolveCommitmentDetailCycle,
   resolveCommitmentDetailViewState,
@@ -46,6 +51,8 @@ function buildDurationLabel(commitment: Commitment): string {
         : Strings.commitmentsDurationUntilDate;
   }
 }
+
+const NO_FACTS: readonly DetailFact<CommitmentDetailFactKind>[] = Object.freeze([]);
 
 function leaveStackedSubtree(
   originTxId: string | undefined,
@@ -79,6 +86,16 @@ export function useCommitmentDetail() {
   const storeSkipPayment = useCommitmentStore.getState().skipPayment;
   const accounts = useAccountStore((s) => s.accounts);
   const categories = useCategoryStore.useState.categories();
+  const { accountsById } = useAccountsById();
+  const loadAccountLookup = useAccountStore.getState().loadAccountLookup;
+  const { rate, hasLoaded: rateLoaded } = useCurrencyStore(
+    useShallow((s) => ({ rate: s.rate, hasLoaded: s.hasLoaded })),
+  );
+  const liveRate = rateLoaded ? rate : undefined;
+  const loadingCommitmentHint = useMemo(
+    () => useCommitmentStore.getState().commitments.find((c) => c.id === commitmentId),
+    [commitmentId],
+  );
 
   const { activeId, status, refreshError, reloadKey, skipConfirmVisible, skipBusy, skipError } =
     useCommitmentDetailState(useShallow((s) => s.entries[owner] ?? INITIAL_UI_ENTRY));
@@ -167,6 +184,27 @@ export function useCommitmentDetail() {
     [commitment, accounts],
   );
 
+  const accountId = commitment?.account_id ?? undefined;
+  useEffect(() => {
+    if (accountId === undefined) return;
+    const logLookupFailure = (error: unknown) => {
+      console.error('[commitmentDetail] account lookup failed', error);
+    };
+    try {
+      void Promise.resolve(loadAccountLookup([accountId])).catch(logLookupFailure);
+    } catch (error) {
+      logLookupFailure(error);
+    }
+  }, [accountId, loadAccountLookup]);
+
+  const facts = useMemo(
+    () =>
+      commitment
+        ? buildCommitmentDetailFacts({ commitment, payment, category, accountsById, liveRate })
+        : NO_FACTS,
+    [commitment, payment, category, accountsById, liveRate],
+  );
+
   const recurrenceLabel = useMemo(
     () => (commitment ? buildRecurrenceLabel(commitment) : ''),
     [commitment],
@@ -242,6 +280,8 @@ export function useCommitmentDetail() {
       account,
       today,
       hero,
+      facts,
+      loadingCommitmentHint,
       recurrenceLabel,
       durationLabel,
       skipConfirmVisible,
