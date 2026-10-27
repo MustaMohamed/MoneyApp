@@ -930,7 +930,7 @@ export const Strings = {
   addTxErrCcPaymentExceedsLiability: 'Payment cannot exceed the current card balance',
   addTxInsufficientBalance: (name: string) => `Insufficient balance in ${name}`,
   addTxPickToTitle: 'To Account',
-  addTxPickCategoryTitle: 'Select Category',
+  addTxPickCategoryTitle: 'Select category',
 
   // U5 Transaction List
   transactions: 'Transactions',
@@ -1084,16 +1084,16 @@ export const Strings = {
   commitmentsEmptyCta: 'Add Commitment',
 
   // Commitments: C2 Add / C3 Edit
-  commitmentsAddTitle: 'New Commitment',
-  commitmentsEditTitle: 'Edit Commitment',
+  commitmentsAddTitle: 'Add commitment',
+  commitmentsEditTitle: 'Edit commitment',
   commitmentsFieldName: 'Name',
   commitmentsFieldCurrency: 'Currency',
   commitmentsFieldCategory: 'Category',
-  commitmentsFieldRecurrence: 'Recurrence',
+  commitmentsFieldRecurrence: 'Repeats',
   commitmentsFieldCustomRecurrence: 'Custom Recurrence',
-  commitmentsFieldStartDate: 'Start Date',
-  commitmentsFieldDuration: 'Duration',
-  commitmentsFieldNotes: 'Notes',
+  commitmentsFieldStartDate: 'Starts',
+  commitmentsFieldDuration: 'Ends',
+  commitmentsFieldNotes: 'Note',
   commitmentsAmountFixed: 'Fixed',
   commitmentsAmountVariable: 'Variable',
   commitmentsTypeFixedAmount: 'Fixed amount',
@@ -1132,7 +1132,7 @@ export const Strings = {
   commitmentsErrEveryMax: 'Must be 365 or less',
 
   // Commitments: placeholders
-  commitmentsNamePlaceholder: 'e.g. Rent',
+  commitmentsNamePlaceholder: 'Rent',
   commitmentDateInputFormat: 'YYYY-MM-DD',
   commitmentsAfterCountPlaceholder: '0',
 
@@ -1196,7 +1196,7 @@ export const Strings = {
   commitmentsPayErrDestinationTooSmall: 'Too small to convert at this rate',
 
   // Commitments: Deactivate
-  commitmentsDeactivate: 'Deactivate Commitment',
+  commitmentsStopLink: 'Stop this commitment',
   commitmentsDeactivateTitle: 'Deactivate this commitment?',
   commitmentsDeactivateBody:
     'It will be removed from your list. Past payment records are preserved.',
