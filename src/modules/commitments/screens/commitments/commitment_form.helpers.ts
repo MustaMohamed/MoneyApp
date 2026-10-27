@@ -108,6 +108,6 @@ export function resolveEndsRowValue(
   return buildCommitmentEndsLabel({
     duration_type: durationType,
     end_after_count: endAfterCount ?? null,
-    end_date: endDate || null,
+    end_date: endDate === '' ? null : (endDate ?? null),
   });
 }

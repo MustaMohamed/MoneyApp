@@ -59,11 +59,7 @@ export function RecurrencePicker({ form, recurrencePreset, onPresetChange }: Pro
   );
 
   return (
-    <View className="bg-default rounded-2xl px-3 py-3" style={{ gap: COMMITMENT_FORM_PICKER_GAP }}>
-      <Text className="font-inter text-muted text-[11px]">
-        {Strings.commitmentsFieldRecurrence}
-      </Text>
-
+    <View style={{ gap: COMMITMENT_FORM_PICKER_GAP }}>
       <View
         style={{ flexDirection: 'row', flexWrap: 'wrap', gap: COMMITMENT_FORM_PICKER_GAP }}
         onLayout={periodRoom.onPresetsRowLayout}

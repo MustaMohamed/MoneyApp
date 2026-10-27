@@ -1,19 +1,23 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
-import { Input, PressableFeedback } from 'heroui-native';
-import { useMemo } from 'react';
+import { useId, useMemo } from 'react';
 import { Controller, useWatch, type UseFormReturn } from 'react-hook-form';
-import { Platform, View } from 'react-native';
+import { View } from 'react-native';
 
 import { AccountStrip } from '@/components/ui/account_strip';
 import { Button } from '@/components/ui/button';
+import { DangerRing } from '@/components/ui/danger_ring';
+import { DateRow } from '@/components/ui/date_row';
 import { FormErrorText } from '@/components/ui/form_error_text';
-import { FORM_SHEET_CONTENT_CONTAINER_STYLE } from '@/components/ui/form_sheet.geometry';
+import { FormPickerRow } from '@/components/ui/form_picker_row';
+import {
+  FORM_FACT_CELL_CLASS,
+  FORM_SHEET_CONTENT_CONTAINER_STYLE,
+} from '@/components/ui/form_sheet.geometry';
 import { FormTypeTabs } from '@/components/ui/form_type_tabs';
-import { useBottomSheetAwareHandlers } from '@/components/ui/sheet';
-import { SegmentedTabs } from '@/components/ui/tabs';
-import { Text } from '@/components/ui/text';
+import { ListCard } from '@/components/ui/list_card';
+import { NoteFactRow } from '@/components/ui/note_fact_row';
+import { useNoteReveal } from '@/components/ui/note_reveal.hook';
 import { ValidationSlot } from '@/components/ui/validation_slot';
 import {
   AmountType,
@@ -23,24 +27,28 @@ import {
   RecurrencePeriod,
 } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Type, lineHeightFor } from '@/constants/theme';
+import { Size, Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 import type { Account } from '@/database/entities/account.entity';
 import type { Category } from '@/database/entities/category.entity';
 import { CategoryPickerSheet } from '@/modules/categories/components/category_picker_sheet';
-import { formatLongDate, toLocalDateString } from '@/utils/format_date';
+import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
 
-import { resolveAccountIdFromChip, resolveCommitmentStripChips } from '../commitment_form.helpers';
+import {
+  resolveAccountIdFromChip,
+  resolveCommitmentStripChips,
+  resolveEndsRowValue,
+  resolveRepeatsRowValue,
+} from '../commitment_form.helpers';
 import {
   type CommitmentFormValues,
   PRESET_MAP,
   SET_OPTS,
-  composeFieldBlur,
   detectPreset,
 } from '../commitment_form.shared';
 import { CommitmentAmountHero } from './commitment_amount_hero';
-import { COMMITMENT_FORM_TABS_SLOP } from './commitment_form.geometry';
+import { CommitmentChoiceSheet } from './commitment_choice_sheet';
 import {
   resolveCommitmentFormStripError,
   useCommitmentFormBodyFaults,
@@ -95,7 +103,8 @@ export function CommitmentFormFooter({
 
 export function CommitmentFormBody(props: CommitmentFormBodyProps) {
   const { form, categories, accounts, locked, afterFields } = props;
-  const { onFocus: onInputFocus, onBlur: onInputBlur } = useBottomSheetAwareHandlers();
+  const startsOwnerId = useId();
+  const { scrollRef, handleScrollLayout, handleNoteFocus, handleNoteBlur } = useNoteReveal();
   const [
     amountType,
     currency,
@@ -105,6 +114,8 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
     recurrencePeriod,
     categoryId,
     accountId,
+    endAfterCount,
+    endDate,
   ] = useWatch({
     control: form.control,
     name: [
@@ -116,6 +127,8 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
       'recurrencePeriod',
       'categoryId',
       'accountId',
+      'endAfterCount',
+      'endDate',
     ],
   });
   const recurrencePreset = detectPreset(recurrenceEvery, recurrencePeriod);
@@ -138,18 +151,14 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
   });
 
   const {
-    state: { categoryPickerVisible, showStartDatePicker, showEndDatePicker },
+    state: { categoryPickerVisible, showEndDatePicker, choiceSheet },
     setCategoryPickerVisible,
-    setShowStartDatePicker,
     setShowEndDatePicker,
+    setChoiceSheet,
   } = useCommitmentFormBodyPickers();
 
   const { faults: errors, isSubmitted } = useCommitmentFormBodyFaults(form);
-
-  const startDateAsDate = startDate ? new Date(startDate + 'T00:00:00') : new Date();
-  const formattedStartDate = startDate
-    ? formatLongDate(startDate)
-    : Strings.commitmentDateInputFormat;
+  const endsFault = errors.endAfterCount ?? errors.endDate;
 
   function handleAmountTypeChange(v: AmountType) {
     form.setValue('amountType', v, SET_OPTS);
@@ -179,30 +188,26 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
       form.resetField('endAfterCount', { defaultValue: undefined });
   }
 
-  function openStartDatePicker() {
-    if (locked) return;
-    if (Platform.OS === 'android') {
-      DateTimePickerAndroid.open({
-        value: startDateAsDate,
-        mode: 'date',
-        onValueChange: (_, d) => form.setValue('startDate', toLocalDateString(d), SET_OPTS),
-      });
-    } else {
-      setShowStartDatePicker(!showStartDatePicker);
-      setShowEndDatePicker(false);
-    }
-  }
-
   function selectCategory(category: Category) {
     form.setValue('categoryId', category.id, SET_OPTS);
     setCategoryPickerVisible(false);
   }
 
+  function toggleCurrency() {
+    form.setValue('currency', currency === Currency.EGP ? Currency.USD : Currency.EGP, SET_OPTS);
+  }
+
+  const chevron = (
+    <MaterialCommunityIcons name="chevron-right" size={Size.iconSm} color={CoreTokens.text2} />
+  );
+
   return (
     <>
       <BottomSheetScrollView
+        ref={scrollRef}
         testID="commitment-form-scroll"
         style={{ flex: 1 }}
+        onLayout={handleScrollLayout}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
@@ -244,166 +249,123 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
         />
 
         <View testID="commitment-form-card-inset" style={FORM_SHEET_CONTENT_CONTAINER_STYLE}>
-          <View className="bg-default gap-1 rounded-2xl px-3 py-3">
-            <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
-              {Strings.commitmentsFieldName}
-            </Text>
-            <Controller
-              control={form.control}
-              name="name"
-              render={({ field: { value, onChange, onBlur } }) => (
-                <Input
-                  // oxlint-disable-next-line typescript/no-unnecessary-condition -- RHF field value can be null at reset
-                  value={value ?? ''}
-                  onChangeText={onChange}
-                  onFocus={onInputFocus}
-                  onBlur={composeFieldBlur(onInputBlur, onBlur)}
-                  placeholder={Strings.commitmentsNamePlaceholder}
-                  maxLength={50}
-                  isDisabled={locked}
-                  isInvalid={!!errors.name}
-                />
-              )}
-            />
-            {errors.name ? (
-              <Text className="font-inter text-danger text-[11px]">{errors.name}</Text>
-            ) : null}
-          </View>
-
-          <View className="bg-default gap-2 rounded-2xl px-3 py-3">
-            <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
-              {Strings.commitmentsFieldCurrency}
-            </Text>
-            <SegmentedTabs<Currency>
-              segments={[
-                { value: Currency.EGP, label: Currency.EGP },
-                { value: Currency.USD, label: Currency.USD },
-              ]}
-              value={currency}
-              onValueChange={(c) => form.setValue('currency', c, SET_OPTS)}
-              variant="solid-gold"
-              listClassName="w-full"
-              isDisabled={locked}
-              accessibilityLabel={Strings.commitmentsFieldCurrency}
-              triggerHitSlop={COMMITMENT_FORM_TABS_SLOP}
-            />
-          </View>
-
-          <PressableFeedback
-            onPress={() => setCategoryPickerVisible(true)}
-            isDisabled={locked}
-            className="bg-default gap-1 rounded-2xl px-3 py-3"
-            accessibilityRole="button"
-            accessibilityLabel={Strings.commitmentsFieldCategory}
-          >
-            <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
-              {Strings.commitmentsFieldCategory}
-            </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-2">
-              {selectedCategory ? (
-                <Text className="font-sora-semibold text-foreground flex-1 text-[15px]">
-                  {selectedCategory.name}
-                </Text>
-              ) : (
-                <Text className="font-inter text-muted flex-1 text-[15px]">
-                  {Strings.addTxPickCategoryTitle}
-                </Text>
-              )}
-              <MaterialCommunityIcons
-                name={locked ? 'lock-outline' : 'chevron-right'}
-                size={18}
-                color={CoreTokens.text2}
+          <ListCard testID="commitment-form-fact-group">
+            <View className={FORM_FACT_CELL_CLASS}>
+              <Controller
+                control={form.control}
+                name="name"
+                render={({ field: { value, onChange, onBlur } }) => (
+                  <NoteFactRow
+                    testID="name-row"
+                    inset={false}
+                    maxLength={50}
+                    label={Strings.commitmentsFieldName}
+                    placeholder={Strings.commitmentsNamePlaceholder}
+                    // oxlint-disable-next-line typescript/no-unnecessary-condition -- RHF field value can be null at reset
+                    value={value ?? ''}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                  />
+                )}
               />
+              {errors.name !== undefined ? <DangerRing testID="name-ring" /> : null}
             </View>
-            {errors.categoryId ? (
-              <Text className="font-inter text-danger text-[11px]">{errors.categoryId}</Text>
-            ) : null}
-          </PressableFeedback>
 
-          <RecurrencePicker
-            form={form}
-            recurrencePreset={recurrencePreset}
-            onPresetChange={handleRecurrencePresetChange}
-          />
-
-          <PressableFeedback
-            onPress={openStartDatePicker}
-            isDisabled={locked}
-            className="bg-default gap-1 rounded-2xl px-3 py-3"
-            accessibilityRole="button"
-            accessibilityLabel={Strings.commitmentsFieldStartDate}
-          >
-            <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
-              {Strings.commitmentsFieldStartDate}
-            </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-2">
-              <Text
-                className={
-                  startDate
-                    ? 'font-sora-semibold text-foreground flex-1 text-[15px]'
-                    : 'font-inter text-muted flex-1 text-[15px]'
+            <View className={FORM_FACT_CELL_CLASS}>
+              <FormPickerRow
+                testID="category-row"
+                divider={false}
+                onPress={() => setCategoryPickerVisible(true)}
+                disabled={locked}
+                label={Strings.commitmentsFieldCategory}
+                accessibilityHint={errors.categoryId}
+                value={selectedCategory?.name ?? Strings.addTxPickCategoryTitle}
+                prefix={
+                  <MaterialCommunityIcons
+                    name={
+                      selectedCategory ? toIconName(selectedCategory.icon, 'tag') : 'tag-outline'
+                    }
+                    size={Size.filterSegmentIcon}
+                    color={selectedCategory?.color ?? CoreTokens.text1}
+                  />
                 }
-              >
-                {formattedStartDate}
-              </Text>
-              <MaterialCommunityIcons
-                name={locked ? 'lock-outline' : 'calendar'}
-                size={18}
-                color={CoreTokens.text2}
+                suffix={chevron}
+              />
+              {errors.categoryId !== undefined ? <DangerRing testID="category-ring" /> : null}
+            </View>
+
+            <View className={FORM_FACT_CELL_CLASS}>
+              <FormPickerRow
+                testID="repeats-row"
+                divider={false}
+                onPress={() => setChoiceSheet('repeats')}
+                disabled={locked}
+                label={Strings.commitmentsFieldRecurrence}
+                accessibilityHint={errors.recurrenceEvery}
+                value={resolveRepeatsRowValue(recurrenceEvery, recurrencePeriod)}
+                suffix={chevron}
+              />
+              {errors.recurrenceEvery !== undefined ? <DangerRing testID="repeats-ring" /> : null}
+            </View>
+
+            <View className={FORM_FACT_CELL_CLASS}>
+              <DateRow
+                ownerId={startsOwnerId}
+                value={startDate}
+                onChange={(next) => form.setValue('startDate', next, SET_OPTS)}
+                divider={false}
+                label={Strings.commitmentsFieldStartDate}
+                testID="starts-row"
+                pickerTitle={Strings.commitmentsFieldStartDate}
+                capsAtToday={false}
+              />
+              {errors.startDate !== undefined ? <DangerRing testID="starts-ring" /> : null}
+            </View>
+
+            <View className={FORM_FACT_CELL_CLASS}>
+              <FormPickerRow
+                testID="ends-row"
+                divider={false}
+                onPress={() => setChoiceSheet('ends')}
+                disabled={locked}
+                label={Strings.commitmentsFieldDuration}
+                accessibilityHint={endsFault}
+                value={resolveEndsRowValue(durationType, endAfterCount, endDate)}
+                suffix={chevron}
+              />
+              {endsFault !== undefined ? <DangerRing testID="ends-ring" /> : null}
+            </View>
+
+            <View className={FORM_FACT_CELL_CLASS}>
+              <FormPickerRow
+                testID="currency-row"
+                divider={false}
+                onPress={toggleCurrency}
+                disabled={locked}
+                label={Strings.commitmentsFieldCurrency}
+                value={currency}
+                suffix={chevron}
               />
             </View>
-            {errors.startDate ? (
-              <Text className="font-inter text-danger text-[11px]">{errors.startDate}</Text>
-            ) : null}
-          </PressableFeedback>
 
-          {showStartDatePicker ? (
-            <DateTimePicker
-              value={startDateAsDate}
-              mode="date"
-              display="spinner"
-              themeVariant="dark"
-              onValueChange={(_, d) => form.setValue('startDate', toLocalDateString(d), SET_OPTS)}
-            />
-          ) : null}
-
-          <DurationPicker
-            form={form}
-            durationType={durationType}
-            onDurationTypeChange={handleDurationTypeChange}
-            showEndDatePicker={showEndDatePicker}
-            setShowEndDatePicker={(v) => {
-              setShowEndDatePicker(v);
-              if (v) setShowStartDatePicker(false);
-            }}
-          />
-
-          <View className="bg-default gap-1 rounded-2xl px-3 py-3">
-            <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-1">
-              <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
-                {Strings.commitmentsFieldNotes}
-              </Text>
-              <Text className="font-inter text-muted text-[10px]">
-                {Strings.commitmentsOptional}
-              </Text>
-            </View>
             <Controller
               control={form.control}
               name="notes"
               render={({ field: { value, onChange, onBlur } }) => (
-                <Input
+                <NoteFactRow
+                  label={Strings.commitmentsFieldNotes}
+                  placeholder={Strings.addTxNotePlaceholder}
                   value={value ?? ''}
                   onChangeText={(v) => onChange(v || undefined)}
-                  onFocus={onInputFocus}
-                  onBlur={composeFieldBlur(onInputBlur, onBlur)}
-                  placeholder={Strings.addTxNotePlaceholder}
-                  multiline
-                  numberOfLines={3}
-                  style={{ minHeight: 72, textAlignVertical: 'top' }}
+                  onFocus={handleNoteFocus}
+                  onBlur={() => {
+                    handleNoteBlur();
+                    onBlur();
+                  }}
                 />
               )}
             />
-          </View>
+          </ListCard>
           {afterFields}
         </View>
       </BottomSheetScrollView>
@@ -416,6 +378,32 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
         onSelect={selectCategory}
         onOpenChange={() => setCategoryPickerVisible(false)}
       />
+      <CommitmentChoiceSheet
+        isOpen={choiceSheet === 'repeats'}
+        title={Strings.commitmentsFieldRecurrence}
+        testID="repeats-sheet"
+        onClose={() => setChoiceSheet(undefined)}
+      >
+        <RecurrencePicker
+          form={form}
+          recurrencePreset={recurrencePreset}
+          onPresetChange={handleRecurrencePresetChange}
+        />
+      </CommitmentChoiceSheet>
+      <CommitmentChoiceSheet
+        isOpen={choiceSheet === 'ends'}
+        title={Strings.commitmentsFieldDuration}
+        testID="ends-sheet"
+        onClose={() => setChoiceSheet(undefined)}
+      >
+        <DurationPicker
+          form={form}
+          durationType={durationType}
+          onDurationTypeChange={handleDurationTypeChange}
+          showEndDatePicker={showEndDatePicker}
+          setShowEndDatePicker={setShowEndDatePicker}
+        />
+      </CommitmentChoiceSheet>
     </>
   );
 }
