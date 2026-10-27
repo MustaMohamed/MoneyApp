@@ -3,7 +3,7 @@
 - **Date:** 2026-10-22
 - **Status:** accepted
 - **Ticket:** #814 (MA-232), under #784
-- **Applies to:** `src/modules/commitments/store/commitment.store.ts`, `src/modules/commitments/screens/commitments/components/commitments_hero.helpers.ts`, `src/modules/commitments/screens/commitments/commitments.hook.ts`
+- **Applies to:** `src/modules/commitments/store/commitment.store.ts`, `src/modules/commitments/screens/commitments/components/commitments_hero.helpers.ts`, `src/modules/commitments/screens/commitments/commitments.hook.ts`, `src/modules/commitments/screens/commitments/components/commitments_hero.tsx`, `src/components/ui/list_hero.tsx`, `src/components/ui/status_counter.tsx`
 
 The commitments hero and its counters take every figure from the month aggregate (`docs/adr/2026-10-21-commitments-month-aggregate.md`), never from a fold over the loaded rows. This record states where the store keeps that aggregate, when it reads it again, which of three modes the hero model takes, and where the live rate enters. MA-211 draws the hero from the model this record describes.
 
@@ -56,3 +56,14 @@ The dash is `Strings.commitmentsHeroUnavailable`, `—`.
 - Days left is `daysLeftInMonth(yearMonth, today)` from `src/utils/year_month.ts`, in every mode. It is `undefined`, and the caption has no days-left segment, for any month but the current one. The hook reads today in render, as the transactions hook does, so days left can trail the aggregate's own today across midnight until the next focus.
 
 The cases are in `__tests__/utils/year_month.test.ts`, `__tests__/screens/commitments/commitments_hero.helpers.test.ts`, `__tests__/commitment.store.test.ts` and `__tests__/screens/commitments.hook.test.ts`.
+
+## 6. The hero draws on the shared list hero
+
+**Added 2026-10-27 (#859, MA-258).**
+
+- `commitments_hero.tsx` draws the model on `ListHero` (`src/components/ui/list_hero.tsx`) through `buildCommitmentsListHeroModel`. The summary card, `summary_header.tsx`, and its fold over the loaded rows (`summarizeMonthPayments` in the screen hook) are gone; `payment_summary.ts` stays for the dashboard.
+- The title is `Left to pay`, and `Left to pay · <account>` when the filter holds one account, its name from `resolveAccountName`, as the transactions title reads it. Two accounts, or one not yet loaded, read `Left to pay`.
+- A figure that holds an estimate prints through `commitmentsSectionSumEstimate`, `~ 4,000`.
+- The rail fills to `paidPct`, 0 when it is `undefined`, in a new `gold` tone, `bg-gold-600` (`#C9973A`, frame A1).
+- Overdue is in danger only while it holds a figure. Its dash, at 0 carried rows or in `'dashes'`, is plain (frame A6EmptyMonth).
+- The five counters speak `{status}, {n} payments`, `1 payment` at 1, and `{status}, —` off `'figures'`, and their text stops growing at 1.3 (`LIST_HERO_MAX_FONT_SCALE`). The Home Commitments card's counters keep their number and uncapped scale.
