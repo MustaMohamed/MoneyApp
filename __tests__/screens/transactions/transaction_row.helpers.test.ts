@@ -2,12 +2,13 @@ import { PixelRatio } from 'react-native';
 
 import {
   resolveFitLineTextProps,
+  resolveOpeningLettersMinWidth,
   scaledFontSize,
   scaledTextStyle,
 } from '@/components/ui/text_scale.geometry';
 import { AccountType, CategoryType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Type, lineHeightFor } from '@/constants/theme';
+import { Size, Type, lineHeightFor } from '@/constants/theme';
 import {
   AccentCCTokens,
   AccentTokens,
@@ -22,9 +23,11 @@ import {
   resolveRowCaptionTextProps,
   resolveRowCaptionTrail,
   resolveRowTile,
+  resolveRowTitleLineMinWidth,
   resolveTransactionRowCaptionLines,
   resolveTransactionRowHeight,
   resolveTransactionRowValueTrackMaxWidth,
+  ROW_TITLE_LINE_GAP,
   TRANSACTION_ROW_AMOUNT_FONT_SIZE,
   TRANSACTION_ROW_CAPTION_FONT_SIZE,
   TRANSACTION_ROW_CAPTION_SEPARATOR,
@@ -904,5 +907,33 @@ describe('resolveRowCaptionTrail (MA-243)', () => {
       `${TRANSACTION_ROW_CAPTION_SEPARATOR}${trail}`,
     );
     expect(TRANSACTION_ROW_CAPTION_SEPARATOR).toBe(' \u00b7 ');
+  });
+});
+
+describe('resolveRowTitleLineMinWidth (MA-263)', () => {
+  it('draws the title line gap at the 6 dp gap-1.5 draws', () => {
+    expect(ROW_TITLE_LINE_GAP).toBe(6);
+  });
+
+  it.each([1, 0.85])('is undefined at font scale %d, with or without a slot', (fontScale) => {
+    expect(resolveRowTitleLineMinWidth(undefined, fontScale)).toBeUndefined();
+    expect(resolveRowTitleLineMinWidth(40, fontScale)).toBeUndefined();
+  });
+
+  it('holds the glyph, a gap and the title’s opening letters at font scale 2.0 with no slot', () => {
+    const openingLetters = resolveOpeningLettersMinWidth(TRANSACTION_ROW_TITLE_FONT_SIZE, 2) ?? 0;
+
+    expect(openingLetters).toBeGreaterThan(0);
+    expect(resolveRowTitleLineMinWidth(undefined, 2)).toBe(
+      Size.rowGlyph + ROW_TITLE_LINE_GAP + openingLetters,
+    );
+  });
+
+  it('adds a second gap and the slot’s minimum at font scale 2.0 with a slot', () => {
+    const openingLetters = resolveOpeningLettersMinWidth(TRANSACTION_ROW_TITLE_FONT_SIZE, 2) ?? 0;
+
+    expect(resolveRowTitleLineMinWidth(40, 2)).toBe(
+      Size.rowGlyph + ROW_TITLE_LINE_GAP + openingLetters + ROW_TITLE_LINE_GAP + 40,
+    );
   });
 });

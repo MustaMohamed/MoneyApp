@@ -38,8 +38,8 @@ describe('CommitmentSearchRow', () => {
       />,
     );
 
-    expect(getByLabelText('Search commitments…')).toHaveProp('accessibilityRole', 'search');
-    expect(getByLabelText('Search commitments…')).toHaveProp('style', geometry.inputStyle);
+    expect(getByLabelText('Search commitments')).toHaveProp('accessibilityRole', 'search');
+    expect(getByLabelText('Search commitments')).toHaveProp('style', geometry.inputStyle);
     expect(getByLabelText('Filter')).toHaveProp('style', geometry.filterButton);
   });
 
@@ -77,7 +77,7 @@ describe('CommitmentSearchRow', () => {
       />,
     );
 
-    expect(active.getByLabelText('Search commitments…')).toHaveProp('style', geometry.inputStyle);
+    expect(active.getByLabelText('Search commitments')).toHaveProp('style', geometry.inputStyle);
   });
 
   it('routes search changes and clearing through the controlled handler', async () => {
@@ -92,7 +92,7 @@ describe('CommitmentSearchRow', () => {
       />,
     );
 
-    await fireEvent.changeText(getByLabelText('Search commitments…'), 'gym');
+    await fireEvent.changeText(getByLabelText('Search commitments'), 'gym');
     expect(onChange).toHaveBeenCalledWith('gym');
 
     await fireEvent.press(getByLabelText('Clear search'));

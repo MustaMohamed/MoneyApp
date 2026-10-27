@@ -3,6 +3,7 @@ import type { Commitment } from '@/modules/commitments/entities/commitment.entit
 import type { CommitmentMonthPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import {
   buildCommitmentSections,
+  buildCommitmentsSearchTally,
   type CommitmentsSection,
 } from '@/modules/commitments/screens/commitments/commitments.helpers';
 import type { CommitmentStatusFilter } from '@/modules/commitments/screens/commitments/commitments.state';
@@ -482,5 +483,160 @@ describe('buildCommitmentSections — the search tally', () => {
 
   it('is undefined before the rate loads while an unpaid USD row matches', () => {
     expect(build(MATCHED, { liveRate: undefined }).tally).toBeUndefined();
+  });
+});
+
+describe('buildCommitmentsSearchTally', () => {
+  const TOTAL = { egp: 1240, count: 3, showTilde: false };
+  const NO_TEXT = {
+    count: undefined,
+    label: '',
+    filterSummary: undefined,
+    sum: undefined,
+    accessibilityLabel: undefined,
+  };
+
+  it('leaves the slot empty with no text while nothing is on, whatever the hero shows', () => {
+    for (const heroMode of ['figures', 'skeleton', 'dashes'] as const) {
+      expect(buildCommitmentsSearchTally({ isOn: false, heroMode, total: TOTAL })).toEqual({
+        mode: 'empty',
+        ...NO_TEXT,
+      });
+    }
+  });
+
+  it('draws the skeleton bar while the hero holds its skeleton', () => {
+    expect(buildCommitmentsSearchTally({ isOn: true, heroMode: 'skeleton', total: TOTAL })).toEqual(
+      { mode: 'skeleton', ...NO_TEXT },
+    );
+  });
+
+  it('draws the skeleton bar while the hero shows figures and the rows are not summed', () => {
+    expect(
+      buildCommitmentsSearchTally({ isOn: true, heroMode: 'figures', total: undefined }),
+    ).toEqual({ mode: 'skeleton', ...NO_TEXT });
+  });
+
+  it('prints "— payments" with no sum while the hero prints dashes', () => {
+    for (const total of [TOTAL, undefined]) {
+      expect(buildCommitmentsSearchTally({ isOn: true, heroMode: 'dashes', total })).toEqual({
+        mode: 'failed',
+        count: '—',
+        label: 'payments',
+        filterSummary: undefined,
+        sum: undefined,
+        accessibilityLabel: '— payments',
+      });
+    }
+  });
+
+  it('prints "0 payments" with no sum at 0 matches', () => {
+    expect(
+      buildCommitmentsSearchTally({
+        isOn: true,
+        heroMode: 'figures',
+        total: { egp: 0, count: 0, showTilde: false },
+      }),
+    ).toEqual({
+      mode: 'figures',
+      count: '0',
+      label: 'payments',
+      filterSummary: undefined,
+      sum: undefined,
+      accessibilityLabel: '0 payments',
+    });
+  });
+
+  it('prints the count and the unsigned EGP sum in the neutral colour, spoken as one line', () => {
+    expect(buildCommitmentsSearchTally({ isOn: true, heroMode: 'figures', total: TOTAL })).toEqual({
+      mode: 'figures',
+      count: '3',
+      label: 'payments',
+      filterSummary: undefined,
+      sum: { text: '1,240', polarity: 'neutral', currencyCode: 'EGP' },
+      accessibilityLabel: '3 payments 1,240 EGP',
+    });
+  });
+
+  it('says "payment" at one match', () => {
+    expect(
+      buildCommitmentsSearchTally({
+        isOn: true,
+        heroMode: 'figures',
+        total: { egp: 500, count: 1, showTilde: false },
+      }),
+    ).toEqual({
+      mode: 'figures',
+      count: '1',
+      label: 'payment',
+      filterSummary: undefined,
+      sum: { text: '500', polarity: 'neutral', currencyCode: 'EGP' },
+      accessibilityLabel: '1 payment 500 EGP',
+    });
+  });
+
+  it('prefixes "~" on a sum holding an unpaid variable row, in print and in speech', () => {
+    const tally = buildCommitmentsSearchTally({
+      isOn: true,
+      heroMode: 'figures',
+      total: { egp: 12_600, count: 2, showTilde: true },
+    });
+
+    expect(tally.sum).toEqual({ text: '~ 12,600', polarity: 'neutral', currencyCode: 'EGP' });
+    expect(tally.accessibilityLabel).toBe('2 payments ~ 12,600 EGP');
+  });
+
+  it('groups a four-digit count', () => {
+    expect(
+      buildCommitmentsSearchTally({
+        isOn: true,
+        heroMode: 'figures',
+        total: { egp: 2_000_000, count: 1_200, showTilde: false },
+      }),
+    ).toMatchObject({ count: '1,200', sum: { text: '2,000,000' } });
+  });
+
+  it('sums all four paid currency pairs at their transactions’ EGP amounts and an unpaid USD row at the live rate', () => {
+    const rows = [
+      pay('gym-paid-egp', 'gym', {
+        due_date: '2026-10-01',
+        paid_date: '2026-10-01',
+        amount_paid: 500,
+        account_id: 'acc-egp',
+        paid_egp_amount: 500,
+      }),
+      pay('rent-paid-usd', 'rent', {
+        due_date: '2026-10-02',
+        paid_date: '2026-10-02',
+        amount_paid: 160,
+        account_id: 'acc-usd',
+        paid_egp_amount: 8000,
+      }),
+      pay('netflix-paid-egp', 'netflix', {
+        due_date: '2026-10-03',
+        paid_date: '2026-10-03',
+        amount_paid: 775,
+        account_id: 'acc-egp',
+        paid_egp_amount: 775,
+      }),
+      pay('netflix-paid-usd', 'netflix', {
+        due_date: '2026-10-04',
+        paid_date: '2026-10-04',
+        amount_paid: 15.5,
+        account_id: 'acc-usd',
+        paid_egp_amount: 759.5,
+      }),
+      pay('netflix-unpaid', 'netflix', { due_date: '2026-10-28' }),
+    ];
+
+    const tally = buildCommitmentsSearchTally({
+      isOn: true,
+      heroMode: 'figures',
+      total: build(rows, { today: TODAY, liveRate: RATE }).tally,
+    });
+
+    expect(tally.count).toBe('5');
+    expect(tally.sum?.text).toBe('10,817');
+    expect(tally.accessibilityLabel).toBe('5 payments 10,817 EGP');
   });
 });

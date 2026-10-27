@@ -2,12 +2,14 @@ import { PixelRatio } from 'react-native';
 
 import {
   FITTED_LINE_SLACK,
+  OPENING_LETTERS_EM,
   resolveFitAmountTextProps,
   resolveFitLineTextProps,
   resolveLoneWordLines,
   resolveMessageGlyphShift,
   resolveKeptSpaceHeight,
   resolveOneLineTextProps,
+  resolveOpeningLettersMinWidth,
   resolveRowStacking,
   resolveUncappedLinesAboveOne,
   resolveWordSafeLines,
@@ -249,4 +251,19 @@ describe('resolveMessageGlyphShift', () => {
   it('MA-184: at font scale 0.85 moves the glyph up by half the shrink of the drawn first line', () => {
     expect(resolveMessageGlyphShift(20, 17.14, 0.85)).toBeCloseTo(-1.43, 6);
   });
+});
+
+describe('resolveOpeningLettersMinWidth (MA-263)', () => {
+  it.each([1, 0.85])('is undefined at font scale %d', (fontScale) => {
+    expect(resolveOpeningLettersMinWidth(Type.bodyStrong, fontScale)).toBeUndefined();
+  });
+
+  it.each([1.3, 2])(
+    'is the scaled size times the opening-letters em at font scale %d',
+    (fontScale) => {
+      expect(resolveOpeningLettersMinWidth(Type.bodyStrong, fontScale)).toBe(
+        scaledFontSize(Type.bodyStrong, fontScale) * OPENING_LETTERS_EM,
+      );
+    },
+  );
 });

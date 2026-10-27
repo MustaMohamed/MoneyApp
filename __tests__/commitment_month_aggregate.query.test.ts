@@ -19,6 +19,7 @@ import {
 } from '@/modules/commitments/domain/payment_state';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
+import { resolveCommitmentRowAccountId } from '@/modules/commitments/screens/commitments/components/commitment_row.helpers';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
 import { bridgeBetterSQLite, getExpoSQLiteTestDatabase } from '@/test_helpers/sqlite';
@@ -549,20 +550,20 @@ describe('getPaymentMonthAggregate — one account', () => {
     );
   });
 
-  it('the commitment’s account A holds only the unpaid rows that fall back to it', async () => {
+  it('the commitment’s account A holds every unpaid and skipped row of its commitment, the rows that name B included', async () => {
     expect(await aggregateFor('2026-05', '2026-05-15', 'acc_a')).toEqual({
       ...EMPTY,
       due: held({ egp: 210, count: 1 }),
+      upcoming: held({ egp: 220, count: 1 }),
       carried: held({ egp: 230, count: 1 }),
+      skipped: held({ egp: 240, count: 1 }),
     });
   });
 
-  it('account B holds the row paid from it and the unpaid and skipped rows that name it', async () => {
+  it('account B holds only the row paid from it', async () => {
     expect(await aggregateFor('2026-05', '2026-05-15', 'acc_b')).toEqual({
       ...EMPTY,
       paid: { egp: 200, count: 1 },
-      upcoming: held({ egp: 220, count: 1 }),
-      skipped: held({ egp: 240, count: 1 }),
     });
   });
 
@@ -576,6 +577,28 @@ describe('getPaymentMonthAggregate — one account', () => {
       skipped: held({ egp: 240, count: 1 }),
     });
   });
+
+  it.each(['acc_a', 'acc_b'])(
+    'the rows %s counts are the month’s rows the list puts under that account',
+    async (accountId) => {
+      const yearMonth = '2026-05';
+      const today = '2026-05-15';
+      const commitmentById = new Map(COMMITMENTS.map((c) => [c.id, c]));
+
+      const aggregate = await aggregateFor(yearMonth, today, accountId);
+      const monthRows = await getPaymentsByMonth(db, yearMonth, carriedDueBound(yearMonth, today));
+
+      const counted =
+        aggregate.paid.count +
+        HELD_BUCKETS.reduce((sum, bucket) => sum + aggregate[bucket].count, 0);
+      const listed = monthRows.filter(
+        (row) =>
+          resolveCommitmentRowAccountId(row, commitmentById.get(row.commitment_id)) === accountId,
+      );
+      expect(listed.length).toBeGreaterThan(0);
+      expect(counted).toBe(listed.length);
+    },
+  );
 });
 
 describe('getPaymentMonthAggregate — an empty month', () => {
