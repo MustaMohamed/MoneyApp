@@ -93,8 +93,8 @@ const fixedCommitment = makeTestCommitment({
 
 // The schema refuses an `account_id` the loaded list does not hold, so a submit needs this pair.
 const egpCommitment: Commitment = { ...fixedCommitment, currency: Currency.EGP };
-const egpAccount = { id: 'acc-egp', currency: Currency.EGP } as unknown as Account;
-const usdAccount = { id: 'acc-usd', currency: Currency.USD } as unknown as Account;
+const egpAccount = { id: 'acc-egp', name: 'Cash', currency: Currency.EGP } as unknown as Account;
+const usdAccount = { id: 'acc-usd', name: 'Dollars', currency: Currency.USD } as unknown as Account;
 
 const duePayment = makeTestPayment({
   commitment_id: fixedCommitment.id,
@@ -270,7 +270,9 @@ describe('usePaySheet', () => {
   });
 
   it('captures the EGP reporting rate for a USD commitment paid from a USD account', async () => {
-    mockAccounts = [{ id: 'acc-usd', currency: Currency.USD } as unknown as Account];
+    mockAccounts = [
+      { id: 'acc-usd', name: 'Dollars', currency: Currency.USD } as unknown as Account,
+    ];
     const { result } = await renderHook(() =>
       usePaySheet(OWNER, fixedCommitment, duePayment, TODAY),
     );
@@ -291,7 +293,7 @@ describe('usePaySheet', () => {
   });
 
   it('snapshots the entered rate when the payment crosses currencies', async () => {
-    mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
+    mockAccounts = [{ id: 'acc-egp', name: 'Cash', currency: Currency.EGP } as unknown as Account];
     const { result } = await renderHook(() =>
       usePaySheet(OWNER, fixedCommitment, duePayment, TODAY),
     );
@@ -444,7 +446,7 @@ describe('usePaySheet', () => {
   });
 
   async function submitRate(typed: string) {
-    mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
+    mockAccounts = [{ id: 'acc-egp', name: 'Cash', currency: Currency.EGP } as unknown as Account];
     const { result } = await renderHook(() =>
       usePaySheet(OWNER, fixedCommitment, duePayment, TODAY),
     );
@@ -507,7 +509,7 @@ describe('usePaySheet', () => {
   });
 
   it('A2-04: omits the rate snapshot when the payment stays in one currency', async () => {
-    mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
+    mockAccounts = [{ id: 'acc-egp', name: 'Cash', currency: Currency.EGP } as unknown as Account];
     const { result } = await renderHook(() =>
       usePaySheet(OWNER, { ...fixedCommitment, currency: Currency.EGP }, duePayment, TODAY),
     );
@@ -528,8 +530,8 @@ describe('usePaySheet', () => {
 
   it('F1: seeds the global rate when the picked account turns the requirement on', async () => {
     mockAccounts = [
-      { id: 'acc-egp', currency: Currency.EGP } as unknown as Account,
-      { id: 'acc-usd', currency: Currency.USD } as unknown as Account,
+      { id: 'acc-egp', name: 'Cash', currency: Currency.EGP } as unknown as Account,
+      { id: 'acc-usd', name: 'Dollars', currency: Currency.USD } as unknown as Account,
     ];
     const { result, rerender } = await renderHook(() =>
       usePaySheet(OWNER, egpCommitment, duePayment, TODAY),
@@ -553,7 +555,7 @@ describe('usePaySheet', () => {
 
   // A USD commitment needs a rate whatever the account's currency is.
   it('F1: seeds the global rate for a USD commitment paid from an EGP account', async () => {
-    mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
+    mockAccounts = [{ id: 'acc-egp', name: 'Cash', currency: Currency.EGP } as unknown as Account];
     const { result, rerender } = await renderHook(() =>
       usePaySheet(OWNER, fixedCommitment, duePayment, TODAY),
     );
@@ -570,7 +572,7 @@ describe('usePaySheet', () => {
   });
 
   it('F1: leaves the rate alone when neither side is USD', async () => {
-    mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
+    mockAccounts = [{ id: 'acc-egp', name: 'Cash', currency: Currency.EGP } as unknown as Account];
     const { result } = await renderHook(() => usePaySheet(OWNER, egpCommitment, duePayment, TODAY));
     await act(() => {
       result.current.selectAccount(mockAccounts[0].id);
@@ -580,7 +582,7 @@ describe('usePaySheet', () => {
 
   // `AccountPickerSheet` fires `onSelect` for every row, the already-checked one included.
   it('G1: keeps a typed override rate when the already-selected account is re-picked', async () => {
-    mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
+    mockAccounts = [{ id: 'acc-egp', name: 'Cash', currency: Currency.EGP } as unknown as Account];
     const { result, rerender } = await renderHook(() =>
       usePaySheet(OWNER, fixedCommitment, duePayment, TODAY),
     );
@@ -604,7 +606,7 @@ describe('usePaySheet', () => {
   });
 
   it('F2: restores the global rate when the override is turned back off', async () => {
-    mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
+    mockAccounts = [{ id: 'acc-egp', name: 'Cash', currency: Currency.EGP } as unknown as Account];
     const { result, rerender } = await renderHook(() =>
       usePaySheet(OWNER, fixedCommitment, duePayment, TODAY),
     );
@@ -628,7 +630,7 @@ describe('usePaySheet', () => {
   });
 
   it('F2: does not overwrite the typed rate when the override is turned on', async () => {
-    mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
+    mockAccounts = [{ id: 'acc-egp', name: 'Cash', currency: Currency.EGP } as unknown as Account];
     const { result } = await renderHook(() =>
       usePaySheet(OWNER, fixedCommitment, duePayment, TODAY),
     );
@@ -646,7 +648,9 @@ describe('usePaySheet', () => {
       isManualOverride: false,
       rate_updated_at: null,
     }));
-    mockAccounts = [{ id: 'acc-usd', currency: Currency.USD } as unknown as Account];
+    mockAccounts = [
+      { id: 'acc-usd', name: 'Dollars', currency: Currency.USD } as unknown as Account,
+    ];
     paySheetStateInner = { ...paySheetStateInner, visible: true };
     const { result } = await renderHook(() =>
       usePaySheet(OWNER, fixedCommitment, duePayment, TODAY),
@@ -662,7 +666,7 @@ describe('usePaySheet', () => {
       isManualOverride: false,
       rate_updated_at: null,
     }));
-    mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
+    mockAccounts = [{ id: 'acc-egp', name: 'Cash', currency: Currency.EGP } as unknown as Account];
     const { result } = await renderHook(() =>
       usePaySheet(OWNER, fixedCommitment, duePayment, TODAY),
     );
@@ -675,7 +679,9 @@ describe('usePaySheet', () => {
 
   // The save-error flag lives in a module-level store, so it survives a dismiss.
   it('F3: clears a stale save error when the sheet is reopened after a dismiss', async () => {
-    mockAccounts = [{ id: 'acc-usd', currency: Currency.USD } as unknown as Account];
+    mockAccounts = [
+      { id: 'acc-usd', name: 'Dollars', currency: Currency.USD } as unknown as Account,
+    ];
     paySheetStateInner = { ...paySheetStateInner, visible: true };
     mockMarkAsPaid.mockRejectedValueOnce(new Error('write failed'));
 
@@ -873,8 +879,8 @@ describe('usePaySheet', () => {
 
   it('H1: seeding the rate after a failed submit clears the rate error without a second submit', async () => {
     mockAccounts = [
-      { id: 'acc-egp', currency: Currency.EGP } as unknown as Account,
-      { id: 'acc-usd', currency: Currency.USD } as unknown as Account,
+      { id: 'acc-egp', name: 'Cash', currency: Currency.EGP } as unknown as Account,
+      { id: 'acc-usd', name: 'Dollars', currency: Currency.USD } as unknown as Account,
     ];
     const { result, rerender } = await renderHook(() =>
       usePaySheet(OWNER, egpCommitment, duePayment, TODAY),
@@ -911,7 +917,9 @@ describe('usePaySheet', () => {
   });
 
   it('H4: turning the override off after a failed submit clears the stale rate error', async () => {
-    mockAccounts = [{ id: 'acc-usd', currency: Currency.USD } as unknown as Account];
+    mockAccounts = [
+      { id: 'acc-usd', name: 'Dollars', currency: Currency.USD } as unknown as Account,
+    ];
     const { result, rerender } = await renderHook(() =>
       usePaySheet(OWNER, fixedCommitment, duePayment, TODAY),
     );
@@ -951,7 +959,7 @@ describe('usePaySheet', () => {
   });
 
   it('H1: seeding the rate before any submit raises no error', async () => {
-    mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
+    mockAccounts = [{ id: 'acc-egp', name: 'Cash', currency: Currency.EGP } as unknown as Account];
     const { result, rerender } = await renderHook(() =>
       usePaySheet(OWNER, fixedCommitment, duePayment, TODAY),
     );
