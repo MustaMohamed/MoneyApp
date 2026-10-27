@@ -10,15 +10,17 @@ import {
   DETAIL_HERO_TILE_GAP,
   resolveDetailHeroGeometry,
 } from '@/components/ui/detail_hero.geometry';
-import { resolveDetailRowHeight } from '@/components/ui/detail_row.geometry';
 import { DetailRowsCard } from '@/components/ui/detail_rows_card';
+import { resolveFactRowHeight } from '@/components/ui/fact_row.geometry';
 import { HeroShell } from '@/components/ui/hero_shell';
 import { ScreenScroll } from '@/components/ui/screen';
 import { ScaledBar } from '@/components/ui/skeleton_bar';
 import { Strings } from '@/constants/strings';
 import { Radius, Size, Type, lineHeightFor } from '@/constants/theme';
 
-const DETAIL_ROW_COUNT = 6;
+import type { Commitment } from '../../../../entities/commitment.entity';
+import { resolveCommitmentDetailFactKinds } from '../detail.helpers';
+
 const CYCLE_BUTTON_COUNT = 2;
 
 const CYCLE_CARD_FRAME_STYLE: Readonly<ViewStyle> = Object.freeze({
@@ -26,10 +28,15 @@ const CYCLE_CARD_FRAME_STYLE: Readonly<ViewStyle> = Object.freeze({
   boxShadow: 'none',
 });
 
-export function CommitmentDetailSkeleton(): React.ReactElement {
+interface Props {
+  commitmentHint: Commitment | undefined;
+}
+
+export function CommitmentDetailSkeleton({ commitmentHint }: Props): React.ReactElement {
   const { fontScale } = useWindowDimensions();
   const hero = resolveDetailHeroGeometry(fontScale);
-  const rowHeight = resolveDetailRowHeight(fontScale);
+  const rowHeight = resolveFactRowHeight(fontScale);
+  const rowCount = resolveCommitmentDetailFactKinds(commitmentHint).length;
   return (
     <ScreenScroll
       testID="commitment-detail-skeleton"
@@ -106,10 +113,10 @@ export function CommitmentDetailSkeleton(): React.ReactElement {
           </View>
         </Card>
         <DetailRowsCard testID="commitment-detail-skeleton-rows">
-          {Array.from({ length: DETAIL_ROW_COUNT }, (_, row) => (
+          {Array.from({ length: rowCount }, (_, row) => (
             <View
               key={row}
-              className={row < DETAIL_ROW_COUNT - 1 ? 'border-separator border-b px-4' : 'px-4'}
+              className={row < rowCount - 1 ? 'border-separator border-b px-4' : 'px-4'}
               style={{
                 height: rowHeight,
                 flexDirection: 'row',

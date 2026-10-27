@@ -2,6 +2,7 @@ import { DetailEditAction } from '@/components/ui/detail_edit_action';
 import { DetailHero } from '@/components/ui/detail_hero';
 import { DetailLoadError } from '@/components/ui/detail_load_error';
 import { DetailNotFoundState } from '@/components/ui/detail_not_found_state';
+import { DetailNoteCard } from '@/components/ui/detail_note_card';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { StackHeader } from '@/components/ui/stack_header';
 import { Strings } from '@/constants/strings';
@@ -40,7 +41,9 @@ export default function CommitmentDetailScreen() {
         }
       />
 
-      {state.viewState === 'loading' ? <CommitmentDetailSkeleton /> : null}
+      {state.viewState === 'loading' ? (
+        <CommitmentDetailSkeleton commitmentHint={state.loadingCommitmentHint} />
+      ) : null}
 
       {state.viewState === 'notFound' ? (
         <DetailNotFoundState
@@ -73,12 +76,8 @@ export default function CommitmentDetailScreen() {
               onSkip={confirmSkip}
             />
           ) : null}
-          <DetailsCard
-            commitment={state.commitment}
-            account={state.account}
-            recurrenceLabel={state.recurrenceLabel}
-            durationLabel={state.durationLabel}
-          />
+          <DetailsCard facts={state.facts} />
+          <DetailNoteCard note={state.commitment.notes} testID="commitment-detail-note-card" />
           <PaymentHistory
             payments={state.allPayments}
             today={state.today}

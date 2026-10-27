@@ -3,12 +3,9 @@ import { useCallback, useEffect, useId, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import type { DetailFact } from '@/components/ui/detail_fact_row.helpers';
-import { DurationType } from '@/constants/enums';
-import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useAccountsById } from '@/modules/accounts/store/use_accounts_by_id.hook';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
-import { buildRecurrenceLabel } from '@/modules/commitments/utils/recurrence_label';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import {
   STACKED_PREFIX,
@@ -16,9 +13,8 @@ import {
   stackedPrefixOf,
   stackedTransactionDetailRoute,
 } from '@/modules/navigation/domain/stacked_route';
-import { formatLongDate, toLocalDateString } from '@/utils/format_date';
+import { toLocalDateString } from '@/utils/format_date';
 
-import type { Commitment } from '../../../entities/commitment.entity';
 import { commitmentRepository } from '../../../repositories/commitment.repository';
 import { useCommitmentStore } from '../../../store/commitment.store';
 import {
@@ -36,21 +32,6 @@ import {
 } from './detail.helpers';
 import { INITIAL_UI_ENTRY, useCommitmentDetailState } from './detail.state';
 import { INITIAL_DATA_ENTRY, useCommitmentDetailStore } from './detail.store';
-
-function buildDurationLabel(commitment: Commitment): string {
-  switch (commitment.duration_type) {
-    case DurationType.Forever:
-      return Strings.commitmentsDurationForever;
-    case DurationType.AfterCount:
-      return commitment.end_after_count != null
-        ? Strings.commitmentsDurationAfterCountOf(commitment.end_after_count)
-        : Strings.commitmentsDurationAfterCount;
-    case DurationType.UntilDate:
-      return commitment.end_date != null
-        ? Strings.commitmentsDurationUntilDateOf(formatLongDate(commitment.end_date))
-        : Strings.commitmentsDurationUntilDate;
-  }
-}
 
 const NO_FACTS: readonly DetailFact<CommitmentDetailFactKind>[] = Object.freeze([]);
 
@@ -84,7 +65,6 @@ export function useCommitmentDetail() {
 
   const payments = useCommitmentStore((s) => s.payments);
   const storeSkipPayment = useCommitmentStore.getState().skipPayment;
-  const accounts = useAccountStore((s) => s.accounts);
   const categories = useCategoryStore.useState.categories();
   const { accountsById } = useAccountsById();
   const loadAccountLookup = useAccountStore.getState().loadAccountLookup;
@@ -178,12 +158,6 @@ export function useCommitmentDetail() {
     [commitment, categories],
   );
 
-  const account = useMemo(
-    () =>
-      commitment?.account_id ? accounts.find((a) => a.id === commitment.account_id) : undefined,
-    [commitment, accounts],
-  );
-
   const accountId = commitment?.account_id ?? undefined;
   useEffect(() => {
     if (accountId === undefined) return;
@@ -205,22 +179,12 @@ export function useCommitmentDetail() {
     [commitment, payment, category, accountsById, liveRate],
   );
 
-  const recurrenceLabel = useMemo(
-    () => (commitment ? buildRecurrenceLabel(commitment) : ''),
-    [commitment],
-  );
-
   const hero = useMemo(
     () =>
       commitment && today !== undefined
         ? buildCommitmentDetailHero({ commitment, payment, category, today })
         : undefined,
     [commitment, payment, category, today],
-  );
-
-  const durationLabel = useMemo(
-    () => (commitment ? buildDurationLabel(commitment) : ''),
-    [commitment],
   );
 
   const openPaySheet = useCallback(() => {
@@ -277,13 +241,10 @@ export function useCommitmentDetail() {
       commitment,
       allPayments: historyRows,
       category,
-      account,
       today,
       hero,
       facts,
       loadingCommitmentHint,
-      recurrenceLabel,
-      durationLabel,
       skipConfirmVisible,
       skipBusy,
       skipError,

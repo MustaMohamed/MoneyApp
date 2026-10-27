@@ -1,62 +1,23 @@
 import Animated from 'react-native-reanimated';
 
-import { DetailRow } from '@/components/ui/detail_row';
+import { DetailFactRow } from '@/components/ui/detail_fact_row';
+import type { DetailFact } from '@/components/ui/detail_fact_row.helpers';
 import { DetailRowsCard } from '@/components/ui/detail_rows_card';
-import { Strings } from '@/constants/strings';
-import type { Account } from '@/database/entities/account.entity';
-import { resolveAccountName } from '@/utils/account_name';
-import { formatLongDate } from '@/utils/format_date';
 
-import type { Commitment } from '../../../../entities/commitment.entity';
 import { cardEntering } from '../detail.anim';
+import type { CommitmentDetailFactKind } from '../detail.helpers';
 
 interface Props {
-  commitment: Commitment;
-  account: Account | undefined;
-  recurrenceLabel: string;
-  durationLabel: string;
+  facts: readonly DetailFact<CommitmentDetailFactKind>[];
 }
 
-export function DetailsCard({ commitment, account, recurrenceLabel, durationLabel }: Props) {
-  const hasNotes = commitment.notes != null;
-
+export function DetailsCard({ facts }: Props) {
   return (
     <Animated.View entering={cardEntering}>
-      <DetailRowsCard>
-        <DetailRow
-          icon="repeat"
-          label={Strings.commitmentsDetailRecurrence}
-          value={recurrenceLabel}
-        />
-        <DetailRow
-          icon="calendar-start"
-          label={Strings.commitmentsDetailStartDate}
-          value={formatLongDate(commitment.start_date)}
-        />
-        <DetailRow
-          icon="bank-outline"
-          label={Strings.commitmentsDetailDefaultAccount}
-          value={account ? resolveAccountName(account) : Strings.commitmentsDetailNone}
-        />
-        <DetailRow
-          icon="timer-sand"
-          label={Strings.commitmentsDetailDuration}
-          value={durationLabel}
-        />
-        <DetailRow
-          icon="currency-usd"
-          label={Strings.commitmentsDetailCurrency}
-          value={commitment.currency}
-          showDivider={hasNotes}
-        />
-        {hasNotes ? (
-          <DetailRow
-            icon="text"
-            label={Strings.commitmentsDetailNotes}
-            value={commitment.notes!}
-            showDivider={false}
-          />
-        ) : null}
+      <DetailRowsCard testID="commitment-detail-facts">
+        {facts.map((fact, index) => (
+          <DetailFactRow key={fact.kind} fact={fact} showDivider={index < facts.length - 1} />
+        ))}
       </DetailRowsCard>
     </Animated.View>
   );

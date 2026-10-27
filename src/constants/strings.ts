@@ -1125,18 +1125,12 @@ export const Strings = {
   commitmentsAfterCountPlaceholder: '0',
 
   // Commitments: C4 Detail
-  commitmentsDetailRecurrence: 'Recurrence',
-  commitmentsDetailStartDate: 'Start Date',
-  commitmentsDetailDefaultAccount: 'Default Account',
-  commitmentsDetailDuration: 'Duration',
   commitmentsDetailRepeats: 'Repeats',
   commitmentsDetailStarted: 'Started',
   commitmentsDetailEnds: 'Ends',
   commitmentsDetailCurrency: 'Currency',
-  commitmentsDetailNone: 'None',
   commitmentsDetailPaymentHistory: 'Payment History',
   commitmentsDetailCurrentCycle: 'Current Cycle',
-  commitmentsDetailNotes: 'Notes',
   commitmentsDetailHeader: 'Commitment',
   commitmentsCadenceVaries: (recurrence: string) => `${recurrence} · varies`,
   commitmentsDetailCaptionSince: (category: string, date: string) => `${category} · since ${date}`,

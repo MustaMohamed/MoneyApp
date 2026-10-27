@@ -259,7 +259,9 @@ describe('useCommitmentDetail', () => {
       expect(result.current.state.today).toBe('2026-01-30');
       expect(result.current.state.hero?.badgeLabel).toBe('Every month · varies');
       expect(result.current.state.hero?.caption).toBe('Bills · starts Sat 31 Jan 2026');
-      expect(result.current.state.recurrenceLabel).toBe('Every month');
+      expect(result.current.state.facts.find((fact) => fact.kind === 'repeats')?.value).toBe(
+        'Every month',
+      );
     } finally {
       jest.useRealTimers();
     }
