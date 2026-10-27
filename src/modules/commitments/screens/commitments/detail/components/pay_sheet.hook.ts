@@ -13,20 +13,25 @@ import {
   resolveCommitmentPaymentAmounts,
   TransactionAmountError,
 } from '@/modules/transactions/domain/transaction_amounts';
-import { toLocalDateString } from '@/utils/format_date';
+import { resolveAccountName } from '@/utils/account_name';
 import { MIN_MONEY_AMOUNT } from '@/utils/money';
-import {
-  formatStoredMoneyText,
-  maskMoneyFieldText,
-  parseRequiredMoneyText,
-} from '@/utils/money_text';
+import { formatStoredMoneyText, parseRequiredMoneyText } from '@/utils/money_text';
 import { parseDecimalText, parsePositiveDecimal, parseRateText } from '@/utils/parse_decimal';
 import { setTypedDecimal, useZodForm } from '@/utils/use_zod_form.hook';
 
 import type { Commitment } from '../../../../entities/commitment.entity';
 import type { CommitmentPayment } from '../../../../entities/commitment_payment.entity';
-import { commitmentRepository } from '../../../../repositories/commitment.repository';
 import { useCommitmentStore } from '../../../../store/commitment.store';
+import { resolveDisplayAmount } from '../../../../utils/commitment_status';
+import {
+  type PaySheetFieldErrors,
+  type PayWritePreview,
+  resolvePayButtonLabel,
+  resolvePayPrefillAccountId,
+  resolvePaySheetStatusMessage,
+  resolvePayStripChips,
+  resolvePayTrackFootnote,
+} from './pay_sheet.helpers';
 import { INITIAL_PAY_SHEET_ENTRY, usePaySheetState } from './pay_sheet.state';
 
 /**
@@ -152,11 +157,11 @@ function createPaySheetSchema(commitment: Commitment | undefined, accounts: Acco
 
 type PaySheetFormValues = z.infer<ReturnType<typeof createPaySheetSchema>>;
 
-function buildDefaults(): PaySheetFormValues {
+function buildDefaults(today: string | undefined): PaySheetFormValues {
   return {
     amountText: '',
     account_id: '',
-    paid_date: toLocalDateString(new Date()),
+    paid_date: today ?? '',
     exchange_rate: undefined,
     notes: undefined,
   };
@@ -166,13 +171,13 @@ export function usePaySheet(
   owner: string,
   commitment: Commitment | undefined,
   payment: CommitmentPayment | undefined,
+  today: string | undefined,
 ) {
-  const { visible, saving, accountPickerVisible, rateOverride, saveError } = usePaySheetState(
+  const { visible, saving, rateOverride, saveError } = usePaySheetState(
     useShallow((s) => s.entries[owner] ?? INITIAL_PAY_SHEET_ENTRY),
   );
   const setVisible = usePaySheetState.getState().setVisible;
   const setSaving = usePaySheetState.getState().setSaving;
-  const setAccountPickerVisible = usePaySheetState.getState().setAccountPickerVisible;
   const setRateOverride = usePaySheetState.getState().setRateOverride;
   const setSaveError = usePaySheetState.getState().setSaveError;
   const resetEntry = usePaySheetState.getState().resetEntry;
@@ -190,12 +195,14 @@ export function usePaySheet(
   const form = useZodForm(schema, {
     mode: 'onSubmit',
     reValidateMode: 'onChange',
-    defaultValues: buildDefaults(),
+    defaultValues: buildDefaults(today),
   });
 
   const accountId = form.watch('account_id');
   const exchangeRateValue = form.watch('exchange_rate');
   const amountText = form.watch('amountText');
+  const paidDate = form.watch('paid_date');
+  const notes = form.watch('notes');
   // Read during render: `formState` is a proxy and only refreshes keys read while rendering.
   const isSubmitted = form.formState.isSubmitted;
 
@@ -215,6 +222,7 @@ export function usePaySheet(
     const base = {
       convertedTotal: undefined as { amount: number; currency: Currency } | undefined,
       convertedBelowMin: false,
+      writePreview: undefined as PayWritePreview | undefined,
       previewEgpAmount: undefined as number | undefined,
       // Suppression needs a flag: an absent `previewEgpAmount` renders the row placeholder.
       previewHidden: commitment?.currency === Currency.EGP,
@@ -240,6 +248,14 @@ export function usePaySheet(
       ...base,
       previewEgpAmount: convertedBelowMin ? undefined : resolved?.egpAmount,
       convertedBelowMin,
+      writePreview:
+        !convertedBelowMin && resolved
+          ? {
+              amount: resolved.accountNativeAmount,
+              currency: resolved.accountCurrency,
+              accountName: resolveAccountName(selectedAccount),
+            }
+          : undefined,
       convertedTotal:
         converts && !convertedBelowMin && resolved
           ? { amount: resolved.accountNativeAmount, currency: resolved.accountCurrency }
@@ -248,67 +264,35 @@ export function usePaySheet(
   }, [amountText, commitment, exchangeRateValue, requiresRate, selectedAccount]);
 
   useEffect(() => {
-    if (!visible || !commitment) return;
+    if (!visible || !commitment || today === undefined) return;
 
-    let cancelled = false;
+    const isFixed = commitment.amount_type === AmountType.Fixed;
+    const prefillAmount =
+      isFixed && payment?.amount_due != null
+        ? payment.amount_due
+        : isFixed && commitment.amount != null
+          ? commitment.amount
+          : 0;
+    const prefillAccountId = resolvePayPrefillAccountId(commitment.account_id, accounts);
 
-    async function prefill() {
-      if (!commitment) return;
-
-      const isFixed = commitment.amount_type === AmountType.Fixed;
-      const prefillAmount =
-        isFixed && payment?.amount_due != null
-          ? payment.amount_due
-          : isFixed && commitment.amount != null
-            ? commitment.amount
-            : 0;
-
-      let prefillAccountId = commitment.account_id ?? '';
-      if (!prefillAccountId) {
-        try {
-          const lastPaid = await commitmentRepository.getLastPaidPayment(commitment.id);
-          if (!cancelled && lastPaid?.account_id) {
-            prefillAccountId = lastPaid.account_id;
-          }
-        } catch {
-          // Prefill is best effort; fall through to the next fallback.
-        }
-      }
-      // A prefilled id can outlive an archived or deleted account and open the sheet invalid.
-      if (prefillAccountId && !accounts.some((account) => account.id === prefillAccountId)) {
-        prefillAccountId = '';
-      }
-      if (!prefillAccountId && accounts.length > 0) {
-        prefillAccountId = accounts[0].id;
-      }
-
-      if (!cancelled) {
-        form.reset({
-          // `amount_due` can be sub-cent or exponential, so format it to text that re-parses.
-          amountText: prefillAmount > 0 ? formatStoredMoneyText(prefillAmount) : '',
-          account_id: prefillAccountId,
-          paid_date: toLocalDateString(new Date()),
-          exchange_rate: requiresExchangeRate(
-            commitment.currency,
-            accounts.find((account) => account.id === prefillAccountId)?.currency,
-          )
-            ? formatStoredMoneyText(rate)
-            : undefined,
-          notes: undefined,
-        });
-        setRateOverride(owner, false);
-        // Module-level state outlives the sheet; a stale save error would greet the next open.
-        setSaveError(owner, undefined);
-      }
-    }
-
-    void prefill();
-
-    return () => {
-      cancelled = true;
-    };
+    form.reset({
+      // `amount_due` can be sub-cent or exponential, so format it to text that re-parses.
+      amountText: prefillAmount > 0 ? formatStoredMoneyText(prefillAmount) : '',
+      account_id: prefillAccountId,
+      paid_date: today,
+      exchange_rate: requiresExchangeRate(
+        commitment.currency,
+        accounts.find((account) => account.id === prefillAccountId)?.currency,
+      )
+        ? formatStoredMoneyText(rate)
+        : undefined,
+      notes: undefined,
+    });
+    setRateOverride(owner, false);
+    // Module-level state outlives the sheet; a stale save error would greet the next open.
+    setSaveError(owner, undefined);
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- commitment?.id already captures commitment identity changes; form/accountState are stable refs
-  }, [visible, commitment?.id, payment?.id]);
+  }, [visible, commitment?.id, payment?.id, today]);
 
   async function onValid(data: PaySheetFormValues) {
     if (!payment) return;
@@ -344,19 +328,21 @@ export function usePaySheet(
     setSaveError(owner, undefined);
   }
 
-  function selectAccount(account: Account) {
-    form.setValue('account_id', account.id);
+  function selectAccount(accountId: string) {
+    // After a press, a pick clears the strip's ring and recounts the track.
+    form.setValue('account_id', accountId, { shouldValidate: isSubmitted });
+    const account = accounts.find((a) => a.id === accountId);
     // A pick that turns `requiresRate` on seeds the global rate, unless the user typed their own.
     if (
       !rateOverride &&
       commitment &&
+      account &&
       requiresExchangeRate(commitment.currency, account.currency)
     ) {
       // Gate on `isSubmitted`: seeding clears a rate error but must not raise one pre-submit.
       form.setValue('exchange_rate', formatStoredMoneyText(rate), { shouldValidate: isSubmitted });
       setRateOverride(owner, false);
     }
-    setAccountPickerVisible(owner, false);
   }
 
   // The field is hidden when the override is off, so restore the global rate or the save fails.
@@ -367,17 +353,50 @@ export function usePaySheet(
       form.setValue('exchange_rate', formatStoredMoneyText(rate), { shouldValidate: isSubmitted });
   }
 
-  // Same mask as AmountHero: gate keystrokes, never truncate a prefill.
+  // The hero has already masked the text.
   function setAmountText(text: string) {
-    const masked = maskMoneyFieldText(form.getValues('amountText'), text);
-    if (masked === undefined) return;
-    setTypedDecimal(form, 'amountText', masked, true, isSubmitted);
+    setTypedDecimal(form, 'amountText', text, true, isSubmitted);
   }
 
   // Pinned false keeps a stale error; pinned true validates before any submit.
   function setExchangeRate(text: string) {
     setTypedDecimal(form, 'exchange_rate', text, true, isSubmitted);
   }
+
+  const fieldErrors = form.formState.errors;
+  const pressErrors: PaySheetFieldErrors = {
+    amount: fieldErrors.amountText?.message,
+    account: fieldErrors.account_id?.message,
+    rate: fieldErrors.exchange_rate?.message,
+  };
+  // The RHF error wins the amount's slot; the live flag is the only source of it before a press.
+  const errors: PaySheetFieldErrors = {
+    ...pressErrors,
+    amount:
+      pressErrors.amount ??
+      (preview.convertedBelowMin && selectedAccount
+        ? Strings.commitmentsPayErrConvertedBelowMin(selectedAccount.currency)
+        : undefined),
+  };
+  const stripChips = useMemo(
+    () => resolvePayStripChips(accounts, accountId),
+    [accounts, accountId],
+  );
+  const trackFootnote =
+    commitment === undefined || today === undefined
+      ? undefined
+      : resolvePayTrackFootnote({
+          amountType: commitment.amount_type,
+          amountText,
+          estimate:
+            commitment.amount_type === AmountType.Variable
+              ? resolveDisplayAmount(payment, commitment).amount
+              : undefined,
+          commitmentCurrency: commitment.currency,
+          preview: preview.writePreview,
+          paidDate,
+          today,
+        });
 
   return {
     form,
@@ -387,7 +406,6 @@ export function usePaySheet(
       selectedAccount,
       accounts,
       visible,
-      accountPickerVisible,
       rateOverride,
       exchangeRateValue,
       rateUpdatedAt,
@@ -397,15 +415,25 @@ export function usePaySheet(
       previewEgpAmount: preview.previewEgpAmount,
       previewHidden: preview.previewHidden,
       purposeCaption: preview.purposeCaption,
+      amountText,
+      paidDate,
+      note: notes ?? '',
+      stripChips,
+      errors,
+      trackFootnote,
+      // A fault counts only once a press marked it, so the live converted line counts nothing.
+      statusMessage: resolvePaySheetStatusMessage(pressErrors),
+      ctaLabel: commitment
+        ? resolvePayButtonLabel(amountText, commitment.currency)
+        : Strings.commitmentsPayCtaBare,
     },
     onSubmit: form.handleSubmit(onValid, onInvalid),
-    openAccountPicker: () => setAccountPickerVisible(owner, true),
-    closeAccountPicker: () => setAccountPickerVisible(owner, false),
     selectAccount,
     setVisible: (v: boolean) => setVisible(owner, v),
     toggleRateOverride,
     setAmountText,
     setExchangeRate,
     setPaidDate: (iso: string) => form.setValue('paid_date', iso, { shouldValidate: true }),
+    setNote: (text: string) => form.setValue('notes', text),
   };
 }

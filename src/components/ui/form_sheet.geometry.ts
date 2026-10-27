@@ -99,6 +99,9 @@ export const FORM_SHEET_CONTENT_CONTAINER_STYLE = {
   gap: Spacing.xs,
 };
 
+/** Canvas `.fact`: 16 inset, a hairline under every fact but the last (Note). */
+export const FORM_FACT_CELL_CLASS = 'border-separator border-b px-4';
+
 /** Above scale 1 the app scales the Note's text: Android draws the hint without the line box, and an OS-scaled line box is shorter than the hint's own lines; the floor is the shared fact row's height. */
 export function resolveNoteInputGeometry(fontScale: number): {
   minHeight: number;
