@@ -239,7 +239,7 @@ describe('useCommitmentDetail', () => {
     }
   });
 
-  it('heroes a variable commitment starting tomorrow with the varies badge and the starts caption, leaving recurrenceLabel bare', async () => {
+  it('heroes a variable commitment starting tomorrow with the varies badge and the starts caption, leaving the Repeats fact bare', async () => {
     jest.useFakeTimers().setSystemTime(new Date(2026, 0, 30, 10));
     try {
       const variable: Commitment = {
