@@ -1,100 +1,180 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Card } from 'heroui-native';
-import { View } from 'react-native';
+import { View, type ViewStyle, useWindowDimensions } from 'react-native';
 import Animated from 'react-native-reanimated';
 
 import { Button } from '@/components/ui/button';
+import { StatusBadge } from '@/components/ui/status_badge';
 import { Text } from '@/components/ui/text';
-import { AmountType } from '@/constants/enums';
+import { resolveFitAmountTextProps, scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Strings } from '@/constants/strings';
-import { Type, lineHeightFor, withAlpha } from '@/constants/theme';
-import {
-  STATUS_COLORS,
-  STATUS_ICONS,
-  STATUS_LABELS,
-  formatCommitmentAmount,
-} from '@/modules/commitments/utils/commitment_status';
-import { formatShortDate } from '@/utils/format_date';
+import { LetterSpacing, Radius, Spacing, Type } from '@/constants/theme';
 
-import { isUnpaidPayment, resolvePaymentState } from '../../../../domain/payment_state';
-import type { Commitment } from '../../../../entities/commitment.entity';
-import type { CommitmentPayment } from '../../../../entities/commitment_payment.entity';
+import { DAY_INDICATOR_CLASS } from '../../../../utils/day_indicator';
 import { cardEntering } from '../detail.anim';
+import type { CommitmentCycleCardModel } from '../detail.helpers';
+
+// Frame C1 `.cyc`.
+const CYCLE_CARD_FRAME_STYLE: Readonly<ViewStyle> = Object.freeze({
+  borderRadius: Radius.detailCard,
+  boxShadow: 'none',
+  paddingTop: Spacing.sm,
+  paddingBottom: Spacing.sm + Spacing.xxxs,
+  paddingHorizontal: Spacing.md,
+});
 
 interface Props {
-  payment: CommitmentPayment;
-  today: string;
-  commitment: Commitment;
-  onMarkAsPaid: () => void;
+  model: CommitmentCycleCardModel;
+  onPay: () => void;
   onSkip: () => void;
+  onViewTransaction: () => void;
 }
 
-export function CurrentCycleCard({ payment, today, commitment, onMarkAsPaid, onSkip }: Props) {
-  const paymentState = resolvePaymentState(payment, today);
-  const statusColor = STATUS_COLORS[paymentState];
-  const statusLabel = STATUS_LABELS[paymentState];
-  const amountText =
-    formatCommitmentAmount(payment, commitment) ??
-    (commitment.amount_type === AmountType.Variable ? Strings.commitmentsAmountVariable : '—');
-  const isActionable = isUnpaidPayment(payment);
+function CycleActions({
+  model,
+  onPay,
+  onSkip,
+  onViewTransaction,
+}: Props): React.ReactElement | null {
+  const { action } = model;
+  switch (action.kind) {
+    case 'paySkip':
+      return (
+        <View style={{ flexDirection: 'row', gap: Spacing.xs, marginTop: Spacing.sm }}>
+          <View style={{ flex: 1 }}>
+            <Button variant="primary" flat label={Strings.commitmentsMarkAsPaid} onPress={onPay} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Button
+              variant="secondary"
+              flat
+              icon="minus-circle-outline"
+              label={Strings.commitmentsSkip}
+              onPress={onSkip}
+            />
+          </View>
+        </View>
+      );
+    case 'viewTransaction':
+      return (
+        <View style={{ flexDirection: 'row', marginTop: Spacing.sm }}>
+          <View style={{ flex: 1 }}>
+            <Button
+              variant="secondary"
+              flat
+              icon="arrow-right"
+              label={Strings.commitmentsViewTransaction}
+              onPress={onViewTransaction}
+            />
+          </View>
+        </View>
+      );
+    case 'none':
+      return null;
+    default: {
+      const unhandled: never = action;
+      return unhandled;
+    }
+  }
+}
+
+export function CurrentCycleCard(props: Props): React.ReactElement {
+  const { model } = props;
+  const { fontScale } = useWindowDimensions();
+  const amountProps = resolveFitAmountTextProps(Type.title, fontScale);
 
   return (
     <Animated.View entering={cardEntering} className="mx-4 mt-4">
-      <Text className="font-inter text-muted mb-1 text-[11px] tracking-wide uppercase">
-        {Strings.commitmentsDetailCurrentCycle}
-      </Text>
       <Card
-        className="bg-surface gap-2 rounded-2xl px-3 py-3"
-        style={{ borderLeftWidth: 3, borderLeftColor: statusColor }}
+        testID="commitment-detail-cycle"
+        className="bg-surface border-accent/18 border"
+        style={CYCLE_CARD_FRAME_STYLE}
       >
         <View
-          style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
-          className="gap-2"
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: Spacing.xs,
+          }}
+        >
+          <Text
+            allowFontScaling={false}
+            numberOfLines={1}
+            className="font-inter-semibold text-muted uppercase"
+            style={{
+              ...scaledTextStyle(Type.overline, fontScale),
+              letterSpacing: LetterSpacing.eyebrow,
+              flexShrink: 1,
+            }}
+          >
+            {Strings.commitmentsDetailCurrentCycle}
+          </Text>
+          <StatusBadge
+            size="tagMd"
+            fontScale={fontScale}
+            label={model.statusLabel}
+            icon={model.statusIcon}
+            fill={model.statusFill}
+            foreground={model.statusForeground}
+          />
+        </View>
+
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: Spacing.xs,
+            marginTop: Spacing.xs,
+          }}
         >
           <View style={{ flex: 1 }}>
-            <Text className="font-sora-semibold text-foreground text-[15px]">{amountText}</Text>
-            <Text className="font-inter text-muted text-[11px]">
-              {formatShortDate(payment.due_date)}
+            <Text
+              allowFontScaling={false}
+              numberOfLines={1}
+              className="font-inter-medium text-foreground"
+              style={scaledTextStyle(Type.body, fontScale)}
+            >
+              {model.dueDay}
+            </Text>
+            <Text
+              allowFontScaling={false}
+              numberOfLines={1}
+              className={DAY_INDICATOR_CLASS[model.dayLineTone]}
+              style={{ ...scaledTextStyle(Type.micro, fontScale), marginTop: Spacing.xxxs }}
+            >
+              {model.dayLine}
             </Text>
           </View>
           <View
+            accessible
+            accessibilityLabel={model.amountAccessibilityLabel}
             style={{
-              backgroundColor: withAlpha(statusColor, '22'),
               flexDirection: 'row',
-              alignItems: 'center',
+              alignItems: 'baseline',
+              gap: Spacing.xxs,
+              flexShrink: 1,
             }}
-            className="gap-1 rounded-full px-2 py-0.5"
           >
-            <MaterialCommunityIcons
-              name={STATUS_ICONS[paymentState]}
-              size={12}
-              color={statusColor}
-            />
             <Text
-              className="font-inter"
-              style={{
-                color: statusColor,
-                fontSize: Type.micro,
-                lineHeight: lineHeightFor(Type.micro),
-              }}
+              {...amountProps}
+              className="font-sora-semibold text-foreground tabular-nums"
+              style={{ ...amountProps.style, flexShrink: 1 }}
             >
-              {statusLabel}
+              {model.amountText}
+            </Text>
+            <Text
+              allowFontScaling={false}
+              numberOfLines={1}
+              className="font-inter text-content-secondary"
+              style={scaledTextStyle(Type.micro, fontScale)}
+            >
+              {model.amountCode}
             </Text>
           </View>
         </View>
 
-        {isActionable ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center' }} className="mt-0.5 gap-2">
-            <View style={{ flex: 1 }}>
-              <Button
-                variant="primary"
-                label={Strings.commitmentsMarkAsPaid}
-                onPress={onMarkAsPaid}
-              />
-            </View>
-            <Button variant="ghost" label={Strings.commitmentsSkip} onPress={onSkip} />
-          </View>
-        ) : null}
+        <CycleActions {...props} />
       </Card>
     </Animated.View>
   );

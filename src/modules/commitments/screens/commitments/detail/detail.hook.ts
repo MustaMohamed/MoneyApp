@@ -24,6 +24,7 @@ import {
 } from '../../../store/commitment_form_host.state';
 import { usePaySheetState } from './components/pay_sheet.state';
 import {
+  buildCommitmentCycleCard,
   buildCommitmentDetailFacts,
   buildCommitmentDetailHero,
   type CommitmentDetailFactKind,
@@ -189,6 +190,14 @@ export function useCommitmentDetail() {
     [commitment, payment, category, today],
   );
 
+  const cycleCard = useMemo(
+    () =>
+      payment && commitment && today !== undefined
+        ? buildCommitmentCycleCard({ payment, commitment, today })
+        : undefined,
+    [payment, commitment, today],
+  );
+
   const openPaySheet = useCallback(() => {
     usePaySheetState.getState().open(owner);
   }, [owner]);
@@ -235,6 +244,12 @@ export function useCommitmentDetail() {
     router.back();
   }, []);
 
+  const transactionId = payment?.transaction_id ?? undefined;
+  const viewTransaction = useCallback(() => {
+    if (transactionId === undefined) return;
+    router.push(stackedTransactionDetailRoute(transactionId));
+  }, [transactionId]);
+
   return {
     state: {
       owner,
@@ -245,6 +260,7 @@ export function useCommitmentDetail() {
       category,
       today,
       hero,
+      cycleCard,
       facts,
       loadingCommitmentHint,
       skipConfirmVisible,
@@ -258,5 +274,6 @@ export function useCommitmentDetail() {
     reload,
     goToEdit,
     goBack,
+    viewTransaction,
   };
 }

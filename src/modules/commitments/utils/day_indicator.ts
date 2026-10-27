@@ -5,6 +5,13 @@ import type { PaymentDayDistance } from '../domain/payment_day_distance';
 
 export type DayIndicatorTone = 'danger' | 'gold' | 'caption' | 'success';
 
+export const DAY_INDICATOR_CLASS: Record<DayIndicatorTone, string> = {
+  danger: 'font-inter text-danger',
+  gold: 'font-inter-semibold text-accent',
+  caption: 'font-inter text-content-secondary',
+  success: 'font-inter text-success',
+};
+
 export interface DayIndicator {
   text: string;
   tone: DayIndicatorTone;

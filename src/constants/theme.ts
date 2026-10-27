@@ -288,6 +288,10 @@ export const Size = {
   statusBadgeXsPaddingLeft: 4,
   statusBadgeXsPaddingRight: 6,
   statusBadgeXsGap: 3,
+  // Raw, as above: the cycle card's md status tag (C1 `.stag.md`).
+  statusBadgeTagMdPaddingLeft: 6,
+  statusBadgeTagMdPaddingRight: 8,
+  statusBadgeTagMdGap: 3,
 } as const;
 
 /** Cross-platform floor of 44: Apple HIG recommends 44pt, Material 48dp. Never scaled. */
