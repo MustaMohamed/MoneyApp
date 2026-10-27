@@ -1,8 +1,4 @@
-import {
-  DETAIL_FACT_ARCHIVED_BADGE,
-  type DetailFact,
-  type DetailFactLeading,
-} from '@/components/ui/detail_fact_row.helpers';
+import { type DetailFact, detailFact } from '@/components/ui/detail_fact_row.helpers';
 import type { DetailHeroBadge, DetailHeroModel } from '@/components/ui/detail_hero';
 import type { DetailLoadErrorCopy } from '@/components/ui/detail_load_error.helpers';
 import { formatConvertedAmount } from '@/components/ui/form_sheet.helpers';
@@ -15,8 +11,9 @@ import { resolveBadgeColors } from '@/modules/accounts/constants/account_badge_c
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import {
+  buildDetailAccountFact,
+  buildDetailCategoryFact,
   resolveCategoryGlyph,
-  resolveDetailAccountRow,
   resolveHeroTileGlyphColor,
   resolveHollowGraphiteTile,
 } from '@/modules/transactions/components/transaction_row.helpers';
@@ -249,35 +246,17 @@ export interface CommitmentDetailFactsInput {
 
 type CommitmentDetailFact = DetailFact<CommitmentDetailFactKind>;
 
-function commitmentFact(
-  kind: CommitmentDetailFactKind,
-  label: string,
-  rest: Partial<Omit<CommitmentDetailFact, 'kind' | 'label'>> = {},
-): CommitmentDetailFact {
-  return { kind, label, valueFace: 'sora', fitsValue: false, ...rest };
-}
-
 function accountFact(
   commitment: Commitment,
   accountsById: ReadonlyMap<string, Account>,
 ): CommitmentDetailFact {
   if (commitment.account_id === null) {
-    return commitmentFact('account', Strings.detailAccount, {
+    return detailFact('account', Strings.detailAccount, {
       value: Strings.commitmentsStripNoAccount,
       leading: { kind: 'tile', tile: resolveHollowGraphiteTile(AccountType.Bank) },
     });
   }
-  const row = resolveDetailAccountRow(accountsById.get(commitment.account_id));
-  return commitmentFact('account', Strings.detailAccount, {
-    value: row.name,
-    leading: { kind: 'tile', tile: row.tile },
-    badge: row.archived ? DETAIL_FACT_ARCHIVED_BADGE : undefined,
-  });
-}
-
-function categoryLeading(category: Category | undefined): DetailFactLeading {
-  const { glyphName, glyphColor } = resolveCategoryGlyph(category);
-  return { kind: 'glyph', glyphName, glyphColor };
+  return buildDetailAccountFact(accountsById.get(commitment.account_id));
 }
 
 export function buildCommitmentDetailFacts({
@@ -292,29 +271,26 @@ export function buildCommitmentDetailFacts({
       case 'account':
         return accountFact(commitment, accountsById);
       case 'category':
-        return commitmentFact(kind, Strings.detailCategory, {
-          value: category?.name ?? Strings.uncategorized,
-          leading: categoryLeading(category),
-        });
+        return buildDetailCategoryFact(category);
       case 'amount':
-        return commitmentFact(kind, Strings.detailAmountInEgp, {
+        return detailFact(kind, Strings.detailAmountInEgp, {
           value: resolveCommitmentAmountInEgpText({ commitment, payment, liveRate }),
           fitsValue: true,
         });
       case 'repeats':
-        return commitmentFact(kind, Strings.commitmentsDetailRepeats, {
+        return detailFact(kind, Strings.commitmentsDetailRepeats, {
           value: buildRecurrenceLabel(commitment),
         });
       case 'started':
-        return commitmentFact(kind, Strings.commitmentsDetailStarted, {
+        return detailFact(kind, Strings.commitmentsDetailStarted, {
           value: formatWeekdayDate(commitment.start_date),
         });
       case 'ends':
-        return commitmentFact(kind, Strings.commitmentsDetailEnds, {
+        return detailFact(kind, Strings.commitmentsDetailEnds, {
           value: buildCommitmentEndsLabel(commitment),
         });
       case 'currency':
-        return commitmentFact(kind, Strings.commitmentsDetailCurrency, {
+        return detailFact(kind, Strings.commitmentsDetailCurrency, {
           value: commitment.currency,
         });
       default: {

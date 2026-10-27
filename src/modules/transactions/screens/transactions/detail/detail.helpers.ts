@@ -1,7 +1,7 @@
 import {
-  DETAIL_FACT_ARCHIVED_BADGE,
   type DetailFact,
   type DetailFactBadge,
+  detailFact,
 } from '@/components/ui/detail_fact_row.helpers';
 import type { DetailHeroModel } from '@/components/ui/detail_hero';
 import type { DetailLoadErrorCopy } from '@/components/ui/detail_load_error.helpers';
@@ -25,10 +25,11 @@ import {
   TABBED_ORIGIN,
 } from '@/modules/navigation/domain/stacked_route';
 import {
+  buildDetailAccountFact,
+  buildDetailCategoryFact,
   buildTransactionRowPresentation,
   isCardCredit,
   primaryAmountFor,
-  resolveCategoryGlyph,
   resolveHeroTileGlyphColor,
   resolveDetailAccountRow,
   type RowTile,
@@ -249,14 +250,6 @@ function amountRowText(figure: ConvertedAmount): DetailAmountRowText {
   };
 }
 
-function fact(
-  kind: DetailFactKind,
-  label: string,
-  rest: Partial<Omit<DetailFact<DetailFactKind>, 'kind' | 'label'>> = {},
-): DetailFact<DetailFactKind> {
-  return { kind, label, valueFace: 'sora', fitsValue: false, ...rest };
-}
-
 export function buildTransactionDetailPresentation({
   tx,
   account,
@@ -272,48 +265,32 @@ export function buildTransactionDetailPresentation({
   const badge = resolveAccountBadgeColors(typeColor);
   const dateText = formatWeekdayDate(tx.transaction_date);
   const timeText = formatTime12h(tx.transaction_time);
-  const accountRow = resolveDetailAccountRow(account);
-  const categoryRow = {
-    name: category?.name ?? Strings.uncategorized,
-    ...resolveCategoryGlyph(category),
-  };
   const budgetName = budget?.name ?? Strings.detailBudgetUnavailable;
   const source: DetailSource = tx.commitment_payment_id === null ? 'manual' : 'commitment';
   const facts = resolveDetailFactSlots(tx).map((slot): DetailFact<DetailFactKind> => {
     switch (slot.kind) {
       case 'account':
-        return fact(slot.kind, Strings.detailAccount, {
-          value: accountRow.name,
-          leading: { kind: 'tile', tile: accountRow.tile },
-          badge: accountRow.archived ? DETAIL_FACT_ARCHIVED_BADGE : undefined,
-        });
+        return buildDetailAccountFact(account);
       case 'category':
-        return fact(slot.kind, Strings.detailCategory, {
-          value: categoryRow.name,
-          leading: {
-            kind: 'glyph',
-            glyphName: categoryRow.glyphName,
-            glyphColor: categoryRow.glyphColor,
-          },
-        });
+        return buildDetailCategoryFact(category);
       case 'budget':
-        return fact(slot.kind, Strings.detailBudget, { value: budgetName });
+        return detailFact(slot.kind, Strings.detailBudget, { value: budgetName });
       case 'amount': {
         const amountRow = amountRowText(slot.figure);
-        return fact(slot.kind, amountRow.label, { value: amountRow.value, fitsValue: true });
+        return detailFact(slot.kind, amountRow.label, { value: amountRow.value, fitsValue: true });
       }
       case 'rate':
-        return fact(slot.kind, Strings.detailExchangeRate, {
+        return detailFact(slot.kind, Strings.detailExchangeRate, {
           value: formatExchangeRateSentence(slot.rate),
           badge: CAPTURED_BADGE,
           fitsValue: true,
         });
       case 'date':
-        return fact(slot.kind, Strings.detailDate, { value: dateText });
+        return detailFact(slot.kind, Strings.detailDate, { value: dateText });
       case 'time':
-        return fact(slot.kind, Strings.detailTime, { value: timeText });
+        return detailFact(slot.kind, Strings.detailTime, { value: timeText });
       case 'source':
-        return fact(slot.kind, Strings.detailSource, {
+        return detailFact(slot.kind, Strings.detailSource, {
           ...SOURCE_FACTS[source],
           valueFace: 'inter',
         });

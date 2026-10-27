@@ -1,12 +1,11 @@
 import { useLocalSearchParams } from 'expo-router';
 import React from 'react';
 
-import { DetailFactRow } from '@/components/ui/detail_fact_row';
+import { DetailFactsCard } from '@/components/ui/detail_facts_card';
 import { DetailHero } from '@/components/ui/detail_hero';
 import { DetailLoadError } from '@/components/ui/detail_load_error';
 import { DetailNotFoundState } from '@/components/ui/detail_not_found_state';
 import { DetailNoteCard } from '@/components/ui/detail_note_card';
-import { DetailRowsCard } from '@/components/ui/detail_rows_card';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { Strings } from '@/constants/strings';
 
@@ -74,15 +73,7 @@ export default function TransactionDetailScreen(): React.ReactElement {
               <TransferFlowCard flow={state.transferFlowView.flow} onOpenAccount={openAccount} />
             ) : null}
 
-            <DetailRowsCard>
-              {detail.facts.map((fact, index) => (
-                <DetailFactRow
-                  key={fact.kind}
-                  fact={fact}
-                  showDivider={index < detail.facts.length - 1}
-                />
-              ))}
-            </DetailRowsCard>
+            <DetailFactsCard facts={detail.facts} />
 
             <DetailNoteCard note={transaction.note} />
 

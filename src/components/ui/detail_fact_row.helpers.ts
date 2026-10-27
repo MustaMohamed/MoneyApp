@@ -26,3 +26,11 @@ export const DETAIL_FACT_ARCHIVED_BADGE: DetailFactBadge = {
   label: Strings.detailAccountArchived,
   tone: 'neutral',
 };
+
+export function detailFact<K extends string>(
+  kind: K,
+  label: string,
+  rest: Partial<Omit<DetailFact<K>, 'kind' | 'label'>> = {},
+): DetailFact<K> {
+  return { kind, label, valueFace: 'sora', fitsValue: false, ...rest };
+}

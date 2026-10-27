@@ -2,6 +2,11 @@ import type MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIco
 import type React from 'react';
 import { PixelRatio } from 'react-native';
 
+import {
+  DETAIL_FACT_ARCHIVED_BADGE,
+  type DetailFact,
+  detailFact,
+} from '@/components/ui/detail_fact_row.helpers';
 import type { AccountStripChip, AccountStripTile } from '@/components/ui/form_sheet.helpers';
 import {
   type ScaledTextStyle,
@@ -232,6 +237,25 @@ export function resolveDetailAccountRow(account: Account | undefined): DetailAcc
     tile: archived ? resolveHollowGraphiteTile(account.type) : resolveRowTile(account),
     archived,
   };
+}
+
+/** The Account fact both details draw: the row's name on its tile, with Archived on a frozen account. */
+export function buildDetailAccountFact(account: Account | undefined): DetailFact<'account'> {
+  const row = resolveDetailAccountRow(account);
+  return detailFact('account', Strings.detailAccount, {
+    value: row.name,
+    leading: { kind: 'tile', tile: row.tile },
+    badge: row.archived ? DETAIL_FACT_ARCHIVED_BADGE : undefined,
+  });
+}
+
+/** The Category fact both details draw: the name, or Uncategorized, on its glyph. */
+export function buildDetailCategoryFact(category: Category | undefined): DetailFact<'category'> {
+  const { glyphName, glyphColor } = resolveCategoryGlyph(category);
+  return detailFact('category', Strings.detailCategory, {
+    value: category?.name ?? Strings.uncategorized,
+    leading: { kind: 'glyph', glyphName, glyphColor },
+  });
 }
 
 /** A strip chip for an account in any state: its row name and tile, then the caller's flags. */
