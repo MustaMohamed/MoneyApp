@@ -1155,3 +1155,99 @@ describe('useCommitments account read (MA-234)', () => {
     );
   });
 });
+
+describe('useCommitments hero title (MA-258)', () => {
+  const wallet = makeAccount('account-wallet', 'Wallet');
+  const gone: Account = { ...makeAccount('account-gone', 'Gone Bank'), is_deleted: 1 };
+  const accounts = [wallet];
+  const archivedAccounts: Account[] = [];
+  const accountLookupById = { 'account-gone': gone };
+  const walletFilter = { ...EMPTY_COMMITMENT_FILTERS, accountIds: ['account-wallet'] };
+  const walletAggregate = {
+    key: monthAggregateKey('2026-05', 'account-wallet'),
+    aggregate: usdDueAggregate(),
+  };
+
+  function scoped(overrides: Parameters<typeof setup>[0] = {}) {
+    setup({
+      accounts,
+      archivedAccounts,
+      accountLookupById,
+      appliedFilters: walletFilter,
+      monthAggregate: walletAggregate,
+      ...overrides,
+    });
+  }
+
+  beforeEach(() => {
+    capturedFocusCallbacks.length = 0;
+    mockInteractionTasks.length = 0;
+    loadMonthSnapshotMock.mockReset().mockResolvedValue(undefined);
+    loadMonthAggregateMock.mockReset().mockResolvedValue(undefined);
+    loadAccountLookupMock.mockReset().mockResolvedValue(undefined);
+    currencyRate = 50;
+    currencyRateLoaded = true;
+    mockUseDeferredValue.mockReset().mockImplementation((value: unknown) => value);
+  });
+
+  it('names the one applied account in the hero title', async () => {
+    scoped();
+
+    const { result } = await renderHook(() => useCommitments());
+
+    expect(result.current.state.hero.title).toBe('Left to pay · Wallet');
+  });
+
+  it('reads Left to pay alone while the one applied account is in no list', async () => {
+    scoped({ appliedFilters: { ...EMPTY_COMMITMENT_FILTERS, accountIds: ['account-unread'] } });
+
+    const { result } = await renderHook(() => useCommitments());
+
+    expect(result.current.state.hero.title).toBe('Left to pay');
+  });
+
+  it('names a deleted applied account Deleted Account', async () => {
+    scoped({ appliedFilters: { ...EMPTY_COMMITMENT_FILTERS, accountIds: ['account-gone'] } });
+
+    const { result } = await renderHook(() => useCommitments());
+
+    expect(result.current.state.hero.title).toBe('Left to pay · Deleted Account');
+  });
+
+  it('reads Left to pay alone with two applied accounts', async () => {
+    scoped({
+      appliedFilters: {
+        ...EMPTY_COMMITMENT_FILTERS,
+        accountIds: ['account-wallet', 'account-gone'],
+      },
+    });
+
+    const { result } = await renderHook(() => useCommitments());
+
+    expect(result.current.state.hero.title).toBe('Left to pay');
+  });
+
+  it('keeps the same scoped hero object across a search keystroke', async () => {
+    scoped();
+    const hook = await renderHook(() => useCommitments());
+    const hero = hook.result.current.state.hero;
+    expect(hero.title).toBe('Left to pay · Wallet');
+
+    scoped({ searchQuery: 'rent' });
+    await hook.rerender({});
+
+    expect(hook.result.current.state.hero).toBe(hero);
+  });
+
+  it('keeps the same scoped hero object across a status tab change', async () => {
+    scoped();
+    const hook = await renderHook(() => useCommitments());
+    const hero = hook.result.current.state.hero;
+    expect(hero.title).toBe('Left to pay · Wallet');
+
+    scoped({ statusFilter: CommitmentPaymentStatus.Due });
+    await hook.rerender({});
+
+    expect(hook.result.current.state.hero).toBe(hero);
+  });
+});

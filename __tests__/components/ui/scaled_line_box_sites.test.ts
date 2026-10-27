@@ -155,6 +155,7 @@ const SITES: Record<string, { resolve: (s: number) => unknown; expected: (s: num
           columns: lineHeightFor(size(Type.micro)) + Spacing.xxxs + lineHeightFor(size(Type.body)),
           rail: Size.progressThin,
           caption: lineHeightFor(size(Type.chip)),
+          counters: Math.max(Size.statusCounterIcon, lineHeightFor(size(Type.micro))),
         };
       },
     },
