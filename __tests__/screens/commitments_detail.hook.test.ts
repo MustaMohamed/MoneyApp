@@ -46,6 +46,7 @@ let storeCommitments: Commitment[] = [];
 let accountLookupById: Record<string, Account> = {};
 let currencyRate = 48;
 let currencyRateLoaded = true;
+let accountLookupError = false;
 
 jest.mock('expo-router', () => ({
   useLocalSearchParams: () => mockUseParams(),
@@ -79,7 +80,7 @@ function setup() {
     accounts: [],
     archivedAccounts: [],
     accountLookupById,
-    accountLookupError: false,
+    accountLookupError,
     loadAccountLookup: mockLoadAccountLookup,
   }));
   attachMockSelectorStore(useCategoryStore as unknown as jest.Mock, () => ({
@@ -144,6 +145,7 @@ beforeEach(() => {
   historyById = {};
   storeCommitments = [];
   accountLookupById = {};
+  accountLookupError = false;
   currencyRate = 48;
   currencyRateLoaded = true;
   mockLoadAccountLookup.mockResolvedValue(undefined);
@@ -804,6 +806,41 @@ describe('useCommitmentDetail facts and skeleton hint (MA-261)', () => {
     expect(result.current.state.viewState).toBe('loading');
     expect('loadingCommitmentHint' in result.current.state).toBe(true);
     expect(result.current.state.loadingCommitmentHint).toBeUndefined();
+  });
+
+  it('hints the skeleton once the store gains the route’s commitment while the detail loads', async () => {
+    storeCommitments = [otherCommitment];
+    const pending = deferred<Commitment | undefined>();
+    mockGetById.mockImplementation(() => pending.promise);
+
+    const { result, rerender } = await renderHook(() => useCommitmentDetail());
+
+    expect(result.current.state.loadingCommitmentHint).toBeUndefined();
+
+    storeCommitments = [otherCommitment, usdCommitment];
+    await rerender({});
+
+    expect(result.current.state.viewState).toBe('loading');
+    expect(result.current.state.loadingCommitmentHint).toBe(usdCommitment);
+  });
+
+  it('surfaces the refresh error when the account lookup fails and leaves the account unresolved, and Retry looks it up again', async () => {
+    seedRent();
+    accountLookupError = true;
+
+    const { result } = await renderHook(() => useCommitmentDetail());
+
+    await waitFor(() => expect(result.current.state.viewState).toBe('refreshErrorWithData'));
+    expect(result.current.state.facts.find((fact) => fact.kind === 'account')?.value).toBe(
+      'Unknown account',
+    );
+    expect(mockLoadAccountLookup).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      result.current.reload();
+    });
+
+    await waitFor(() => expect(mockLoadAccountLookup).toHaveBeenCalledTimes(2));
   });
 });
 

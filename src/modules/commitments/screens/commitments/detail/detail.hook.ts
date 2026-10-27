@@ -4,6 +4,7 @@ import { useShallow } from 'zustand/react/shallow';
 
 import type { DetailFact } from '@/components/ui/detail_fact_row.helpers';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
+import { lookupLeavesUnresolved } from '@/modules/accounts/store/account_lookup.helpers';
 import { useAccountsById } from '@/modules/accounts/store/use_accounts_by_id.hook';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
@@ -66,15 +67,15 @@ export function useCommitmentDetail() {
   const payments = useCommitmentStore((s) => s.payments);
   const storeSkipPayment = useCommitmentStore.getState().skipPayment;
   const categories = useCategoryStore.useState.categories();
-  const { accountsById } = useAccountsById();
+  const accountRead = useAccountsById();
+  const { accountsById } = accountRead;
   const loadAccountLookup = useAccountStore.getState().loadAccountLookup;
   const { rate, hasLoaded: rateLoaded } = useCurrencyStore(
     useShallow((s) => ({ rate: s.rate, hasLoaded: s.hasLoaded })),
   );
   const liveRate = rateLoaded ? rate : undefined;
-  const loadingCommitmentHint = useMemo(
-    () => useCommitmentStore.getState().commitments.find((c) => c.id === commitmentId),
-    [commitmentId],
+  const loadingCommitmentHint = useCommitmentStore((s) =>
+    s.commitments.find((c) => c.id === commitmentId),
   );
 
   const { activeId, status, refreshError, reloadKey, skipConfirmVisible, skipBusy, skipError } =
@@ -146,11 +147,13 @@ export function useCommitmentDetail() {
     [historyRows, cycleId],
   );
 
+  const accountId = commitment?.account_id ?? undefined;
+  const accountIds = useMemo(() => (accountId === undefined ? [] : [accountId]), [accountId]);
   const viewState = resolveCommitmentDetailViewState({
     hasCommitment: commitment !== undefined,
     ownsStatus: activeId === commitmentId,
     status,
-    refreshError,
+    refreshError: refreshError || lookupLeavesUnresolved(accountRead, accountIds),
   });
 
   const category = useMemo(
@@ -158,7 +161,6 @@ export function useCommitmentDetail() {
     [commitment, categories],
   );
 
-  const accountId = commitment?.account_id ?? undefined;
   useEffect(() => {
     if (accountId === undefined) return;
     const logLookupFailure = (error: unknown) => {
@@ -169,7 +171,7 @@ export function useCommitmentDetail() {
     } catch (error) {
       logLookupFailure(error);
     }
-  }, [accountId, loadAccountLookup]);
+  }, [accountId, loadAccountLookup, reloadKey]);
 
   const facts = useMemo(
     () =>
