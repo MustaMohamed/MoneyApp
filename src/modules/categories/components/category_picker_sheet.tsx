@@ -5,6 +5,8 @@ import { useWindowDimensions, View } from 'react-native';
 
 import { Sheet } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
+import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
+import { Type } from '@/constants/theme';
 import { CoreTokens, GoldTokens } from '@/constants/theme_tokens';
 import { toIconName } from '@/utils/icon_name_guard';
 
@@ -43,7 +45,7 @@ export function CategoryPickerSheet({
   onCloseComplete,
 }: Props): React.ReactElement {
   // A fixed cell width keeps every cell identical; `flex: 1` stretches the last partial row.
-  const { width: screenWidth } = useWindowDimensions();
+  const { width: screenWidth, fontScale } = useWindowDimensions();
   const cellWidth = (screenWidth - PADDING * 2 - GAP * (NUM_COLUMNS - 1)) / NUM_COLUMNS;
 
   const rows = chunk(categories, NUM_COLUMNS);
@@ -60,6 +62,7 @@ export function CategoryPickerSheet({
       scrollable
     >
       <BottomSheetScrollView
+        testID="category-picker-scroll"
         // Without this the scroll view sizes to content and cannot scroll.
         style={{ flex: 1 }}
         contentContainerStyle={{ padding: PADDING, paddingBottom: 32, gap: GAP }}
@@ -94,8 +97,10 @@ export function CategoryPickerSheet({
                       color={iconColor}
                     />
                     <Text
-                      className={`font-inter mt-1 text-[10px] ${isSelected ? 'text-accent' : 'text-foreground'}`}
+                      className={`font-inter mt-1 ${isSelected ? 'text-accent' : 'text-foreground'}`}
+                      allowFontScaling={false}
                       numberOfLines={1}
+                      style={scaledTextStyle(Type.pillLabel, fontScale)}
                     >
                       {cat.name}
                     </Text>

@@ -1,6 +1,7 @@
 import { resolveFactRowHeight } from '@/components/ui/fact_row.geometry';
 import {
   FORM_SHEET_CONTENT_CONTAINER_STYLE,
+  resolveFormSupportLineTextProps,
   resolveNoteInputGeometry,
   resolveTypeTabsGeometry,
 } from '@/components/ui/form_sheet.geometry';
@@ -33,6 +34,47 @@ describe('resolveTypeTabsGeometry', () => {
       expect(triggerHitSlop.top).toBe(triggerHitSlop.bottom);
     },
   );
+});
+
+describe('resolveFormSupportLineTextProps', () => {
+  it.each([0.85, 1])(
+    "MA-254: at font scale %s gives 'one' one line, the OS scaling and the Type.micro pair with a shrink",
+    (fontScale) => {
+      expect(resolveFormSupportLineTextProps('one', fontScale)).toEqual({
+        numberOfLines: 1,
+        allowFontScaling: true,
+        style: { fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro), flexShrink: 1 },
+      });
+    },
+  );
+
+  it.each([0.85, 1])(
+    "MA-254: at font scale %s gives 'wrap' no line cap, the OS scaling and the Type.micro pair with no shrink",
+    (fontScale) => {
+      const props = resolveFormSupportLineTextProps('wrap', fontScale);
+      expect(props.numberOfLines).toBeUndefined();
+      expect(props.allowFontScaling).toBe(true);
+      expect(props.style).toEqual({
+        fontSize: Type.micro,
+        lineHeight: lineHeightFor(Type.micro),
+      });
+    },
+  );
+
+  it("MA-254: at font scale 2 gives 'one' one line and the app-scaled Type.micro pair with a shrink, the OS scaling off", () => {
+    expect(resolveFormSupportLineTextProps('one', 2)).toEqual({
+      numberOfLines: 1,
+      allowFontScaling: false,
+      style: { ...scaledTextStyle(Type.micro, 2), flexShrink: 1 },
+    });
+  });
+
+  it("MA-254: at font scale 2 gives 'wrap' no line cap and the app-scaled Type.micro pair with no shrink, the OS scaling off", () => {
+    const props = resolveFormSupportLineTextProps('wrap', 2);
+    expect(props.numberOfLines).toBeUndefined();
+    expect(props.allowFontScaling).toBe(false);
+    expect(props.style).toEqual(scaledTextStyle(Type.micro, 2));
+  });
 });
 
 describe('form sheet content inset', () => {

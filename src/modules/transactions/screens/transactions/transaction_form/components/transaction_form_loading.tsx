@@ -9,6 +9,7 @@ import {
   ACCOUNT_STRIP_PADDING_Y,
   FORM_SHEET_CONTENT_CONTAINER_STYLE,
 } from '@/components/ui/form_sheet.geometry';
+import { FormSupportLineSlot, FormTypeTabsRow } from '@/components/ui/form_type_tabs';
 import { ListCard } from '@/components/ui/list_card';
 import { Strings } from '@/constants/strings';
 import { Radius } from '@/constants/theme';
@@ -41,15 +42,15 @@ export function TransactionFormLoading(): React.ReactElement {
       accessibilityLabel={Strings.loadingTransactionA11y}
     >
       <SkeletonGroup isLoading isSkeletonOnly style={{ flex: 1 }}>
-        <View className="border-separator border-b px-4 py-2">
+        <FormTypeTabsRow>
           <SkeletonGroup.Item
             className="w-full"
             style={{ height: skeletonHeight, borderRadius: Radius.sm }}
           />
-        </View>
-        <View className="min-h-8 justify-center px-4 py-1.5">
+        </FormTypeTabsRow>
+        <FormSupportLineSlot>
           <SkeletonGroup.Item className="w-2/3 rounded-md" style={{ height: bars.supportingBar }} />
-        </View>
+        </FormSupportLineSlot>
         <View
           className="border-separator border-b"
           style={{ paddingVertical: ACCOUNT_STRIP_PADDING_Y }}

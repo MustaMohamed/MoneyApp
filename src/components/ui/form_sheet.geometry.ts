@@ -8,7 +8,11 @@ import {
   type TabsTriggerHitSlop,
   resolveSegmentedTabsGeometry,
 } from '@/components/ui/tabs.geometry';
-import { type ScaledTextStyle, scaledTextStyleAboveOne } from '@/components/ui/text_scale.geometry';
+import {
+  type ScaledTextStyle,
+  resolveOneLineTextProps,
+  scaledTextStyleAboveOne,
+} from '@/components/ui/text_scale.geometry';
 import {
   Radius,
   Size,
@@ -123,6 +127,28 @@ export function resolveTypeTabsGeometry(fontScale: number): {
     listHeight: Math.max(Size.typeTabsTrack, compact.listHeight),
     triggerHitSlop: touchFloorHitSlop(compact.triggerHeight),
   };
+}
+
+export type FormSupportLines = 'one' | 'wrap';
+
+export interface FormSupportLineTextProps {
+  numberOfLines: 1 | undefined;
+  allowFontScaling: boolean;
+  style: { fontSize: number; lineHeight: number; flexShrink?: 1 };
+}
+
+/** The type tabs' support line: `'one'` ends in a tail ellipsis, `'wrap'` runs onto as many lines as it needs; above scale 1 the app scales it. */
+export function resolveFormSupportLineTextProps(
+  lines: FormSupportLines,
+  fontScale: number,
+): FormSupportLineTextProps {
+  const scaled = scaledTextStyleAboveOne(Type.micro, fontScale);
+  const text = scaled ?? { fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) };
+  if (lines === 'one') {
+    const oneLine = resolveOneLineTextProps(scaled);
+    return { ...oneLine, style: { ...text, ...oneLine.style } };
+  }
+  return { numberOfLines: undefined, allowFontScaling: scaled === undefined, style: text };
 }
 
 interface AccountStripRevealInput {
