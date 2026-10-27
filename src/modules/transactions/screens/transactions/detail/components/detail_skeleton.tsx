@@ -10,6 +10,7 @@ import {
   DETAIL_HERO_TILE_GAP,
   resolveDetailHeroGeometry,
 } from '@/components/ui/detail_hero.geometry';
+import { DetailNoteCardFrame } from '@/components/ui/detail_note_card';
 import { DetailRowsCard } from '@/components/ui/detail_rows_card';
 import { HeroShell } from '@/components/ui/hero_shell';
 import { ScreenScroll } from '@/components/ui/screen';
@@ -20,7 +21,7 @@ import type { Transaction } from '@/modules/transactions/entities/transaction.en
 
 import { resolveDetailActionBarCount, type DetailActionSet } from '../detail.helpers';
 import { buildDetailSkeletonGeometry, resolveTransferSkeletonCellHeight } from './detail.geometry';
-import { NoteCardFrame, TransferFlowCardFrame } from './detail_card_frames';
+import { TransferFlowCardFrame } from './detail_card_frames';
 
 interface Props {
   transaction?: Transaction | null;
@@ -144,10 +145,10 @@ export function TransactionDetailSkeleton({ transaction, actionSet }: Props): Re
           ))}
         </DetailRowsCard>
         {geometry.showNote ? (
-          <NoteCardFrame testID="transaction-detail-skeleton-note">
+          <DetailNoteCardFrame testID="transaction-detail-skeleton-note">
             <ScaledBar height={lineHeightFor(Type.overline)} className="w-12 rounded-md" />
             <ScaledBar height={lineHeightFor(Type.body)} className="mt-1 w-full rounded-md" />
-          </NoteCardFrame>
+          </DetailNoteCardFrame>
         ) : null}
         <View
           testID="transaction-detail-skeleton-actions"

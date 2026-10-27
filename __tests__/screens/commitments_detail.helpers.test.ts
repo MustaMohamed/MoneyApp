@@ -1,22 +1,36 @@
-import { AmountType, Currency } from '@/constants/enums';
-import { CoreTokens, GoldTokens } from '@/constants/theme_tokens';
+import { AccountType, AmountType, Currency, DurationType } from '@/constants/enums';
+import { AcctTokens, CoreTokens, GoldTokens } from '@/constants/theme_tokens';
 import { BADGE_TEXT_MIN_CONTRAST } from '@/modules/accounts/constants/account_badge_color';
 import { contrastRatio } from '@/modules/accounts/constants/account_palette';
+import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
-import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
+import type {
+  CommitmentMonthPayment,
+  CommitmentPayment,
+} from '@/modules/commitments/entities/commitment_payment.entity';
 import {
+  buildCommitmentDetailFacts,
   buildCommitmentDetailHero,
+  buildCommitmentEndsLabel,
   commitmentDetailShowsEdit,
   overlayStorePayments,
+  resolveCommitmentAmountInEgpText,
   resolveCommitmentCadenceBadge,
   resolveCommitmentDetailCycle,
+  resolveCommitmentDetailFactKinds,
   resolveCommitmentDetailViewState,
+  type CommitmentDetailFactKind,
+  type CommitmentDetailFactsInput,
   type CommitmentDetailViewState,
   type CommitmentDetailViewStateInput,
 } from '@/modules/commitments/screens/commitments/detail/detail.helpers';
-import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
-import { makeTestCategory } from '@/test_helpers/transaction';
+import {
+  makeTestCommitment,
+  makeTestMonthPayment,
+  makeTestPayment,
+} from '@/test_helpers/commitment';
+import { makeTestAccount, makeTestCategory } from '@/test_helpers/transaction';
 
 function makePayment(overrides: Partial<CommitmentPayment> = {}): CommitmentPayment {
   return makeTestPayment({
@@ -427,6 +441,389 @@ describe('buildCommitmentDetailHero', () => {
       tileColor: GoldTokens[500],
       tileGlyph: 'shape-outline',
       tileGlyphColor: CoreTokens.bg,
+    });
+  });
+});
+
+describe('resolveCommitmentDetailFactKinds (MA-261)', () => {
+  const SIX: CommitmentDetailFactKind[] = [
+    'account',
+    'category',
+    'repeats',
+    'started',
+    'ends',
+    'currency',
+  ];
+
+  it('reads six kinds on an EGP commitment', () => {
+    expect(resolveCommitmentDetailFactKinds(makeTestCommitment())).toEqual(SIX);
+  });
+
+  it('reads six kinds with no commitment, the skeleton with no hint', () => {
+    expect(resolveCommitmentDetailFactKinds(undefined)).toEqual(SIX);
+  });
+
+  it('reads seven kinds on a USD commitment, amount third after category and currency last', () => {
+    expect(
+      resolveCommitmentDetailFactKinds(makeTestCommitment({ currency: Currency.USD })),
+    ).toEqual(['account', 'category', 'amount', 'repeats', 'started', 'ends', 'currency']);
+  });
+});
+
+describe('buildCommitmentEndsLabel (MA-261)', () => {
+  it.each([
+    ['no end', DurationType.Forever, null, null, 'Never'],
+    ['one payment', DurationType.AfterCount, 1, null, 'After 1 payment'],
+    ['three payments', DurationType.AfterCount, 3, null, 'After 3 payments'],
+    ['a count that is null', DurationType.AfterCount, null, null, 'After N payments'],
+    ['a month-end date', DurationType.UntilDate, null, '2026-04-30', 'Until Thu 30 Apr 2026'],
+    ['a leap-day date', DurationType.UntilDate, null, '2028-02-29', 'Until Tue 29 Feb 2028'],
+    ['a date that is null', DurationType.UntilDate, null, null, 'Until date'],
+  ])('reads %s', (_name, durationType, endAfterCount, endDate, label) => {
+    expect(
+      buildCommitmentEndsLabel(
+        makeTestCommitment({
+          duration_type: durationType,
+          end_after_count: endAfterCount,
+          end_date: endDate,
+        }),
+      ),
+    ).toBe(label);
+  });
+});
+
+describe('buildCommitmentDetailFacts (MA-261)', () => {
+  type CommitmentFact = ReturnType<typeof buildCommitmentDetailFacts>[number];
+
+  const cib: Account = makeTestAccount({
+    id: 'cib',
+    name: 'CIB',
+    type: AccountType.Bank,
+    currency: Currency.EGP,
+    color: AcctTokens.lapis.rich,
+  });
+  const usdSavings: Account = makeTestAccount({
+    id: 'usd-savings',
+    name: 'USD Savings',
+    type: AccountType.Bank,
+    currency: Currency.USD,
+    color: AcctTokens.nile.rich,
+  });
+  const graphiteHollow = (type: AccountType) => ({
+    color: AcctTokens.graphite.rich,
+    type,
+    hollow: true,
+  });
+  const usdCommitment = (overrides: Partial<Commitment> = {}): Commitment =>
+    makeTestCommitment({ currency: Currency.USD, amount: 50, ...overrides });
+  const usdPayment = (overrides: Partial<CommitmentMonthPayment> = {}): CommitmentMonthPayment =>
+    makeTestMonthPayment({ currency: Currency.USD, amount_due: 50, ...overrides });
+
+  function factsInput(
+    overrides: Partial<CommitmentDetailFactsInput> = {},
+  ): CommitmentDetailFactsInput {
+    return {
+      commitment: makeTestCommitment(),
+      payment: makeTestMonthPayment(),
+      category: bills,
+      accountsById: new Map([
+        [cib.id, cib],
+        [usdSavings.id, usdSavings],
+      ]),
+      liveRate: 48,
+      ...overrides,
+    };
+  }
+
+  function factOf(facts: readonly CommitmentFact[], kind: CommitmentDetailFactKind) {
+    return facts.find((fact) => fact.kind === kind);
+  }
+
+  function accountFact(input: Partial<CommitmentDetailFactsInput>) {
+    return factOf(buildCommitmentDetailFacts(factsInput(input)), 'account');
+  }
+
+  describe('rows and order', () => {
+    it('labels an EGP commitment’s six rows in order, every value in Sora, none fitting', () => {
+      const facts = buildCommitmentDetailFacts(factsInput());
+
+      expect(facts.map((fact) => [fact.kind, fact.label])).toEqual([
+        ['account', 'Account'],
+        ['category', 'Category'],
+        ['repeats', 'Repeats'],
+        ['started', 'Started'],
+        ['ends', 'Ends'],
+        ['currency', 'Currency'],
+      ]);
+      expect(facts.map((fact) => fact.valueFace)).toEqual(Array(6).fill('sora'));
+      expect(facts.filter((fact) => fact.fitsValue)).toEqual([]);
+      expect(factOf(facts, 'currency')?.value).toBe('EGP');
+    });
+
+    it('puts Amount in EGP third on a USD commitment, Currency last, and only the amount fits', () => {
+      const facts = buildCommitmentDetailFacts(
+        factsInput({ commitment: usdCommitment(), payment: usdPayment() }),
+      );
+
+      expect(facts.map((fact) => [fact.kind, fact.label])).toEqual([
+        ['account', 'Account'],
+        ['category', 'Category'],
+        ['amount', 'Amount in EGP'],
+        ['repeats', 'Repeats'],
+        ['started', 'Started'],
+        ['ends', 'Ends'],
+        ['currency', 'Currency'],
+      ]);
+      expect(facts.map((fact) => fact.valueFace)).toEqual(Array(7).fill('sora'));
+      expect(facts.filter((fact) => fact.fitsValue).map((fact) => fact.kind)).toEqual(['amount']);
+      expect(facts[6].value).toBe('USD');
+    });
+  });
+
+  describe('Category', () => {
+    it('reads the category name on its glyph', () => {
+      expect(factOf(buildCommitmentDetailFacts(factsInput()), 'category')).toMatchObject({
+        value: 'Bills',
+        leading: { kind: 'glyph', glyphName: 'cart', glyphColor: '#5C7FC4' },
+      });
+    });
+
+    it('reads Uncategorized on the gold fallback glyph when no category resolves', () => {
+      expect(
+        factOf(buildCommitmentDetailFacts(factsInput({ category: undefined })), 'category'),
+      ).toMatchObject({
+        value: 'Uncategorized',
+        leading: { kind: 'glyph', glyphName: 'shape-outline', glyphColor: GoldTokens[500] },
+      });
+    });
+  });
+
+  describe('Repeats, Started and Ends', () => {
+    it('reads Repeats as the recurrence with no · varies on a variable commitment', () => {
+      const repeats = factOf(
+        buildCommitmentDetailFacts(factsInput({ commitment: variableCommitment() })),
+        'repeats',
+      );
+
+      expect(repeats?.value).toBe('Every month');
+    });
+
+    it.each([
+      ['a first-of-month start', '2026-01-01', 'Thu 1 Jan 2026'],
+      ['a month-end start', '2026-01-31', 'Sat 31 Jan 2026'],
+      ['a leap-day start', '2028-02-29', 'Tue 29 Feb 2028'],
+    ])('reads Started on %s', (_name, startDate, value) => {
+      const started = factOf(
+        buildCommitmentDetailFacts(
+          factsInput({ commitment: makeTestCommitment({ start_date: startDate }) }),
+        ),
+        'started',
+      );
+
+      expect(started?.value).toBe(value);
+    });
+
+    it('reads Ends After 1 payment on a commitment that ends after one payment', () => {
+      const ends = factOf(
+        buildCommitmentDetailFacts(
+          factsInput({
+            commitment: makeTestCommitment({
+              duration_type: DurationType.AfterCount,
+              end_after_count: 1,
+            }),
+          }),
+        ),
+        'ends',
+      );
+
+      expect(ends?.value).toBe('After 1 payment');
+    });
+
+    it('reads Ends Until the date as Started prints it', () => {
+      const ends = factOf(
+        buildCommitmentDetailFacts(
+          factsInput({
+            commitment: makeTestCommitment({
+              duration_type: DurationType.UntilDate,
+              end_date: '2026-04-30',
+            }),
+          }),
+        ),
+        'ends',
+      );
+
+      expect(ends?.value).toBe('Until Thu 30 Apr 2026');
+    });
+  });
+
+  describe('Account', () => {
+    it('reads an active account by its name on its own filled tile, with no badge', () => {
+      const fact = accountFact({});
+
+      expect(fact).toMatchObject({
+        value: 'CIB',
+        leading: {
+          kind: 'tile',
+          tile: { color: AcctTokens.lapis.rich, type: AccountType.Bank, hollow: false },
+        },
+      });
+      expect(fact?.badge).toBeUndefined();
+    });
+
+    it('reads an archived account by its name with Archived on the graphite hollow tile', () => {
+      const oldHsbc = makeTestAccount({
+        id: 'cib',
+        name: 'Old HSBC',
+        type: AccountType.CreditCard,
+        color: AcctTokens.lapis.rich,
+        is_archived: 1,
+      });
+
+      expect(accountFact({ accountsById: new Map([[oldHsbc.id, oldHsbc]]) })).toMatchObject({
+        value: 'Old HSBC',
+        badge: { label: 'Archived', tone: 'neutral' },
+        leading: { kind: 'tile', tile: graphiteHollow(AccountType.CreditCard) },
+      });
+    });
+
+    it('reads a deleted account as Deleted Account on the graphite hollow tile, never archived', () => {
+      const deleted = makeTestAccount({
+        id: 'cib',
+        name: '',
+        type: AccountType.SmartWallet,
+        color: AcctTokens.lapis.rich,
+        is_archived: 1,
+        is_deleted: 1,
+      });
+
+      const fact = accountFact({ accountsById: new Map([[deleted.id, deleted]]) });
+
+      expect(fact).toMatchObject({
+        value: 'Deleted Account',
+        leading: { kind: 'tile', tile: graphiteHollow(AccountType.SmartWallet) },
+      });
+      expect(fact?.badge).toBeUndefined();
+    });
+
+    it('reads an id the read cannot resolve as Unknown account on the graphite hollow tile', () => {
+      const fact = accountFact({ accountsById: new Map() });
+
+      expect(fact).toMatchObject({
+        value: 'Unknown account',
+        leading: { kind: 'tile', tile: graphiteHollow(AccountType.Bank) },
+      });
+      expect(fact?.badge).toBeUndefined();
+    });
+
+    it('reads No account on the graphite hollow tile when the commitment has none', () => {
+      const fact = accountFact({ commitment: makeTestCommitment({ account_id: null }) });
+
+      expect(fact).toMatchObject({
+        value: 'No account',
+        leading: { kind: 'tile', tile: graphiteHollow(AccountType.Bank) },
+      });
+      expect(fact?.badge).toBeUndefined();
+    });
+  });
+
+  describe('Amount in EGP, live rate 48', () => {
+    // A paid figure is the stored EGP, set off `amount_paid × 48` so the live rate cannot pass for it.
+    it.each<[string, Commitment, CommitmentMonthPayment | undefined, number | undefined, string]>([
+      [
+        'USD on an EGP account, paid: the stored 2,350 EGP with no ≈',
+        usdCommitment(),
+        usdPayment({
+          paid_date: '2026-05-02',
+          amount_paid: 50,
+          account_id: 'cib',
+          paid_egp_amount: 2350,
+        }),
+        48,
+        '2,350 EGP',
+      ],
+      [
+        'USD on a USD account, paid: the stored 2,410 EGP with no ≈',
+        usdCommitment(),
+        usdPayment({
+          paid_date: '2026-05-02',
+          amount_paid: 50,
+          account_id: 'usd-savings',
+          paid_egp_amount: 2410,
+        }),
+        48,
+        '2,410 EGP',
+      ],
+      [
+        'USD 50 unpaid: ≈ the amount at the live rate',
+        usdCommitment(),
+        usdPayment(),
+        48,
+        '≈ 2,400 EGP',
+      ],
+      [
+        'USD 50 unpaid before the live rate loads: ≈ —',
+        usdCommitment(),
+        usdPayment(),
+        undefined,
+        '≈ —',
+      ],
+      [
+        'USD variable with no estimate: ≈ —',
+        usdCommitment({ amount_type: AmountType.Variable, amount: null }),
+        usdPayment({ amount_due: null }),
+        48,
+        '≈ —',
+      ],
+      [
+        'USD paid with no stored EGP amount: ≈ —',
+        usdCommitment(),
+        usdPayment({
+          paid_date: '2026-05-02',
+          amount_paid: 50,
+          account_id: 'cib',
+          paid_egp_amount: null,
+        }),
+        48,
+        '≈ —',
+      ],
+      [
+        'USD 40 skipped: ≈ the amount at the live rate',
+        usdCommitment(),
+        usdPayment({ amount_due: 40, skipped_date: '2026-05-02' }),
+        48,
+        '≈ 1,920 EGP',
+      ],
+      [
+        'USD 25 with no payment: ≈ the commitment’s amount at the live rate',
+        usdCommitment({ amount: 25 }),
+        undefined,
+        48,
+        '≈ 1,200 EGP',
+      ],
+    ])('%s', (_name, commitment, payment, liveRate, text) => {
+      const facts = buildCommitmentDetailFacts(factsInput({ commitment, payment, liveRate }));
+
+      expect(resolveCommitmentAmountInEgpText({ commitment, payment, liveRate })).toBe(text);
+      expect(facts[2]).toMatchObject({ kind: 'amount', label: 'Amount in EGP', value: text });
+    });
+
+    it.each([
+      ['EGP on an EGP account', 'cib', 8000],
+      ['EGP on a USD account', 'usd-savings', 8000],
+    ])('%s, paid: no Amount in EGP row', (_name, accountId, paidEgpAmount) => {
+      const facts = buildCommitmentDetailFacts(
+        factsInput({
+          payment: makeTestMonthPayment({
+            paid_date: '2026-09-02',
+            amount_paid: 8000,
+            account_id: accountId,
+            paid_egp_amount: paidEgpAmount,
+          }),
+        }),
+      );
+
+      expect(factOf(facts, 'amount')).toBeUndefined();
+      expect(facts).toHaveLength(6);
     });
   });
 });

@@ -2,15 +2,12 @@ import { resolveFactRowHeight } from '@/components/ui/fact_row.geometry';
 import type { ConvertedAmount } from '@/components/ui/form_sheet.helpers';
 import { resolveKeptSpaceHeight, scaledLineHeight } from '@/components/ui/text_scale.geometry';
 import { Currency } from '@/constants/enums';
-import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
+import { Size, Spacing, Type } from '@/constants/theme';
 import { requiresDestination } from '@/modules/transactions/domain/transaction_amounts';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { ms } from '@/utils/responsive';
 
 export const DETAIL_TRANSFER_MIN_HEIGHT = ms(126);
-// Canvas `.note-card` holding one line: its 12 padding, the overline, a 4 gap and the body line.
-export const DETAIL_NOTE_MIN_HEIGHT =
-  2 * Spacing.sm + lineHeightFor(Type.overline) + Spacing.xxs + lineHeightFor(Type.body);
 export const DETAIL_TRANSFER_LABEL_FONT_SIZE = Type.compactBadge;
 export const DETAIL_TRANSFER_NAME_FONT_SIZE = Type.detail;
 export const DETAIL_TRANSFER_AMOUNT_FONT_SIZE = Type.micro;

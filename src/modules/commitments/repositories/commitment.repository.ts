@@ -102,7 +102,7 @@ export interface ICommitmentRepository {
   deactivate(id: string): Promise<void>;
 
   getPaymentsForMonth(yearMonth: string, today: string): Promise<CommitmentMonthPayment[]>;
-  getPaymentsByCommitment(commitmentId: string): Promise<CommitmentPayment[]>;
+  getPaymentsByCommitment(commitmentId: string): Promise<CommitmentMonthPayment[]>;
   getPaymentById(id: string): Promise<CommitmentPayment | undefined>;
   getLastPaidPayment(commitmentId: string): Promise<CommitmentPayment | undefined>;
   getPaidCount(commitmentId: string): Promise<number>;
@@ -209,7 +209,7 @@ export class CommitmentRepository implements ICommitmentRepository {
     });
   }
 
-  async getPaymentsByCommitment(commitmentId: string): Promise<CommitmentPayment[]> {
+  async getPaymentsByCommitment(commitmentId: string): Promise<CommitmentMonthPayment[]> {
     const db = await getDb();
     return getPaymentsByCommitment(db, commitmentId);
   }

@@ -1,21 +1,32 @@
+import { type DetailFact, detailFact } from '@/components/ui/detail_fact_row.helpers';
 import type { DetailHeroBadge, DetailHeroModel } from '@/components/ui/detail_hero';
 import type { DetailLoadErrorCopy } from '@/components/ui/detail_load_error.helpers';
+import { formatConvertedAmount } from '@/components/ui/form_sheet.helpers';
 import { HERO_GRADIENT_COLORS } from '@/components/ui/hero_gradient';
 import { CURRENCY_CONFIG } from '@/constants/currency';
-import { AmountType } from '@/constants/enums';
+import { AccountType, AmountType, Currency, DurationType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { CoreTokens } from '@/constants/theme_tokens';
 import { resolveBadgeColors } from '@/modules/accounts/constants/account_badge_color';
+import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import {
+  buildDetailAccountFact,
+  buildDetailCategoryFact,
   resolveCategoryGlyph,
   resolveHeroTileGlyphColor,
+  resolveHollowGraphiteTile,
 } from '@/modules/transactions/components/transaction_row.helpers';
+import { formatDisplayAmount } from '@/utils/format_amount';
 import { formatWeekdayDate } from '@/utils/format_date';
 
-import { isUnpaidPayment } from '../../../domain/payment_state';
+import { resolveCommitmentRowLegEgp } from '../../../domain/commitment_section_sums';
+import { isPaidPayment, isUnpaidPayment } from '../../../domain/payment_state';
 import type { Commitment } from '../../../entities/commitment.entity';
-import type { CommitmentPayment } from '../../../entities/commitment_payment.entity';
+import type {
+  CommitmentMonthPayment,
+  CommitmentPayment,
+} from '../../../entities/commitment_payment.entity';
 import { composeCommitmentAmount, resolveDisplayAmount } from '../../../utils/commitment_status';
 import { buildRecurrenceLabel } from '../../../utils/recurrence_label';
 import type { CommitmentDetailLoadStatus } from './detail.state';
@@ -70,10 +81,10 @@ export function resolveCommitmentDetailCycle(
 }
 
 /** The store's month array is the optimistic one, so a row both hold reads the store's status. */
-export function overlayStorePayments(
-  rows: CommitmentPayment[],
-  storePayments: CommitmentPayment[],
-): CommitmentPayment[] {
+export function overlayStorePayments<T extends CommitmentPayment>(
+  rows: T[],
+  storePayments: T[],
+): T[] {
   if (rows.length === 0 || storePayments.length === 0) return rows;
   const storeById = new Map(storePayments.map((p) => [p.id, p]));
   if (!rows.some((row) => storeById.has(row.id))) return rows;
@@ -148,4 +159,144 @@ export function buildCommitmentDetailHero({
         ? Strings.commitmentsDetailCaptionStarts(categoryName, startDate)
         : Strings.commitmentsDetailCaptionSince(categoryName, startDate),
   };
+}
+
+// Decision 2026-10-27: Amount in EGP sits third, where the transaction detail puts its amount row.
+const USD_COMMITMENT_FACT_KINDS = [
+  'account',
+  'category',
+  'amount',
+  'repeats',
+  'started',
+  'ends',
+  'currency',
+] as const;
+
+export type CommitmentDetailFactKind = (typeof USD_COMMITMENT_FACT_KINDS)[number];
+
+const EGP_COMMITMENT_FACT_KINDS: readonly CommitmentDetailFactKind[] =
+  USD_COMMITMENT_FACT_KINDS.filter((kind) => kind !== 'amount');
+
+/** No commitment, the skeleton with no hint, reads the six rows an EGP commitment draws. */
+export function resolveCommitmentDetailFactKinds(
+  commitment: Pick<Commitment, 'currency'> | undefined,
+): CommitmentDetailFactKind[] {
+  return [
+    ...(commitment?.currency === Currency.USD
+      ? USD_COMMITMENT_FACT_KINDS
+      : EGP_COMMITMENT_FACT_KINDS),
+  ];
+}
+
+export function buildCommitmentEndsLabel(
+  commitment: Pick<Commitment, 'duration_type' | 'end_after_count' | 'end_date'>,
+): string {
+  switch (commitment.duration_type) {
+    case DurationType.Forever:
+      return Strings.commitmentsEndsNever;
+    case DurationType.AfterCount:
+      return commitment.end_after_count === null
+        ? Strings.commitmentsDurationAfterCount
+        : Strings.commitmentsDurationAfterCountOf(commitment.end_after_count);
+    case DurationType.UntilDate:
+      return commitment.end_date === null
+        ? Strings.commitmentsDurationUntilDate
+        : Strings.commitmentsDurationUntilDateOf(formatWeekdayDate(commitment.end_date));
+    default: {
+      const unhandled: never = commitment.duration_type;
+      return unhandled;
+    }
+  }
+}
+
+/** A paid cycle reads its transaction's stored EGP; any other reads ≈ the amount at the live rate. */
+export function resolveCommitmentAmountInEgpText(input: {
+  commitment: Commitment;
+  payment: CommitmentMonthPayment | undefined;
+  liveRate: number | undefined;
+}): string {
+  const { commitment, payment, liveRate } = input;
+  if (payment !== undefined && isPaidPayment(payment)) {
+    return payment.paid_egp_amount === null
+      ? Strings.addTxConvertedAmountNone
+      : formatDisplayAmount(payment.paid_egp_amount, Currency.EGP);
+  }
+  const leg = resolveCommitmentRowLegEgp({
+    payment: payment ?? {
+      paid_date: null,
+      skipped_date: null,
+      currency: commitment.currency,
+      paid_egp_amount: null,
+    },
+    amount: resolveDisplayAmount(payment, commitment).amount,
+    rate: liveRate,
+  });
+  return formatConvertedAmount(
+    leg === undefined ? undefined : { amount: leg, currency: Currency.EGP },
+  );
+}
+
+export interface CommitmentDetailFactsInput {
+  commitment: Commitment;
+  payment: CommitmentMonthPayment | undefined;
+  category: Category | undefined;
+  accountsById: ReadonlyMap<string, Account>;
+  liveRate: number | undefined;
+}
+
+type CommitmentDetailFact = DetailFact<CommitmentDetailFactKind>;
+
+function accountFact(
+  commitment: Commitment,
+  accountsById: ReadonlyMap<string, Account>,
+): CommitmentDetailFact {
+  if (commitment.account_id === null) {
+    return detailFact('account', Strings.detailAccount, {
+      value: Strings.commitmentsStripNoAccount,
+      leading: { kind: 'tile', tile: resolveHollowGraphiteTile(AccountType.Bank) },
+    });
+  }
+  return buildDetailAccountFact(accountsById.get(commitment.account_id));
+}
+
+export function buildCommitmentDetailFacts({
+  commitment,
+  payment,
+  category,
+  accountsById,
+  liveRate,
+}: CommitmentDetailFactsInput): CommitmentDetailFact[] {
+  return resolveCommitmentDetailFactKinds(commitment).map((kind): CommitmentDetailFact => {
+    switch (kind) {
+      case 'account':
+        return accountFact(commitment, accountsById);
+      case 'category':
+        return buildDetailCategoryFact(category);
+      case 'amount':
+        return detailFact(kind, Strings.detailAmountInEgp, {
+          value: resolveCommitmentAmountInEgpText({ commitment, payment, liveRate }),
+          fitsValue: true,
+        });
+      case 'repeats':
+        return detailFact(kind, Strings.commitmentsDetailRepeats, {
+          value: buildRecurrenceLabel(commitment),
+        });
+      case 'started':
+        return detailFact(kind, Strings.commitmentsDetailStarted, {
+          value: formatWeekdayDate(commitment.start_date),
+        });
+      case 'ends':
+        return detailFact(kind, Strings.commitmentsDetailEnds, {
+          value: buildCommitmentEndsLabel(commitment),
+        });
+      case 'currency':
+        return detailFact(kind, Strings.commitmentsDetailCurrency, {
+          value: commitment.currency,
+        });
+      default: {
+        const unhandled: never = kind;
+        return unhandled;
+      }
+    }
+  });
 }

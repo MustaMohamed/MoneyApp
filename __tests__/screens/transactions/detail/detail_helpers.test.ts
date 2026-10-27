@@ -1,3 +1,4 @@
+import type { DetailFact } from '@/components/ui/detail_fact_row.helpers';
 import { AccountType, CategoryType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { CategoryColors } from '@/constants/theme';
@@ -16,6 +17,7 @@ import type { Budget } from '@/modules/budget/entities/budget.entity';
 import { STACKED_PREFIX } from '@/modules/navigation/domain/stacked_route';
 import {
   buildTransactionRowPresentation,
+  resolveDetailAccountRow,
   resolveHeroTileGlyphColor,
 } from '@/modules/transactions/components/transaction_row.helpers';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
@@ -26,12 +28,10 @@ import {
 import {
   buildTransactionDetailPresentation,
   getCommitmentPaymentRoute,
-  resolveDetailAccountRow,
   resolveDetailActionBarCount,
   resolveDetailActionSet,
   resolveDetailViewState,
   resolveTransferFlowView,
-  type DetailFact,
   type TransactionDetailPresentation,
   type TransactionDetailPresentationInput,
   type TransferFlow,

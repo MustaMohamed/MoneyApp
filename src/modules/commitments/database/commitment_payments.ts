@@ -68,8 +68,8 @@ export function getActiveCommitmentDueDates(
   );
 }
 
-const MONTH_PAYMENT_COLUMNS_SQL = 'payment.*, transaction_row.egp_amount AS paid_egp_amount';
-const MONTH_PAYMENT_SOURCE_SQL = `FROM commitment_payments payment
+const PAYMENT_WITH_EGP_COLUMNS_SQL = 'payment.*, transaction_row.egp_amount AS paid_egp_amount';
+const PAYMENT_WITH_EGP_SOURCE_SQL = `FROM commitment_payments payment
        LEFT JOIN transactions transaction_row ON transaction_row.id = payment.transaction_id`;
 
 /** `yearMonth` is `YYYY-MM`: the month's rows plus the unpaid rows due before `carriedBefore`. */
@@ -86,10 +86,10 @@ export async function getPaymentsByMonth(
   const nextMonthStr = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`;
 
   return db.getAllAsync<CommitmentMonthPayment>(
-    `SELECT ${MONTH_PAYMENT_COLUMNS_SQL} ${MONTH_PAYMENT_SOURCE_SQL}
+    `SELECT ${PAYMENT_WITH_EGP_COLUMNS_SQL} ${PAYMENT_WITH_EGP_SOURCE_SQL}
       WHERE payment.due_date >= ? AND payment.due_date < ?
      UNION ALL
-     SELECT ${MONTH_PAYMENT_COLUMNS_SQL} ${MONTH_PAYMENT_SOURCE_SQL}
+     SELECT ${PAYMENT_WITH_EGP_COLUMNS_SQL} ${PAYMENT_WITH_EGP_SOURCE_SQL}
       WHERE payment.due_date < ? AND ${unpaidPaymentSql('payment')}
      ORDER BY due_date ASC, id ASC`,
     [monthStart, nextMonthStr, carriedBefore],
@@ -202,9 +202,10 @@ export async function getPaymentMonthAggregate(
 export async function getPaymentsByCommitment(
   db: SQLiteDatabase,
   commitmentId: string,
-): Promise<CommitmentPayment[]> {
-  return db.getAllAsync<CommitmentPayment>(
-    'SELECT * FROM commitment_payments WHERE commitment_id = ? ORDER BY due_date ASC',
+): Promise<CommitmentMonthPayment[]> {
+  return db.getAllAsync<CommitmentMonthPayment>(
+    `SELECT ${PAYMENT_WITH_EGP_COLUMNS_SQL} ${PAYMENT_WITH_EGP_SOURCE_SQL}
+      WHERE payment.commitment_id = ? ORDER BY payment.due_date ASC`,
     [commitmentId],
   );
 }

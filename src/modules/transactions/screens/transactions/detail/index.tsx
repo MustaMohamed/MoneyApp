@@ -1,19 +1,18 @@
 import { useLocalSearchParams } from 'expo-router';
 import React from 'react';
 
+import { DetailFactsCard } from '@/components/ui/detail_facts_card';
 import { DetailHero } from '@/components/ui/detail_hero';
 import { DetailLoadError } from '@/components/ui/detail_load_error';
 import { DetailNotFoundState } from '@/components/ui/detail_not_found_state';
-import { DetailRowsCard } from '@/components/ui/detail_rows_card';
+import { DetailNoteCard } from '@/components/ui/detail_note_card';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { Strings } from '@/constants/strings';
 
 import { TxDeleteDialog } from '../components/tx_delete_dialog';
 import { ActionRow } from './components/action_row';
-import { DetailFactRow } from './components/detail_fact_row';
 import { DetailHeader } from './components/detail_header';
 import { TransactionDetailSkeleton, TransferFlowSkeletonCard } from './components/detail_skeleton';
-import { NoteCard } from './components/note_card';
 import { TransferFlowCard } from './components/transfer_flow_card';
 import {
   TRANSACTION_DETAIL_LOAD_ERROR_COPY,
@@ -74,17 +73,9 @@ export default function TransactionDetailScreen(): React.ReactElement {
               <TransferFlowCard flow={state.transferFlowView.flow} onOpenAccount={openAccount} />
             ) : null}
 
-            <DetailRowsCard>
-              {detail.facts.map((fact, index) => (
-                <DetailFactRow
-                  key={fact.kind}
-                  fact={fact}
-                  showDivider={index < detail.facts.length - 1}
-                />
-              ))}
-            </DetailRowsCard>
+            <DetailFactsCard facts={detail.facts} />
 
-            <NoteCard note={transaction.note} />
+            <DetailNoteCard note={transaction.note} />
 
             <ActionRow
               {...state.actions}

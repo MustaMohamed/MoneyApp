@@ -17,7 +17,7 @@ export interface CommitmentPayment {
   updated_at: string;
 }
 
-/** A row of the month read, with its transaction's EGP amount on a paid row. */
+/** A payment row with its transaction's EGP amount on a paid row. */
 export interface CommitmentMonthPayment extends CommitmentPayment {
   paid_egp_amount: number | null;
 }

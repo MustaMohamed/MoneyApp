@@ -2,7 +2,9 @@ import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { router } from 'expo-router';
 import { createContext, createElement, useContext, type PropsWithChildren } from 'react';
 
-import { AmountType } from '@/constants/enums';
+import { AccountType, AmountType, Currency } from '@/constants/enums';
+import { AcctTokens } from '@/constants/theme_tokens';
+import type { Account } from '@/modules/accounts/entities/account.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
@@ -13,10 +15,11 @@ import { useCommitmentDetailState } from '@/modules/commitments/screens/commitme
 import { useCommitmentDetailStore } from '@/modules/commitments/screens/commitments/detail/detail.store';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { useCommitmentFormHostState } from '@/modules/commitments/store/commitment_form_host.state';
+import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
 import { deferred } from '@/test_helpers/deferred';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
-import { makeTestCategory } from '@/test_helpers/transaction';
+import { makeTestAccount, makeTestCategory } from '@/test_helpers/transaction';
 
 type DetailParams = {
   id: string;
@@ -28,6 +31,7 @@ type DetailParams = {
 const mockGetById = jest.fn();
 const mockGetPaymentsByCommitment = jest.fn();
 const mockSkipPayment = jest.fn();
+const mockLoadAccountLookup = jest.fn<Promise<void>, [string[]]>();
 const mockPathname = { current: '/commitments/commitment-1' };
 const mockParamsContext = createContext<DetailParams | null>(null);
 let mockParams: DetailParams = { id: 'commitment-1', cycle: 'pay-1' };
@@ -38,6 +42,11 @@ const TODAY = '2026-05-08';
 let paymentsState: CommitmentPayment[] = [];
 let commitmentsById: Record<string, Commitment> = {};
 let historyById: Record<string, CommitmentPayment[]> = {};
+let storeCommitments: Commitment[] = [];
+let accountLookupById: Record<string, Account> = {};
+let currencyRate = 48;
+let currencyRateLoaded = true;
+let accountLookupError = false;
 
 jest.mock('expo-router', () => ({
   useLocalSearchParams: () => mockUseParams(),
@@ -52,6 +61,7 @@ jest.mock('@/modules/accounts/store/account.store', () => ({
   useAccountStore: jest.fn(),
 }));
 jest.mock('@/modules/categories/store/category.store', () => ({ useCategoryStore: jest.fn() }));
+jest.mock('@/modules/currency/store/currency.store', () => ({ useCurrencyStore: jest.fn() }));
 jest.mock('@/modules/commitments/repositories/commitment.repository', () => ({
   commitmentRepository: {
     getById: (...args: unknown[]) => mockGetById(...args),
@@ -62,14 +72,23 @@ jest.mock('@/modules/commitments/repositories/commitment.repository', () => ({
 // The month store holds no commitments: the detail reads its own from the repository.
 function setup() {
   attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
+    commitments: storeCommitments,
     payments: paymentsState,
     skipPayment: mockSkipPayment,
   }));
   attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
     accounts: [],
+    archivedAccounts: [],
+    accountLookupById,
+    accountLookupError,
+    loadAccountLookup: mockLoadAccountLookup,
   }));
   attachMockSelectorStore(useCategoryStore as unknown as jest.Mock, () => ({
     categories: [],
+  }));
+  attachMockSelectorStore(useCurrencyStore as unknown as jest.Mock, () => ({
+    rate: currencyRate,
+    hasLoaded: currencyRateLoaded,
   }));
 }
 
@@ -124,6 +143,12 @@ beforeEach(() => {
   paymentsState = [];
   commitmentsById = {};
   historyById = {};
+  storeCommitments = [];
+  accountLookupById = {};
+  accountLookupError = false;
+  currencyRate = 48;
+  currencyRateLoaded = true;
+  mockLoadAccountLookup.mockResolvedValue(undefined);
   mockGetById.mockImplementation(async (id: string) => commitmentsById[id]);
   mockGetPaymentsByCommitment.mockImplementation(async (id: string) => historyById[id] ?? []);
   mockSkipPayment.mockResolvedValue(undefined);
@@ -216,7 +241,7 @@ describe('useCommitmentDetail', () => {
     }
   });
 
-  it('heroes a variable commitment starting tomorrow with the varies badge and the starts caption, leaving recurrenceLabel bare', async () => {
+  it('heroes a variable commitment starting tomorrow with the varies badge and the starts caption, leaving the Repeats fact bare', async () => {
     jest.useFakeTimers().setSystemTime(new Date(2026, 0, 30, 10));
     try {
       const variable: Commitment = {
@@ -236,7 +261,9 @@ describe('useCommitmentDetail', () => {
       expect(result.current.state.today).toBe('2026-01-30');
       expect(result.current.state.hero?.badgeLabel).toBe('Every month · varies');
       expect(result.current.state.hero?.caption).toBe('Bills · starts Sat 31 Jan 2026');
-      expect(result.current.state.recurrenceLabel).toBe('Every month');
+      expect(result.current.state.facts.find((fact) => fact.kind === 'repeats')?.value).toBe(
+        'Every month',
+      );
     } finally {
       jest.useRealTimers();
     }
@@ -699,6 +726,121 @@ describe('useCommitmentDetail', () => {
     expect(result.current.state.skipBusy).toBe(false);
     expect(result.current.state.skipError).toBe(false);
     consoleSpy.mockRestore();
+  });
+});
+
+describe('useCommitmentDetail facts and skeleton hint (MA-261)', () => {
+  const usdCommitment: Commitment = { ...commitment, currency: Currency.USD, amount: 50 };
+  const usdPayment: CommitmentPayment = { ...payment, currency: Currency.USD, amount_due: 50 };
+
+  it('looks up the commitment’s account and reads an archived one by its name with Archived', async () => {
+    seedRent();
+    accountLookupById = {
+      'account-1': makeTestAccount({
+        id: 'account-1',
+        name: 'Old CIB',
+        type: AccountType.Bank,
+        color: AcctTokens.lapis.rich,
+        is_archived: 1,
+      }),
+    };
+
+    const { result } = await renderHook(() => useCommitmentDetail());
+
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+    expect(mockLoadAccountLookup).toHaveBeenCalledWith(['account-1']);
+    expect(result.current.state.facts.find((fact) => fact.kind === 'account')).toMatchObject({
+      value: 'Old CIB',
+      badge: { label: 'Archived' },
+    });
+  });
+
+  it('looks up no account and reads No account when the commitment has none', async () => {
+    const noAccount: Commitment = { ...commitment, account_id: null };
+    commitmentsById = { [noAccount.id]: noAccount };
+    historyById = { [noAccount.id]: rentHistory };
+
+    const { result } = await renderHook(() => useCommitmentDetail());
+
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+    expect(mockLoadAccountLookup).not.toHaveBeenCalled();
+    expect(result.current.state.facts.find((fact) => fact.kind === 'account')?.value).toBe(
+      'No account',
+    );
+  });
+
+  it('reads the USD amount fact, third, as ≈ — until the live rate loads, then at the live rate', async () => {
+    commitmentsById = { [usdCommitment.id]: usdCommitment };
+    historyById = { [usdCommitment.id]: [usdPayment] };
+    currencyRateLoaded = false;
+
+    const { result, rerender } = await renderHook(() => useCommitmentDetail());
+
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+    expect(result.current.state.facts[2]).toMatchObject({ kind: 'amount', value: '≈ —' });
+
+    currencyRateLoaded = true;
+    await rerender({});
+
+    expect(result.current.state.facts[2]).toMatchObject({ kind: 'amount', value: '≈ 2,400 EGP' });
+  });
+
+  it('hints the skeleton with the store’s commitment for the route id while the detail loads', async () => {
+    storeCommitments = [otherCommitment, usdCommitment];
+    const pending = deferred<Commitment | undefined>();
+    mockGetById.mockImplementation(() => pending.promise);
+
+    const { result } = await renderHook(() => useCommitmentDetail());
+
+    expect(result.current.state.viewState).toBe('loading');
+    expect(result.current.state.loadingCommitmentHint).toBe(usdCommitment);
+  });
+
+  it('hints nothing when the store holds no commitment with the route id', async () => {
+    storeCommitments = [otherCommitment];
+    const pending = deferred<Commitment | undefined>();
+    mockGetById.mockImplementation(() => pending.promise);
+
+    const { result } = await renderHook(() => useCommitmentDetail());
+
+    expect(result.current.state.viewState).toBe('loading');
+    expect('loadingCommitmentHint' in result.current.state).toBe(true);
+    expect(result.current.state.loadingCommitmentHint).toBeUndefined();
+  });
+
+  it('hints the skeleton once the store gains the route’s commitment while the detail loads', async () => {
+    storeCommitments = [otherCommitment];
+    const pending = deferred<Commitment | undefined>();
+    mockGetById.mockImplementation(() => pending.promise);
+
+    const { result, rerender } = await renderHook(() => useCommitmentDetail());
+
+    expect(result.current.state.loadingCommitmentHint).toBeUndefined();
+
+    storeCommitments = [otherCommitment, usdCommitment];
+    await rerender({});
+
+    expect(result.current.state.viewState).toBe('loading');
+    expect(result.current.state.loadingCommitmentHint).toBe(usdCommitment);
+  });
+
+  it('surfaces the refresh error when the account lookup fails and leaves the account unresolved, and Retry looks it up again', async () => {
+    seedRent();
+    accountLookupError = true;
+
+    const { result } = await renderHook(() => useCommitmentDetail());
+
+    await waitFor(() => expect(result.current.state.viewState).toBe('refreshErrorWithData'));
+    expect(result.current.state.facts.find((fact) => fact.kind === 'account')?.value).toBe(
+      'Unknown account',
+    );
+    expect(mockLoadAccountLookup).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      result.current.reload();
+    });
+
+    await waitFor(() => expect(mockLoadAccountLookup).toHaveBeenCalledTimes(2));
   });
 });
 

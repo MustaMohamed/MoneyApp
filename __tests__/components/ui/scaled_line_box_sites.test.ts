@@ -10,12 +10,6 @@ import {
   resolveDetailHeroGeometry,
 } from '@/components/ui/detail_hero.geometry';
 import {
-  DETAIL_ROW_HEIGHT,
-  DETAIL_ROW_LABEL_FONT_SIZE,
-  DETAIL_ROW_VALUE_FONT_SIZE,
-  resolveDetailRowHeight,
-} from '@/components/ui/detail_row.geometry';
-import {
   FILTER_AMOUNT_ERROR_SLOT_HEIGHT,
   resolveFilterAmountSlotStyle,
 } from '@/components/ui/filter_accordion.geometry';
@@ -129,15 +123,6 @@ const SITES: Record<string, { resolve: (s: number) => unknown; expected: (s: num
           height: Spacing.md + pillHeight + Spacing.xs,
         };
       },
-    },
-    resolveDetailRowHeight: {
-      resolve: resolveDetailRowHeight,
-      expected: (s) =>
-        keptSpace(
-          DETAIL_ROW_HEIGHT,
-          (f) => line(DETAIL_ROW_LABEL_FONT_SIZE, f) + line(DETAIL_ROW_VALUE_FONT_SIZE, f),
-          s,
-        ),
     },
     resolveListHeroGeometry: {
       resolve: resolveListHeroGeometry,

@@ -4,12 +4,11 @@ import React from 'react';
 import { useWindowDimensions } from 'react-native';
 
 import { AccountColorTile } from '@/components/ui/account_color_tile';
+import type { DetailFact, DetailFactLeading } from '@/components/ui/detail_fact_row.helpers';
 import { FactRow } from '@/components/ui/fact_row';
 import { FACT_ROW_BADGE_FONT_SIZE, FACT_ROW_TILE } from '@/components/ui/fact_row.geometry';
 import { resolveOneLineTextProps, scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Size } from '@/constants/theme';
-
-import type { DetailFact, DetailFactLeading } from '../detail.helpers';
 
 interface Props {
   fact: DetailFact;
