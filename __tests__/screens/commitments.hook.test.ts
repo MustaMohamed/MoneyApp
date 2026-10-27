@@ -479,8 +479,6 @@ describe('useCommitments', () => {
     expect(result.current.state.hasLoaded).toBe(false);
     expect(result.current.state.presentation).toBe('coldLoading');
     expect(result.current.state.sections).toEqual([]);
-    expect(result.current.state.counts.total).toBe(0);
-    expect(result.current.state.totalsByCurrency.size).toBe(0);
     expect(result.current.state.hasCommitments).toBe(false);
   });
 
@@ -526,7 +524,6 @@ describe('useCommitments', () => {
     expect(result.current.state.hasLoaded).toBe(true);
     expect(result.current.state.presentation).toBe('contentWithError');
     expect(result.current.state.sections[0]?.data[0]?.id).toBe('payment');
-    expect(result.current.state.counts.total).toBe(1);
   });
 
   it('keeps a selected-month payment visible after its parent deactivates', async () => {
@@ -696,17 +693,9 @@ describe('useCommitments', () => {
       [Strings.commitmentsPaid, ['paid']],
       [Strings.commitmentsSkipped, ['skipped']],
     ]);
-    expect(result.current.state.counts).toEqual({
-      paid: 1,
-      overdue: 1,
-      due: 1,
-      upcoming: 1,
-      skipped: 1,
-      total: 4,
-    });
   });
 
-  it('puts a row carried from the month before first in Overdue, outside the total and the amounts', async () => {
+  it('puts a row carried from the month before first in Overdue', async () => {
     setup({
       payments: [
         makePayment('carried', CommitmentPaymentStatus.Overdue, {
@@ -724,11 +713,9 @@ describe('useCommitments', () => {
       Strings.commitmentsOverdue,
       ['carried', 'overdue'],
     ]);
-    expect(result.current.state.counts).toMatchObject({ overdue: 2, due: 1, total: 2 });
-    expect(result.current.state.totalsByCurrency).toEqual(new Map([[Currency.EGP, 200]]));
   });
 
-  it('leaves a carried row paid or skipped since out of every section and count', async () => {
+  it('leaves a carried row paid or skipped since out of every section', async () => {
     setup({
       payments: [
         makePayment('carried-paid', CommitmentPaymentStatus.Paid, { due_date: '2026-04-20' }),
@@ -744,7 +731,6 @@ describe('useCommitments', () => {
     expect(sectionIds(result.current.state.sections)).toEqual([
       [Strings.commitmentsUpcoming, ['may']],
     ]);
-    expect(result.current.state.counts).toMatchObject({ paid: 0, skipped: 0, total: 1 });
   });
 
   it('publishes each section’s figures and spoken label, and the tally, under a search', async () => {

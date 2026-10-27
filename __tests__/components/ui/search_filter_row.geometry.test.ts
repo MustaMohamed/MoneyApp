@@ -1,5 +1,6 @@
 import { CHIP_ROW_ROOM_BELOW } from '@/components/ui/account_chips.geometry';
 import { DISPLAY_HEADLINE_MAX_FONT_SCALE } from '@/components/ui/display_headline.geometry';
+import { HERO_SHELL_MARGIN_BOTTOM } from '@/components/ui/hero_shell.geometry';
 import {
   FILTER_BADGE_MAX_FONT_SCALE,
   SEARCH_CLEAR_INSET_END,
@@ -20,13 +21,12 @@ import {
   lineHeightFor,
   touchFloorHitSlop,
 } from '@/constants/theme';
-import { SUMMARY_HEADER_MARGIN_BOTTOM } from '@/modules/commitments/screens/commitments/components/summary_header.geometry';
 import { ms } from '@/utils/responsive';
 
 describe('resolveSearchRowHitSlop', () => {
   const cases = [1, 2].flatMap((fontScale) => [
     { fontScale, list: 'transactions', room: CHIP_ROW_ROOM_BELOW },
-    { fontScale, list: 'commitments', room: SUMMARY_HEADER_MARGIN_BOTTOM },
+    { fontScale, list: 'commitments', room: HERO_SHELL_MARGIN_BOTTOM },
   ]);
 
   it.each(cases)(
@@ -60,10 +60,10 @@ describe('resolveSearchRowHitSlop', () => {
   );
 
   it.each([
-    { label: 'the summary card margin', room: SUMMARY_HEADER_MARGIN_BOTTOM },
+    { label: 'the hero margin', room: HERO_SHELL_MARGIN_BOTTOM },
     { label: 'half the clamped chips padding', room: 5.5 },
   ])(
-    'MA-236: Rule 1 gives a card its whole gap, so at a 31 dp input under $label Filter and clear each reach the floor, where half the card gap, 4, leaves both at 43',
+    'MA-236: Rule 1 gives a hero its whole margin, so at a 31 dp input under $label Filter and clear each reach the floor, where half the margin, 4, leaves both at 43',
     ({ room }) => {
       const inputHeight = 31;
       const { filter, clear } = resolveSearchRowHitSlop(inputHeight, room);

@@ -63,7 +63,6 @@ const PERMITTED = {
   ],
   wholePercentOf: [
     'src/modules/budget/screens/budget/spending_plans.helpers.ts',
-    'src/modules/commitments/screens/commitments/components/summary_header.tsx',
     'src/modules/dashboard/screens/dashboard/components/commitments_card.tsx',
     'src/modules/transactions/domain/expense_share.ts',
     'src/modules/transactions/domain/period_delta.ts',

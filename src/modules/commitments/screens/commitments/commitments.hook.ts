@@ -14,7 +14,6 @@ import { runAfterInteractions } from '@/utils/run_after_interactions';
 import { useDebouncedValue } from '@/utils/use_debounced_value.hook';
 import { shiftYearMonth } from '@/utils/year_month';
 
-import { emptyMonthPaymentSummary, summarizeMonthPayments } from '../../domain/payment_summary';
 import type { Commitment } from '../../entities/commitment.entity';
 import type { CommitmentMonthPayment } from '../../entities/commitment_payment.entity';
 import { monthAggregateKey, useCommitmentStore } from '../../store/commitment.store';
@@ -186,13 +185,6 @@ export function useCommitments() {
     today,
   ]);
 
-  const { counts, totalsByCurrency } = useMemo(
-    () =>
-      today === undefined
-        ? emptyMonthPaymentSummary()
-        : summarizeMonthPayments(activePayments, selectedMonth, today),
-    [activePayments, selectedMonth, today],
-  );
   const isEmpty = activePayments.length === 0;
   const activeFilterCount = useMemo(
     () => countActiveCommitmentFilters(appliedFilters),
@@ -338,8 +330,6 @@ export function useCommitments() {
       liveRate,
       selectedMonth,
       today,
-      counts,
-      totalsByCurrency,
       hero,
       refreshing,
       isEmpty,

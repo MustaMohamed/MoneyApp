@@ -2,7 +2,7 @@ import { fireEvent, render, within } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 import { Dimensions } from 'react-native';
 
-import { CommitmentPaymentStatus, Currency } from '@/constants/enums';
+import { CommitmentPaymentStatus } from '@/constants/enums';
 import type { CommitmentMonthPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import CommitmentsScreen from '@/modules/commitments/screens/commitments';
 import type { CommitmentsSection } from '@/modules/commitments/screens/commitments/commitments.helpers';
@@ -98,10 +98,10 @@ jest.mock('@/modules/commitments/screens/commitments/components/empty_state', ()
     return <Text>No commitments</Text>;
   },
 }));
-jest.mock('@/modules/commitments/screens/commitments/components/summary_header', () => ({
-  SummaryHeader: ({ isLoading }: { isLoading?: boolean }) => {
+jest.mock('@/modules/commitments/screens/commitments/components/commitments_hero', () => ({
+  CommitmentsHero: ({ model }: { model: { mode: string } }) => {
     const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
-    return <Text>{`Summary loading:${String(isLoading)}`}</Text>;
+    return <Text>{`Hero mode:${model.mode}`}</Text>;
   },
 }));
 jest.mock('@/modules/commitments/screens/commitments/components/search_row', () => ({
@@ -169,8 +169,6 @@ type CommitmentsScreenState = CommitmentsScreenHook['state'];
 const baseCommitmentsState: CommitmentsScreenState = {
   sections: [],
   selectedMonth: '2026-08',
-  counts: { paid: 0, overdue: 0, due: 0, upcoming: 0, skipped: 0, total: 0 },
-  totalsByCurrency: new Map<Currency, number>(),
   refreshing: false,
   isEmpty: true,
   commitmentsLoaded: true,
@@ -280,7 +278,7 @@ describe('CommitmentsScreen', () => {
     expect(getByText('Commitment filter sheet')).toBeTruthy();
   });
 
-  it('passes payments loading state to the summary header', async () => {
+  it('passes the skeleton hero model while payments load', async () => {
     mockUseCommitments({
       hasCommitments: true,
       paymentsLoaded: false,
@@ -291,7 +289,7 @@ describe('CommitmentsScreen', () => {
 
     const { getByText } = await render(<CommitmentsScreen />);
 
-    expect(getByText('Summary loading:true')).toBeTruthy();
+    expect(getByText('Hero mode:skeleton')).toBeTruthy();
   });
 
   it('shows row skeletons instead of the list spinner while payments load', async () => {
@@ -333,7 +331,7 @@ describe('CommitmentsScreen', () => {
     }
   });
 
-  it('keeps the summary and search row mounted during the first commitments load', async () => {
+  it('keeps the hero and search row mounted during the first commitments load', async () => {
     mockUseCommitments({
       commitmentsLoaded: false,
       paymentsLoaded: false,
@@ -345,7 +343,7 @@ describe('CommitmentsScreen', () => {
 
     const { getByTestId, getByText, queryByText } = await render(<CommitmentsScreen />);
 
-    expect(getByText('Summary loading:true')).toBeTruthy();
+    expect(getByText('Hero mode:skeleton')).toBeTruthy();
     expect(getByTestId('commitment-search-row')).toBeTruthy();
     expect(getByTestId('commitment-row-skeletons')).toBeTruthy();
     expect(queryByText('No commitments')).toBeNull();
@@ -358,11 +356,12 @@ describe('CommitmentsScreen', () => {
       refreshing: true,
       hasCommitments: true,
       sections: [dueSection()],
+      hero: { ...baseCommitmentsState.hero, mode: 'figures' },
     });
 
     const { getByText, queryByTestId } = await render(<CommitmentsScreen />);
 
-    expect(getByText('Summary loading:false')).toBeTruthy();
+    expect(getByText('Hero mode:figures')).toBeTruthy();
     expect(getByText('Commitment row')).toBeTruthy();
     expect(queryByTestId('commitment-row-skeletons')).toBeNull();
   });

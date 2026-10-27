@@ -1,9 +1,9 @@
 import { fireEvent, render } from '@testing-library/react-native';
 import { Dimensions } from 'react-native';
 
+import { HERO_SHELL_MARGIN_BOTTOM } from '@/components/ui/hero_shell.geometry';
 import { resolveSearchFilterRowGeometry } from '@/components/ui/search_filter_row.geometry';
 import { CommitmentSearchRow } from '@/modules/commitments/screens/commitments/components/search_row';
-import { SUMMARY_HEADER_MARGIN_BOTTOM } from '@/modules/commitments/screens/commitments/components/summary_header.geometry';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
 jest.mock('@/components/ui/search_filter_row', () => {
@@ -102,7 +102,7 @@ describe('CommitmentSearchRow', () => {
     expect(onOpenFilter).toHaveBeenCalled();
   });
 
-  it('MA-236: passes the summary card gap as the room above the search row', async () => {
+  it('MA-236: passes the hero margin as the room above the search row', async () => {
     await render(
       <CommitmentSearchRow
         value=""
@@ -112,6 +112,6 @@ describe('CommitmentSearchRow', () => {
       />,
     );
 
-    expect(searchFilterRowProps.last?.topRoom).toBe(SUMMARY_HEADER_MARGIN_BOTTOM);
+    expect(searchFilterRowProps.last?.topRoom).toBe(HERO_SHELL_MARGIN_BOTTOM);
   });
 });

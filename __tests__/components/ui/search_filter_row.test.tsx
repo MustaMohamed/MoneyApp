@@ -2,13 +2,13 @@ import { fireEvent, render } from '@testing-library/react-native';
 import { Dimensions } from 'react-native';
 
 import { CHIP_ROW_ROOM_BELOW } from '@/components/ui/account_chips.geometry';
+import { HERO_SHELL_MARGIN_BOTTOM } from '@/components/ui/hero_shell.geometry';
 import { SearchFilterRow } from '@/components/ui/search_filter_row';
 import {
   resolveSearchFilterRowGeometry,
   resolveSearchRowHitSlop,
 } from '@/components/ui/search_filter_row.geometry';
 import { HIT_SLOP_UNCLIPPED_STYLE } from '@/constants/theme';
-import { SUMMARY_HEADER_MARGIN_BOTTOM } from '@/modules/commitments/screens/commitments/components/summary_header.geometry';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
 
@@ -109,7 +109,7 @@ describe('SearchFilterRow', () => {
 
   it.each([
     ['no room above the row', 0],
-    ['the summary card gap above the row', SUMMARY_HEADER_MARGIN_BOTTOM],
+    ['the hero margin above the row', HERO_SHELL_MARGIN_BOTTOM],
   ])(
     'MA-236: Filter and clear take the touch-floor slop for %s, unclipped, and the clear presses by scale',
     async (_room, topRoom) => {
