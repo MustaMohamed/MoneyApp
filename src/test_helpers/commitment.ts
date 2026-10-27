@@ -73,7 +73,7 @@ export function makeTestPayment(overrides: Partial<CommitmentPayment> = {}): Com
   };
 }
 
-/** `makeTestPayment`'s row as the month read returns it, with no transaction EGP amount. */
+/** `makeTestPayment`'s row as a payment read returns it, with no transaction EGP amount. */
 export function makeTestMonthPayment(
   overrides: Partial<CommitmentMonthPayment> = {},
 ): CommitmentMonthPayment {
