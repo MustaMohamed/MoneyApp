@@ -5,6 +5,7 @@ import { DetailFactRow } from '@/components/ui/detail_fact_row';
 import { DetailHero } from '@/components/ui/detail_hero';
 import { DetailLoadError } from '@/components/ui/detail_load_error';
 import { DetailNotFoundState } from '@/components/ui/detail_not_found_state';
+import { DetailNoteCard } from '@/components/ui/detail_note_card';
 import { DetailRowsCard } from '@/components/ui/detail_rows_card';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { Strings } from '@/constants/strings';
@@ -13,7 +14,6 @@ import { TxDeleteDialog } from '../components/tx_delete_dialog';
 import { ActionRow } from './components/action_row';
 import { DetailHeader } from './components/detail_header';
 import { TransactionDetailSkeleton, TransferFlowSkeletonCard } from './components/detail_skeleton';
-import { NoteCard } from './components/note_card';
 import { TransferFlowCard } from './components/transfer_flow_card';
 import {
   TRANSACTION_DETAIL_LOAD_ERROR_COPY,
@@ -84,7 +84,7 @@ export default function TransactionDetailScreen(): React.ReactElement {
               ))}
             </DetailRowsCard>
 
-            <NoteCard note={transaction.note} />
+            <DetailNoteCard note={transaction.note} />
 
             <ActionRow
               {...state.actions}

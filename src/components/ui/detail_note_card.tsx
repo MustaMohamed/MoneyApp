@@ -1,22 +1,48 @@
+import { Card } from 'heroui-native';
 import React from 'react';
+import type { ViewStyle } from 'react-native';
 
+import { DETAIL_NOTE_MIN_HEIGHT } from '@/components/ui/detail_rows_card.geometry';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { LetterSpacing, Type, lineHeightFor } from '@/constants/theme';
-
-import { NoteCardFrame } from './detail_card_frames';
 
 interface Props {
   note: string | null;
 }
 
+interface DetailNoteCardFrameProps {
+  testID?: string;
+  children: React.ReactNode;
+}
+
+const NOTE_CARD_FRAME_STYLE: Readonly<ViewStyle> = Object.freeze({
+  minHeight: DETAIL_NOTE_MIN_HEIGHT,
+  boxShadow: 'none',
+});
+
+export function DetailNoteCardFrame({
+  testID,
+  children,
+}: DetailNoteCardFrameProps): React.ReactElement {
+  return (
+    <Card
+      testID={testID}
+      className="border-separator mx-4 mt-4 rounded-2xl border px-4 py-3"
+      style={NOTE_CARD_FRAME_STYLE}
+    >
+      {children}
+    </Card>
+  );
+}
+
 /** Canvas `.note-card`: the label in capitals over the note, which wraps whole. */
-export function NoteCard({ note }: Props): React.ReactElement | null {
+export function DetailNoteCard({ note }: Props): React.ReactElement | null {
   const trimmed = note?.trim();
   if (!trimmed) return null;
 
   return (
-    <NoteCardFrame testID="detail-note-card">
+    <DetailNoteCardFrame testID="detail-note-card">
       <Text
         className="font-inter-semibold text-muted uppercase"
         style={{
@@ -33,6 +59,6 @@ export function NoteCard({ note }: Props): React.ReactElement | null {
       >
         {trimmed}
       </Text>
-    </NoteCardFrame>
+    </DetailNoteCardFrame>
   );
 }
