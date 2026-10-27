@@ -9,6 +9,7 @@ import { LetterSpacing, Type, lineHeightFor } from '@/constants/theme';
 
 interface Props {
   note: string | null;
+  testID?: string;
 }
 
 interface DetailNoteCardFrameProps {
@@ -37,12 +38,15 @@ export function DetailNoteCardFrame({
 }
 
 /** Canvas `.note-card`: the label in capitals over the note, which wraps whole. */
-export function DetailNoteCard({ note }: Props): React.ReactElement | null {
+export function DetailNoteCard({
+  note,
+  testID = 'detail-note-card',
+}: Props): React.ReactElement | null {
   const trimmed = note?.trim();
   if (!trimmed) return null;
 
   return (
-    <DetailNoteCardFrame testID="detail-note-card">
+    <DetailNoteCardFrame testID={testID}>
       <Text
         className="font-inter-semibold text-muted uppercase"
         style={{
