@@ -1,17 +1,17 @@
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
-import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
+import type { CommitmentMonthPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import {
   INITIAL_DATA_ENTRY,
   useCommitmentDetailStore,
 } from '@/modules/commitments/screens/commitments/detail/detail.store';
-import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
+import { makeTestCommitment, makeTestMonthPayment } from '@/test_helpers/commitment';
 
 const entryOf = (owner: string) => useCommitmentDetailStore.getState().entries[owner];
 
 const LOADED_ON = '2026-05-08';
 
-function makePayment(overrides: Partial<CommitmentPayment> = {}): CommitmentPayment {
-  return makeTestPayment({
+function makePayment(overrides: Partial<CommitmentMonthPayment> = {}): CommitmentMonthPayment {
+  return makeTestMonthPayment({
     id: 'pay-1',
     commitment_id: 'commitment-1',
     due_date: '2026-05-01',

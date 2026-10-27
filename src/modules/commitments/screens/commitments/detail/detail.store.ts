@@ -4,12 +4,12 @@ import { withEntry, withoutEntry, type KeyedEntries } from '@/utils/keyed_entrie
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 import type { Commitment } from '../../../entities/commitment.entity';
-import type { CommitmentPayment } from '../../../entities/commitment_payment.entity';
+import type { CommitmentMonthPayment } from '../../../entities/commitment_payment.entity';
 
 interface CommitmentDetailEntry {
   commitmentId: string | undefined;
   commitment: Commitment | undefined;
-  allPayments: CommitmentPayment[];
+  allPayments: CommitmentMonthPayment[];
   cycleId: string | undefined;
   loadedOn: string | undefined;
 }
@@ -27,7 +27,7 @@ type CommitmentDetailStore = CommitmentDetailStoreShape & {
 };
 
 // One shared array, so an unkeyed read is referentially stable across renders.
-const EMPTY_PAYMENTS: CommitmentPayment[] = [];
+const EMPTY_PAYMENTS: CommitmentMonthPayment[] = [];
 Object.freeze(EMPTY_PAYMENTS);
 
 export const INITIAL_DATA_ENTRY: CommitmentDetailEntry = Object.freeze({

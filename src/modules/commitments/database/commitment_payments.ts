@@ -202,9 +202,10 @@ export async function getPaymentMonthAggregate(
 export async function getPaymentsByCommitment(
   db: SQLiteDatabase,
   commitmentId: string,
-): Promise<CommitmentPayment[]> {
-  return db.getAllAsync<CommitmentPayment>(
-    'SELECT * FROM commitment_payments WHERE commitment_id = ? ORDER BY due_date ASC',
+): Promise<CommitmentMonthPayment[]> {
+  return db.getAllAsync<CommitmentMonthPayment>(
+    `SELECT ${MONTH_PAYMENT_COLUMNS_SQL} ${MONTH_PAYMENT_SOURCE_SQL}
+      WHERE payment.commitment_id = ? ORDER BY payment.due_date ASC`,
     [commitmentId],
   );
 }

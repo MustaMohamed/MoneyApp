@@ -70,10 +70,10 @@ export function resolveCommitmentDetailCycle(
 }
 
 /** The store's month array is the optimistic one, so a row both hold reads the store's status. */
-export function overlayStorePayments(
-  rows: CommitmentPayment[],
-  storePayments: CommitmentPayment[],
-): CommitmentPayment[] {
+export function overlayStorePayments<T extends CommitmentPayment>(
+  rows: T[],
+  storePayments: T[],
+): T[] {
   if (rows.length === 0 || storePayments.length === 0) return rows;
   const storeById = new Map(storePayments.map((p) => [p.id, p]));
   if (!rows.some((row) => storeById.has(row.id))) return rows;
