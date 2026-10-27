@@ -98,12 +98,17 @@ jest.mock('@/modules/commitments/screens/commitments/components/empty_state', ()
     return <Text>No commitments</Text>;
   },
 }));
-jest.mock('@/modules/commitments/screens/commitments/components/commitments_hero', () => ({
-  CommitmentsHero: ({ model }: { model: { mode: string } }) => {
-    const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
-    return <Text>{`Hero mode:${model.mode}`}</Text>;
-  },
-}));
+jest.mock('@/modules/commitments/screens/commitments/components/commitments_hero', () => {
+  const heroRenders = { count: 0 };
+  return {
+    heroRenders,
+    CommitmentsHero: ({ model }: { model: { mode: string } }) => {
+      const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
+      heroRenders.count += 1;
+      return <Text>{`Hero mode:${model.mode}`}</Text>;
+    },
+  };
+});
 jest.mock('@/modules/commitments/screens/commitments/components/search_row', () => ({
   CommitmentSearchRow: ({
     value,
@@ -198,6 +203,9 @@ const baseCommitmentsState: CommitmentsScreenState = {
   }),
 };
 
+const { heroRenders } = jest.requireMock<{ heroRenders: { count: number } }>(
+  '@/modules/commitments/screens/commitments/components/commitments_hero',
+);
 const mockedUseCommitments = jest.mocked(useCommitments);
 const setSearchQueryMock = jest.fn();
 const clearSearchMock = jest.fn();
@@ -252,6 +260,7 @@ function mockUseCommitments(state: Partial<CommitmentsScreenState> = {}) {
 describe('CommitmentsScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    heroRenders.count = 0;
     mockUseCommitments();
   });
 
@@ -397,6 +406,30 @@ describe('CommitmentsScreen', () => {
     expect(setSearchQueryMock).toHaveBeenLastCalledWith('');
     expect(clearSearchMock).not.toHaveBeenCalled();
     expect(openFilterMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not re-render the hero on a search keystroke, only on a new hero model', async () => {
+    const hero = baseCommitmentsState.hero;
+    mockUseCommitments({ hasCommitments: true, hero });
+    const { getByText, rerender } = await render(<CommitmentsScreen />);
+
+    expect(heroRenders.count).toBe(1);
+
+    mockUseCommitments({ hasCommitments: true, hero, searchQuery: 'rent' });
+    await rerender(<CommitmentsScreen />);
+
+    expect(getByText('search:rent')).toBeTruthy();
+    expect(heroRenders.count).toBe(1);
+
+    mockUseCommitments({
+      hasCommitments: true,
+      hero: { ...hero, mode: 'figures' },
+      searchQuery: 'rent',
+    });
+    await rerender(<CommitmentsScreen />);
+
+    expect(getByText('Hero mode:figures')).toBeTruthy();
+    expect(heroRenders.count).toBe(2);
   });
 
   it('shows filtered empty state when search or advanced filters are active', async () => {
