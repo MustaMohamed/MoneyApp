@@ -60,6 +60,15 @@ A task under ~100 lines outside tests pays the full review battery, about 17M pe
 
 No such sibling: the task stands alone. The bundle is the one exception to one outcome per task.
 
+A ticket folded into an open host closes as completed, since the host carries its work. After the `Cut: folded into MA-XXX (#<host>) under splitting.md § Floor; …` comment on `#<m>`:
+
+```bash
+gh issue close <m> --reason completed --comment "MA-XXX (#<host>) carries the work"
+p=$(gh api repos/MustaMohamed/MoneyApp/issues/<m>/parent --jq .number) && bash scripts/board.sh promote "$p"
+```
+
+The reply names what `promote` printed. `promote` closes a parent only when every child closed as completed (`scripts/board.sh:185`), so a fold closed as not planned holds its parent open: on 2026-10-28 #880, the last open child of #833, left #833 open and its parent #785 with it, until #880 was reopened and closed as completed. The board's Item closed workflow moves the folded row to Done.
+
 ## Order
 
 Dependencies first, then screens in navigation order, then interactions on those screens, destructive flows last. Tasks with no dependencies go first so the milestone shows progress on day one. Depends-on names real dependencies only; two tasks with no edge may run in parallel, so a lazy edge costs wall-clock.

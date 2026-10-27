@@ -25,7 +25,7 @@ One record per message. The `Asks:` line is the question; the options follow as 
 In one step, per answer:
 
 1. Close the record per [§ State](../../issue-review/references/question-record.md#state) with `Answer: <option letter>`.
-2. For each `writes:` of the chosen option, append its text as a bullet under the section its `into:` names, `Acceptance` or `Rules`, on the ticket it names, `gh issue edit <m> --body "$BODY"`; a `writes:` text that starts `Seam:` is written with `, ruled <yyyy-mm-dd>`, the answer's date, at its end. An `into:` of `#<m> Cut` posts `gh issue comment <m> --body "Cut: <text>"` instead. The same edit writes the option's `copy:` bullet, its `screen:` row and the Decisions line per [ticket-body.md § Writing an answer](../../tickets/references/ticket-body.md#writing-an-answer). The Decisions line takes the question from `Asks:`, the option's letter and text, the user, and the step from `Asked by:` answered at `/queue asks`. A sibling ticket is edited in this step too.
+2. For each `writes:` of the chosen option, append its text as a bullet under the section its `into:` names, `Acceptance` or `Rules`, on the ticket it names, `gh issue edit <m> --body "$BODY"`; a `writes:` text that starts `Seam:` is written with `, ruled <yyyy-mm-dd>`, the answer's date, at its end. An `into:` of `#<m> Cut` posts `gh issue comment <m> --body "Cut: <text>"` instead. A cut whose text starts `folded into` then closes `#<m>` and promotes its parent `<p>` per [splitting.md § Floor](../../tickets/references/splitting.md#floor): `gh issue close <m> --reason completed --comment "<host> carries the work"`, then `bash scripts/board.sh promote <p>`, the parent from `gh api repos/MustaMohamed/MoneyApp/issues/<m>/parent --jq .number`. The same edit writes the option's `copy:` bullet, its `screen:` row and the Decisions line per [ticket-body.md § Writing an answer](../../tickets/references/ticket-body.md#writing-an-answer). The Decisions line takes the question from `Asks:`, the option's letter and text, the user, and the step from `Asked by:` answered at `/queue asks`. A sibling ticket is edited in this step too.
 
 ## 5. Move
 
@@ -40,6 +40,7 @@ The first row that matches decides:
 
 | The ticket | Move | Reply |
 |---|---|---|
+| Closed at step 4 by a fold | none, the board's Item closed workflow moved it to Done | `folded into #<host>` and what `promote` printed at step 4 |
 | At Blocked, every Depends on in its header closed and no `Blocked on #m` among its last five comments naming an open issue | `bash scripts/board.sh status <n> "<Left:>"`, Ready For Development or the column the record names | `Next: /prep <n>` from Ready For Development |
 | At Blocked, any other | none, it stays Blocked | the open issues it waits on |
 | At Defined, a leaf with `Size:` at or over the gate, 400 lines | the seam from the answer written into its body, no date | `Next: /tickets <n>` |
