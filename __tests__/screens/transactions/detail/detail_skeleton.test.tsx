@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { Dimensions, type ViewStyle } from 'react-native';
 
 import { resolveDetailHeroGeometry } from '@/components/ui/detail_hero.geometry';
-import { DETAIL_NOTE_MIN_HEIGHT } from '@/components/ui/detail_rows_card.geometry';
+import { DETAIL_NOTE_MIN_HEIGHT } from '@/components/ui/detail_note_card.geometry';
 import { resolveFactRowHeight } from '@/components/ui/fact_row.geometry';
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { Currency, TransactionType } from '@/constants/enums';

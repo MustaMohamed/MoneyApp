@@ -2,7 +2,7 @@ import { Card } from 'heroui-native';
 import React from 'react';
 import type { ViewStyle } from 'react-native';
 
-import { DETAIL_NOTE_MIN_HEIGHT } from '@/components/ui/detail_rows_card.geometry';
+import { DETAIL_NOTE_MIN_HEIGHT } from '@/components/ui/detail_note_card.geometry';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { LetterSpacing, Type, lineHeightFor } from '@/constants/theme';

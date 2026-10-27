@@ -164,25 +164,8 @@ export function buildCommitmentDetailHero({
   };
 }
 
-export type CommitmentDetailFactKind =
-  | 'account'
-  | 'category'
-  | 'amount'
-  | 'repeats'
-  | 'started'
-  | 'ends'
-  | 'currency';
-
-const EGP_COMMITMENT_FACT_KINDS: readonly CommitmentDetailFactKind[] = Object.freeze([
-  'account',
-  'category',
-  'repeats',
-  'started',
-  'ends',
-  'currency',
-]);
 // Decision 2026-10-27: Amount in EGP sits third, where the transaction detail puts its amount row.
-const USD_COMMITMENT_FACT_KINDS: readonly CommitmentDetailFactKind[] = Object.freeze([
+const USD_COMMITMENT_FACT_KINDS = [
   'account',
   'category',
   'amount',
@@ -190,7 +173,12 @@ const USD_COMMITMENT_FACT_KINDS: readonly CommitmentDetailFactKind[] = Object.fr
   'started',
   'ends',
   'currency',
-]);
+] as const;
+
+export type CommitmentDetailFactKind = (typeof USD_COMMITMENT_FACT_KINDS)[number];
+
+const EGP_COMMITMENT_FACT_KINDS: readonly CommitmentDetailFactKind[] =
+  USD_COMMITMENT_FACT_KINDS.filter((kind) => kind !== 'amount');
 
 /** No commitment, the skeleton with no hint, reads the six rows an EGP commitment draws. */
 export function resolveCommitmentDetailFactKinds(
