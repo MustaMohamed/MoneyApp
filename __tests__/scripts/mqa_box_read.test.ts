@@ -1,7 +1,8 @@
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
+
+import { cleanEnv, removeTempDirs, tempDir } from '@/test_helpers/git_repo';
 
 const repoRoot = path.join(__dirname, '..', '..');
 const mqaSh = path.join(repoRoot, '.claude', 'skills', 'emulator-verify', 'mqa.sh');
@@ -17,7 +18,6 @@ const MULTI_RUN_TIMEOUT_MS = 30_000;
 
 const AGENT_DEVICE_STUB = [
   '#!/usr/bin/env bash',
-  'printf "%s\\n" "$*" >> "$STUB_DIR/agent-device.log"',
   'case "$1" in',
   '  snapshot) cat "$STUB_SNAP"; exit 0 ;;',
   '  *) exit 1 ;;',
@@ -25,12 +25,7 @@ const AGENT_DEVICE_STUB = [
   '',
 ].join('\n');
 
-const ADB_STUB = [
-  '#!/usr/bin/env bash',
-  'printf "%s\\n" "$*" >> "$STUB_DIR/adb.log"',
-  'exit 0',
-  '',
-].join('\n');
+const ADB_STUB = ['#!/usr/bin/env bash', 'exit 0', ''].join('\n');
 
 interface SnapshotNode {
   ref: string;
@@ -104,8 +99,6 @@ const SCROLLED: SnapshotNode[] = SCREEN.map((node) =>
   node.bundleId === APP ? { ...node, rect: { ...node.rect, y: node.rect.y - SCROLL_PX } } : node,
 );
 
-const stubDirs: string[] = [];
-
 function writeStub(dir: string, name: string, body: string): string {
   const file = path.join(dir, name);
   fs.writeFileSync(file, body);
@@ -114,8 +107,7 @@ function writeStub(dir: string, name: string, body: string): string {
 }
 
 function writeSnapshot(nodes: SnapshotNode[]): string {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ma264-snap-'));
-  stubDirs.push(dir);
+  const dir = tempDir('ma264-snap-');
   const file = path.join(dir, 'snapshot.json');
   const doc = { success: true, data: { appName: 'MoneyApp', appBundleId: APP, nodes } };
   fs.writeFileSync(file, JSON.stringify(doc));
@@ -123,24 +115,19 @@ function writeSnapshot(nodes: SnapshotNode[]): string {
 }
 
 function run(args: string[], snapshot: string) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ma264-mqa-'));
-  stubDirs.push(dir);
+  const dir = tempDir('ma264-mqa-');
   const bin = path.join(dir, 'bin');
   const leases = path.join(dir, 'leases');
   fs.mkdirSync(bin);
   fs.mkdirSync(leases);
   const agentDevice = writeStub(bin, 'agent-device', AGENT_DEVICE_STUB);
   writeStub(bin, 'adb', ADB_STUB);
-  const inherited: NodeJS.ProcessEnv = { ...process.env };
-  for (const key of Object.keys(inherited)) {
-    if (key.startsWith('MQA_')) inherited[key] = undefined;
-  }
   const r = spawnSync('bash', [mqaSh, ...args], {
     cwd: repoRoot,
     encoding: 'utf8',
     timeout: SPAWN_TIMEOUT_MS,
     env: {
-      ...inherited,
+      ...cleanEnv('MQA_'),
       PATH: `${bin}${path.delimiter}${String(process.env.PATH)}`,
       MQA_UI: 'agent-device',
       MQA_SERIAL: 'emulator-5558',
@@ -148,11 +135,10 @@ function run(args: string[], snapshot: string) {
       MQA_WORK: path.join(dir, 'work'),
       MQA_LEASE_DIR: leases,
       MQA_AGENT_DEVICE: agentDevice,
-      STUB_DIR: dir,
       STUB_SNAP: snapshot,
     },
   });
-  return { status: r.status, stdout: r.stdout, stderr: r.stderr };
+  return { status: r.status, stdout: r.stdout };
 }
 
 function boxLines(stdout: string): string[] {
@@ -164,9 +150,7 @@ function classAndLabel(line: string): [string, string] {
   return m ? [m[1], m[2]] : ['', line];
 }
 
-afterAll(() => {
-  for (const dir of stubDirs) fs.rmSync(dir, { recursive: true, force: true });
-});
+afterAll(removeTempDirs);
 
 describe("mqa's box read under agent-device when the snapshot's first node is the status-bar clock", () => {
   const screen = writeSnapshot(SCREEN);
