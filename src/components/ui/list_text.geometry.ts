@@ -17,6 +17,7 @@ export interface ListHeroGeometry {
   columns: number;
   rail: number;
   caption: number;
+  counters: number;
 }
 
 // Each row is the line box of its text's scaled style, so the rows and the skeleton's bars match the text to the dp.
@@ -40,5 +41,6 @@ export function resolveListHeroGeometry(fontScale: number): ListHeroGeometry {
     columns: micro.lineHeight + Spacing.xxxs + body.lineHeight,
     rail: Size.progressThin,
     caption: chip.lineHeight,
+    counters: Math.max(Size.statusCounterIcon, micro.lineHeight),
   };
 }

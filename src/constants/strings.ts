@@ -1046,7 +1046,6 @@ export const Strings = {
   commitmentsTitle: 'Commitments',
   loadingCommitmentsA11y: 'Loading commitments',
   searchCommitmentsPlaceholder: 'Search commitments…',
-  commitmentsPaidSummary: 'Paid this month',
   commitmentsTotalCommitted: 'Total committed',
   // Not commitments-specific: `formatCurrencyTotals` in `format_amount.ts` is the shared join.
   currencyTotalsSeparator: '  ·  ',
@@ -1061,10 +1060,21 @@ export const Strings = {
     `${section}, ${sum}, ${count} payments`,
   commitmentsSectionOneA11y: (section: string, sum: string) => `${section}, ${sum}, 1 payment`,
   commitmentsSectionLoadingA11y: (section: string) => `${section}, loading`,
+  commitmentsHeroTitle: 'Left to pay',
+  commitmentsHeroTitleScoped: (account: string) => `Left to pay · ${account}`,
+  commitmentsHeroCommitted: 'Committed',
   commitmentsHeroUnavailable: '—',
-  commitmentsHeroPercent: (pct: number) => `${pct}%`,
+  commitmentsHeroPercent: (pct: number) => `${pct}% paid`,
+  commitmentsHeroPercentUnavailable: '— paid',
   commitmentsHeroCarriedOverdue: (count: number) => `${count} overdue`,
-  commitmentsHeroDays: (days: number) => (days === 1 ? '1 day' : `${days} days`),
+  // Leading space: it follows the danger segment on one line.
+  commitmentsHeroCarried: ' carried',
+  commitmentsHeroCaptionSeparator: ' · ',
+  commitmentsHeroDays: (days: number) => (days === 1 ? '1 day left' : `${days} days left`),
+  commitmentsHeroAmountUnavailableA11y: (code: string) => `— ${code}`,
+  commitmentsHeroCounterA11y: (status: string, count: number) =>
+    count === 1 ? `${status}, 1 payment` : `${status}, ${count} payments`,
+  commitmentsHeroCounterUnavailableA11y: (status: string) => `${status}, —`,
 
   // Commitments: Empty state
   commitmentsEmptyTitle: 'No commitments yet',

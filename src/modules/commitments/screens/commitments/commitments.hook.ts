@@ -8,6 +8,7 @@ import { useAccountsById } from '@/modules/accounts/store/use_accounts_by_id.hoo
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { commitmentDetailRoute } from '@/modules/navigation/domain/stacked_route';
+import { resolveAccountName } from '@/utils/account_name';
 import { toLocalDateString } from '@/utils/format_date';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
 import { useDebouncedValue } from '@/utils/use_debounced_value.hook';
@@ -209,6 +210,8 @@ export function useCommitments() {
     rateLoaded,
   });
   const heroToday = toLocalDateString(new Date());
+  const heroAccount = heroAccountId === undefined ? undefined : accountsById.get(heroAccountId);
+  const heroAccountLabel = heroAccount === undefined ? undefined : resolveAccountName(heroAccount);
   const hero = useMemo(
     () =>
       buildCommitmentsHeroModel({
@@ -217,8 +220,9 @@ export function useCommitments() {
         rate,
         yearMonth: selectedMonth,
         today: heroToday,
+        accountLabel: heroAccountLabel,
       }),
-    [heroMode, monthAggregate, rate, selectedMonth, heroToday],
+    [heroMode, monthAggregate, rate, selectedMonth, heroToday, heroAccountLabel],
   );
 
   const selectedMonthRef = useRef(selectedMonth);
