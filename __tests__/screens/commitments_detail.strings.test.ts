@@ -39,3 +39,19 @@ describe('commitment detail state copy (MA-216)', () => {
     expect(Strings.commitmentsDetailRefreshErrorTitle).toBe("Couldn't refresh this commitment.");
   });
 });
+
+describe('commitment detail fact copy (MA-261)', () => {
+  it('ships the Repeats, Started and Ends labels and the Never value byte-exact', () => {
+    expect({
+      repeats: Strings.commitmentsDetailRepeats,
+      started: Strings.commitmentsDetailStarted,
+      ends: Strings.commitmentsDetailEnds,
+      never: Strings.commitmentsEndsNever,
+    }).toEqual({
+      repeats: 'Repeats',
+      started: 'Started',
+      ends: 'Ends',
+      never: 'Never',
+    });
+  });
+});

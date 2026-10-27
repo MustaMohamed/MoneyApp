@@ -715,6 +715,40 @@ describe('getPaymentsByCommitment', () => {
     expect(results[0].id).toBe('pay-all-1');
     expect(results[1].id).toBe('pay-all-2');
   });
+
+  it('a paid row reads its transaction’s egp_amount, an unpaid row null, in due-date order (MA-261)', async () => {
+    await addPayments(mockDb, [
+      makePayment({ id: 'pay-detail-jun', due_date: '2026-06-01', amount_due: 505 }),
+      makePayment({ id: 'pay-detail-apr', due_date: '2026-04-01', amount_due: 505 }),
+    ]);
+    await markCommitmentAsPaid(
+      mockDb,
+      'pay-detail-apr',
+      {
+        amount_paid: 505,
+        account_id: 'acc2',
+        paid_date: '2026-04-02',
+        exchange_rate_snapshot: 50.5,
+      },
+      makeTx({
+        id: 'tx-pay-detail-apr',
+        amount: 10,
+        currency: Currency.USD,
+        egp_amount: 505,
+        exchange_rate: 50.5,
+        account_id: 'acc2',
+        commitment_payment_id: 'pay-detail-apr',
+      }),
+      { accountId: 'acc2', currentBalance: 990, revolvingBalance: 0 },
+    );
+
+    const rows = await getPaymentsByCommitment(mockDb, 'commitment1');
+
+    expect(rows.map((row) => [row.id, row.paid_egp_amount])).toEqual([
+      ['pay-detail-apr', 505],
+      ['pay-detail-jun', null],
+    ]);
+  });
 });
 
 describe('getPaymentById', () => {
