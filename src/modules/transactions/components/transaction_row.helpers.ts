@@ -28,6 +28,7 @@ import {
   contrastRatio,
 } from '@/modules/accounts/constants/account_palette';
 import type { Account } from '@/modules/accounts/entities/account.entity';
+import { isFrozenAccount } from '@/modules/accounts/utils/is_frozen_account';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { requiresDestination } from '@/modules/transactions/domain/transaction_amounts';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
@@ -215,6 +216,22 @@ export function resolveRowTile(account: Account | undefined): RowTile {
     return resolveHollowGraphiteTile(account?.type ?? AccountType.Bank);
   }
   return { color: account.color, type: account.type, hollow: false };
+}
+
+export interface DetailAccountRow {
+  name: string;
+  tile: RowTile;
+  archived: boolean;
+}
+
+/** A deleted account is archived too, yet never frozen: it keeps its row's tile and is never marked archived. */
+export function resolveDetailAccountRow(account: Account | undefined): DetailAccountRow {
+  const archived = account !== undefined && isFrozenAccount(account);
+  return {
+    name: resolveAccountName(account),
+    tile: archived ? resolveHollowGraphiteTile(account.type) : resolveRowTile(account),
+    archived,
+  };
 }
 
 /** A strip chip for an account in any state: its row name and tile, then the caller's flags. */

@@ -1,3 +1,8 @@
+import {
+  DETAIL_FACT_ARCHIVED_BADGE,
+  type DetailFact,
+  type DetailFactBadge,
+} from '@/components/ui/detail_fact_row.helpers';
 import type { DetailHeroModel } from '@/components/ui/detail_hero';
 import type { DetailLoadErrorCopy } from '@/components/ui/detail_load_error.helpers';
 import type { ConvertedAmount } from '@/components/ui/form_sheet.helpers';
@@ -25,8 +30,7 @@ import {
   primaryAmountFor,
   resolveCategoryGlyph,
   resolveHeroTileGlyphColor,
-  resolveHollowGraphiteTile,
-  resolveRowTile,
+  resolveDetailAccountRow,
   type RowTile,
 } from '@/modules/transactions/components/transaction_row.helpers';
 import { requiresDestination } from '@/modules/transactions/domain/transaction_amounts';
@@ -96,7 +100,7 @@ export interface TransactionDetailPresentationInput {
 
 export interface TransactionDetailPresentation {
   hero: DetailHeroModel;
-  facts: readonly DetailFact[];
+  facts: readonly DetailFact<DetailFactKind>[];
   transferFlow: TransferFlow | null;
 }
 
@@ -128,12 +132,6 @@ export function resolveTransferFlowView(
   return { kind: 'cells', flow };
 }
 
-export interface DetailAccountRow {
-  name: string;
-  tile: RowTile;
-  archived: boolean;
-}
-
 type DetailSource = 'manual' | 'commitment';
 
 export type DetailActionSet = 'editDelete' | 'viewCommitment' | 'archivedNotice';
@@ -144,45 +142,14 @@ export type DetailActions =
   | { actionSet: 'viewCommitment'; notice?: never }
   | { actionSet: 'archivedNotice'; notice: string };
 
-export interface DetailFactBadge {
-  label: string;
-  tone: 'accent' | 'neutral';
-}
-
-export type DetailFactLeading =
-  | { kind: 'tile'; tile: RowTile }
-  | { kind: 'glyph'; glyphName: IconName; glyphColor: string };
-
-export interface DetailFact {
-  kind: DetailFactKind;
-  label: string;
-  value?: string;
-  badge?: DetailFactBadge;
-  leading?: DetailFactLeading;
-  valueFace: 'sora' | 'inter';
-  // A money figure or a rate shrinks to fit before it ends in an ellipsis.
-  fitsValue: boolean;
-}
-
-const ARCHIVED_BADGE: DetailFactBadge = { label: Strings.detailAccountArchived, tone: 'neutral' };
 const CAPTURED_BADGE: DetailFactBadge = { label: Strings.capturedBadge, tone: 'accent' };
 const COMMITMENT_BADGE: DetailFactBadge = { label: Strings.typeBadgeCommitment, tone: 'accent' };
 
 // Decision 2026-10-08: a commitment's payment shows its badge alone, with no commitment name.
-const SOURCE_FACTS: Record<DetailSource, Pick<DetailFact, 'value' | 'badge'>> = {
+const SOURCE_FACTS: Record<DetailSource, Pick<DetailFact<DetailFactKind>, 'value' | 'badge'>> = {
   manual: { value: Strings.detailManualSource },
   commitment: { badge: COMMITMENT_BADGE },
 };
-
-/** A deleted account is archived too, yet never frozen: it keeps its row's tile and is never marked archived. */
-export function resolveDetailAccountRow(account: Account | undefined): DetailAccountRow {
-  const archived = account !== undefined && isFrozenAccount(account);
-  return {
-    name: resolveAccountName(account),
-    tile: archived ? resolveHollowGraphiteTile(account.type) : resolveRowTile(account),
-    archived,
-  };
-}
 
 export function findFrozenLeg(
   tx: Pick<Transaction, 'account_id' | 'to_account_id'>,
@@ -285,8 +252,8 @@ function amountRowText(figure: ConvertedAmount): DetailAmountRowText {
 function fact(
   kind: DetailFactKind,
   label: string,
-  rest: Partial<Omit<DetailFact, 'kind' | 'label'>> = {},
-): DetailFact {
+  rest: Partial<Omit<DetailFact<DetailFactKind>, 'kind' | 'label'>> = {},
+): DetailFact<DetailFactKind> {
   return { kind, label, valueFace: 'sora', fitsValue: false, ...rest };
 }
 
@@ -312,13 +279,13 @@ export function buildTransactionDetailPresentation({
   };
   const budgetName = budget?.name ?? Strings.detailBudgetUnavailable;
   const source: DetailSource = tx.commitment_payment_id === null ? 'manual' : 'commitment';
-  const facts = resolveDetailFactSlots(tx).map((slot): DetailFact => {
+  const facts = resolveDetailFactSlots(tx).map((slot): DetailFact<DetailFactKind> => {
     switch (slot.kind) {
       case 'account':
         return fact(slot.kind, Strings.detailAccount, {
           value: accountRow.name,
           leading: { kind: 'tile', tile: accountRow.tile },
-          badge: accountRow.archived ? ARCHIVED_BADGE : undefined,
+          badge: accountRow.archived ? DETAIL_FACT_ARCHIVED_BADGE : undefined,
         });
       case 'category':
         return fact(slot.kind, Strings.detailCategory, {

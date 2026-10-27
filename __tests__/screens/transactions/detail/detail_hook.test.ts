@@ -2,6 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { router } from 'expo-router';
 import { Alert } from 'react-native';
 
+import type { DetailFact } from '@/components/ui/detail_fact_row.helpers';
 import { Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/modules/accounts/entities/account.entity';
@@ -13,10 +14,7 @@ import { useCommitmentStore } from '@/modules/commitments/store/commitment.store
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { TransactionAccountArchivedError } from '@/modules/transactions/repositories/transaction.errors';
 import type { DetailFactKind } from '@/modules/transactions/screens/transactions/detail/components/detail.geometry';
-import type {
-  DetailFact,
-  TransactionDetailPresentation,
-} from '@/modules/transactions/screens/transactions/detail/detail.helpers';
+import type { TransactionDetailPresentation } from '@/modules/transactions/screens/transactions/detail/detail.helpers';
 import { useTransactionDetail } from '@/modules/transactions/screens/transactions/detail/detail.hook';
 import { useTxDetailState } from '@/modules/transactions/screens/transactions/detail/detail.state';
 import { useTxDetailStore } from '@/modules/transactions/screens/transactions/detail/detail.store';
