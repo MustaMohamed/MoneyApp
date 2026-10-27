@@ -210,7 +210,6 @@ const sheetOf = (owner: string) => usePaySheetState.getState().entries[owner];
 const guardedWrites: ((owner: string) => void)[] = [
   (owner) => usePaySheetState.getState().setVisible(owner, true),
   (owner) => usePaySheetState.getState().setSaving(owner, true),
-  (owner) => usePaySheetState.getState().setAccountPickerVisible(owner, true),
   (owner) => usePaySheetState.getState().setRateOverride(owner, true),
   (owner) => usePaySheetState.getState().setSaveError(owner, 'failed'),
   (owner) => usePaySheetState.getState().resetEntry(owner),
