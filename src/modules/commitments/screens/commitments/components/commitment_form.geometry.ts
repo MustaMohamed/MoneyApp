@@ -1,15 +1,9 @@
 import { SELECTABLE_PILL_BARE_HEIGHT } from '@/components/ui/chip.geometry';
-import { resolveDefaultTriggerHeight } from '@/components/ui/tabs.geometry';
 import { type TouchFloorHitSlop, type TouchFloorRoom, touchFloorHitSlop } from '@/constants/theme';
 
 /** Sized from the bare pill's height at scale 1, its shortest, so the touch area reaches the floor at every scale. */
 export const COMMITMENT_FORM_PILL_SLOP: TouchFloorHitSlop = touchFloorHitSlop(
   SELECTABLE_PILL_BARE_HEIGHT,
-);
-
-/** Sized from the default `SegmentedTabs` trigger's height at scale 1, its shortest. */
-export const COMMITMENT_FORM_TABS_SLOP: TouchFloorHitSlop = touchFloorHitSlop(
-  resolveDefaultTriggerHeight(1),
 );
 
 // The recurrence and duration pickers' `gap-2`, between their rows and between the pills in a row, unscaled CSS px.

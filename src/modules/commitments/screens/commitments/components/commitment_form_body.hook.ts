@@ -31,8 +31,9 @@ type BodyFaultField = (typeof BODY_FAULT_FIELDS)[number];
 
 export function useCommitmentFormBodyPickers() {
   const owner = useId();
-  const { categoryPickerVisible, showStartDatePicker, showEndDatePicker, choiceSheet } =
-    useCommitmentFormBodyState(useShallow((s) => s.entries[owner] ?? INITIAL_PICKER_ENTRY));
+  const { categoryPickerVisible, showEndDatePicker, choiceSheet } = useCommitmentFormBodyState(
+    useShallow((s) => s.entries[owner] ?? INITIAL_PICKER_ENTRY),
+  );
   const claim = useCommitmentFormBodyState.getState().claim;
   const release = useCommitmentFormBodyState.getState().release;
 
@@ -45,7 +46,6 @@ export function useCommitmentFormBodyPickers() {
     const state = useCommitmentFormBodyState.getState();
     return {
       setCategoryPickerVisible: (v: boolean) => state.setCategoryPickerVisible(owner, v),
-      setShowStartDatePicker: (v: boolean) => state.setShowStartDatePicker(owner, v),
       setShowEndDatePicker: (v: boolean) => state.setShowEndDatePicker(owner, v),
       setChoiceSheet: (sheet: CommitmentChoiceSheetKind | undefined) =>
         state.setChoiceSheet(owner, sheet),
@@ -53,7 +53,7 @@ export function useCommitmentFormBodyPickers() {
   }, [owner]);
 
   return {
-    state: { categoryPickerVisible, showStartDatePicker, showEndDatePicker, choiceSheet },
+    state: { categoryPickerVisible, showEndDatePicker, choiceSheet },
     ...setters,
   };
 }

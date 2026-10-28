@@ -7,7 +7,6 @@ export type CommitmentChoiceSheetKind = 'repeats' | 'ends';
 
 interface CommitmentFormBodyPickerEntry {
   categoryPickerVisible: boolean;
-  showStartDatePicker: boolean;
   showEndDatePicker: boolean;
   choiceSheet: CommitmentChoiceSheetKind | undefined;
 }
@@ -17,7 +16,6 @@ type CommitmentFormBodyStateShape = KeyedEntries<CommitmentFormBodyPickerEntry>;
 type CommitmentFormBodyState = CommitmentFormBodyStateShape & {
   claim: (owner: string) => void;
   setCategoryPickerVisible: (owner: string, v: boolean) => void;
-  setShowStartDatePicker: (owner: string, v: boolean) => void;
   setShowEndDatePicker: (owner: string, v: boolean) => void;
   setChoiceSheet: (owner: string, sheet: CommitmentChoiceSheetKind | undefined) => void;
   release: (owner: string) => void;
@@ -26,7 +24,6 @@ type CommitmentFormBodyState = CommitmentFormBodyStateShape & {
 
 export const INITIAL_PICKER_ENTRY: CommitmentFormBodyPickerEntry = Object.freeze({
   categoryPickerVisible: false,
-  showStartDatePicker: false,
   showEndDatePicker: false,
   choiceSheet: undefined,
 });
@@ -50,7 +47,6 @@ export const useCommitmentFormBodyState = createMoneyAppSelectors(
           owner in state.entries ? state : withEntry(state, owner, INITIAL_PICKER_ENTRY),
         ),
       setCategoryPickerVisible: (owner, v) => updateEntry(owner, { categoryPickerVisible: v }),
-      setShowStartDatePicker: (owner, v) => updateEntry(owner, { showStartDatePicker: v }),
       setShowEndDatePicker: (owner, v) => updateEntry(owner, { showEndDatePicker: v }),
       setChoiceSheet: (owner, sheet) => updateEntry(owner, { choiceSheet: sheet }),
       release: (owner) => set((state) => withoutEntry(state, owner)),
