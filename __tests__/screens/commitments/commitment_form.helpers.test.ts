@@ -2,7 +2,7 @@ import { act, renderHook } from '@testing-library/react-native';
 import { useController } from 'react-hook-form';
 
 import type { AccountStripChip } from '@/components/ui/form_sheet.helpers';
-import { AccountType, DurationType, RecurrencePeriod } from '@/constants/enums';
+import { AccountType, DurationType, RecurrencePeriod, RecurrencePreset } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
@@ -18,9 +18,12 @@ import {
   resolveRepeatsRowValue,
   parseWholeNumberInput,
 } from '@/modules/commitments/screens/commitments/commitment_form.helpers';
+import { detectPreset } from '@/modules/commitments/screens/commitments/commitment_form.shared';
 import { useAddCommitment } from '@/modules/commitments/screens/commitments/commitment_form/add_commitment.hook';
 import { useAddCommitmentState } from '@/modules/commitments/screens/commitments/commitment_form/add_commitment.state';
 import { useCommitmentFormBodyFaults } from '@/modules/commitments/screens/commitments/components/commitment_form_body.hook';
+import { useDurationPickerFaults } from '@/modules/commitments/screens/commitments/components/duration_picker.hook';
+import { useRecurrenceEveryFault } from '@/modules/commitments/screens/commitments/components/recurrence_picker.hook';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { resolveHollowGraphiteTile } from '@/modules/transactions/components/transaction_row.helpers';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
@@ -458,6 +461,87 @@ describe('useCommitmentFormBodyFaults (MA-255)', () => {
     await save(result);
 
     expect(result.current.body.faults.endDate).toBe(Strings.commitmentsErrEndDateRequired);
+  });
+
+  describe('read by the pickers (MA-250)', () => {
+    // A second root re-renders only through its own subscription, as the compiled body's reused picker does.
+    async function mountPickers(result: Mounted) {
+      const { result: pickers } = await renderHook(() => ({
+        every: useRecurrenceEveryFault(result.current.form),
+        ends: useDurationPickerFaults(result.current.form),
+      }));
+      return pickers;
+    }
+
+    it('draws the Every message on the Save that refuses an emptied Every', async () => {
+      const result = await mountFilled();
+      const pickers = await mountPickers(result);
+      await act(async () => result.current.every.onChange(parseWholeNumberInput('')));
+
+      await save(result);
+
+      expect(pickers.current.every).toEqual(expect.any(String));
+      expect(pickers.current.every).toBe(result.current.body.faults.recurrenceEvery);
+    });
+
+    it('draws the Every minimum on the Save that refuses a custom Every of 0', async () => {
+      const result = await mountFilled();
+      const pickers = await mountPickers(result);
+      await act(async () => result.current.every.onChange(0));
+      const period = result.current.form.getValues('recurrencePeriod');
+
+      await save(result);
+
+      expect(detectPreset(0, period)).toBe(RecurrencePreset.Custom);
+      expect(pickers.current.every).toBe(Strings.commitmentsErrEveryMin);
+    });
+
+    it('draws the count message on the Save that refuses After with no count', async () => {
+      const result = await mountFilled();
+      const pickers = await mountPickers(result);
+      await act(async () => result.current.form.setValue('durationType', DurationType.AfterCount));
+
+      await save(result);
+
+      expect(pickers.current.ends.countError).toBe(Strings.commitmentsErrAfterCountRequired);
+    });
+
+    it('draws the date message on the Save that refuses Until date with no date', async () => {
+      const result = await mountFilled();
+      const pickers = await mountPickers(result);
+      await act(async () => result.current.form.setValue('durationType', DurationType.UntilDate));
+
+      await save(result);
+
+      expect(pickers.current.ends.dateError).toBe(Strings.commitmentsErrEndDateRequired);
+    });
+
+    it('drops the count message on the change that enters a count', async () => {
+      const result = await mountFilled();
+      const pickers = await mountPickers(result);
+      await act(async () => result.current.form.setValue('durationType', DurationType.AfterCount));
+      await save(result);
+      expect(pickers.current.ends.countError).toBe(Strings.commitmentsErrAfterCountRequired);
+
+      await act(async () => result.current.count.onChange(3));
+
+      expect(pickers.current.ends.countError).toBeUndefined();
+      expect(result.current.body.faults.endAfterCount).toBeUndefined();
+    });
+
+    it('drops the date message on the change that picks a date', async () => {
+      const result = await mountFilled();
+      const pickers = await mountPickers(result);
+      await act(async () => result.current.form.setValue('durationType', DurationType.UntilDate));
+      await save(result);
+      expect(pickers.current.ends.dateError).toBe(Strings.commitmentsErrEndDateRequired);
+
+      await act(async () =>
+        result.current.form.setValue('endDate', '2027-01-31', { shouldValidate: true }),
+      );
+
+      expect(pickers.current.ends.dateError).toBeUndefined();
+    });
   });
 
   it('rings Repeats and Ends on one Save with Every emptied and After with no count', async () => {

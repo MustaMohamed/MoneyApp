@@ -17,7 +17,7 @@ import {
   COMMITMENT_PICKER_FIRST_ROW_EDGE,
   COMMITMENT_PICKER_FIRST_ROW_OVER_ROW_EDGE,
 } from './commitment_form.geometry';
-import { useRecurrencePeriodRoom } from './recurrence_picker.hook';
+import { useRecurrenceEveryFault, useRecurrencePeriodRoom } from './recurrence_picker.hook';
 
 interface Props {
   form: UseFormReturn<CommitmentFormValues>;
@@ -42,7 +42,7 @@ const PERIOD_KEYS = PERIODS.map(({ key }) => key);
 
 export function RecurrencePicker({ form, recurrencePreset, onPresetChange }: Props) {
   const recurrencePeriod = useWatch({ control: form.control, name: 'recurrencePeriod' });
-  const everyError = form.formState.errors.recurrenceEvery?.message;
+  const everyError = useRecurrenceEveryFault(form);
   const { onFocus: onInputFocus, onBlur: onInputBlur } = useBottomSheetAwareHandlers();
   const isCustom = recurrencePreset === RecurrencePreset.Custom;
   const periodRoom = useRecurrencePeriodRoom();

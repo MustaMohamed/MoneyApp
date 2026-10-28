@@ -21,6 +21,7 @@ import {
   COMMITMENT_PICKER_FIRST_ROW_EDGE,
   COMMITMENT_PICKER_FIRST_ROW_OVER_ROW_EDGE,
 } from './commitment_form.geometry';
+import { useDurationPickerFaults } from './duration_picker.hook';
 
 interface Props {
   form: UseFormReturn<CommitmentFormValues>;
@@ -44,8 +45,7 @@ export function DurationPicker({
   setShowEndDatePicker,
 }: Props) {
   const endDate = useWatch({ control: form.control, name: 'endDate' });
-  const countError = form.formState.errors.endAfterCount?.message;
-  const dateError = form.formState.errors.endDate?.message;
+  const { countError, dateError } = useDurationPickerFaults(form);
   const { onFocus: onInputFocus, onBlur: onInputBlur } = useBottomSheetAwareHandlers();
   const durationTouch = useTouchFloorGridHitSlop(
     COMMITMENT_FORM_PICKER_GAP,
