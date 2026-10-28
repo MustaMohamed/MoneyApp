@@ -12,8 +12,8 @@ const entryOf = (owner: string) => useCommitmentFormBodyState.getState().entries
 // Every write except `claim`, the begin action; each must refuse an owner with no entry.
 const guardedWrites: ((owner: string) => void)[] = [
   (owner) => useCommitmentFormBodyState.getState().setCategoryPickerVisible(owner, true),
-  (owner) => useCommitmentFormBodyState.getState().setShowStartDatePicker(owner, true),
   (owner) => useCommitmentFormBodyState.getState().setShowEndDatePicker(owner, true),
+  (owner) => useCommitmentFormBodyState.getState().setChoiceSheet(owner, 'repeats'),
 ];
 
 describe('useCommitmentFormBodyState', () => {
@@ -21,13 +21,13 @@ describe('useCommitmentFormBodyState', () => {
     expect(useCommitmentFormBodyState.getState().entries).toEqual({});
   });
 
-  it('claim opens a copy entry with every picker and date picker hidden', () => {
+  it('claim opens a copy entry with every picker, date picker and choice sheet hidden', () => {
     useCommitmentFormBodyState.getState().claim('owner-a');
 
-    expect(entryOf('owner-a')).toEqual({
+    expect(entryOf('owner-a')).toStrictEqual({
       categoryPickerVisible: false,
-      showStartDatePicker: false,
       showEndDatePicker: false,
+      choiceSheet: undefined,
     });
   });
 
@@ -52,8 +52,8 @@ describe('useCommitmentFormBodyState', () => {
     }
     expect(entryOf('owner-b')).toEqual({
       categoryPickerVisible: true,
-      showStartDatePicker: true,
       showEndDatePicker: true,
+      choiceSheet: 'repeats',
     });
   });
 
@@ -81,7 +81,7 @@ describe('useCommitmentFormBodyState', () => {
 
   it('claim after release opens the copy again, from the initial entry', () => {
     useCommitmentFormBodyState.getState().claim('owner-a');
-    useCommitmentFormBodyState.getState().setShowStartDatePicker('owner-a', true);
+    useCommitmentFormBodyState.getState().setShowEndDatePicker('owner-a', true);
     useCommitmentFormBodyState.getState().release('owner-a');
 
     useCommitmentFormBodyState.getState().claim('owner-a');

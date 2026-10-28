@@ -166,6 +166,22 @@ describe('transaction date picker', () => {
     expect(screen.queryByTestId('date-picker-android')).toBeNull();
   });
 
+  it('MA-255: caps the Android picker at today by default, and leaves it uncapped when the row opts out', async () => {
+    setPlatform('android');
+    const capped = await render(
+      <DateRow ownerId="add-1" value="2026-07-10" onChange={jest.fn()} />,
+    );
+    await fireEvent.press(capped.getByTestId('date-row'));
+    expect(capped.getByTestId('date-picker-android').props.maximumDate).toBeInstanceOf(Date);
+    await capped.unmount();
+
+    const uncapped = await render(
+      <DateRow ownerId="starts-1" value="2026-07-10" onChange={jest.fn()} capsAtToday={false} />,
+    );
+    await fireEvent.press(uncapped.getByTestId('date-row'));
+    expect(uncapped.getByTestId('date-picker-android').props.maximumDate).toBeUndefined();
+  });
+
   // datetimepicker reports Android cancel on `onDismiss()`, not `onChange({ type: 'dismissed' })`.
   it('closes the Android picker on dismiss without applying a date', async () => {
     setPlatform('android');
@@ -228,7 +244,7 @@ describe('transaction date picker', () => {
     expect(screen.getByTestId('date-row')).toHaveProp('accessibilityRole', 'button');
     expect(screen.getByTestId('date-row')).toHaveProp(
       'accessibilityLabel',
-      `${Strings.addTxDateLabel}: July 10, 2026`,
+      `${Strings.addTxDateLabel}: Fri 10 Jul 2026`,
     );
   });
 

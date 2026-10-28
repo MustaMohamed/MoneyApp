@@ -9,12 +9,13 @@ import { useTouchFloorGridHitSlop } from '@/components/ui/touch_floor.hook';
 import { RecurrencePeriod, RecurrencePreset } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 
+import { parseWholeNumberInput } from '../commitment_form.helpers';
 import { type CommitmentFormValues, SET_OPTS, composeFieldBlur } from '../commitment_form.shared';
 import {
   COMMITMENT_FORM_PICKER_GAP,
   COMMITMENT_FORM_PILL_SLOP,
-  COMMITMENT_PICKER_CAPTION_ROW_EDGE,
-  COMMITMENT_PICKER_CAPTION_ROW_OVER_ROW_EDGE,
+  COMMITMENT_PICKER_FIRST_ROW_EDGE,
+  COMMITMENT_PICKER_FIRST_ROW_OVER_ROW_EDGE,
 } from './commitment_form.geometry';
 import { useRecurrencePeriodRoom } from './recurrence_picker.hook';
 
@@ -47,7 +48,7 @@ export function RecurrencePicker({ form, recurrencePreset, onPresetChange }: Pro
   const periodRoom = useRecurrencePeriodRoom();
   const presetTouch = useTouchFloorGridHitSlop(
     COMMITMENT_FORM_PICKER_GAP,
-    isCustom ? COMMITMENT_PICKER_CAPTION_ROW_OVER_ROW_EDGE : COMMITMENT_PICKER_CAPTION_ROW_EDGE,
+    isCustom ? COMMITMENT_PICKER_FIRST_ROW_OVER_ROW_EDGE : COMMITMENT_PICKER_FIRST_ROW_EDGE,
     COMMITMENT_FORM_PILL_SLOP,
     PRESET_KEYS,
   );
@@ -59,11 +60,7 @@ export function RecurrencePicker({ form, recurrencePreset, onPresetChange }: Pro
   );
 
   return (
-    <View className="bg-default rounded-2xl px-3 py-3" style={{ gap: COMMITMENT_FORM_PICKER_GAP }}>
-      <Text className="font-inter text-muted text-[11px]">
-        {Strings.commitmentsFieldRecurrence}
-      </Text>
-
+    <View style={{ gap: COMMITMENT_FORM_PICKER_GAP }}>
       <View
         style={{ flexDirection: 'row', flexWrap: 'wrap', gap: COMMITMENT_FORM_PICKER_GAP }}
         onLayout={periodRoom.onPresetsRowLayout}
@@ -101,12 +98,8 @@ export function RecurrencePicker({ form, recurrencePreset, onPresetChange }: Pro
                   // oxlint-disable-next-line typescript/no-unnecessary-condition -- RHF value can be null/undefined at reset
                   value={value != null ? String(value) : ''}
                   onChangeText={(v) => {
-                    if (v === '') {
-                      onChange(undefined);
-                      return;
-                    }
-                    const n = parseInt(v, 10);
-                    if (!isNaN(n)) onChange(n);
+                    const next = parseWholeNumberInput(v);
+                    if (next !== undefined) onChange(next);
                   }}
                   onFocus={onInputFocus}
                   onBlur={composeFieldBlur(onInputBlur, onBlur)}

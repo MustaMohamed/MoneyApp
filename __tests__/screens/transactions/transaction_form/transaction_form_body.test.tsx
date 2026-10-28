@@ -315,7 +315,7 @@ describe('TransactionFormBody fact rows', () => {
 
     const categoryRow = within(screen.getByTestId('category-row'));
     expect(categoryRow.getByText('Category')).toBeTruthy();
-    expect(categoryRow.getByText('Select Category')).toBeTruthy();
+    expect(categoryRow.getByText('Select category')).toBeTruthy();
   });
 
   it('says why the strip is empty when the type leaves no eligible account', async () => {

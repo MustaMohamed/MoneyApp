@@ -24,6 +24,9 @@ import {
 } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
+// Canvas `.fact`: 16 inset, a hairline under every fact but the last (Note).
+export const FORM_FACT_CELL_CLASS = 'border-separator border-b px-4';
+
 /** The amount's error line is as thick as the stroke of the ring the fact rows and the strip keep. */
 export const AMOUNT_ERROR_LINE_HEIGHT = Size.hairline;
 
@@ -98,9 +101,6 @@ export const FORM_SHEET_CONTENT_CONTAINER_STYLE = {
   padding: Spacing.md,
   gap: Spacing.xs,
 };
-
-/** Canvas `.fact`: 16 inset, a hairline under every fact but the last (Note). */
-export const FORM_FACT_CELL_CLASS = 'border-separator border-b px-4';
 
 /** Above scale 1 the app scales the Note's text: Android draws the hint without the line box, and an OS-scaled line box is shorter than the hint's own lines; the floor is the shared fact row's height. */
 export function resolveNoteInputGeometry(fontScale: number): {

@@ -11,16 +11,29 @@ import {
 import { useAccountsById } from '@/modules/accounts/store/use_accounts_by_id.hook';
 
 import type { CommitmentFormValues } from '../commitment_form.shared';
-import { INITIAL_PICKER_ENTRY, useCommitmentFormBodyState } from './commitment_form_body.state';
+import {
+  type CommitmentChoiceSheetKind,
+  INITIAL_PICKER_ENTRY,
+  useCommitmentFormBodyState,
+} from './commitment_form_body.state';
 
-const BODY_FAULT_FIELDS = ['name', 'amount', 'categoryId', 'startDate'] as const;
+const BODY_FAULT_FIELDS = [
+  'name',
+  'amount',
+  'categoryId',
+  'startDate',
+  'recurrenceEvery',
+  'endAfterCount',
+  'endDate',
+] as const;
 
 type BodyFaultField = (typeof BODY_FAULT_FIELDS)[number];
 
 export function useCommitmentFormBodyPickers() {
   const owner = useId();
-  const { categoryPickerVisible, showStartDatePicker, showEndDatePicker } =
-    useCommitmentFormBodyState(useShallow((s) => s.entries[owner] ?? INITIAL_PICKER_ENTRY));
+  const { categoryPickerVisible, showEndDatePicker, choiceSheet } = useCommitmentFormBodyState(
+    useShallow((s) => s.entries[owner] ?? INITIAL_PICKER_ENTRY),
+  );
   const claim = useCommitmentFormBodyState.getState().claim;
   const release = useCommitmentFormBodyState.getState().release;
 
@@ -33,13 +46,14 @@ export function useCommitmentFormBodyPickers() {
     const state = useCommitmentFormBodyState.getState();
     return {
       setCategoryPickerVisible: (v: boolean) => state.setCategoryPickerVisible(owner, v),
-      setShowStartDatePicker: (v: boolean) => state.setShowStartDatePicker(owner, v),
       setShowEndDatePicker: (v: boolean) => state.setShowEndDatePicker(owner, v),
+      setChoiceSheet: (sheet: CommitmentChoiceSheetKind | undefined) =>
+        state.setChoiceSheet(owner, sheet),
     };
   }, [owner]);
 
   return {
-    state: { categoryPickerVisible, showStartDatePicker, showEndDatePicker },
+    state: { categoryPickerVisible, showEndDatePicker, choiceSheet },
     ...setters,
   };
 }
@@ -74,6 +88,9 @@ export function useCommitmentFormBodyFaults(form: UseFormReturn<CommitmentFormVa
       amount: faultOf('amount'),
       categoryId: faultOf('categoryId'),
       startDate: faultOf('startDate'),
+      recurrenceEvery: faultOf('recurrenceEvery'),
+      endAfterCount: faultOf('endAfterCount'),
+      endDate: faultOf('endDate'),
     },
     isSubmitted: formState.isSubmitted,
   };
