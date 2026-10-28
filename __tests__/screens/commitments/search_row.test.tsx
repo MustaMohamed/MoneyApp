@@ -1,7 +1,7 @@
 import { fireEvent, render } from '@testing-library/react-native';
 import { Dimensions } from 'react-native';
 
-import { HERO_SHELL_MARGIN_BOTTOM } from '@/components/ui/hero_shell.geometry';
+import { CHIP_ROW_ROOM_BELOW } from '@/components/ui/account_chips.geometry';
 import { resolveSearchFilterRowGeometry } from '@/components/ui/search_filter_row.geometry';
 import { CommitmentSearchRow } from '@/modules/commitments/screens/commitments/components/search_row';
 
@@ -102,7 +102,7 @@ describe('CommitmentSearchRow', () => {
     expect(onOpenFilter).toHaveBeenCalled();
   });
 
-  it('MA-236: passes the hero margin as the room above the search row', async () => {
+  it('MA-241: passes the chip row room below as the room above the search row', async () => {
     await render(
       <CommitmentSearchRow
         value=""
@@ -112,6 +112,6 @@ describe('CommitmentSearchRow', () => {
       />,
     );
 
-    expect(searchFilterRowProps.last?.topRoom).toBe(HERO_SHELL_MARGIN_BOTTOM);
+    expect(searchFilterRowProps.last?.topRoom).toBe(CHIP_ROW_ROOM_BELOW);
   });
 });
