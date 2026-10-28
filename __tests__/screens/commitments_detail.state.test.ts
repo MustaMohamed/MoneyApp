@@ -210,10 +210,9 @@ const sheetOf = (owner: string) => usePaySheetState.getState().entries[owner];
 const guardedWrites: ((owner: string) => void)[] = [
   (owner) => usePaySheetState.getState().setVisible(owner, true),
   (owner) => usePaySheetState.getState().setSaving(owner, true),
-  (owner) => usePaySheetState.getState().setAccountPickerVisible(owner, true),
+  (owner) => usePaySheetState.getState().setSettled(owner, true),
   (owner) => usePaySheetState.getState().setRateOverride(owner, true),
   (owner) => usePaySheetState.getState().setSaveError(owner, 'failed'),
-  (owner) => usePaySheetState.getState().resetEntry(owner),
 ];
 
 describe('usePaySheetState', () => {
@@ -260,18 +259,33 @@ describe('usePaySheetState', () => {
     expect(usePaySheetState.getState().entries).toEqual({});
   });
 
-  it('resetEntry closes one copy and leaves the other copy error in place', () => {
+  it('open after a hand close mid-save keeps the save in flight and clears the rest', () => {
     usePaySheetState.getState().open('owner-a');
+    usePaySheetState.getState().setSaving('owner-a', true);
     usePaySheetState.getState().setRateOverride('owner-a', true);
-    usePaySheetState.getState().open('owner-b');
-    usePaySheetState.getState().setSaveError('owner-b', 'failed');
-    const before = sheetOf('owner-b');
+    usePaySheetState.getState().setVisible('owner-a', false);
 
-    usePaySheetState.getState().resetEntry('owner-a');
+    usePaySheetState.getState().open('owner-a');
 
-    expect(sheetOf('owner-a')).toEqual(INITIAL_PAY_SHEET_ENTRY);
-    expect(sheetOf('owner-b')).toBe(before);
-    expect(sheetOf('owner-b').saveError).toBe('failed');
+    expect(sheetOf('owner-a')).toEqual({ ...INITIAL_PAY_SHEET_ENTRY, visible: true, saving: true });
+  });
+
+  it('open again clears the settled flag of the last save', () => {
+    usePaySheetState.getState().open('owner-a');
+    usePaySheetState.getState().setSettled('owner-a', true);
+
+    usePaySheetState.getState().open('owner-a');
+
+    expect(sheetOf('owner-a').settled).toBe(false);
+  });
+
+  it('setSettled keeps the day the sheet opened on', () => {
+    usePaySheetState.getState().open('owner-a', '2026-10-20');
+
+    usePaySheetState.getState().setSettled('owner-a', true);
+
+    expect(sheetOf('owner-a').openedOn).toBe('2026-10-20');
+    expect(sheetOf('owner-a').settled).toBe(true);
   });
 
   it('release removes only the released copy', () => {

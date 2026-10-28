@@ -1,4 +1,4 @@
-import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, waitFor, within } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 
 import { AmountType, Currency } from '@/constants/enums';
@@ -24,11 +24,6 @@ jest.mock('@gorhom/bottom-sheet', () => {
     BottomSheetScrollView: ({ children }: { children?: ReactNode }) => <View>{children}</View>,
   };
 });
-jest.mock('@react-native-community/datetimepicker', () => ({
-  __esModule: true,
-  default: () => null,
-  DateTimePickerAndroid: { open: jest.fn() },
-}));
 jest.mock('@/components/ui/sheet', () => ({
   useBottomSheetAwareHandlers: () => ({ onFocus: jest.fn(), onBlur: jest.fn() }),
   Sheet: ({
@@ -55,9 +50,10 @@ jest.mock('@/components/ui/button', () => ({
     return <Text onPress={onPress}>{label}</Text>;
   },
 }));
-jest.mock('@/modules/accounts/components/account_picker_sheet', () => ({
-  AccountPickerSheet: () => null,
-}));
+jest.mock('@/components/ui/date_row', () => {
+  const { View } = jest.requireActual<typeof import('react-native')>('react-native');
+  return { DateRow: () => <View testID="date-row" /> };
+});
 jest.mock('@/modules/transactions/components/exchange_rate_row', () => ({
   ExchangeRateRow: ({ onChange, error }: { onChange: (v: string) => void; error?: string }) => {
     const { Text, TextInput, View } =
@@ -78,12 +74,6 @@ jest.mock('@/modules/accounts/store/account.store', () => ({
   useAccountStore: jest.fn(),
 }));
 jest.mock('@/modules/currency/store/currency.store', () => ({ useCurrencyStore: jest.fn() }));
-jest.mock('@/modules/commitments/repositories/commitment.repository', () => ({
-  commitmentRepository: {
-    getLastPaidPayment: jest.fn().mockResolvedValue(null),
-    getPaymentsByCommitment: jest.fn().mockResolvedValue([]),
-  },
-}));
 jest.mock('@/modules/commitments/screens/commitments/detail/components/pay_sheet.state', () => ({
   ...jest.requireActual<
     typeof import('@/modules/commitments/screens/commitments/detail/components/pay_sheet.state')
@@ -92,6 +82,7 @@ jest.mock('@/modules/commitments/screens/commitments/detail/components/pay_sheet
 }));
 
 const RATE = 55;
+const TODAY = '2026-10-20';
 
 // A USD commitment paid from an EGP account, so `requiresRate` is on and the rate row renders.
 const payAccount = {
@@ -108,7 +99,7 @@ const variableCommitment = makeTestCommitment({
   amount: null,
   currency: Currency.USD,
   category_id: 'cat1',
-  account_id: null,
+  account_id: 'acc-egp',
   created_at: '2026-01-01T00:00:00.000Z',
   updated_at: '2026-01-01T00:00:00.000Z',
 });
@@ -127,17 +118,14 @@ const paySheetState = {
     'owner-a': {
       visible: true,
       saving: false,
-      accountPickerVisible: false,
       rateOverride: false,
       saveError: undefined,
     },
   },
   setVisible: jest.fn(),
   setSaving: jest.fn(),
-  setAccountPickerVisible: jest.fn(),
   setRateOverride: jest.fn(),
   setSaveError: jest.fn(),
-  resetEntry: jest.fn(),
   open: jest.fn(),
   release: jest.fn(),
   reset: jest.fn(),
@@ -164,11 +152,11 @@ beforeEach(() => {
   attachMockSelectorStore(usePaySheetState as unknown as jest.Mock, () => paySheetState);
 });
 
-async function renderOpenSheet() {
+async function renderOpenSheet(commitment = variableCommitment) {
   const utils = await render(
-    <PaySheet owner="owner-a" commitment={variableCommitment} payment={duePayment} />,
+    <PaySheet owner="owner-a" commitment={commitment} payment={duePayment} today={TODAY} />,
   );
-  // The prefill effect that seeds the exchange rate is async, hence the wait.
+  // The prefill seeds the exchange rate as the sheet opens.
   await waitFor(() => expect(utils.getByTestId('pay-sheet')).toBeTruthy());
   return utils;
 }
@@ -178,7 +166,7 @@ describe('PaySheet exchange-rate error', () => {
     const { getByTestId, getByText, queryByTestId } = await renderOpenSheet();
 
     await fireEvent.changeText(getByTestId('rate-input'), '');
-    await fireEvent.press(getByText(Strings.commitmentsPayConfirm));
+    await fireEvent.press(getByText(Strings.commitmentsPayCtaBare));
     await waitFor(() =>
       expect(getByTestId('rate-error')).toHaveTextContent(Strings.addTxErrRateRequired),
     );
@@ -192,7 +180,7 @@ describe('PaySheet exchange-rate error', () => {
     const { getByTestId, getByText } = await renderOpenSheet();
 
     await fireEvent.changeText(getByTestId('rate-input'), '');
-    await fireEvent.press(getByText(Strings.commitmentsPayConfirm));
+    await fireEvent.press(getByText(Strings.commitmentsPayCtaBare));
     await waitFor(() =>
       expect(getByTestId('rate-error')).toHaveTextContent(Strings.addTxErrRateRequired),
     );
@@ -211,5 +199,24 @@ describe('PaySheet exchange-rate error', () => {
     expect(queryByTestId('rate-error')).toBeNull();
     await fireEvent.changeText(getByTestId('rate-input'), '4');
     expect(queryByTestId('rate-error')).toBeNull();
+  });
+});
+
+// Acceptance 7: the press's faults reach the hero, the strip and the track only through a render.
+describe('PaySheet press with the amount empty and no account lit', () => {
+  const noAccountCommitment = { ...variableCommitment, account_id: null };
+
+  it('rings the strip, underlines the hero, counts both faults on the track and writes nothing', async () => {
+    const { getByTestId, getByText, queryByTestId } = await renderOpenSheet(noAccountCommitment);
+    expect(queryByTestId('account-strip-ring')).toBeNull();
+    expect(queryByTestId('amount-hero-error-line')).toBeNull();
+
+    await fireEvent.press(getByText(Strings.commitmentsPayCtaBare));
+
+    await waitFor(() => expect(getByTestId('account-strip-ring')).toBeTruthy());
+    expect(getByTestId('amount-hero-error-line')).toBeTruthy();
+    expect(within(getByTestId('amount-error-slot')).getByText('Enter an amount')).toBeTruthy();
+    expect(getByTestId('pay-sheet-status')).toHaveTextContent('Fix the 2 fields marked above.');
+    expect(mockMarkAsPaid).not.toHaveBeenCalled();
   });
 });

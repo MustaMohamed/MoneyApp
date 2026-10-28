@@ -19,7 +19,6 @@ import {
   deleteUnpaidPaymentsByCommitment,
   getActiveCommitmentDueDates,
   getExistingDueDates,
-  getLastPaidPayment,
   getPaidCountByCommitment,
   getPaymentById,
   getPaymentMonthAggregate,
@@ -110,7 +109,6 @@ export interface ICommitmentRepository {
   getPaymentsForMonth(yearMonth: string, today: string): Promise<CommitmentMonthPayment[]>;
   getPaymentsByCommitment(commitmentId: string): Promise<CommitmentMonthPayment[]>;
   getPaymentById(id: string): Promise<CommitmentPayment | undefined>;
-  getLastPaidPayment(commitmentId: string): Promise<CommitmentPayment | undefined>;
   getPaidCount(commitmentId: string): Promise<number>;
   getExistingDueDates(commitmentId: string): Promise<string[]>;
 
@@ -223,11 +221,6 @@ export class CommitmentRepository implements ICommitmentRepository {
   async getPaymentById(id: string): Promise<CommitmentPayment | undefined> {
     const db = await getDb();
     return (await getPaymentById(db, id)) ?? undefined;
-  }
-
-  async getLastPaidPayment(commitmentId: string): Promise<CommitmentPayment | undefined> {
-    const db = await getDb();
-    return (await getLastPaidPayment(db, commitmentId)) ?? undefined;
   }
 
   async getPaidCount(commitmentId: string): Promise<number> {

@@ -2,7 +2,6 @@ import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 
 import { AmountType, Currency } from '@/constants/enums';
-import { Strings } from '@/constants/strings';
 import type { Account } from '@/database/entities/account.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { PaySheet } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet';
@@ -25,11 +24,6 @@ jest.mock('@gorhom/bottom-sheet', () => {
     BottomSheetScrollView: ({ children }: { children?: ReactNode }) => <View>{children}</View>,
   };
 });
-jest.mock('@react-native-community/datetimepicker', () => ({
-  __esModule: true,
-  default: () => null,
-  DateTimePickerAndroid: { open: jest.fn() },
-}));
 jest.mock('@/components/ui/sheet', () => ({
   useBottomSheetAwareHandlers: () => ({ onFocus: jest.fn(), onBlur: jest.fn() }),
   Sheet: ({
@@ -56,9 +50,10 @@ jest.mock('@/components/ui/button', () => ({
     return <Text>{label}</Text>;
   },
 }));
-jest.mock('@/modules/accounts/components/account_picker_sheet', () => ({
-  AccountPickerSheet: () => null,
-}));
+jest.mock('@/components/ui/date_row', () => {
+  const { View } = jest.requireActual<typeof import('react-native')>('react-native');
+  return { DateRow: () => <View testID="date-row" /> };
+});
 jest.mock('@/modules/transactions/components/exchange_rate_row', () => ({
   ExchangeRateRow: () => null,
 }));
@@ -70,12 +65,6 @@ jest.mock('@/modules/accounts/store/account.store', () => ({
   useAccountStore: jest.fn(),
 }));
 jest.mock('@/modules/currency/store/currency.store', () => ({ useCurrencyStore: jest.fn() }));
-jest.mock('@/modules/commitments/repositories/commitment.repository', () => ({
-  commitmentRepository: {
-    getLastPaidPayment: jest.fn().mockResolvedValue(null),
-    getPaymentsByCommitment: jest.fn().mockResolvedValue([]),
-  },
-}));
 jest.mock('@/modules/commitments/screens/commitments/detail/components/pay_sheet.state', () => ({
   ...jest.requireActual<
     typeof import('@/modules/commitments/screens/commitments/detail/components/pay_sheet.state')
@@ -84,6 +73,7 @@ jest.mock('@/modules/commitments/screens/commitments/detail/components/pay_sheet
 }));
 
 const RATE = 55;
+const TODAY = '2026-10-20';
 
 // The preview renders in the pay-from account's currency, not the commitment's.
 const payAccount = {
@@ -100,7 +90,7 @@ const variableCommitment = makeTestCommitment({
   amount: null,
   currency: Currency.USD,
   category_id: 'cat1',
-  account_id: null,
+  account_id: 'acc-egp',
   created_at: '2026-01-01T00:00:00.000Z',
   updated_at: '2026-01-01T00:00:00.000Z',
 });
@@ -119,17 +109,14 @@ const paySheetState = {
     'owner-a': {
       visible: true,
       saving: false,
-      accountPickerVisible: false,
       rateOverride: false,
       saveError: undefined,
     },
   },
   setVisible: jest.fn(),
   setSaving: jest.fn(),
-  setAccountPickerVisible: jest.fn(),
   setRateOverride: jest.fn(),
   setSaveError: jest.fn(),
-  resetEntry: jest.fn(),
   open: jest.fn(),
   release: jest.fn(),
   reset: jest.fn(),
@@ -157,9 +144,9 @@ const CONVERTED_ROW = /^=\s/;
 
 async function renderOpenSheet() {
   const utils = await render(
-    <PaySheet owner="owner-a" commitment={variableCommitment} payment={duePayment} />,
+    <PaySheet owner="owner-a" commitment={variableCommitment} payment={duePayment} today={TODAY} />,
   );
-  // The prefill effect is async and seeds the exchange rate the preview multiplies by.
+  // The prefill seeds the exchange rate the preview multiplies by.
   await waitFor(() => expect(utils.getByTestId('pay-sheet')).toBeTruthy());
   return utils;
 }
@@ -171,20 +158,20 @@ describe('PaySheet converted-total preview', () => {
     ['1234.5', 67897.5],
     ['1234.56', 67900.8],
   ] as const)('shows the converted total for a readable amount "%s"', async (typed, expected) => {
-    const { getByPlaceholderText, getByText } = await renderOpenSheet();
-    await fireEvent.changeText(getByPlaceholderText(Strings.commitmentsAmountPlaceholder), typed);
+    const { getByTestId, getByText } = await renderOpenSheet();
+    await fireEvent.changeText(getByTestId('amount-hero-value'), typed);
     expect(getByText(`= ${formatCurrencyAmount(expected, Currency.EGP)}`)).toBeTruthy();
   });
 
   it.each([['1.'], ['0'], ['']] as const)(
     'hides the converted total while the amount reads "%s"',
     async (typed) => {
-      const { getByPlaceholderText, queryByText } = await renderOpenSheet();
+      const { getByTestId, queryByText } = await renderOpenSheet();
       // Reach a state where the row shows, so the assertion below is a transition.
-      await fireEvent.changeText(getByPlaceholderText(Strings.commitmentsAmountPlaceholder), '1');
+      await fireEvent.changeText(getByTestId('amount-hero-value'), '1');
       expect(queryByText(CONVERTED_ROW)).not.toBeNull();
 
-      await fireEvent.changeText(getByPlaceholderText(Strings.commitmentsAmountPlaceholder), typed);
+      await fireEvent.changeText(getByTestId('amount-hero-value'), typed);
       expect(queryByText(CONVERTED_ROW)).toBeNull();
     },
   );
@@ -193,23 +180,23 @@ describe('PaySheet converted-total preview', () => {
   it.each([['12abc'], ['1,234']] as const)(
     'keeps the preview when a refused edit "%s" leaves the field unchanged',
     async (typed) => {
-      const { getByPlaceholderText, queryByText } = await renderOpenSheet();
-      await fireEvent.changeText(getByPlaceholderText(Strings.commitmentsAmountPlaceholder), '1');
+      const { getByTestId, queryByText } = await renderOpenSheet();
+      await fireEvent.changeText(getByTestId('amount-hero-value'), '1');
       expect(queryByText(CONVERTED_ROW)).not.toBeNull();
 
-      await fireEvent.changeText(getByPlaceholderText(Strings.commitmentsAmountPlaceholder), typed);
+      await fireEvent.changeText(getByTestId('amount-hero-value'), typed);
       expect(queryByText(CONVERTED_ROW)).not.toBeNull();
-      expect(getByPlaceholderText(Strings.commitmentsAmountPlaceholder).props.value).toBe('1');
+      expect(getByTestId('amount-hero-value').props.value).toBe('1');
     },
   );
 
   // `parsePositiveDecimal` refuses 0, so the resolver throws and cannot be called from a render.
   it('hides the converted total for a typed zero', async () => {
-    const { getByPlaceholderText, queryByText } = await renderOpenSheet();
-    await fireEvent.changeText(getByPlaceholderText(Strings.commitmentsAmountPlaceholder), '1');
+    const { getByTestId, queryByText } = await renderOpenSheet();
+    await fireEvent.changeText(getByTestId('amount-hero-value'), '1');
     expect(queryByText(CONVERTED_ROW)).not.toBeNull();
 
-    await fireEvent.changeText(getByPlaceholderText(Strings.commitmentsAmountPlaceholder), '0');
+    await fireEvent.changeText(getByTestId('amount-hero-value'), '0');
     expect(queryByText(CONVERTED_ROW)).toBeNull();
   });
 });

@@ -241,6 +241,23 @@ describe('useCommitmentDetail', () => {
     }
   });
 
+  it('dates the pay sheet by the day it opens, not the day the detail loaded', async () => {
+    jest.useFakeTimers().setSystemTime(new Date(2026, 0, 30, 23, 50));
+    try {
+      seedRent();
+      const { result } = await renderHook(() => useCommitmentDetail());
+      await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+
+      jest.setSystemTime(new Date(2026, 0, 31, 0, 5));
+      await act(async () => result.current.openPaySheet());
+
+      expect(result.current.state.today).toBe('2026-01-30');
+      expect(result.current.state.paySheetToday).toBe('2026-01-31');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it('heroes a variable commitment starting tomorrow with the varies badge and the starts caption, leaving the Repeats fact bare', async () => {
     jest.useFakeTimers().setSystemTime(new Date(2026, 0, 30, 10));
     try {

@@ -19,7 +19,6 @@ import { formatStoredMoneyText } from '@/utils/money_text';
 
 const mockMarkAsPaid = jest.fn();
 const mockLoadAccounts = jest.fn();
-const mockGetLastPaidPayment = jest.fn();
 
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
   useCommitmentStore: jest.fn(),
@@ -29,27 +28,23 @@ jest.mock('@/modules/accounts/store/account.store', () => ({
   useAccountStore: jest.fn(),
 }));
 jest.mock('@/modules/currency/store/currency.store', () => ({ useCurrencyStore: jest.fn() }));
-jest.mock('@/modules/commitments/repositories/commitment.repository', () => ({
-  commitmentRepository: {
-    getLastPaidPayment: (...args: unknown[]) => mockGetLastPaidPayment(...args),
-  },
-}));
 
 const RATE = 55;
 const OWNER_A = 'owner-a';
 const OWNER_B = 'owner-b';
+const TODAY = '2026-10-20';
 
-// No account on the commitment, so every prefill that runs queries the last paid payment.
+// The commitment's account is loaded, so every prefill that runs lights it.
 const commitment = makeTestCommitment({
   name: 'Internet',
   amount: 15,
   category_id: 'cat1',
-  account_id: null,
+  account_id: 'acc-egp',
   created_at: '2026-01-01T00:00:00.000Z',
   updated_at: '2026-01-01T00:00:00.000Z',
 });
 
-const egpAccount = { id: 'acc-egp', currency: Currency.EGP } as unknown as Account;
+const egpAccount = { id: 'acc-egp', name: 'Cash', currency: Currency.EGP } as unknown as Account;
 const ACCOUNTS: Account[] = [egpAccount];
 
 const p1 = makeTestPayment({
@@ -64,8 +59,8 @@ const p2: CommitmentPayment = { ...p1, id: 'p2', due_date: '2026-06-01' };
 const entries = () => usePaySheetState.getState().entries;
 
 async function mountTwoSheets() {
-  const a = await renderHook(() => usePaySheet(OWNER_A, commitment, p1));
-  const b = await renderHook(() => usePaySheet(OWNER_B, commitment, p2));
+  const a = await renderHook(() => usePaySheet(OWNER_A, commitment, p1, TODAY));
+  const b = await renderHook(() => usePaySheet(OWNER_B, commitment, p2, TODAY));
   return { a, b };
 }
 
@@ -85,7 +80,6 @@ beforeEach(() => {
   usePaySheetState.getState().reset();
   mockMarkAsPaid.mockResolvedValue(undefined);
   mockLoadAccounts.mockResolvedValue(undefined);
-  mockGetLastPaidPayment.mockResolvedValue(null);
   attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
     markAsPaid: mockMarkAsPaid,
   }));
@@ -107,7 +101,8 @@ describe('usePaySheet under two owners', () => {
 
     expect(a.result.current.state.visible).toBe(true);
     expect(b.result.current.state.visible).toBe(false);
-    expect(mockGetLastPaidPayment).toHaveBeenCalledTimes(1);
+    expect(a.result.current.form.getValues('account_id')).toBe('acc-egp');
+    expect(b.result.current.form.getValues('account_id')).toBe('');
     expect(b.result.current.form.getValues('amountText')).toBe('');
   });
 
@@ -157,7 +152,7 @@ describe('usePaySheet under two owners', () => {
     expect(b.result.current.state.visible).toBe(true);
   });
 
-  it('the rate override and the account picker on one copy change that copy only', async () => {
+  it('the rate override on one copy changes that copy only', async () => {
     const { a, b } = await mountTwoSheets();
     await openAndPrefill([OWNER_A, a], [OWNER_B, b]);
     await act(async () => {
@@ -166,17 +161,12 @@ describe('usePaySheet under two owners', () => {
       b.result.current.form.setValue('exchange_rate', '60');
     });
 
-    await act(async () => {
-      a.result.current.toggleRateOverride();
-      a.result.current.openAccountPicker();
-    });
+    await act(async () => a.result.current.toggleRateOverride());
     await act(async () => a.result.current.toggleRateOverride());
 
     expect(a.result.current.state.rateOverride).toBe(false);
-    expect(a.result.current.state.accountPickerVisible).toBe(true);
     expect(a.result.current.form.getValues('exchange_rate')).toBe(formatStoredMoneyText(RATE));
     expect(b.result.current.state.rateOverride).toBe(true);
-    expect(b.result.current.state.accountPickerVisible).toBe(false);
     expect(b.result.current.form.getValues('exchange_rate')).toBe('60');
   });
 
@@ -195,7 +185,7 @@ describe('usePaySheet under two owners', () => {
     });
 
     expect(mockMarkAsPaid).toHaveBeenCalledWith(p1.id, expect.anything());
-    expect(entries()[OWNER_A]).toEqual(INITIAL_PAY_SHEET_ENTRY);
+    expect(entries()[OWNER_A]).toEqual({ ...INITIAL_PAY_SHEET_ENTRY, settled: true });
     expect(entries()[OWNER_B]).toBe(before);
     expect(b.result.current.state.visible).toBe(true);
   });
