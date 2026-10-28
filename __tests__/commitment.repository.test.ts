@@ -16,7 +16,6 @@ import {
   deleteUnpaidPaymentsByCommitment,
   getActiveCommitmentDueDates,
   getExistingDueDates,
-  getLastPaidPayment,
   getPaidCountByCommitment,
   insertPaymentRows,
   getPaymentById,
@@ -74,7 +73,6 @@ beforeEach(() => {
   (getActiveCommitmentDueDates as jest.Mock).mockResolvedValue([]);
   (getPaymentsByCommitment as jest.Mock).mockResolvedValue([]);
   (getPaymentById as jest.Mock).mockResolvedValue(null);
-  (getLastPaidPayment as jest.Mock).mockResolvedValue(null);
   (getPaidCountByCommitment as jest.Mock).mockResolvedValue(0);
   (getExistingDueDates as jest.Mock).mockResolvedValue([]);
   (addPayments as jest.Mock).mockResolvedValue(undefined);
@@ -418,23 +416,6 @@ describe('CommitmentRepository.getPaymentById', () => {
 
   it('returns undefined when payment not found', async () => {
     const result = await repo.getPaymentById('nonexistent');
-    expect(result).toBeUndefined();
-  });
-});
-
-describe('CommitmentRepository.getLastPaidPayment', () => {
-  it('calls getLastPaidPayment with db and commitmentId', async () => {
-    const paidPayment = { ...basePayment, paid_date: '2026-05-01' };
-    (getLastPaidPayment as jest.Mock).mockResolvedValue(paidPayment);
-
-    const result = await repo.getLastPaidPayment('c-1');
-
-    expect(getLastPaidPayment).toHaveBeenCalledWith(mockDb, 'c-1');
-    expect(result).toBe(paidPayment);
-  });
-
-  it('returns undefined when no paid payment found', async () => {
-    const result = await repo.getLastPaidPayment('c-1');
     expect(result).toBeUndefined();
   });
 });

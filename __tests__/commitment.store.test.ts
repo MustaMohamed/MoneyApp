@@ -89,7 +89,6 @@ function makeRepository(overrides: Partial<ICommitmentRepository> = {}): ICommit
     getPaymentsForMonth: jest.fn().mockResolvedValue([payment()]),
     getPaymentsByCommitment: jest.fn().mockResolvedValue([payment()]),
     getPaymentById: jest.fn().mockResolvedValue(payment()),
-    getLastPaidPayment: jest.fn().mockResolvedValue(undefined),
     getPaidCount: jest.fn().mockResolvedValue(0),
     getExistingDueDates: jest.fn().mockResolvedValue([]),
     insertPayments: jest.fn().mockResolvedValue(undefined),
