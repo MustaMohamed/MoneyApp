@@ -85,7 +85,7 @@ export function PaySheet({ owner, commitment, payment, today }: Props) {
             flat
             label={state.ctaLabel}
             isLoading={state.saving}
-            isDisabled={state.saving}
+            isDisabled={state.saving || state.settled}
             onPress={() => void onSubmit()}
           />
         </View>

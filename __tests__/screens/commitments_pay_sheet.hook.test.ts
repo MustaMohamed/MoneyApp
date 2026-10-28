@@ -42,6 +42,7 @@ const TODAY = '2026-10-20';
 let paySheetStateInner = {
   visible: false,
   saving: false,
+  settled: false,
   rateOverride: false,
   saveError: undefined as string | undefined,
 };
@@ -55,6 +56,9 @@ const mockPaySheetState = {
   setSaving: jest.fn((_owner: string, v: boolean) => {
     paySheetStateInner = { ...paySheetStateInner, saving: v };
   }),
+  setSettled: jest.fn((_owner: string, v: boolean) => {
+    paySheetStateInner = { ...paySheetStateInner, settled: v };
+  }),
   setRateOverride: jest.fn((_owner: string, v: boolean) => {
     paySheetStateInner = { ...paySheetStateInner, rateOverride: v };
   }),
@@ -65,6 +69,7 @@ const mockPaySheetState = {
     paySheetStateInner = {
       visible: false,
       saving: false,
+      settled: false,
       rateOverride: false,
       saveError: undefined,
     };
@@ -154,6 +159,7 @@ describe('usePaySheet', () => {
       paySheetStateInner = {
         visible: false,
         saving: false,
+        settled: false,
         rateOverride: false,
         saveError: undefined,
       };
@@ -383,7 +389,7 @@ describe('usePaySheet', () => {
     expect(mockMarkAsPaid).toHaveBeenCalledTimes(1);
     expect(mockLoadAccounts).toHaveBeenCalledTimes(1);
     expect(mockPaySheetState.setVisible).toHaveBeenCalledWith(OWNER, false);
-    expect(mockPaySheetState.resetEntry).toHaveBeenCalledTimes(1);
+    expect(mockPaySheetState.setSettled).toHaveBeenCalledWith(OWNER, true);
     expect(consoleSpy).toHaveBeenCalledWith(
       '[paySheet] account revalidation failed:',
       refreshError,
@@ -1571,6 +1577,55 @@ describe('usePaySheet', () => {
       expect(state.errors.rate).toBeUndefined();
       expect(state.statusMessage).toBeUndefined();
       expect(mockMarkAsPaid).not.toHaveBeenCalled();
+    });
+
+    it('writes once when Pay is pressed again while the sheet closes, and again after a re-open', async () => {
+      // On the commitment's own account, so the re-open's prefill lights it.
+      const { result, rerender } = await renderTrack(
+        { ...egpCommitment, account_id: cib.id },
+        cib,
+        '8000',
+      );
+      await act(async () => {
+        await result.current.onSubmit();
+      });
+      await act(() => rerender(undefined));
+      expect(result.current.state.settled).toBe(true);
+
+      await act(async () => {
+        await result.current.onSubmit();
+      });
+      expect(mockMarkAsPaid).toHaveBeenCalledTimes(1);
+
+      // What the real `open` writes: a clean entry, visible.
+      paySheetStateInner = {
+        visible: true,
+        saving: false,
+        settled: false,
+        rateOverride: false,
+        saveError: undefined,
+      };
+      await act(() => rerender(undefined));
+      expect(result.current.state.settled).toBe(false);
+      await act(async () => {
+        await result.current.onSubmit();
+      });
+      expect(mockMarkAsPaid).toHaveBeenCalledTimes(2);
+    });
+
+    it('keeps the write preview on the closing render after a successful save', async () => {
+      const { result, rerender } = await renderTrack(egpCommitment, cib, '8000');
+      const before = result.current.state.trackFootnote;
+      expect(before).toBe('Writes an expense of 8,000 EGP on CIB, dated today.');
+
+      await act(async () => {
+        await result.current.onSubmit();
+      });
+      await act(() => rerender(undefined));
+
+      expect(mockPaySheetState.resetEntry).not.toHaveBeenCalled();
+      expect(result.current.state.visible).toBe(false);
+      expect(result.current.state.trackFootnote).toBe(before);
     });
   });
 

@@ -185,7 +185,7 @@ describe('usePaySheet under two owners', () => {
     });
 
     expect(mockMarkAsPaid).toHaveBeenCalledWith(p1.id, expect.anything());
-    expect(entries()[OWNER_A]).toEqual(INITIAL_PAY_SHEET_ENTRY);
+    expect(entries()[OWNER_A]).toEqual({ ...INITIAL_PAY_SHEET_ENTRY, settled: true });
     expect(entries()[OWNER_B]).toBe(before);
     expect(b.result.current.state.visible).toBe(true);
   });

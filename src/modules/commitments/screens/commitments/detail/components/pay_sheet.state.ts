@@ -6,6 +6,8 @@ import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 interface PaySheetEntry {
   visible: boolean;
   saving: boolean;
+  /** This open's payment is written; Pay stays off until the next open. */
+  settled: boolean;
   rateOverride: boolean;
   /** The banner copy to render; `undefined` means no failed save (mirrors edit_commitment). */
   saveError?: string;
@@ -19,6 +21,7 @@ type PaySheetState = PaySheetStateShape & {
   open: (owner: string, openedOn?: string) => void;
   setVisible: (owner: string, v: boolean) => void;
   setSaving: (owner: string, v: boolean) => void;
+  setSettled: (owner: string, v: boolean) => void;
   setRateOverride: (owner: string, v: boolean) => void;
   setSaveError: (owner: string, message?: string) => void;
   resetEntry: (owner: string) => void;
@@ -29,6 +32,7 @@ type PaySheetState = PaySheetStateShape & {
 export const INITIAL_PAY_SHEET_ENTRY: PaySheetEntry = Object.freeze({
   visible: false,
   saving: false,
+  settled: false,
   rateOverride: false,
   saveError: undefined,
   openedOn: undefined,
@@ -47,17 +51,14 @@ export const usePaySheetState = createMoneyAppSelectors(
 
     return {
       ...initialState(),
-      // The begin action: a copy's first Mark as paid has no entry yet, so this takes no guard.
+      // The begin action: a copy's first Mark as paid has no entry yet, so this takes no guard; each open starts clean.
       open: (owner, openedOn) =>
         set((state) =>
-          withEntry(state, owner, {
-            ...(state.entries[owner] ?? INITIAL_PAY_SHEET_ENTRY),
-            visible: true,
-            openedOn,
-          }),
+          withEntry(state, owner, { ...INITIAL_PAY_SHEET_ENTRY, visible: true, openedOn }),
         ),
       setVisible: (owner, v) => updateEntry(owner, { visible: v }),
       setSaving: (owner, v) => updateEntry(owner, { saving: v }),
+      setSettled: (owner, v) => updateEntry(owner, { settled: v }),
       setRateOverride: (owner, v) => updateEntry(owner, { rateOverride: v }),
       setSaveError: (owner, message) => updateEntry(owner, { saveError: message }),
       resetEntry: (owner) => updateEntry(owner, INITIAL_PAY_SHEET_ENTRY),

@@ -175,14 +175,14 @@ export function usePaySheet(
   payment: CommitmentPayment | undefined,
   today: string | undefined,
 ) {
-  const { visible, saving, rateOverride, saveError } = usePaySheetState(
+  const { visible, saving, settled, rateOverride, saveError } = usePaySheetState(
     useShallow((s) => s.entries[owner] ?? INITIAL_PAY_SHEET_ENTRY),
   );
   const setVisible = usePaySheetState.getState().setVisible;
   const setSaving = usePaySheetState.getState().setSaving;
   const setRateOverride = usePaySheetState.getState().setRateOverride;
   const setSaveError = usePaySheetState.getState().setSaveError;
-  const resetEntry = usePaySheetState.getState().resetEntry;
+  const setSettled = usePaySheetState.getState().setSettled;
 
   const accounts = useAccountStore((s) => s.accounts);
   const loadAccounts = useAccountStore.getState().loadAccounts;
@@ -301,7 +301,7 @@ export function usePaySheet(
   }, [visible, commitment?.id, payment?.id, today]);
 
   async function onValid(data: PaySheetFormValues) {
-    if (!payment) return;
+    if (!payment || settled) return;
     setSaving(owner, true);
     setSaveError(owner, undefined);
     try {
@@ -316,8 +316,9 @@ export function usePaySheet(
         // oxlint-disable-next-line typescript/prefer-nullish-coalescing -- || is intentional: empty string maps to undefined
         notes: data.notes?.trim() || undefined,
       });
+      // Pay stays off and the day stays put until the next open, so the closing sheet cannot pay twice.
+      setSettled(owner, true);
       setVisible(owner, false);
-      resetEntry(owner);
       void loadAccounts().catch((error: unknown) =>
         console.error('[paySheet] account revalidation failed:', error),
       );
@@ -409,6 +410,7 @@ export function usePaySheet(
     form,
     state: {
       saving,
+      settled,
       requiresRate,
       visible,
       rateOverride,
