@@ -24,6 +24,9 @@ import {
 } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
+// Canvas `.fact`: 16 inset, a hairline under every fact but the last (Note).
+export const FORM_FACT_CELL_CLASS = 'border-separator border-b px-4';
+
 /** The amount's error line is as thick as the stroke of the ring the fact rows and the strip keep. */
 export const AMOUNT_ERROR_LINE_HEIGHT = Size.hairline;
 

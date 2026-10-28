@@ -1,7 +1,7 @@
 import type { UseFormReturn } from 'react-hook-form';
 
 import type { AccountStripChip } from '@/components/ui/form_sheet.helpers';
-import { AccountType } from '@/constants/enums';
+import { AccountType, DurationType, type RecurrencePeriod } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import {
@@ -12,6 +12,8 @@ import { formatStoredMoneyText } from '@/utils/money_text';
 import { parseTypingDecimalText } from '@/utils/parse_decimal';
 import { holdStillTypingDecimal } from '@/utils/use_zod_form.hook';
 
+import { buildCommitmentEndsLabel } from '../../utils/commitment_ends_label';
+import { buildRecurrenceLabel } from '../../utils/recurrence_label';
 import {
   COMMITMENT_AMOUNT_REFUSES_ZERO,
   type CommitmentFormValues,
@@ -86,4 +88,34 @@ export function applyCommitmentAmountText(
   if (!holdStillTypingDecimal(form, 'amount', amount, COMMITMENT_AMOUNT_REFUSES_ZERO, text)) {
     commit(amount);
   }
+}
+
+/** A whole-number input's typed text as its field value: `null` once emptied, since `Controller` reads an `undefined` field back as its default; `undefined` for text that is not a number. */
+export function parseWholeNumberInput(text: string): number | null | undefined {
+  if (text === '') return null;
+  const n = parseInt(text, 10);
+  return isNaN(n) ? undefined : n;
+}
+
+/** The Repeats row: `Custom` while the Every input is empty, which the field holds as `null`. */
+export function resolveRepeatsRowValue(
+  every: number | undefined,
+  period: RecurrencePeriod,
+): string {
+  if (typeof every !== 'number') return Strings.commitmentsRecurrenceCustom;
+  return buildRecurrenceLabel({ recurrence_every: every, recurrence_period: period });
+}
+
+/** The Ends row reads `Never` from its own key, and otherwise as the detail's Ends fact, so a missing count or date reads the incomplete label. */
+export function resolveEndsRowValue(
+  durationType: DurationType,
+  endAfterCount: number | null | undefined,
+  endDate: string | undefined,
+): string {
+  if (durationType === DurationType.Forever) return Strings.commitmentsEndsRowNever;
+  return buildCommitmentEndsLabel({
+    duration_type: durationType,
+    end_after_count: endAfterCount ?? null,
+    end_date: endDate === '' ? null : (endDate ?? null),
+  });
 }

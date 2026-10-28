@@ -11,10 +11,11 @@ function toPickerDate(value: string): Date {
   return new Date(`${value}T12:00:00`);
 }
 
-export function useTransactionDatePicker(
+export function useDateRowPicker(
   ownerId: string,
   value: string,
   onChange: (next: string) => void,
+  { capsAtToday }: { capsAtToday: boolean },
 ) {
   const { activeOwnerId, isOpen, isIosMounted, showAndroidPicker, draftDate } =
     useDatePickerSheetState(
@@ -76,7 +77,7 @@ export function useTransactionDatePicker(
       shouldRenderIos: ownsPicker && isIosMounted,
       showAndroidPicker: ownsPicker && showAndroidPicker,
       pickerDate: toPickerDate(ownsPicker && draftDate ? draftDate : value),
-      maximumDate: new Date(),
+      maximumDate: capsAtToday ? new Date() : undefined,
     },
     open,
     selectIos,

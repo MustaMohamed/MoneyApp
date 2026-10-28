@@ -13,12 +13,13 @@ import { Strings } from '@/constants/strings';
 import { CoreTokens } from '@/constants/theme_tokens';
 import { formatLongDate, toLocalDateString } from '@/utils/format_date';
 
+import { parseWholeNumberInput } from '../commitment_form.helpers';
 import { type CommitmentFormValues, SET_OPTS, composeFieldBlur } from '../commitment_form.shared';
 import {
   COMMITMENT_FORM_PICKER_GAP,
   COMMITMENT_FORM_PILL_SLOP,
-  COMMITMENT_PICKER_CAPTION_ROW_EDGE,
-  COMMITMENT_PICKER_CAPTION_ROW_OVER_ROW_EDGE,
+  COMMITMENT_PICKER_FIRST_ROW_EDGE,
+  COMMITMENT_PICKER_FIRST_ROW_OVER_ROW_EDGE,
 } from './commitment_form.geometry';
 
 interface Props {
@@ -49,8 +50,8 @@ export function DurationPicker({
   const durationTouch = useTouchFloorGridHitSlop(
     COMMITMENT_FORM_PICKER_GAP,
     durationType === DurationType.Forever
-      ? COMMITMENT_PICKER_CAPTION_ROW_EDGE
-      : COMMITMENT_PICKER_CAPTION_ROW_OVER_ROW_EDGE,
+      ? COMMITMENT_PICKER_FIRST_ROW_EDGE
+      : COMMITMENT_PICKER_FIRST_ROW_OVER_ROW_EDGE,
     COMMITMENT_FORM_PILL_SLOP,
   );
 
@@ -70,9 +71,7 @@ export function DurationPicker({
   }
 
   return (
-    <View className="bg-default rounded-2xl px-3 py-3" style={{ gap: COMMITMENT_FORM_PICKER_GAP }}>
-      <Text className="font-inter text-muted text-[11px]">{Strings.commitmentsFieldDuration}</Text>
-
+    <View style={{ gap: COMMITMENT_FORM_PICKER_GAP }}>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: COMMITMENT_FORM_PICKER_GAP }}>
         {DURATION_TYPES.map(({ key, label }) => (
           <SelectablePill
@@ -97,10 +96,7 @@ export function DurationPicker({
               render={({ field: { value, onChange, onBlur } }) => (
                 <Input
                   value={value != null ? String(value) : ''}
-                  onChangeText={(v) => {
-                    const n = parseInt(v, 10);
-                    onChange(isNaN(n) ? undefined : n);
-                  }}
+                  onChangeText={(v) => onChange(parseWholeNumberInput(v))}
                   onFocus={onInputFocus}
                   onBlur={composeFieldBlur(onInputBlur, onBlur)}
                   keyboardType="number-pad"

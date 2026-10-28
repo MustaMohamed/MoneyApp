@@ -11,8 +11,9 @@ import { Spacing } from '@/constants/theme';
 
 interface DatePickerSheetProps {
   isOpen: boolean;
+  title: string;
   value: Date;
-  maximumDate: Date;
+  maximumDate?: Date;
   onValueChange: (event: DateTimePickerChangeEvent, date: Date) => void;
   onCancel: () => void;
   onDone: () => void;
@@ -47,7 +48,7 @@ export function DatePickerSheet(props: DatePickerSheetProps): React.ReactElement
         if (!open) props.onCancel();
       }}
       onCloseComplete={props.onCloseComplete}
-      title={Strings.addTxDatePickerTitle}
+      title={props.title}
       size={resolveSheetSizeAboveOne('sm', fontScale)}
       footer={footer}
     >

@@ -9,7 +9,10 @@ import { AccountStrip } from '@/components/ui/account_strip';
 import { DangerRing } from '@/components/ui/danger_ring';
 import { DateRow } from '@/components/ui/date_row';
 import { FormPickerRow } from '@/components/ui/form_picker_row';
-import { FORM_SHEET_CONTENT_CONTAINER_STYLE } from '@/components/ui/form_sheet.geometry';
+import {
+  FORM_FACT_CELL_CLASS,
+  FORM_SHEET_CONTENT_CONTAINER_STYLE,
+} from '@/components/ui/form_sheet.geometry';
 import type { AccountStripChip } from '@/components/ui/form_sheet.helpers';
 import { ListCard } from '@/components/ui/list_card';
 import { NoteFactRow } from '@/components/ui/note_fact_row';
@@ -23,9 +26,9 @@ import { CoreTokens } from '@/constants/theme_tokens';
 import { resolveAccountGlyphColor } from '@/modules/accounts/constants/account_glyph_color';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
+import { CategoryPickerRow } from '@/modules/categories/components/category_picker_row';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { isRateStale } from '@/modules/currency/store/currency.helpers';
-import { toIconName } from '@/utils/icon_name_guard';
 
 import { TransactionAmountHero } from './components/transaction_amount_hero';
 import {
@@ -81,9 +84,6 @@ type Props = BaseProps &
     | { locked: true; lockedChips: AccountStripChip[] }
     | { locked: false; stripChips: AccountStripChip[]; onSelectStripChip: (id: string) => void }
   );
-
-// Canvas `.fact`: 16 inset, a hairline under every fact but the last (Note).
-const FACT_CELL_CLASS = 'border-separator border-b px-4';
 
 export function TransactionFormBody(props: Props): React.ReactElement {
   const {
@@ -192,7 +192,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
       <View testID="transaction-form-fact-inset" style={FORM_SHEET_CONTENT_CONTAINER_STYLE}>
         <ListCard testID="transaction-form-fact-group">
           {isTransferOrCC ? (
-            <View className={FACT_CELL_CLASS}>
+            <View className={FORM_FACT_CELL_CLASS}>
               <FormPickerRow
                 testID="to-account-row"
                 divider={false}
@@ -236,37 +236,20 @@ export function TransactionFormBody(props: Props): React.ReactElement {
           ) : null}
 
           {!isTransferOrCC ? (
-            <View className={FACT_CELL_CLASS}>
-              <FormPickerRow
+            <View className={FORM_FACT_CELL_CLASS}>
+              <CategoryPickerRow
                 testID="category-row"
-                divider={false}
-                onPress={onOpenCategoryPicker}
                 label={Strings.addTxCategoryLabel}
+                category={selectedCategory ?? undefined}
+                onPress={onOpenCategoryPicker}
                 accessibilityHint={categoryError}
-                value={selectedCategory?.name ?? Strings.addTxPickCategoryTitle}
-                prefix={
-                  <MaterialCommunityIcons
-                    name={
-                      selectedCategory ? toIconName(selectedCategory.icon, 'tag') : 'tag-outline'
-                    }
-                    size={Size.filterSegmentIcon}
-                    color={selectedCategory?.color ?? CoreTokens.text1}
-                  />
-                }
-                suffix={
-                  <MaterialCommunityIcons
-                    name="chevron-right"
-                    size={Size.iconSm}
-                    color={CoreTokens.text2}
-                  />
-                }
               />
               {categoryError !== undefined ? <DangerRing testID="category-ring" /> : null}
             </View>
           ) : null}
 
           {showBudgetField ? (
-            <View className={FACT_CELL_CLASS}>
+            <View className={FORM_FACT_CELL_CLASS}>
               <FormPickerRow
                 testID="budget-row"
                 divider={false}
@@ -315,12 +298,12 @@ export function TransactionFormBody(props: Props): React.ReactElement {
           ) : null}
 
           {requiresRate ? (
-            <View className={FACT_CELL_CLASS}>
+            <View className={FORM_FACT_CELL_CLASS}>
               <RateRow ownerId={datePickerOwnerId} value={exchangeRate} stale={rateStale} />
             </View>
           ) : null}
 
-          <View className={FACT_CELL_CLASS}>
+          <View className={FORM_FACT_CELL_CLASS}>
             <DateRow ownerId={datePickerOwnerId} value={date} onChange={setDate} divider={false} />
           </View>
 

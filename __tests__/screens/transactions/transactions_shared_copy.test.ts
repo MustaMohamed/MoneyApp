@@ -155,7 +155,7 @@ describe('strings the transactions module shares with other modules', () => {
       'addTxPickCategoryTitle',
       'modules/commitments/screens/commitments/components/commitment_form_body.tsx',
       Strings.addTxPickCategoryTitle,
-      'Select Category',
+      'Select category',
     ],
     [
       'detailAmountOverline',

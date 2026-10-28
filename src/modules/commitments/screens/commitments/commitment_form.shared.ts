@@ -43,31 +43,36 @@ export const COMMITMENT_SCHEMA = z
     notes: z.string().optional(),
     durationType: z.enum(DurationType),
     endDate: z.string().optional(),
-    endAfterCount: z.number().int().min(1).optional(),
+    // `null` is an emptied count, refused below only while Ends is After.
+    endAfterCount: z.number().int().min(1).nullish(),
   })
-  .superRefine((data, ctx) => {
-    if (data.amountType === AmountType.Fixed && data.amount === undefined) {
-      ctx.addIssue({
-        code: 'custom',
-        message: Strings.commitmentsErrAmountRequired,
-        path: ['amount'],
-      });
-    }
-    if (data.durationType === DurationType.UntilDate && !data.endDate) {
-      ctx.addIssue({
-        code: 'custom',
-        message: Strings.commitmentsErrEndDateRequired,
-        path: ['endDate'],
-      });
-    }
-    if (data.durationType === DurationType.AfterCount && !data.endAfterCount) {
-      ctx.addIssue({
-        code: 'custom',
-        message: Strings.commitmentsErrAfterCountRequired,
-        path: ['endAfterCount'],
-      });
-    }
-  });
+  .superRefine(
+    (data, ctx) => {
+      if (data.amountType === AmountType.Fixed && data.amount === undefined) {
+        ctx.addIssue({
+          code: 'custom',
+          message: Strings.commitmentsErrAmountRequired,
+          path: ['amount'],
+        });
+      }
+      if (data.durationType === DurationType.UntilDate && !data.endDate) {
+        ctx.addIssue({
+          code: 'custom',
+          message: Strings.commitmentsErrEndDateRequired,
+          path: ['endDate'],
+        });
+      }
+      if (data.durationType === DurationType.AfterCount && !data.endAfterCount) {
+        ctx.addIssue({
+          code: 'custom',
+          message: Strings.commitmentsErrAfterCountRequired,
+          path: ['endAfterCount'],
+        });
+      }
+    },
+    // An emptied Every aborts its own parse; these checks still run, so one Save rings every refused row.
+    { when: () => true },
+  );
 
 export type CommitmentFormValues = z.infer<typeof COMMITMENT_SCHEMA>;
 

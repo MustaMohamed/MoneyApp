@@ -4,7 +4,7 @@ import type { DetailLoadErrorCopy } from '@/components/ui/detail_load_error.help
 import { formatConvertedAmount } from '@/components/ui/form_sheet.helpers';
 import { HERO_GRADIENT_COLORS } from '@/components/ui/hero_gradient';
 import { CURRENCY_CONFIG } from '@/constants/currency';
-import { AccountType, AmountType, Currency, DurationType } from '@/constants/enums';
+import { AccountType, AmountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { CoreTokens } from '@/constants/theme_tokens';
 import { resolveBadgeColors } from '@/modules/accounts/constants/account_badge_color';
@@ -31,6 +31,7 @@ import type {
   CommitmentMonthPayment,
   CommitmentPayment,
 } from '../../../entities/commitment_payment.entity';
+import { buildCommitmentEndsLabel } from '../../../utils/commitment_ends_label';
 import { composeCommitmentAmount, resolveDisplayAmount } from '../../../utils/commitment_status';
 import {
   type DayIndicator,
@@ -270,27 +271,6 @@ export function resolveCommitmentDetailFactKinds(
       ? USD_COMMITMENT_FACT_KINDS
       : EGP_COMMITMENT_FACT_KINDS),
   ];
-}
-
-export function buildCommitmentEndsLabel(
-  commitment: Pick<Commitment, 'duration_type' | 'end_after_count' | 'end_date'>,
-): string {
-  switch (commitment.duration_type) {
-    case DurationType.Forever:
-      return Strings.commitmentsEndsNever;
-    case DurationType.AfterCount:
-      return commitment.end_after_count === null
-        ? Strings.commitmentsDurationAfterCount
-        : Strings.commitmentsDurationAfterCountOf(commitment.end_after_count);
-    case DurationType.UntilDate:
-      return commitment.end_date === null
-        ? Strings.commitmentsDurationUntilDate
-        : Strings.commitmentsDurationUntilDateOf(formatWeekdayDate(commitment.end_date));
-    default: {
-      const unhandled: never = commitment.duration_type;
-      return unhandled;
-    }
-  }
 }
 
 /** A paid cycle reads its transaction's stored EGP; any other reads ≈ the amount at the live rate. */

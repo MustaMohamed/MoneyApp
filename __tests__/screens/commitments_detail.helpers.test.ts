@@ -20,7 +20,6 @@ import {
   buildCommitmentCycleCard,
   buildCommitmentDetailFacts,
   buildCommitmentDetailHero,
-  buildCommitmentEndsLabel,
   commitmentDetailShowsEdit,
   overlayStorePayments,
   resolveCommitmentAmountInEgpText,
@@ -33,6 +32,7 @@ import {
   type CommitmentDetailViewState,
   type CommitmentDetailViewStateInput,
 } from '@/modules/commitments/screens/commitments/detail/detail.helpers';
+import { buildCommitmentEndsLabel } from '@/modules/commitments/utils/commitment_ends_label';
 import {
   makeTestCommitment,
   makeTestMonthPayment,
