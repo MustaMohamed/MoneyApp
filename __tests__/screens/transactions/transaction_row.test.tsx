@@ -1,9 +1,10 @@
 import { fireEvent, render } from '@testing-library/react-native';
 import React from 'react';
-import { Dimensions, PixelRatio, View } from 'react-native';
+import { Dimensions, PixelRatio, StyleSheet, View } from 'react-native';
 
 import { resolveDayCardSwipeCorners } from '@/components/ui/day_card_row.helpers';
 import { resolveFitAmountTextProps, scaledTextStyle } from '@/components/ui/text_scale.geometry';
+import { resolveTypeBadgeMinWidth } from '@/components/ui/type_badge';
 import { Currency, TransactionType } from '@/constants/enums';
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -15,6 +16,7 @@ import {
   TRANSACTION_ROW_CODE_FONT_SIZE,
   TRANSACTION_ROW_HEIGHT,
   TRANSACTION_ROW_TITLE_FONT_SIZE,
+  resolveRowTitleLineMinWidth,
   resolveTransactionRowCaptionLines,
   resolveTransactionRowHeight,
   resolveTransactionRowValueTrackMaxWidth,
@@ -175,7 +177,7 @@ describe('TransactionRow ownership actions', () => {
     });
     expect(screen.getByTestId('transaction-row-content-track')).toHaveStyle({
       flex: 1,
-      minWidth: 0,
+      minWidth: resolveRowTitleLineMinWidth(undefined, fontScale),
     });
     const lead = screen.getByText('Split with Omar at the counter');
     expect(lead.props.numberOfLines).toBe(1);
@@ -195,6 +197,44 @@ describe('TransactionRow ownership actions', () => {
     expect(title).toHaveProp('allowFontScaling', false);
     expect(title).toHaveStyle(scaledTextStyle(TRANSACTION_ROW_TITLE_FONT_SIZE, fontScale));
     expect(TRANSACTION_ROW_HEIGHT).toBe(PixelRatio.roundToNearestPixel(ms(60)));
+  });
+
+  it('MA-241: at font scale 2.0 a commitment-owned row holds its title line open past the badge and lets the value track give way, and at 1.0 neither', async () => {
+    const renderRow = () =>
+      render(
+        <TransactionRow
+          tx={transaction('payment-1')}
+          onPress={jest.fn()}
+          onEdit={jest.fn()}
+          onDelete={jest.fn()}
+        />,
+      );
+
+    const { fontScale } = Dimensions.get('window');
+    expect(fontScale).toBe(2);
+    const large = await renderRow();
+    expect(large.getByTestId('transaction-row-content-track')).toHaveStyle({
+      flex: 1,
+      minWidth: resolveRowTitleLineMinWidth(resolveTypeBadgeMinWidth(2), 2),
+    });
+    expect(large.getByTestId('transaction-row-value-track')).toHaveStyle({ flexShrink: 1 });
+    const title = large.getByText(Strings.uncategorized);
+    const titleStyle: unknown = StyleSheet.flatten(title.props.style);
+    expect(titleStyle).not.toHaveProperty('minWidth', expect.any(Number));
+    await large.unmount();
+
+    const windowAtTwo = Dimensions.get('window');
+    const atOne = jest.spyOn(Dimensions, 'get').mockReturnValue({ ...windowAtTwo, fontScale: 1 });
+    try {
+      const regular = await renderRow();
+      expect(regular.getByTestId('transaction-row-content-track')).toHaveStyle({
+        flex: 1,
+        minWidth: 0,
+      });
+      expect(regular.getByTestId('transaction-row-value-track')).toHaveStyle({ flexShrink: 0 });
+    } finally {
+      atOne.mockRestore();
+    }
   });
 
   it('renders the destination native amount for transfers', async () => {

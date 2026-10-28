@@ -46,7 +46,11 @@ import {
   resolvePaymentDayDistance,
   type PaymentDaySettlement,
 } from '../../../domain/payment_day_distance';
-import { isPaidPayment, resolvePaymentState } from '../../../domain/payment_state';
+import {
+  isPaidPayment,
+  resolveCommitmentRowAccountId,
+  resolvePaymentState,
+} from '../../../domain/payment_state';
 import type { Commitment } from '../../../entities/commitment.entity';
 import type {
   CommitmentMonthPayment,
@@ -121,14 +125,6 @@ export const COMMITMENT_STATUS_TAG_COLORS: Record<CommitmentPaymentStatus, Accou
   [CommitmentPaymentStatus.Paid]: tagColors(CommitmentPaymentStatus.Paid),
   [CommitmentPaymentStatus.Skipped]: tagColors(CommitmentPaymentStatus.Skipped),
 };
-
-export function resolveCommitmentRowAccountId(
-  payment: CommitmentPayment,
-  commitment: Commitment | undefined,
-): string | undefined {
-  const id = isPaidPayment(payment) ? payment.account_id : commitment?.account_id;
-  return id ?? undefined;
-}
 
 export interface CommitmentRowPresentationInput {
   payment: CommitmentMonthPayment;

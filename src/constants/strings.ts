@@ -1045,7 +1045,7 @@ export const Strings = {
   // Commitments: C1 List
   commitmentsTitle: 'Commitments',
   loadingCommitmentsA11y: 'Loading commitments',
-  searchCommitmentsPlaceholder: 'Search commitments…',
+  searchCommitmentsPlaceholder: 'Search commitments',
   commitmentsTotalCommitted: 'Total committed',
   // Not commitments-specific: `formatCurrencyTotals` in `format_amount.ts` is the shared join.
   currencyTotalsSeparator: '  ·  ',
@@ -1056,6 +1056,8 @@ export const Strings = {
   commitmentsPaid: 'Paid',
   commitmentsSkipped: 'Skipped',
   commitmentsSectionSumEstimate: (sum: string) => `~ ${sum}`,
+  commitmentsTallyOnePayment: 'payment',
+  commitmentsTallyPayments: 'payments',
   commitmentsSectionA11y: (section: string, sum: string, count: string) =>
     `${section}, ${sum}, ${count} payments`,
   commitmentsSectionOneA11y: (section: string, sum: string) => `${section}, ${sum}, 1 payment`,

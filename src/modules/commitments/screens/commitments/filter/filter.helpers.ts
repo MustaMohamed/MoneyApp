@@ -2,7 +2,7 @@ import type { Commitment } from '@/modules/commitments/entities/commitment.entit
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import { hasAmountFilter, sameStringSet } from '@/modules/transactions/utils/filter_selection';
 
-import { isPaidPayment } from '../../../domain/payment_state';
+import { isPaidPayment, resolveCommitmentRowAccountId } from '../../../domain/payment_state';
 import { detectPreset } from '../commitment_form.shared';
 import type { CommitmentAdvancedFilters } from './filter.store';
 
@@ -51,10 +51,8 @@ export function commitmentMatchesAdvancedFilters(
   const { payment, commitment } = candidate;
 
   if (filters.accountIds.length > 0) {
-    const ids = [payment.account_id, commitment?.account_id].filter(
-      (id): id is string => id !== null && id !== undefined,
-    );
-    if (!ids.some((id) => filters.accountIds.includes(id))) return false;
+    const accountId = resolveCommitmentRowAccountId(payment, commitment);
+    if (accountId === undefined || !filters.accountIds.includes(accountId)) return false;
   }
 
   if (filters.categoryIds.length > 0) {

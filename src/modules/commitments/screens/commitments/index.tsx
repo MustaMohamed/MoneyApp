@@ -3,18 +3,27 @@ import { useCallback, useMemo } from 'react';
 import { RefreshControl, SectionList, View } from 'react-native';
 import type { SectionListData, SectionListRenderItemInfo } from 'react-native';
 
+import { AccountChips } from '@/components/ui/account_chips';
 import { DayCardRow } from '@/components/ui/day_card_row';
 import { resolveDayCardSwipeCorners } from '@/components/ui/day_card_row.helpers';
 import { DayHeader } from '@/components/ui/day_header';
 import { EmptyState } from '@/components/ui/empty_state';
-import { FilterRail, type FilterRailOption } from '@/components/ui/filter_rail';
+import {
+  LIST_RAIL,
+  LIST_RAIL_STYLE,
+  LIST_RAIL_TABS_STYLE,
+} from '@/components/ui/list_rail.geometry';
 import { LoadErrorAlert } from '@/components/ui/load_error_alert';
+import { MonthFilter } from '@/components/ui/month_filter';
 import { Screen } from '@/components/ui/screen';
+import { SearchTally } from '@/components/ui/search_tally';
+import { SegmentFilter, type SegmentFilterOption } from '@/components/ui/segment_filter';
 import { closeAllRows } from '@/components/ui/swipeable_row';
 import { CommitmentPaymentStatus } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, Size } from '@/constants/theme';
 import { GoldTokens } from '@/constants/theme_tokens';
+import { resolveCommitmentRowAccountId } from '@/modules/commitments/domain/payment_state';
 import type { CommitmentMonthPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import {
   STATUS_COLORS,
@@ -28,7 +37,6 @@ import { useCommitments } from './commitments.hook';
 import type { CommitmentStatusFilter } from './commitments.state';
 import { CommitmentDeleteConfirmSheet } from './components/commitment_delete_confirm_sheet';
 import { CommitmentRow } from './components/commitment_row';
-import { resolveCommitmentRowAccountId } from './components/commitment_row.helpers';
 import { CommitmentRowsSkeleton } from './components/commitment_rows_skeleton';
 import { CommitmentsHero } from './components/commitments_hero';
 import { CommitmentsEmptyState } from './components/empty_state';
@@ -36,7 +44,7 @@ import { CommitmentSearchRow } from './components/search_row';
 import { SkipConfirmSheet } from './detail/components/skip_confirm_sheet';
 import { CommitmentFilterSheet } from './filter';
 
-const COMMITMENT_FILTERS: FilterRailOption<CommitmentStatusFilter>[] = [
+const COMMITMENT_FILTERS: ReadonlyArray<SegmentFilterOption<CommitmentStatusFilter>> = [
   {
     value: 'all',
     label: Strings.filterAll,
@@ -99,6 +107,7 @@ export default function CommitmentsScreen() {
     setStatusFilter,
     setSearchQuery,
     openFilter,
+    toggleAccountChip,
     resetFilters,
   } = t;
 
@@ -178,21 +187,46 @@ export default function CommitmentsScreen() {
     ],
   );
 
+  // Memoised elements let React skip the hero and the chips when the header re-renders on a keystroke.
   const hero = useMemo(() => <CommitmentsHero model={state.hero} />, [state.hero]);
+  const accountChips = useMemo(
+    () => (
+      <AccountChips
+        chips={state.accountChips}
+        onToggle={toggleAccountChip}
+        testID="commitments-account-chips"
+      />
+    ),
+    [state.accountChips, toggleAccountChip],
+  );
+  const tally = useMemo(
+    () => <SearchTally model={state.tally} testID="commitments-search-tally" />,
+    [state.tally],
+  );
 
   const listHeaderComponent = useMemo(
     () => (
-      <>
+      <View testID="commitments-list-header">
         {hero}
+        {accountChips}
         <CommitmentSearchRow
           value={state.searchQuery}
           onChange={setSearchQuery}
           onOpenFilter={openFilter}
           activeFilterCount={state.activeFilterCount}
         />
-      </>
+        {tally}
+      </View>
     ),
-    [hero, openFilter, setSearchQuery, state.activeFilterCount, state.searchQuery],
+    [
+      accountChips,
+      hero,
+      openFilter,
+      setSearchQuery,
+      state.activeFilterCount,
+      state.searchQuery,
+      tally,
+    ],
   );
 
   const showRowsSkeleton = state.presentation === 'coldLoading';
@@ -227,14 +261,23 @@ export default function CommitmentsScreen() {
         </View>
       </Surface>
       <Separator />
-      <FilterRail
-        selectedMonth={state.selectedMonth}
-        onSelectedMonthChange={handleSelectedMonthChange}
-        selectedFilter={state.statusFilter}
-        onSelectedFilterChange={setStatusFilter}
-        filters={COMMITMENT_FILTERS}
-        filterAccessibilityLabel={Strings.commitmentStatusFilterAccessibility}
-      />
+      <View testID="commitments-rail" className="px-4" style={LIST_RAIL_STYLE}>
+        <MonthFilter
+          selectedMonth={state.selectedMonth}
+          onSelectedMonthChange={handleSelectedMonthChange}
+          rowHitSlop={LIST_RAIL.monthRowHitSlop}
+        />
+        <View style={LIST_RAIL_TABS_STYLE}>
+          <SegmentFilter
+            selectedFilter={state.statusFilter}
+            onSelectedFilterChange={setStatusFilter}
+            filters={COMMITMENT_FILTERS}
+            accessibilityLabel={Strings.commitmentStatusFilterAccessibility}
+            corners="form"
+            triggerHitSlop={LIST_RAIL.tabsHitSlop}
+          />
+        </View>
+      </View>
 
       {state.floatingAlert === 'list' ? (
         <LoadErrorAlert

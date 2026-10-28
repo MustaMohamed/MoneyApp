@@ -7,7 +7,7 @@ import {
 } from '@/components/ui/text_scale.geometry';
 import { AccountType, CategoryType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Type, lineHeightFor } from '@/constants/theme';
+import { Size, Type, lineHeightFor } from '@/constants/theme';
 import {
   AccentCCTokens,
   AccentTokens,
@@ -22,9 +22,11 @@ import {
   resolveRowCaptionTextProps,
   resolveRowCaptionTrail,
   resolveRowTile,
+  resolveRowTitleLineMinWidth,
   resolveTransactionRowCaptionLines,
   resolveTransactionRowHeight,
   resolveTransactionRowValueTrackMaxWidth,
+  ROW_TITLE_LINE_GAP,
   TRANSACTION_ROW_AMOUNT_FONT_SIZE,
   TRANSACTION_ROW_CAPTION_FONT_SIZE,
   TRANSACTION_ROW_CAPTION_SEPARATOR,
@@ -904,5 +906,25 @@ describe('resolveRowCaptionTrail (MA-243)', () => {
       `${TRANSACTION_ROW_CAPTION_SEPARATOR}${trail}`,
     );
     expect(TRANSACTION_ROW_CAPTION_SEPARATOR).toBe(' \u00b7 ');
+  });
+});
+
+describe('resolveRowTitleLineMinWidth (MA-263)', () => {
+  it('draws the title line gap at ms(6), 7 dp under Jest’s window', () => {
+    expect(ROW_TITLE_LINE_GAP).toBe(7);
+  });
+
+  it.each([1, 0.85])('is undefined at font scale %d, with or without a slot', (fontScale) => {
+    expect(resolveRowTitleLineMinWidth(undefined, fontScale)).toBeUndefined();
+    expect(resolveRowTitleLineMinWidth(40, fontScale)).toBeUndefined();
+  });
+
+  it('holds the glyph, a gap and the title’s opening letters at font scale 2.0 with no slot', () => {
+    // Jest's window: glyph 16 + gap 7 + 2.4 em of the 17.5 dp title at 2.0, 84.
+    expect(resolveRowTitleLineMinWidth(undefined, 2)).toBeCloseTo(107, 6);
+  });
+
+  it('adds a second gap and the slot’s minimum at font scale 2.0 with a slot', () => {
+    expect(resolveRowTitleLineMinWidth(40, 2)).toBeCloseTo(107 + 7 + 40, 6);
   });
 });

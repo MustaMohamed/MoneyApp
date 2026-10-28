@@ -109,10 +109,35 @@ describe('commitment filter helpers', () => {
     expect(commitmentMatchesSearch(candidate, 'missing')).toBe(false);
   });
 
-  it('matches account and category filters from payment and commitment context', () => {
+  it('matches an unpaid row by its commitment’s account only, never the account it names', () => {
     const candidate = {
       payment: makePayment({ account_id: 'account-paid' }),
       commitment: makeCommitment({ account_id: 'account-default', category_id: 'cat-rent' }),
+    };
+
+    expect(
+      commitmentMatchesAdvancedFilters(candidate, makeFilters({ accountIds: ['account-default'] })),
+    ).toBe(true);
+    expect(
+      commitmentMatchesAdvancedFilters(candidate, makeFilters({ accountIds: ['account-paid'] })),
+    ).toBe(false);
+    expect(
+      commitmentMatchesAdvancedFilters(candidate, makeFilters({ categoryIds: ['cat-rent'] })),
+    ).toBe(true);
+    expect(
+      commitmentMatchesAdvancedFilters(candidate, makeFilters({ categoryIds: ['cat-food'] })),
+    ).toBe(false);
+  });
+
+  it('matches a paid row by its paid-from account only, never its commitment’s', () => {
+    const candidate = {
+      payment: makePayment({
+        account_id: 'account-paid',
+        paid_date: '2026-07-05',
+        amount_paid: 5000,
+        transaction_id: 'tx-1',
+      }),
+      commitment: makeCommitment({ account_id: 'account-default' }),
     };
 
     expect(
@@ -120,12 +145,17 @@ describe('commitment filter helpers', () => {
     ).toBe(true);
     expect(
       commitmentMatchesAdvancedFilters(candidate, makeFilters({ accountIds: ['account-default'] })),
-    ).toBe(true);
+    ).toBe(false);
+  });
+
+  it('matches an unpaid row with no commitment loaded to no account', () => {
+    const candidate = { payment: makePayment({ account_id: 'account-paid' }) };
+
     expect(
-      commitmentMatchesAdvancedFilters(candidate, makeFilters({ categoryIds: ['cat-rent'] })),
-    ).toBe(true);
+      commitmentMatchesAdvancedFilters(candidate, makeFilters({ accountIds: ['account-paid'] })),
+    ).toBe(false);
     expect(
-      commitmentMatchesAdvancedFilters(candidate, makeFilters({ categoryIds: ['cat-food'] })),
+      commitmentMatchesAdvancedFilters(candidate, makeFilters({ accountIds: ['account-default'] })),
     ).toBe(false);
   });
 

@@ -8,6 +8,7 @@ import {
   resolveMessageGlyphShift,
   resolveKeptSpaceHeight,
   resolveOneLineTextProps,
+  resolveOpeningLettersMinWidth,
   resolveRowStacking,
   resolveUncappedLinesAboveOne,
   resolveWordSafeLines,
@@ -248,5 +249,22 @@ describe('resolveMessageGlyphShift', () => {
 
   it('MA-184: at font scale 0.85 moves the glyph up by half the shrink of the drawn first line', () => {
     expect(resolveMessageGlyphShift(20, 17.14, 0.85)).toBeCloseTo(-1.43, 6);
+  });
+});
+
+describe('resolveOpeningLettersMinWidth (MA-263)', () => {
+  it.each([1, 0.85])('is undefined at font scale %d', (fontScale) => {
+    expect(resolveOpeningLettersMinWidth(Type.bodyStrong, fontScale)).toBeUndefined();
+  });
+
+  it('reads Type.bodyStrong at 17.5 dp under Jest’s window, the base of the figures below', () => {
+    expect(Type.bodyStrong).toBe(17.5);
+  });
+
+  it.each([
+    [1.3, 54.6],
+    [2, 84],
+  ])('is 2.4 em of the scaled size at font scale %d: %d dp', (fontScale, width) => {
+    expect(resolveOpeningLettersMinWidth(Type.bodyStrong, fontScale)).toBeCloseTo(width, 6);
   });
 });

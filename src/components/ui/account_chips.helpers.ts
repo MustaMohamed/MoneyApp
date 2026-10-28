@@ -47,3 +47,27 @@ export function buildAccountChips(
     }),
   ];
 }
+
+/** `undefined` is All accounts; the chip already lit clears the filter. */
+export function toggleAccountFilter<F extends { accountIds: string[] }>(
+  filters: F,
+  accountId: string | undefined,
+): F {
+  const isOnlyApplied = filters.accountIds.length === 1 && filters.accountIds[0] === accountId;
+  const accountIds = accountId === undefined || isOnlyApplied ? [] : [accountId];
+  return { ...filters, accountIds };
+}
+
+export function pruneAccountFilter<F extends { accountIds: string[] }>(
+  filters: F,
+  activeAccounts: readonly Account[],
+): F {
+  const activeIds = new Set(activeAccounts.map((account) => account.id));
+  const accountIds = filters.accountIds.filter((id) => activeIds.has(id));
+  return accountIds.length === filters.accountIds.length ? filters : { ...filters, accountIds };
+}
+
+/** One applied account is shown by its chip, so the funnel counts accounts only at two or more. */
+export function countFunnelFilters(activeCount: number, accountIds: readonly string[]): number {
+  return activeCount - (accountIds.length === 1 ? 1 : 0);
+}

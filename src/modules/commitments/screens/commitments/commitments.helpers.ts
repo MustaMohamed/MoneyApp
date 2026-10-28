@@ -1,8 +1,11 @@
 import type { DayCardTone } from '@/components/ui/day_card_row.helpers';
 import type { DayHeaderFigures, DayHeaderSection } from '@/components/ui/day_header';
+import type { SearchTallyModel } from '@/components/ui/search_tally';
+import { NO_TALLY_TEXT, withTallyAccessibilityLabel } from '@/components/ui/search_tally.helpers';
+import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AmountType, CommitmentPaymentStatus, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { formatAmount, formatDisplayAmount } from '@/utils/format_amount';
+import { formatAmount, formatDisplayAmount, formatDisplayAmountParts } from '@/utils/format_amount';
 
 import {
   type CommitmentRowsTotal,
@@ -13,6 +16,7 @@ import { isDueInMonth, resolvePaymentState } from '../../domain/payment_state';
 import type { Commitment } from '../../entities/commitment.entity';
 import type { CommitmentMonthPayment } from '../../entities/commitment_payment.entity';
 import type { CommitmentStatusFilter } from './commitments.state';
+import type { CommitmentsHeroMode } from './components/commitments_hero.helpers';
 
 export interface CommitmentsSection extends DayHeaderSection {
   key: CommitmentPaymentStatus;
@@ -142,4 +146,59 @@ export function buildCommitmentSections(input: CommitmentSectionsInput): Commitm
   }
 
   return { sections, tally: sumCommitmentRowsEgp(heldSumRows, liveRate) };
+}
+
+interface CommitmentsSearchTallyInput {
+  isOn: boolean;
+  heroMode: CommitmentsHeroMode;
+  /** `undefined` while the rows are not summed. */
+  total: CommitmentRowsTotal | undefined;
+}
+
+/** Follows the hero: its skeleton draws one bar, its dashes print `— payments`. */
+export function buildCommitmentsSearchTally(input: CommitmentsSearchTallyInput): SearchTallyModel {
+  const { isOn, heroMode, total } = input;
+  if (!isOn) return { mode: 'empty', ...NO_TALLY_TEXT };
+  if (heroMode === 'skeleton' || (heroMode === 'figures' && total === undefined)) {
+    return { mode: 'skeleton', ...NO_TALLY_TEXT };
+  }
+  if (heroMode === 'dashes' || total === undefined) {
+    return withTallyAccessibilityLabel(
+      {
+        mode: 'failed',
+        count: Strings.commitmentsHeroUnavailable,
+        label: Strings.commitmentsTallyPayments,
+        sum: undefined,
+      },
+      undefined,
+    );
+  }
+  if (total.count === 0) {
+    return withTallyAccessibilityLabel(
+      {
+        mode: 'figures',
+        count: formatAmount(0),
+        label: Strings.commitmentsTallyPayments,
+        sum: undefined,
+      },
+      undefined,
+    );
+  }
+  const amount = formatDisplayAmountParts(total.egp, Currency.EGP);
+  const estimate = (text: string) =>
+    total.showTilde ? Strings.commitmentsSectionSumEstimate(text) : text;
+  return withTallyAccessibilityLabel(
+    {
+      mode: 'figures',
+      count: formatAmount(total.count),
+      label:
+        total.count === 1 ? Strings.commitmentsTallyOnePayment : Strings.commitmentsTallyPayments,
+      sum: {
+        text: estimate(amount.text),
+        polarity: 'neutral',
+        currencyCode: CURRENCY_CONFIG[Currency.EGP].code,
+      },
+    },
+    estimate(amount.withCode),
+  );
 }

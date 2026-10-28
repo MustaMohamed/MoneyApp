@@ -2,6 +2,9 @@ import { fireEvent, render, within } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 import { Dimensions } from 'react-native';
 
+import type { AccountChipModel } from '@/components/ui/account_chips.helpers';
+import { LIST_RAIL } from '@/components/ui/list_rail.geometry';
+import type { SearchTallyModel } from '@/components/ui/search_tally';
 import { CommitmentPaymentStatus } from '@/constants/enums';
 import type { CommitmentMonthPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import CommitmentsScreen from '@/modules/commitments/screens/commitments';
@@ -12,6 +15,7 @@ import {
   resolveCommitmentRowHeight,
 } from '@/modules/commitments/screens/commitments/components/commitment_row.helpers';
 import { buildCommitmentsHeroModel } from '@/modules/commitments/screens/commitments/components/commitments_hero.helpers';
+import { STATUS_ICONS } from '@/modules/commitments/utils/commitment_status';
 import { makeTestMonthPayment } from '@/test_helpers/commitment';
 
 jest.mock('@/modules/commitments/screens/commitments/commitments.hook', () => ({
@@ -62,16 +66,67 @@ jest.mock('@/components/ui/screen', () => ({
     return <View>{children}</View>;
   },
 }));
-jest.mock('@/components/ui/filter_rail', () => ({
-  FilterRail: ({ selectedMonth }: { selectedMonth: string }) => {
-    const { Text, View } = jest.requireActual<typeof import('react-native')>('react-native');
-    return (
-      <View testID="commitments-filter-rail">
-        <Text>{selectedMonth}</Text>
-      </View>
-    );
-  },
-}));
+jest.mock('@/components/ui/month_filter', () => {
+  const monthFilterProps: { last: object | undefined } = { last: undefined };
+  return {
+    monthFilterProps,
+    MonthFilter: (props: object) => {
+      const { View } = jest.requireActual<typeof import('react-native')>('react-native');
+      monthFilterProps.last = props;
+      return <View testID="commitments-month-filter" />;
+    },
+  };
+});
+jest.mock('@/components/ui/segment_filter', () => {
+  const segmentFilterProps: { last: object | undefined } = { last: undefined };
+  return {
+    segmentFilterProps,
+    SegmentFilter: (props: object) => {
+      const { View } = jest.requireActual<typeof import('react-native')>('react-native');
+      segmentFilterProps.last = props;
+      return <View testID="commitments-segment-filter" />;
+    },
+  };
+});
+jest.mock('@/components/ui/account_chips', () => {
+  const accountChipsProps: { last: object | undefined } = { last: undefined };
+  return {
+    accountChipsProps,
+    AccountChips: (props: {
+      chips: ReadonlyArray<{ accountId: string | undefined; label: string }>;
+      onToggle: (accountId: string | undefined) => void;
+      testID: string;
+    }) => {
+      const { Pressable, Text, View } =
+        jest.requireActual<typeof import('react-native')>('react-native');
+      accountChipsProps.last = props;
+      return (
+        <View testID={props.testID}>
+          {props.chips.map((chip) => (
+            <Pressable
+              key={chip.label}
+              accessibilityRole="button"
+              onPress={() => props.onToggle(chip.accountId)}
+            >
+              <Text>{`chip:${chip.label}`}</Text>
+            </Pressable>
+          ))}
+        </View>
+      );
+    },
+  };
+});
+jest.mock('@/components/ui/search_tally', () => {
+  const searchTallyProps: { last: object | undefined } = { last: undefined };
+  return {
+    searchTallyProps,
+    SearchTally: (props: { testID: string }) => {
+      const { View } = jest.requireActual<typeof import('react-native')>('react-native');
+      searchTallyProps.last = props;
+      return <View testID={props.testID} />;
+    },
+  };
+});
 jest.mock('@/components/ui/empty_state', () => ({
   EmptyState: ({ variant }: { variant: string }) => {
     const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
@@ -192,7 +247,15 @@ const baseCommitmentsState: CommitmentsScreenState = {
   categoriesById: new Map(),
   accountsById: new Map(),
   commitmentsById: new Map(),
-  tally: undefined,
+  accountChips: [],
+  tally: {
+    mode: 'empty',
+    count: undefined,
+    label: '',
+    filterSummary: undefined,
+    sum: undefined,
+    accessibilityLabel: undefined,
+  },
   liveRate: 50,
   hero: buildCommitmentsHeroModel({
     mode: 'skeleton',
@@ -206,7 +269,45 @@ const baseCommitmentsState: CommitmentsScreenState = {
 const { heroRenders } = jest.requireMock<{ heroRenders: { count: number } }>(
   '@/modules/commitments/screens/commitments/components/commitments_hero',
 );
+interface RailHitSlop {
+  top: number;
+  bottom: number;
+}
+
+interface MonthFilterMockProps {
+  selectedMonth?: string;
+  rowHitSlop?: RailHitSlop;
+}
+
+interface SegmentFilterMockProps {
+  filters: ReadonlyArray<{ value: string; icon?: { name: string } }>;
+  corners?: string;
+  triggerHitSlop?: RailHitSlop;
+}
+
+const { monthFilterProps } = jest.requireMock<{
+  monthFilterProps: { last: MonthFilterMockProps | undefined };
+}>('@/components/ui/month_filter');
+const { segmentFilterProps } = jest.requireMock<{
+  segmentFilterProps: { last: SegmentFilterMockProps | undefined };
+}>('@/components/ui/segment_filter');
+const { accountChipsProps } = jest.requireMock<{
+  accountChipsProps: { last: { chips: readonly AccountChipModel[] } | undefined };
+}>('@/components/ui/account_chips');
+const { searchTallyProps } = jest.requireMock<{
+  searchTallyProps: { last: { model: SearchTallyModel; testID: string } | undefined };
+}>('@/components/ui/search_tally');
+
+const STATUS_TABS = [
+  CommitmentPaymentStatus.Overdue,
+  CommitmentPaymentStatus.Due,
+  CommitmentPaymentStatus.Upcoming,
+  CommitmentPaymentStatus.Paid,
+  CommitmentPaymentStatus.Skipped,
+];
+
 const mockedUseCommitments = jest.mocked(useCommitments);
+const toggleAccountChipMock = jest.fn();
 const setSearchQueryMock = jest.fn();
 const clearSearchMock = jest.fn();
 const openFilterMock = jest.fn();
@@ -254,7 +355,18 @@ function mockUseCommitments(state: Partial<CommitmentsScreenState> = {}) {
     openFilter: openFilterMock,
     resetFilters: resetFiltersMock,
     retryAccountLookup: retryAccountLookupMock,
+    toggleAccountChip: toggleAccountChipMock,
   });
+}
+
+function chip(accountId: string | undefined, label: string, selected: boolean): AccountChipModel {
+  return {
+    accountId,
+    label,
+    accessibilityLabel: label,
+    tile: undefined,
+    selected,
+  };
 }
 
 describe('CommitmentsScreen', () => {
@@ -264,11 +376,62 @@ describe('CommitmentsScreen', () => {
     mockUseCommitments();
   });
 
-  it('keeps the shared filter rail mounted when the commitments list is empty', async () => {
+  it('keeps the month row and the status rail mounted when the commitments list is empty', async () => {
+    const { getByTestId } = await render(<CommitmentsScreen />);
+
+    expect(
+      within(getByTestId('commitments-rail')).getByTestId('commitments-month-filter'),
+    ).toBeTruthy();
+    expect(getByTestId('commitments-segment-filter')).toBeTruthy();
+    expect(monthFilterProps.last?.selectedMonth).toBe('2026-08');
+  });
+
+  it('MA-241: the rail hands the month row and the iconed status tabs the list rail space and hit slops in form corners, a chip toggles its account, and the tally slot draws the hook tally', async () => {
+    const chips = [
+      chip(undefined, 'All accounts', false),
+      chip('account-cib', 'CIB', true),
+      chip('account-payoneer', 'Payoneer', false),
+    ];
+    const tally: SearchTallyModel = {
+      mode: 'figures',
+      count: '2',
+      label: 'payments',
+      filterSummary: undefined,
+      sum: { text: '1,500', polarity: 'neutral', currencyCode: 'EGP' },
+      accessibilityLabel: '2 payments, 1,500 EGP',
+    };
+    mockUseCommitments({ hasCommitments: true, accountChips: chips, tally });
+
     const { getByTestId, getByText } = await render(<CommitmentsScreen />);
 
-    expect(getByTestId('commitments-filter-rail')).toBeTruthy();
-    expect(getByText('2026-08')).toBeTruthy();
+    const filters = segmentFilterProps.last?.filters ?? [];
+    expect(filters.map(({ value }) => value)).toEqual(['all', ...STATUS_TABS]);
+    const iconByValue = new Map(filters.map(({ value, icon }) => [value, icon?.name]));
+    for (const status of STATUS_TABS) {
+      expect(iconByValue.get(status)).toBe(STATUS_ICONS[status]);
+    }
+    expect(iconByValue.get('all')).toBeDefined();
+    expect(segmentFilterProps.last?.corners).toBe('form');
+    expect(monthFilterProps.last?.rowHitSlop).toEqual(LIST_RAIL.monthRowHitSlop);
+    expect(segmentFilterProps.last?.triggerHitSlop).toEqual(LIST_RAIL.tabsHitSlop);
+    expect(getByTestId('commitments-rail')).toHaveStyle({
+      paddingTop: LIST_RAIL.space,
+      paddingBottom: LIST_RAIL.space,
+    });
+    expect(getByTestId('commitments-segment-filter').parent).toHaveStyle({
+      marginTop: LIST_RAIL.space,
+    });
+
+    const header = getByTestId('commitments-list-header');
+    expect(within(header).getByTestId('commitments-account-chips')).toBeTruthy();
+    expect(accountChipsProps.last?.chips).toBe(chips);
+    await fireEvent.press(getByText('chip:Payoneer'));
+    expect(toggleAccountChipMock).toHaveBeenLastCalledWith('account-payoneer');
+    await fireEvent.press(getByText('chip:All accounts'));
+    expect(toggleAccountChipMock).toHaveBeenLastCalledWith(undefined);
+
+    expect(within(header).getByTestId('commitments-search-tally')).toBeTruthy();
+    expect(searchTallyProps.last?.model).toBe(tally);
   });
 
   it('renders the compact search row and advanced filter sheet when commitments exist', async () => {

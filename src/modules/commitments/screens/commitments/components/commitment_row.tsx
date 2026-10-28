@@ -16,7 +16,11 @@ import type { Category } from '@/modules/categories/entities/category.entity';
 import type { PaymentDaySettlement } from '@/modules/commitments/domain/payment_day_distance';
 import type { DayIndicatorTone } from '@/modules/commitments/utils/day_indicator';
 import { RowCaption } from '@/modules/transactions/components/row_caption';
-import { resolveTransactionRowValueTrackMaxWidth } from '@/modules/transactions/components/transaction_row.helpers';
+import {
+  ROW_TITLE_LINE_GAP,
+  resolveRowTitleLineMinWidth,
+  resolveTransactionRowValueTrackMaxWidth,
+} from '@/modules/transactions/components/transaction_row.helpers';
 import { ms } from '@/utils/responsive';
 import { useDragCancelledPress } from '@/utils/use_drag_cancelled_press.hook';
 
@@ -86,6 +90,9 @@ function CommitmentRowComponent({
   );
   const { fontScale } = useWindowDimensions();
   const badgeShrinks = fontScale > 1;
+  const statusSlotMinWidth = ms(4) + resolveStatusBadgeXsMinWidth(fontScale);
+  // Above 1.0 the value track gives way before the title line drops under its opening letters.
+  const titleLineMinWidth = resolveRowTitleLineMinWidth(statusSlotMinWidth, fontScale);
   const amountProps = resolveFitAmountTextProps(COMMITMENT_ROW_AMOUNT_FONT_SIZE, fontScale);
   const rowHeight = useMemo(() => resolveCommitmentRowHeight(fontScale), [fontScale]);
   const valueTrackMaxWidth = useMemo(
@@ -156,8 +163,8 @@ function CommitmentRowComponent({
                 glyphSize={Size.iconXs}
               />
             </View>
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-1.5">
+            <View style={{ flex: 1, minWidth: titleLineMinWidth ?? 0 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: ROW_TITLE_LINE_GAP }}>
                 <MaterialCommunityIcons
                   name={row.glyphName}
                   size={Size.rowGlyph}
@@ -171,11 +178,7 @@ function CommitmentRowComponent({
                 >
                   {row.name}
                 </Text>
-                <YieldingSlot
-                  minWidth={
-                    badgeShrinks ? ms(4) + resolveStatusBadgeXsMinWidth(fontScale) : undefined
-                  }
-                >
+                <YieldingSlot minWidth={badgeShrinks ? statusSlotMinWidth : undefined}>
                   <View
                     style={{
                       marginLeft: ms(4),
@@ -198,7 +201,11 @@ function CommitmentRowComponent({
             </View>
             <View
               testID="commitment-row-value-track"
-              style={{ flexShrink: 0, alignItems: 'flex-end', maxWidth: valueTrackMaxWidth }}
+              style={{
+                flexShrink: titleLineMinWidth === undefined ? 0 : 1,
+                alignItems: 'flex-end',
+                maxWidth: valueTrackMaxWidth,
+              }}
             >
               {/* Two sibling texts, never nested: RN Android drops margins on inline text. */}
               <View
