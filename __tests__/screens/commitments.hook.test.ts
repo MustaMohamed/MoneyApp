@@ -229,6 +229,7 @@ function setup({
   archivedAccounts = [],
   accountLookupById = {},
   accountLookupError = false,
+  accountsLoaded = false,
   categories = [],
   appliedFilters = EMPTY_COMMITMENT_FILTERS,
   loadedMonth = selectedMonth,
@@ -249,6 +250,7 @@ function setup({
   archivedAccounts?: Account[];
   accountLookupById?: Record<string, Account>;
   accountLookupError?: boolean;
+  accountsLoaded?: boolean;
   categories?: Category[];
   appliedFilters?: typeof EMPTY_COMMITMENT_FILTERS;
   loadedMonth?: string;
@@ -283,6 +285,7 @@ function setup({
     archivedAccounts,
     accountLookupById,
     accountLookupError,
+    hasLoaded: accountsLoaded,
     loadAccountLookup: loadAccountLookupMock,
   }));
   attachMockSelectorStore(useCurrencyStore as unknown as jest.Mock, () => ({
@@ -775,7 +778,52 @@ describe('useCommitments', () => {
         accessibilityLabel: 'Upcoming, 500 EGP, 1 payment',
       },
     ]);
-    expect(result.current.state.tally).toEqual({ egp: 800, count: 2, showTilde: false });
+    expect(result.current.state.tally).toEqual({
+      mode: 'skeleton',
+      count: undefined,
+      label: '',
+      filterSummary: undefined,
+      sum: undefined,
+      accessibilityLabel: undefined,
+    });
+  });
+
+  it('publishes the tally of the matched rows once the hero holds its figures', async () => {
+    setup({
+      searchQuery: 'internet',
+      commitments: [
+        makeCommitment('commitment-home', { name: 'Home internet' }),
+        makeCommitment('commitment-mobile', {
+          name: 'Mobile internet',
+          currency: Currency.USD,
+          amount: 10,
+        }),
+        makeCommitment('commitment-gym', { name: 'Gym' }),
+      ],
+      payments: [
+        makePayment('home', CommitmentPaymentStatus.Overdue, { amount_due: 300 }),
+        makePayment('mobile', CommitmentPaymentStatus.Upcoming, {
+          currency: Currency.USD,
+          amount_due: 10,
+        }),
+        makePayment('gym', CommitmentPaymentStatus.Upcoming, { amount_due: 700 }),
+      ],
+      monthAggregate: {
+        key: monthAggregateKey('2026-05', undefined),
+        aggregate: usdDueAggregate(),
+      },
+    });
+
+    const { result } = await renderHook(() => useCommitments());
+
+    expect(result.current.state.tally).toEqual({
+      mode: 'figures',
+      count: '2',
+      label: 'payments',
+      filterSummary: undefined,
+      sum: { text: '800', polarity: 'neutral', currencyCode: 'EGP' },
+      accessibilityLabel: '2 payments 800 EGP',
+    });
   });
 
   it('a section sum follows a change of the live rate', async () => {
@@ -810,6 +858,7 @@ describe('useCommitments', () => {
   it('holds a USD unpaid row’s section in its skeleton until the rate has loaded', async () => {
     currencyRateLoaded = false;
     setup({
+      searchQuery: 'mobile',
       commitments: [makeCommitment('commitment-mobile', { currency: Currency.USD, amount: 10 })],
       payments: [
         makePayment('mobile', CommitmentPaymentStatus.Upcoming, {
@@ -817,6 +866,10 @@ describe('useCommitments', () => {
           amount_due: 10,
         }),
       ],
+      monthAggregate: {
+        key: monthAggregateKey('2026-05', undefined),
+        aggregate: usdDueAggregate(),
+      },
     });
 
     const { result } = await renderHook(() => useCommitments());
@@ -827,7 +880,14 @@ describe('useCommitments', () => {
       figures: { mode: 'skeleton' },
       accessibilityLabel: 'Upcoming, loading',
     });
-    expect(result.current.state.tally).toBeUndefined();
+    expect(result.current.state.tally).toEqual({
+      mode: 'skeleton',
+      count: undefined,
+      label: '',
+      filterSummary: undefined,
+      sum: undefined,
+      accessibilityLabel: undefined,
+    });
   });
 
   it('filters by the state the dates derive', async () => {
@@ -1235,5 +1295,274 @@ describe('useCommitments hero title (MA-258)', () => {
     await hook.rerender({});
 
     expect(hook.result.current.state.hero).toBe(hero);
+  });
+});
+
+describe('useCommitments account chips, account prune and tally (MA-241)', () => {
+  const wallet = makeAccount('account-wallet', 'Wallet');
+  const cib = makeAccount('account-cib', 'CIB');
+  const archived: Account = { ...makeAccount('account-archived', 'Old Bank'), is_archived: 1 };
+  const accounts = [wallet, cib];
+  const allAccountsAggregate = {
+    key: monthAggregateKey('2026-05', undefined),
+    aggregate: makeTestMonthAggregate(),
+  };
+  const NO_TALLY_TEXT = {
+    count: undefined,
+    label: '',
+    filterSummary: undefined,
+    sum: undefined,
+    accessibilityLabel: undefined,
+  };
+
+  function listRows() {
+    return {
+      commitments: [
+        makeCommitment('commitment-internet', { name: 'Home internet' }),
+        makeCommitment('commitment-gym', { name: 'Gym', category_id: 'cat-fitness' }),
+      ],
+      payments: [
+        makePayment('internet', CommitmentPaymentStatus.Due, { amount_due: 300 }),
+        makePayment('gym', CommitmentPaymentStatus.Upcoming, { amount_due: 700 }),
+      ],
+      accounts,
+      monthAggregate: allAccountsAggregate,
+    };
+  }
+
+  beforeEach(() => {
+    capturedFocusCallbacks.length = 0;
+    mockInteractionTasks.length = 0;
+    loadMonthSnapshotMock.mockReset().mockResolvedValue(undefined);
+    loadMonthAggregateMock.mockReset().mockResolvedValue(undefined);
+    loadAccountLookupMock.mockReset().mockResolvedValue(undefined);
+    setAppliedFiltersMock.mockClear();
+    currencyRate = 50;
+    currencyRateLoaded = true;
+    mockUseDeferredValue.mockReset().mockImplementation((value: unknown) => value);
+  });
+
+  it('lists All accounts first and then one chip per active account', async () => {
+    setup({ accounts, archivedAccounts: [archived] });
+
+    const { result } = await renderHook(() => useCommitments());
+
+    expect(
+      result.current.state.accountChips.map((chip) => [chip.accountId, chip.label, chip.selected]),
+    ).toEqual([
+      [undefined, Strings.filterAllAccounts, true],
+      ['account-wallet', 'Wallet', false],
+      ['account-cib', 'CIB', false],
+    ]);
+  });
+
+  it('lights the one applied account’s chip, and no chip at two applied accounts', async () => {
+    setup({
+      accounts,
+      appliedFilters: { ...EMPTY_COMMITMENT_FILTERS, accountIds: ['account-cib'] },
+    });
+    const one = await renderHook(() => useCommitments());
+    expect(one.result.current.state.accountChips.map((chip) => chip.selected)).toEqual([
+      false,
+      false,
+      true,
+    ]);
+
+    setup({
+      accounts,
+      appliedFilters: {
+        ...EMPTY_COMMITMENT_FILTERS,
+        accountIds: ['account-wallet', 'account-cib'],
+      },
+    });
+    const two = await renderHook(() => useCommitments());
+    expect(two.result.current.state.accountChips.some((chip) => chip.selected)).toBe(false);
+  });
+
+  it('toggleAccountChip writes one account, then none on the same chip, then none from All accounts', async () => {
+    setup({ accounts });
+    const hook = await renderHook(() => useCommitments());
+
+    await act(() => hook.result.current.toggleAccountChip('account-wallet'));
+    expect(setAppliedFiltersMock).toHaveBeenLastCalledWith({
+      ...EMPTY_COMMITMENT_FILTERS,
+      accountIds: ['account-wallet'],
+    });
+
+    const walletAndCategory = {
+      ...EMPTY_COMMITMENT_FILTERS,
+      accountIds: ['account-wallet'],
+      categoryIds: ['cat-bills'],
+    };
+    setup({ accounts, appliedFilters: walletAndCategory });
+    await hook.rerender({});
+
+    await act(() => hook.result.current.toggleAccountChip('account-wallet'));
+    expect(setAppliedFiltersMock).toHaveBeenLastCalledWith({
+      ...walletAndCategory,
+      accountIds: [],
+    });
+
+    await act(() => hook.result.current.toggleAccountChip(undefined));
+    expect(setAppliedFiltersMock).toHaveBeenLastCalledWith({
+      ...walletAndCategory,
+      accountIds: [],
+    });
+    expect(setAppliedFiltersMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('keeps an applied archived account until accounts load, then writes it out and scopes the hero to every account', async () => {
+    const archivedFilter = {
+      ...EMPTY_COMMITMENT_FILTERS,
+      accountIds: ['account-archived'],
+      categoryIds: ['cat-bills'],
+    };
+    setup({ accounts, archivedAccounts: [archived], appliedFilters: archivedFilter });
+    const hook = await renderHook(() => useCommitments());
+
+    await act(() => {
+      runAggregateFocusLoad();
+    });
+    expect(setAppliedFiltersMock).not.toHaveBeenCalled();
+    expect(loadMonthAggregateMock).toHaveBeenLastCalledWith('2026-05', 'account-archived');
+    expect(hook.result.current.state.hero.title).toBe('Left to pay · Old Bank');
+
+    setup({
+      accounts,
+      archivedAccounts: [archived],
+      appliedFilters: archivedFilter,
+      accountsLoaded: true,
+    });
+    await hook.rerender({});
+    await act(() => {
+      runAggregateFocusLoad();
+    });
+
+    expect(setAppliedFiltersMock).toHaveBeenCalledWith({ ...archivedFilter, accountIds: [] });
+    expect(loadMonthAggregateMock).toHaveBeenLastCalledWith('2026-05', undefined);
+    expect(hook.result.current.state.hero.title).toBe('Left to pay');
+    expect(hook.result.current.state.accountChips[0]).toMatchObject({
+      accountId: undefined,
+      selected: true,
+    });
+  });
+
+  it('counts no account on the filter button with one applied and one with two, while one still marks the list filtered', async () => {
+    setup({
+      accounts,
+      appliedFilters: { ...EMPTY_COMMITMENT_FILTERS, accountIds: ['account-wallet'] },
+    });
+    const one = await renderHook(() => useCommitments());
+    expect(one.result.current.state.activeFilterCount).toBe(0);
+    expect(one.result.current.state.hasListFilters).toBe(true);
+
+    setup({
+      accounts,
+      appliedFilters: {
+        ...EMPTY_COMMITMENT_FILTERS,
+        accountIds: ['account-wallet', 'account-cib'],
+      },
+    });
+    const two = await renderHook(() => useCommitments());
+    expect(two.result.current.state.activeFilterCount).toBe(1);
+  });
+
+  it('leaves the tally slot empty under a status tab alone', async () => {
+    setup({ ...listRows(), statusFilter: CommitmentPaymentStatus.Due });
+
+    const { result } = await renderHook(() => useCommitments());
+
+    expect(result.current.state.tally).toEqual({ mode: 'empty', ...NO_TALLY_TEXT });
+  });
+
+  it('turns the tally on under a search', async () => {
+    setup({ ...listRows(), searchQuery: 'internet' });
+
+    const { result } = await renderHook(() => useCommitments());
+
+    expect(result.current.state.tally).toEqual({
+      mode: 'figures',
+      count: '1',
+      label: 'payment',
+      filterSummary: undefined,
+      sum: { text: '300', polarity: 'neutral', currencyCode: 'EGP' },
+      accessibilityLabel: '1 payment 300 EGP',
+    });
+  });
+
+  it('turns the tally on under one lit chip', async () => {
+    setup({
+      ...listRows(),
+      appliedFilters: { ...EMPTY_COMMITMENT_FILTERS, accountIds: ['account-wallet'] },
+      monthAggregate: {
+        key: monthAggregateKey('2026-05', 'account-wallet'),
+        aggregate: makeTestMonthAggregate(),
+      },
+    });
+
+    const { result } = await renderHook(() => useCommitments());
+
+    expect(result.current.state.tally).toMatchObject({
+      mode: 'figures',
+      count: '2',
+      label: 'payments',
+      sum: { text: '1,000' },
+      accessibilityLabel: '2 payments 1,000 EGP',
+    });
+  });
+
+  it('turns the tally on under a category filter', async () => {
+    setup({
+      ...listRows(),
+      appliedFilters: { ...EMPTY_COMMITMENT_FILTERS, categoryIds: ['cat-fitness'] },
+    });
+
+    const { result } = await renderHook(() => useCommitments());
+
+    expect(result.current.state.tally).toMatchObject({
+      mode: 'figures',
+      count: '1',
+      sum: { text: '700' },
+      accessibilityLabel: '1 payment 700 EGP',
+    });
+  });
+
+  it('prints "— payments" while the hero prints dashes', async () => {
+    setup({
+      ...listRows(),
+      searchQuery: 'internet',
+      monthAggregate: undefined,
+      monthAggregateErrorKey: monthAggregateKey('2026-05', undefined),
+    });
+
+    const { result } = await renderHook(() => useCommitments());
+
+    expect(result.current.state.hero.mode).toBe('dashes');
+    expect(result.current.state.tally).toEqual({
+      mode: 'failed',
+      count: '—',
+      label: 'payments',
+      filterSummary: undefined,
+      sum: undefined,
+      accessibilityLabel: '— payments',
+    });
+  });
+
+  it('holds the tally bar while the hero holds its skeleton', async () => {
+    setup({ ...listRows(), searchQuery: 'internet', monthAggregate: undefined });
+
+    const { result } = await renderHook(() => useCommitments());
+
+    expect(result.current.state.hero.mode).toBe('skeleton');
+    expect(result.current.state.tally).toEqual({ mode: 'skeleton', ...NO_TALLY_TEXT });
+  });
+
+  it('holds the tally bar, never 0 payments, while the snapshot is another month’s', async () => {
+    setup({ ...listRows(), searchQuery: 'internet', loadedMonth: '2026-04' });
+
+    const { result } = await renderHook(() => useCommitments());
+
+    expect(result.current.state.hero.mode).toBe('figures');
+    expect(result.current.state.tally).toEqual({ mode: 'skeleton', ...NO_TALLY_TEXT });
   });
 });

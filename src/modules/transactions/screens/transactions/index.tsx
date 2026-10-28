@@ -8,6 +8,11 @@ import { DayCardRow } from '@/components/ui/day_card_row';
 import { resolveDayCardSwipeCorners } from '@/components/ui/day_card_row.helpers';
 import { DayHeader } from '@/components/ui/day_header';
 import { EmptyState } from '@/components/ui/empty_state';
+import {
+  LIST_RAIL,
+  LIST_RAIL_STYLE,
+  LIST_RAIL_TABS_STYLE,
+} from '@/components/ui/list_rail.geometry';
 import { MonthFilter } from '@/components/ui/month_filter';
 import { Screen } from '@/components/ui/screen';
 import { SearchTally } from '@/components/ui/search_tally';
@@ -27,11 +32,6 @@ import { ms } from '@/utils/responsive';
 import { SearchRow } from './components/search_row';
 import { TransactionLoadError } from './components/transaction_load_error';
 import { TransactionsHero } from './components/transactions_hero';
-import {
-  TRANSACTIONS_RAIL,
-  TRANSACTIONS_RAIL_STYLE,
-  TRANSACTIONS_RAIL_TABS_STYLE,
-} from './components/transactions_rail.geometry';
 import { TxDeleteDialog } from './components/tx_delete_dialog';
 import { FilterSheet } from './filter';
 import { useTransactions } from './transactions.hook';
@@ -229,20 +229,20 @@ export default function TransactionsScreen(): React.ReactElement {
       </Surface>
       <Separator />
 
-      <View testID="transactions-rail" className="px-4" style={TRANSACTIONS_RAIL_STYLE}>
+      <View testID="transactions-rail" className="px-4" style={LIST_RAIL_STYLE}>
         <MonthFilter
           selectedMonth={state.selectedMonth}
           onSelectedMonthChange={setSelectedMonth}
-          rowHitSlop={TRANSACTIONS_RAIL.monthRowHitSlop}
+          rowHitSlop={LIST_RAIL.monthRowHitSlop}
         />
-        <View style={TRANSACTIONS_RAIL_TABS_STYLE}>
+        <View style={LIST_RAIL_TABS_STYLE}>
           <SegmentFilter
             selectedFilter={state.activeFilter}
             onSelectedFilterChange={setActiveFilter}
             filters={TRANSACTION_FILTERS}
             accessibilityLabel={Strings.transactionTypeFilterAccessibility}
             corners="form"
-            triggerHitSlop={TRANSACTIONS_RAIL.tabsHitSlop}
+            triggerHitSlop={LIST_RAIL.tabsHitSlop}
           />
         </View>
       </View>

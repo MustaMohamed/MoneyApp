@@ -23,6 +23,15 @@ export function isPaidPayment<T extends PaymentDates>(
   return payment.paid_date !== null;
 }
 
+/** The account a row counts and matches under: its paid-from account when paid, else its commitment's. */
+export function resolveCommitmentRowAccountId(
+  payment: CommitmentPayment,
+  commitment: Commitment | undefined,
+): string | undefined {
+  const id = isPaidPayment(payment) ? payment.account_id : commitment?.account_id;
+  return id ?? undefined;
+}
+
 export function isSkippedPayment<T extends PaymentDates>(
   payment: T,
 ): payment is T & { paid_date: null; skipped_date: string } {

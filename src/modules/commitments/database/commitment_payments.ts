@@ -19,6 +19,7 @@ import type {
   CommitmentPayment,
 } from '../entities/commitment_payment.entity';
 import {
+  commitmentRowAccountIdSql,
   paidPaymentSql,
   settledPaymentSql,
   skippedPaymentSql,
@@ -146,7 +147,7 @@ export async function getPaymentMonthAggregate(
     scope.accountId === undefined
       ? { sql: '', params: [] }
       : {
-          sql: 'AND COALESCE(payment.account_id, commitment.account_id) = ?',
+          sql: `AND ${commitmentRowAccountIdSql('payment', 'commitment')} = ?`,
           params: [scope.accountId],
         };
 

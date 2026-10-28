@@ -11,6 +11,7 @@ import {
 } from '@/modules/accounts/constants/account_palette';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
+import { resolveCommitmentRowAccountId } from '@/modules/commitments/domain/payment_state';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import type { CommitmentMonthPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import {
@@ -21,7 +22,6 @@ import {
   COMMITMENT_ROW_TITLE_FONT_SIZE,
   COMMITMENT_STATUS_TAG_COLORS,
   COMMITMENT_STATUS_TAG_TEXT_MIN_CONTRAST,
-  resolveCommitmentRowAccountId,
   resolveCommitmentRowCaptionLines,
   resolveCommitmentRowHeight,
 } from '@/modules/commitments/screens/commitments/components/commitment_row.helpers';

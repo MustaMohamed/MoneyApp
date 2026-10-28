@@ -15,7 +15,6 @@ const LAYOUT = 'src/app/_layout.tsx';
 const SCREEN = 'src/components/ui/screen.tsx';
 const EMPTY_STATE = 'src/components/ui/empty_state.tsx';
 const ERROR_STATE = 'src/components/ui/error_state.tsx';
-const FILTER_RAIL = 'src/components/ui/filter_rail.tsx';
 const FILTER_ACCORDION = 'src/components/ui/filter_accordion.tsx';
 const SUMMARY_CARD = `${BUDGET}/components/summary_card.tsx`;
 const BUDGET_SKELETON = `${BUDGET}/components/budget_screen_skeleton.tsx`;
@@ -465,9 +464,8 @@ const REQUIRED: RequiredSeed[] = [
     seed: () => replaceEvery(BUDGET_PICKER, 'formatCurrencyAmount(', 'formatSeeded('),
     words: 'no `formatCurrencyAmount` call',
   },
-  withoutTag(FILTER_RAIL, 'MonthFilter', 'FilterRail'),
-  withoutTag(FILTER_RAIL, 'SegmentFilter', 'FilterRail'),
-  withoutTag(COMMITMENTS_INDEX, 'FilterRail', 'the commitments screen'),
+  withoutTag(COMMITMENTS_INDEX, 'MonthFilter', 'the commitments screen'),
+  withoutTag(COMMITMENTS_INDEX, 'SegmentFilter', 'the commitments screen'),
   ...['Overdue', 'Due', 'Upcoming', 'Paid', 'Skipped'].map((member) =>
     withoutMember(COMMITMENTS_INDEX, 'CommitmentPaymentStatus', member),
   ),

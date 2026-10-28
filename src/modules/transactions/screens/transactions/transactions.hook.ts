@@ -3,7 +3,12 @@ import { useCallback, useEffect, useId, useMemo, useRef } from 'react';
 import type { SectionList } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
-import { buildAccountChips } from '@/components/ui/account_chips.helpers';
+import {
+  buildAccountChips,
+  countFunnelFilters,
+  pruneAccountFilter,
+  toggleAccountFilter,
+} from '@/components/ui/account_chips.helpers';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import {
   getTransactionAccountIds,
@@ -29,12 +34,9 @@ import { fullMonthName } from '@/utils/year_month';
 
 import {
   countActiveFilters,
-  countFunnelFilters,
   formatAppliedFilterSummary,
   labelAccountsById,
-  pruneAccountFilter,
   toQueryFilters,
-  toggleAccountFilter,
 } from './filter/filter.helpers';
 import { useFilterState } from './filter/filter.state';
 import { EMPTY_FILTERS, useFilterStore } from './filter/filter.store';
@@ -432,7 +434,10 @@ export function useTransactions() {
     const [year, month, day] = today.split('-').map(Number);
     return groupTransactionsByDate(currentTransactions, new Date(year, month - 1, day));
   }, [currentTransactions, today]);
-  const activeFilterCount = useMemo(() => countFunnelFilters(effectiveFilters), [effectiveFilters]);
+  const activeFilterCount = useMemo(
+    () => countFunnelFilters(countActiveFilters(effectiveFilters), effectiveFilters.accountIds),
+    [effectiveFilters],
+  );
   const hasAdvancedFilters = countActiveFilters(effectiveFilters) > 0;
   const filtersActive =
     transactionQuery.search !== undefined || activeFilter !== 'all' || hasAdvancedFilters;

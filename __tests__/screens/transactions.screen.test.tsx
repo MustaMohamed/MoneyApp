@@ -3,11 +3,11 @@ import type { ReactNode } from 'react';
 import { StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 
 import { DAY_CARD_INNER_RADIUS } from '@/components/ui/day_card_row.helpers';
+import { LIST_RAIL } from '@/components/ui/list_rail.geometry';
 import { Currency, TransactionType } from '@/constants/enums';
 import { Radius } from '@/constants/theme';
 import { TRANSACTION_TYPE_ICONS } from '@/constants/transaction_type_icons';
 import TransactionsScreen from '@/modules/transactions/screens/transactions';
-import { TRANSACTIONS_RAIL } from '@/modules/transactions/screens/transactions/components/transactions_rail.geometry';
 import { useTransactions } from '@/modules/transactions/screens/transactions/transactions.hook';
 import { makeTestTransaction } from '@/test_helpers/transaction';
 
@@ -382,14 +382,14 @@ describe('TransactionsScreen', () => {
       expect(iconByValue.get(type)).toBe(TRANSACTION_TYPE_ICONS[type]);
     }
     expect(segmentFilterProps.last?.corners).toBe('form');
-    expect(monthFilterProps.last?.rowHitSlop).toEqual(TRANSACTIONS_RAIL.monthRowHitSlop);
-    expect(segmentFilterProps.last?.triggerHitSlop).toEqual(TRANSACTIONS_RAIL.tabsHitSlop);
+    expect(monthFilterProps.last?.rowHitSlop).toEqual(LIST_RAIL.monthRowHitSlop);
+    expect(segmentFilterProps.last?.triggerHitSlop).toEqual(LIST_RAIL.tabsHitSlop);
     expect(getByTestId('transactions-rail')).toHaveStyle({
-      paddingTop: TRANSACTIONS_RAIL.space,
-      paddingBottom: TRANSACTIONS_RAIL.space,
+      paddingTop: LIST_RAIL.space,
+      paddingBottom: LIST_RAIL.space,
     });
     expect(getByTestId('transactions-segment-filter').parent).toHaveStyle({
-      marginTop: TRANSACTIONS_RAIL.space,
+      marginTop: LIST_RAIL.space,
     });
     expect(monthFilterProps.last?.onSelectedMonthChange).toBe(hook.setSelectedMonth);
     expect(segmentFilterProps.last?.onSelectedFilterChange).toBe(hook.setActiveFilter);
