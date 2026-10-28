@@ -126,6 +126,24 @@ export const COMMITMENT_STATUS_TAG_COLORS: Record<CommitmentPaymentStatus, Accou
   [CommitmentPaymentStatus.Skipped]: tagColors(CommitmentPaymentStatus.Skipped),
 };
 
+export interface CommitmentStatusTag {
+  statusLabel: string;
+  statusIcon: IconName;
+  statusFill: string;
+  statusForeground: string;
+}
+
+/** The status tag the list row and the detail's This cycle card draw. */
+export function resolveCommitmentStatusTag(status: CommitmentPaymentStatus): CommitmentStatusTag {
+  const colors = COMMITMENT_STATUS_TAG_COLORS[status];
+  return {
+    statusLabel: STATUS_LABELS[status],
+    statusIcon: STATUS_ICONS[status],
+    statusFill: colors.fill,
+    statusForeground: colors.foreground,
+  };
+}
+
 export interface CommitmentRowPresentationInput {
   payment: CommitmentMonthPayment;
   commitment: Commitment | undefined;
@@ -167,7 +185,6 @@ export function buildCommitmentRowPresentation({
 }: CommitmentRowPresentationInput): CommitmentRowPresentation {
   const name = commitment?.name ?? Strings.commitmentRowNoName;
   const status = resolvePaymentState(payment, today);
-  const tagColors = COMMITMENT_STATUS_TAG_COLORS[status];
   const dueDay = formatShortWeekdayDate(payment.due_date, today);
   const currencyCode: string = CURRENCY_CONFIG[payment.currency].code;
   const displayAmount = resolveDisplayAmount(payment, commitment);
@@ -186,10 +203,7 @@ export function buildCommitmentRowPresentation({
     name,
     ...resolveCategoryGlyph(category),
     tile: resolveRowTile(hasAccount ? account : undefined),
-    statusLabel: STATUS_LABELS[status],
-    statusIcon: STATUS_ICONS[status],
-    statusFill: tagColors.fill,
-    statusForeground: tagColors.foreground,
+    ...resolveCommitmentStatusTag(status),
     dueDay,
     captionLeg,
     amountText: amount.text,

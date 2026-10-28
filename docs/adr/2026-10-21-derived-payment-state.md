@@ -43,3 +43,5 @@ The three foreign keys carry over from 007 unchanged, with no `ON DELETE`. Each 
 - `commitment_id`: a commitment is never hard-deleted (epic #777, Not building).
 - `account_id`: an account is soft-deleted (`is_deleted`, migration 019).
 - `transaction_id`: `assertOwnership` (`src/modules/transactions/repositories/transaction.repository.ts:261-262`, called by `delete` at `:377`) refuses to delete a commitment-owned transaction.
+
+**Extended 2026-10-27 (#863, MA-262).** The commitment detail's This cycle card derives its status, day line and amount from the payment and today, on the hero's and the list row's resolvers: `resolvePaymentState` for the tag, `resolvePaymentDayDistance` with `resolveDayIndicator` for the day line, and `resolveDisplayAmount` with `composeCommitmentAmount` for the amount, in `buildCommitmentCycleCard` (`src/modules/commitments/screens/commitments/detail/detail.helpers.ts`). A paid cycle's line takes the success tone at every distance, since red marks only an actionable state.

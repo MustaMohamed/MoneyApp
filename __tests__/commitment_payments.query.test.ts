@@ -856,20 +856,23 @@ describe('markCommitmentAsPaid', () => {
       paid_date: '2026-05-02',
     };
 
-    await markCommitmentAsPaid(
+    const firstLink = await markCommitmentAsPaid(
       mockDb,
       payment.id,
       details,
       makeTx({ id: 'tx-first', commitment_payment_id: payment.id }),
       { accountId: 'acc1', currentBalance: -200, revolvingBalance: 0 },
     );
-    await markCommitmentAsPaid(
+    const retryLink = await markCommitmentAsPaid(
       mockDb,
       payment.id,
       details,
       makeTx({ id: 'tx-retry', commitment_payment_id: payment.id }),
       { accountId: 'acc1', currentBalance: -200, revolvingBalance: 0 },
     );
+
+    expect(firstLink).toBe('tx-first');
+    expect(retryLink).toBe('tx-first');
 
     expect(realDb.prepare('SELECT COUNT(*) AS count FROM transactions').get()).toEqual({
       count: 1,
@@ -901,7 +904,7 @@ describe('markCommitmentAsPaid', () => {
       commitment_payment_id: 'pay-paid-egp',
     });
 
-    await markCommitmentAsPaid(
+    const linked = await markCommitmentAsPaid(
       mockDb,
       'pay-paid-egp',
       {
@@ -913,6 +916,7 @@ describe('markCommitmentAsPaid', () => {
       { accountId: 'acc1', currentBalance: -200, revolvingBalance: 0 },
     );
 
+    expect(linked).toBe('tx-paid-egp');
     const payRow = realDb
       .prepare('SELECT * FROM commitment_payments WHERE id = ?')
       .get('pay-paid-egp') as Record<string, unknown>;

@@ -142,7 +142,7 @@ describe('CommitmentRepository.markAsPaid — the write path reconciles', () => 
     insertPayment('payment-egp', 'commitment-egp', Currency.EGP, 10.999);
     const repo = new CommitmentRepository();
 
-    await repo.markAsPaid('payment-egp', {
+    const result = await repo.markAsPaid('payment-egp', {
       amount_paid: 10.999,
       account_id: 'acc_egp',
       paid_date: '2026-05-08',
@@ -162,6 +162,8 @@ describe('CommitmentRepository.markAsPaid — the write path reconciles', () => 
     expect(tx.amount).toBe(11);
     expect(tx.egp_amount).toBe(11);
     expect(account.current_balance).toBe(989);
+    expect(result.transactionId).toBe(payment.transaction_id);
+    expect(result.amounts.paymentAmount).toBe(11);
   });
 
   // `amount_paid` is the commitment-currency figure, `tx.amount` the account-native one.

@@ -21,7 +21,11 @@ import { formatDisplayAmount } from '@/utils/format_amount';
 import { formatWeekdayDate } from '@/utils/format_date';
 
 import { resolveCommitmentRowLegEgp } from '../../../domain/commitment_section_sums';
-import { isPaidPayment, isUnpaidPayment } from '../../../domain/payment_state';
+import {
+  type PaymentDayDistance,
+  resolvePaymentDayDistance,
+} from '../../../domain/payment_day_distance';
+import { isPaidPayment, isUnpaidPayment, resolvePaymentState } from '../../../domain/payment_state';
 import type { Commitment } from '../../../entities/commitment.entity';
 import type {
   CommitmentMonthPayment,
@@ -29,7 +33,16 @@ import type {
 } from '../../../entities/commitment_payment.entity';
 import { buildCommitmentEndsLabel } from '../../../utils/commitment_ends_label';
 import { composeCommitmentAmount, resolveDisplayAmount } from '../../../utils/commitment_status';
+import {
+  type DayIndicator,
+  type DayIndicatorTone,
+  resolveDayIndicator,
+} from '../../../utils/day_indicator';
 import { buildRecurrenceLabel } from '../../../utils/recurrence_label';
+import {
+  type CommitmentStatusTag,
+  resolveCommitmentStatusTag,
+} from '../components/commitment_row.helpers';
 import type { CommitmentDetailLoadStatus } from './detail.state';
 
 export type CommitmentDetailViewState =
@@ -90,6 +103,77 @@ export function overlayStorePayments<T extends CommitmentPayment>(
   const storeById = new Map(storePayments.map((p) => [p.id, p]));
   if (!rows.some((row) => storeById.has(row.id))) return rows;
   return rows.map((row) => storeById.get(row.id) ?? row);
+}
+
+export type CommitmentCycleAction =
+  | { kind: 'paySkip' }
+  | { kind: 'viewTransaction'; transactionId: string }
+  | { kind: 'none' };
+
+export interface CommitmentCycleCardModel extends CommitmentStatusTag {
+  dueDay: string;
+  dayLine: string;
+  dayLineTone: DayIndicatorTone;
+  amountText: string;
+  amountCode: string;
+  amountAccessibilityLabel: string;
+  action: CommitmentCycleAction;
+}
+
+export interface CommitmentCycleCardInput {
+  payment: CommitmentPayment;
+  commitment: Commitment;
+  /** The local calendar date, `YYYY-MM-DD`. */
+  today: string;
+}
+
+/** A paid cycle reads success at every distance: red marks only an actionable state. */
+function resolveCycleDayLine(distance: PaymentDayDistance): DayIndicator {
+  const indicator = resolveDayIndicator(distance);
+  switch (distance.settlement) {
+    case 'paid':
+      return { text: Strings.commitmentsCyclePaidLine(indicator.text), tone: 'success' };
+    case 'skipped':
+      return { text: Strings.commitmentsCycleSkippedLine(indicator.text), tone: 'caption' };
+    case 'unpaid':
+      return indicator;
+    default: {
+      const unhandled: never = distance.settlement;
+      return unhandled;
+    }
+  }
+}
+
+function resolveCycleAction(payment: CommitmentPayment): CommitmentCycleAction {
+  if (isUnpaidPayment(payment)) return { kind: 'paySkip' };
+  if (isPaidPayment(payment) && payment.transaction_id !== null) {
+    return { kind: 'viewTransaction', transactionId: payment.transaction_id };
+  }
+  return { kind: 'none' };
+}
+
+export function buildCommitmentCycleCard({
+  payment,
+  commitment,
+  today,
+}: CommitmentCycleCardInput): CommitmentCycleCardModel {
+  const code: string = CURRENCY_CONFIG[payment.currency].code;
+  const amount = composeCommitmentAmount(
+    resolveDisplayAmount(payment, commitment),
+    payment.currency,
+    code,
+  );
+  const dayLine = resolveCycleDayLine(resolvePaymentDayDistance(payment, today));
+  return {
+    ...resolveCommitmentStatusTag(resolvePaymentState(payment, today)),
+    dueDay: formatWeekdayDate(payment.due_date),
+    dayLine: dayLine.text,
+    dayLineTone: dayLine.tone,
+    amountText: amount.text,
+    amountCode: code,
+    amountAccessibilityLabel: amount.spoken,
+    action: resolveCycleAction(payment),
+  };
 }
 
 export const COMMITMENT_DETAIL_LOAD_ERROR_COPY: DetailLoadErrorCopy = {

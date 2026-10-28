@@ -55,3 +55,25 @@ describe('commitment detail fact copy (MA-261)', () => {
     });
   });
 });
+
+describe('commitment detail This cycle copy (MA-262)', () => {
+  it('ships the card overline, the actions and the settled day lines byte-exact', () => {
+    expect({
+      overline: Strings.commitmentsDetailCurrentCycle,
+      pay: Strings.commitmentsMarkAsPaid,
+      skip: Strings.commitmentsSkip,
+      viewTransaction: Strings.commitmentsViewTransaction,
+      paidLate: Strings.commitmentsCyclePaidLine('4 days late'),
+      paidOnTheDay: Strings.commitmentsCyclePaidLine('on the day'),
+      skippedEarly: Strings.commitmentsCycleSkippedLine('1 day early'),
+    }).toEqual({
+      overline: 'This cycle',
+      pay: 'Pay',
+      skip: 'Skip',
+      viewTransaction: 'View transaction',
+      paidLate: 'paid · 4 days late',
+      paidOnTheDay: 'paid · on the day',
+      skippedEarly: 'skipped · 1 day early',
+    });
+  });
+});

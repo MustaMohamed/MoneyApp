@@ -14,7 +14,7 @@ export interface StatusBadgeProps {
   fill: string;
   foreground: string;
   icon?: IconName;
-  size?: 'xs' | 'sm' | 'md';
+  size?: 'xs' | 'sm' | 'md' | 'tagMd';
   /** Given, the label draws at this app scale on one line; omitted, the OS scales it. */
   fontScale?: number;
 }
@@ -28,6 +28,7 @@ const PADDING_VERTICAL = {
   xs: STATUS_BADGE_XS_PADDING_VERTICAL,
   sm: STATUS_BADGE_PADDING_VERTICAL,
   md: STATUS_BADGE_PADDING_VERTICAL,
+  tagMd: STATUS_BADGE_PADDING_VERTICAL,
 } as const;
 // The xs root draws these and `resolveStatusBadgeXsMinWidth` reads them.
 const XS_ROOT_STYLE = {
@@ -35,15 +36,31 @@ const XS_ROOT_STYLE = {
   paddingRight: Size.statusBadgeXsPaddingRight,
   gap: Size.statusBadgeXsGap,
 } as const;
+const ROOT_STYLE = {
+  xs: XS_ROOT_STYLE,
+  sm: undefined,
+  md: undefined,
+  tagMd: {
+    paddingLeft: Size.statusBadgeTagMdPaddingLeft,
+    paddingRight: Size.statusBadgeTagMdPaddingRight,
+    gap: Size.statusBadgeTagMdGap,
+  },
+} as const;
 // A scaled label's narrowest box, in ems of its size: one `…`.
 const ELLIPSIS_EM = 1;
 const ROOT_CLASS = {
   xs: 'rounded-full',
   sm: 'gap-0.5 rounded-full px-1.5',
   md: 'gap-0.5 rounded-full px-1.5',
+  tagMd: 'rounded-full',
 } as const;
-const LABEL_CLASS = { xs: 'font-inter-bold', sm: 'font-inter', md: 'font-inter' } as const;
-const ICON_SIZE = { xs: 11, sm: 10, md: 12 } as const;
+const LABEL_CLASS = {
+  xs: 'font-inter-bold',
+  sm: 'font-inter',
+  md: 'font-inter',
+  tagMd: 'font-inter-bold',
+} as const;
+const ICON_SIZE = { xs: 11, sm: 10, md: 12, tagMd: 12 } as const;
 const LABEL_STYLE = {
   xs: {
     fontSize: STATUS_BADGE_XS_LABEL_FONT_SIZE,
@@ -51,6 +68,7 @@ const LABEL_STYLE = {
   },
   sm: { fontSize: Type.pillLabel, lineHeight: lineHeightFor(Type.pillLabel) },
   md: { fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) },
+  tagMd: { fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) },
 } as const;
 
 /** The xs badge's narrowest box at `fontScale`: its chrome, its icon and a `…`. */
@@ -81,7 +99,7 @@ export function StatusBadge({
         alignItems: 'center',
         paddingVertical: PADDING_VERTICAL[size],
         flexShrink: scaled ? 1 : 0,
-        ...(size === 'xs' ? XS_ROOT_STYLE : undefined),
+        ...ROOT_STYLE[size],
       }}
       className={ROOT_CLASS[size]}
     >

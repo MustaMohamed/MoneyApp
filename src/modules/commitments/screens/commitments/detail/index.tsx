@@ -22,8 +22,17 @@ import {
 import { useCommitmentDetail } from './detail.hook';
 
 export default function CommitmentDetailScreen() {
-  const { state, confirmSkip, skipPayment, cancelSkip, reload, openPaySheet, goToEdit, goBack } =
-    useCommitmentDetail();
+  const {
+    state,
+    confirmSkip,
+    skipPayment,
+    cancelSkip,
+    reload,
+    openPaySheet,
+    goToEdit,
+    goBack,
+    viewTransaction,
+  } = useCommitmentDetail();
   const showsBody = commitmentDetailShowsEdit(state.viewState);
 
   return (
@@ -67,13 +76,12 @@ export default function CommitmentDetailScreen() {
           showsVerticalScrollIndicator={false}
         >
           <DetailHero hero={state.hero} testID="commitment-detail-hero" entering={heroEntering} />
-          {state.payment ? (
+          {state.cycleCard ? (
             <CurrentCycleCard
-              payment={state.payment}
-              today={state.today}
-              commitment={state.commitment}
-              onMarkAsPaid={openPaySheet}
+              model={state.cycleCard}
+              onPay={openPaySheet}
               onSkip={confirmSkip}
+              onViewTransaction={viewTransaction}
             />
           ) : null}
           <DetailsCard facts={state.facts} />

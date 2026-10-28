@@ -14,7 +14,7 @@ import { Size } from '@/constants/theme';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import type { PaymentDaySettlement } from '@/modules/commitments/domain/payment_day_distance';
-import type { DayIndicatorTone } from '@/modules/commitments/utils/day_indicator';
+import { DAY_INDICATOR_CLASS } from '@/modules/commitments/utils/day_indicator';
 import { RowCaption } from '@/modules/transactions/components/row_caption';
 import {
   ROW_TITLE_LINE_GAP,
@@ -36,12 +36,6 @@ import {
   resolveCommitmentRowHeight,
 } from './commitment_row.helpers';
 
-const DAY_INDICATOR_CLASS: Record<DayIndicatorTone, string> = {
-  danger: 'font-inter text-danger',
-  gold: 'font-inter-semibold text-accent',
-  caption: 'font-inter text-content-secondary',
-  success: 'font-inter text-success',
-};
 const NAME_CLASS: Record<PaymentDaySettlement, string> = {
   unpaid: 'text-foreground',
   paid: 'text-foreground/60',

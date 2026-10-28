@@ -1028,3 +1028,82 @@ describe('useCommitmentDetail two copies mounted at once', () => {
     expect(useCommitmentDetailStore.getState().entries).toEqual({});
   });
 });
+
+describe('useCommitmentDetail This cycle card (MA-262)', () => {
+  const paidCycle = (transactionId: string | null): CommitmentPayment => ({
+    ...payment,
+    paid_date: '2026-05-01',
+    amount_paid: 5000,
+    transaction_id: transactionId,
+  });
+
+  function seedHistory(rows: CommitmentPayment[]): void {
+    commitmentsById = { [commitment.id]: commitment };
+    historyById = { [commitment.id]: rows };
+  }
+
+  beforeEach(() => {
+    jest.useFakeTimers().setSystemTime(new Date(2026, 4, 8, 10));
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('cards an unpaid cycle with Pay and Skip, its day line read against the day it loaded on', async () => {
+    seedRent();
+
+    const { result } = await renderHook(() => useCommitmentDetail());
+
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+    expect(result.current.state.cycleCard).toMatchObject({
+      dayLine: '7 days late',
+      action: { kind: 'paySkip' },
+    });
+  });
+
+  it.each([
+    ['the tab copy', '/commitments/commitment-1'],
+    ['the stacked copy', '/stacked/commitments/commitment-1'],
+  ])(
+    'View transaction on a paid cycle pushes the stacked transaction detail from %s',
+    async (_copy, pathname) => {
+      mockPathname.current = pathname;
+      seedHistory([paidCycle('tx-1')]);
+
+      const { result } = await renderHook(() => useCommitmentDetail());
+      await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+      expect(result.current.state.cycleCard?.action).toEqual({
+        kind: 'viewTransaction',
+        transactionId: 'tx-1',
+      });
+
+      await act(async () => result.current.viewTransaction());
+
+      expect(router.push).toHaveBeenCalledTimes(1);
+      expect(router.push).toHaveBeenCalledWith('/stacked/transactions/detail/tx-1');
+    },
+  );
+
+  it('View transaction on a paid cycle with no transaction pushes nothing', async () => {
+    seedHistory([paidCycle(null)]);
+
+    const { result } = await renderHook(() => useCommitmentDetail());
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+    expect(result.current.state.cycleCard?.action).toEqual({ kind: 'none' });
+
+    await act(async () => result.current.viewTransaction());
+
+    expectNoNavigation();
+  });
+
+  it('cards nothing when the commitment has no cycle row', async () => {
+    seedHistory([]);
+
+    const { result } = await renderHook(() => useCommitmentDetail());
+
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+    expect(result.current.state.payment).toBeUndefined();
+    expect(result.current.state).toHaveProperty('cycleCard', undefined);
+  });
+});

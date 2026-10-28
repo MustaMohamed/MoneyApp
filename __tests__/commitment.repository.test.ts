@@ -78,7 +78,7 @@ beforeEach(() => {
   (addPayments as jest.Mock).mockResolvedValue(undefined);
   (insertPaymentRows as jest.Mock).mockResolvedValue(undefined);
   (deleteUnpaidPaymentsByCommitment as jest.Mock).mockResolvedValue(undefined);
-  (markCommitmentAsPaid as jest.Mock).mockResolvedValue(undefined);
+  (markCommitmentAsPaid as jest.Mock).mockResolvedValue('tx-linked');
   (getAccountByIdIncludingArchived as jest.Mock).mockResolvedValue(baseAccount);
 });
 
@@ -565,10 +565,11 @@ describe('CommitmentRepository.markAsPaid', () => {
     expect(calledDetails.amount_paid).toBe(11);
   });
 
-  it('returns the resolved amounts so the caller can bind the rounded value', async () => {
+  it('returns the resolved amounts and the linked transaction id so the caller can bind both', async () => {
     const returned = await repo.markAsPaid('p-1', { ...details, amount_paid: 10.999 });
 
-    expect(returned.paymentAmount).toBe(11);
+    expect(returned.amounts.paymentAmount).toBe(11);
+    expect(returned.transactionId).toBe('tx-linked');
   });
 
   it('increases liability when a commitment is paid with a credit card', async () => {
