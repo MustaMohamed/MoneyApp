@@ -4,13 +4,7 @@ import type { DetailLoadErrorCopy } from '@/components/ui/detail_load_error.help
 import { formatConvertedAmount } from '@/components/ui/form_sheet.helpers';
 import { HERO_GRADIENT_COLORS } from '@/components/ui/hero_gradient';
 import { CURRENCY_CONFIG } from '@/constants/currency';
-import {
-  AccountType,
-  AmountType,
-  type CommitmentPaymentStatus,
-  Currency,
-  DurationType,
-} from '@/constants/enums';
+import { AccountType, AmountType, Currency, DurationType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { CoreTokens } from '@/constants/theme_tokens';
 import { resolveBadgeColors } from '@/modules/accounts/constants/account_badge_color';
@@ -37,19 +31,17 @@ import type {
   CommitmentMonthPayment,
   CommitmentPayment,
 } from '../../../entities/commitment_payment.entity';
-import {
-  STATUS_ICONS,
-  STATUS_LABELS,
-  composeCommitmentAmount,
-  resolveDisplayAmount,
-} from '../../../utils/commitment_status';
+import { composeCommitmentAmount, resolveDisplayAmount } from '../../../utils/commitment_status';
 import {
   type DayIndicator,
   type DayIndicatorTone,
   resolveDayIndicator,
 } from '../../../utils/day_indicator';
 import { buildRecurrenceLabel } from '../../../utils/recurrence_label';
-import { COMMITMENT_STATUS_TAG_COLORS } from '../components/commitment_row.helpers';
+import {
+  type CommitmentStatusTag,
+  resolveCommitmentStatusTag,
+} from '../components/commitment_row.helpers';
 import type { CommitmentDetailLoadStatus } from './detail.state';
 
 export type CommitmentDetailViewState =
@@ -109,14 +101,7 @@ export function overlayStorePayments<T extends CommitmentPayment>(
   if (rows.length === 0 || storePayments.length === 0) return rows;
   const storeById = new Map(storePayments.map((p) => [p.id, p]));
   if (!rows.some((row) => storeById.has(row.id))) return rows;
-  return rows.map((row) => {
-    const stored = storeById.get(row.id);
-    if (stored === undefined) return row;
-    // The store's paid row never carries the transaction link the re-read holds.
-    return stored.transaction_id === null && row.transaction_id !== null
-      ? { ...stored, transaction_id: row.transaction_id }
-      : stored;
-  });
+  return rows.map((row) => storeById.get(row.id) ?? row);
 }
 
 export type CommitmentCycleAction =
@@ -124,11 +109,7 @@ export type CommitmentCycleAction =
   | { kind: 'viewTransaction'; transactionId: string }
   | { kind: 'none' };
 
-export interface CommitmentCycleCardModel {
-  statusLabel: string;
-  statusIcon: (typeof STATUS_ICONS)[CommitmentPaymentStatus];
-  statusFill: string;
-  statusForeground: string;
+export interface CommitmentCycleCardModel extends CommitmentStatusTag {
   dueDay: string;
   dayLine: string;
   dayLineTone: DayIndicatorTone;
@@ -175,8 +156,6 @@ export function buildCommitmentCycleCard({
   commitment,
   today,
 }: CommitmentCycleCardInput): CommitmentCycleCardModel {
-  const status = resolvePaymentState(payment, today);
-  const tagColors = COMMITMENT_STATUS_TAG_COLORS[status];
   const code: string = CURRENCY_CONFIG[payment.currency].code;
   const amount = composeCommitmentAmount(
     resolveDisplayAmount(payment, commitment),
@@ -185,10 +164,7 @@ export function buildCommitmentCycleCard({
   );
   const dayLine = resolveCycleDayLine(resolvePaymentDayDistance(payment, today));
   return {
-    statusLabel: STATUS_LABELS[status],
-    statusIcon: STATUS_ICONS[status],
-    statusFill: tagColors.fill,
-    statusForeground: tagColors.foreground,
+    ...resolveCommitmentStatusTag(resolvePaymentState(payment, today)),
     dueDay: formatWeekdayDate(payment.due_date),
     dayLine: dayLine.text,
     dayLineTone: dayLine.tone,

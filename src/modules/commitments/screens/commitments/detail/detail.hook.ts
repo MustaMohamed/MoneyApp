@@ -244,7 +244,8 @@ export function useCommitmentDetail() {
     router.back();
   }, []);
 
-  const transactionId = payment?.transaction_id ?? undefined;
+  const transactionId =
+    cycleCard?.action.kind === 'viewTransaction' ? cycleCard.action.transactionId : undefined;
   const viewTransaction = useCallback(() => {
     if (transactionId === undefined) return;
     router.push(stackedTransactionDetailRoute(transactionId));

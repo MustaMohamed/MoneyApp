@@ -320,7 +320,7 @@ export function createCommitmentStore(
         markAsPaid: async (paymentId, details) => {
           beginPaymentTransition(paymentId);
           try {
-            const amounts = await repo.markAsPaid(paymentId, details);
+            const { amounts, transactionId } = await repo.markAsPaid(paymentId, details);
             announceTransactionWrite();
             const updatedAt = new Date().toISOString();
             set((state) => ({
@@ -333,6 +333,7 @@ export function createCommitmentStore(
                       amount_paid: amounts.paymentAmount,
                       paid_egp_amount: amounts.egpAmount,
                       account_id: details.account_id,
+                      transaction_id: transactionId,
                       exchange_rate_snapshot:
                         details.exchange_rate_snapshot ?? candidate.exchange_rate_snapshot,
                       updated_at: updatedAt,

@@ -241,7 +241,7 @@ describe('overlayStorePayments', () => {
     expect(overlayStorePayments(rows, [])).toBe(rows);
   });
 
-  it("keeps the read row's transaction link under the store's unlinked paid row, and a store row's own link", () => {
+  it("takes the store's paid row whole over the read row's transaction link, and a store row's own link", () => {
     const linked = makePayment({
       id: 'pay-1',
       paid_date: '2026-05-01',
@@ -259,8 +259,8 @@ describe('overlayStorePayments', () => {
     const [unlinkedOverlay] = overlayStorePayments([linked], [storePaid]);
     const [relinkedOverlay] = overlayStorePayments([linked], [storeRelinked]);
 
-    expect(unlinkedOverlay).toEqual({ ...storePaid, transaction_id: 'tx-1' });
-    expect(unlinkedOverlay.paid_date).toBe('2026-05-02');
+    expect(unlinkedOverlay).toBe(storePaid);
+    expect(unlinkedOverlay.transaction_id).toBeNull();
     expect(relinkedOverlay).toBe(storeRelinked);
   });
 });

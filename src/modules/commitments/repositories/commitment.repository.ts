@@ -94,6 +94,12 @@ export interface CommitmentMonthSnapshot {
   payments: CommitmentMonthPayment[];
 }
 
+/** `transactionId` is the transaction the payment row links, an earlier save's on a retry. */
+export interface MarkAsPaidResult {
+  amounts: CommitmentPaymentAmounts;
+  transactionId: string;
+}
+
 export interface ICommitmentRepository {
   getAll(): Promise<Commitment[]>;
   getById(id: string): Promise<Commitment | undefined>;
@@ -110,7 +116,7 @@ export interface ICommitmentRepository {
 
   insertPayments(payments: CommitmentPayment[]): Promise<void>;
 
-  markAsPaid(paymentId: string, details: PaymentDetails): Promise<CommitmentPaymentAmounts>;
+  markAsPaid(paymentId: string, details: PaymentDetails): Promise<MarkAsPaidResult>;
   markAsSkipped(paymentId: string, skippedDate: string, updatedAt: string): Promise<void>;
   undoSkip(paymentId: string, today: string, updatedAt: string): Promise<void>;
   runHousekeeping(now: Date): Promise<void>;
@@ -239,7 +245,7 @@ export class CommitmentRepository implements ICommitmentRepository {
     await addPayments(db, payments);
   }
 
-  async markAsPaid(paymentId: string, details: PaymentDetails): Promise<CommitmentPaymentAmounts> {
+  async markAsPaid(paymentId: string, details: PaymentDetails): Promise<MarkAsPaidResult> {
     const db = await getDb();
     const payment = await getPaymentById(db, paymentId);
     if (!payment) throw new CommitmentPaymentNotFoundError(paymentId);
@@ -289,8 +295,8 @@ export class CommitmentRepository implements ICommitmentRepository {
     });
     // Persist the resolver's rounded amount, not the raw `details.amount_paid`.
     const paidDetails = { ...details, amount_paid: amounts.paymentAmount };
-    await markCommitmentAsPaid(db, paymentId, paidDetails, tx, accountDelta);
-    return amounts;
+    const transactionId = await markCommitmentAsPaid(db, paymentId, paidDetails, tx, accountDelta);
+    return { amounts, transactionId };
   }
 
   async markAsSkipped(paymentId: string, skippedDate: string, updatedAt: string): Promise<void> {

@@ -367,15 +367,16 @@ export interface MarkAsPaidDetails {
   notes?: string;
 }
 
-/** One transaction: mark paid, insert the tx row, apply the account delta, link the two. */
+/** One transaction: mark paid, insert the tx row, apply the account delta, link the two; resolves the linked transaction id. */
 export async function markCommitmentAsPaid(
   db: SQLiteDatabase,
   paymentId: string,
   details: MarkAsPaidDetails,
   tx: Transaction,
   accountDelta: AccountDelta,
-): Promise<void> {
+): Promise<string> {
   const now = new Date().toISOString();
+  let linkedTransactionId = tx.id;
 
   await withWriteTransactionAsync(db, async () => {
     const paymentResult = await db.runAsync(
@@ -403,6 +404,7 @@ export async function markCommitmentAsPaid(
     if (paymentResult.changes !== 1) {
       const existing = await getPaymentById(db, paymentId);
       if (existing && existing.paid_date !== null && existing.transaction_id !== null) {
+        linkedTransactionId = existing.transaction_id;
         return;
       }
       if (!existing) throw new Error(`Commitment payment not found: ${paymentId}`);
@@ -421,4 +423,5 @@ export async function markCommitmentAsPaid(
     );
     if (linkResult.changes !== 1) throw new Error(`Commitment payment not found: ${paymentId}`);
   });
+  return linkedTransactionId;
 }

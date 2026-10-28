@@ -8,6 +8,7 @@ import type {
   NewCommitmentInput,
   PaymentDetails,
   UpdateCommitmentInput,
+  MarkAsPaidResult,
 } from '@/modules/commitments/repositories/commitment.repository';
 import {
   createCommitmentStore,
@@ -79,6 +80,10 @@ function paymentAmounts(
   };
 }
 
+function markAsPaidResult(overrides: Partial<CommitmentPaymentAmounts> = {}): MarkAsPaidResult {
+  return { amounts: paymentAmounts(overrides), transactionId: 'tx-1' };
+}
+
 function makeRepository(overrides: Partial<ICommitmentRepository> = {}): ICommitmentRepository {
   return {
     getAll: jest.fn().mockResolvedValue([commitment()]),
@@ -93,7 +98,7 @@ function makeRepository(overrides: Partial<ICommitmentRepository> = {}): ICommit
     getPaidCount: jest.fn().mockResolvedValue(0),
     getExistingDueDates: jest.fn().mockResolvedValue([]),
     insertPayments: jest.fn().mockResolvedValue(undefined),
-    markAsPaid: jest.fn().mockResolvedValue(paymentAmounts()),
+    markAsPaid: jest.fn().mockResolvedValue(markAsPaidResult()),
     markAsSkipped: jest.fn().mockResolvedValue(undefined),
     undoSkip: jest.fn().mockResolvedValue(undefined),
     runHousekeeping: jest.fn().mockResolvedValue(undefined),
@@ -571,7 +576,7 @@ describe('commitment store mutation invalidation', () => {
   });
 
   it('locks a payment against a stale Skip while Pay persistence is in flight', async () => {
-    const payRequest = deferred<CommitmentPaymentAmounts>();
+    const payRequest = deferred<MarkAsPaidResult>();
     const repository = makeRepository({
       markAsPaid: jest.fn().mockReturnValue(payRequest.promise),
     });
@@ -582,7 +587,7 @@ describe('commitment store mutation invalidation', () => {
     const skipAction = store.getState().skipPayment('payment');
 
     expect(store.getState().transitioningPaymentIds).toEqual(['payment']);
-    payRequest.resolve(paymentAmounts());
+    payRequest.resolve(markAsPaidResult());
     await payAction;
     await expect(skipAction).rejects.toThrow('Payment transition already in progress: payment');
     expect(repository.markAsSkipped).not.toHaveBeenCalled();
@@ -605,6 +610,7 @@ describe('commitment store mutation invalidation', () => {
         skipped_date: null,
         amount_paid: paymentAmounts().paymentAmount,
         account_id: paymentDetails.account_id,
+        transaction_id: 'tx-1',
       }),
     ]);
     expect(store.getState().payments[0]).not.toHaveProperty('status');
@@ -617,7 +623,7 @@ describe('commitment store mutation invalidation', () => {
   it('S-01: patches the amount the repository resolved, not the raw input', async () => {
     const refresh = deferred<void>();
     const repository = makeRepository({
-      markAsPaid: jest.fn().mockResolvedValue(paymentAmounts({ paymentAmount: 11 })),
+      markAsPaid: jest.fn().mockResolvedValue(markAsPaidResult({ paymentAmount: 11 })),
     });
     const store = createCommitmentStore(repository);
     await store.getState().loadMonthSnapshot(MAY);
@@ -644,7 +650,7 @@ describe('commitment store mutation invalidation', () => {
           ),
         ),
       markAsPaid: jest.fn().mockResolvedValue(
-        paymentAmounts({
+        markAsPaidResult({
           paymentAmount: 10,
           accountNativeAmount: 505,
           egpAmount: 505,
@@ -669,7 +675,7 @@ describe('commitment store mutation invalidation', () => {
     const refreshError = new Error('post-pay refresh failed');
     const repository = makeRepository({
       // 10.999 in, 11 out, so a patch keeping the raw input is distinguishable from the resolved.
-      markAsPaid: jest.fn().mockResolvedValue(paymentAmounts({ paymentAmount: 11 })),
+      markAsPaid: jest.fn().mockResolvedValue(markAsPaidResult({ paymentAmount: 11 })),
     });
     const store = createCommitmentStore(repository);
     await store.getState().loadMonthSnapshot(MAY);
@@ -681,6 +687,7 @@ describe('commitment store mutation invalidation', () => {
 
     // `revalidateAfterMutation` is fire-and-forget with a log-only catch, so this patch is final.
     expect(store.getState().payments[0].amount_paid).toBe(11);
+    expect(store.getState().payments[0].transaction_id).toBe('tx-1');
     consoleSpy.mockRestore();
   });
 
@@ -873,7 +880,7 @@ describe('commitment store undoSkip', () => {
   });
 
   it('refuses an undo while a pay on the same row is in flight, with no repository call', async () => {
-    const payRequest = deferred<CommitmentPaymentAmounts>();
+    const payRequest = deferred<MarkAsPaidResult>();
     const repository = makeRepository({
       markAsPaid: jest.fn().mockReturnValue(payRequest.promise),
     });
@@ -885,7 +892,7 @@ describe('commitment store undoSkip', () => {
 
     await expect(undoAction).rejects.toThrow('Payment transition already in progress: payment');
     expect(repository.undoSkip).not.toHaveBeenCalled();
-    payRequest.resolve(paymentAmounts());
+    payRequest.resolve(markAsPaidResult());
     await payAction;
   });
 });
