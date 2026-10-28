@@ -24,7 +24,7 @@ describe('useCommitmentFormBodyState', () => {
   it('claim opens a copy entry with every picker, date picker and choice sheet hidden', () => {
     useCommitmentFormBodyState.getState().claim('owner-a');
 
-    expect(entryOf('owner-a')).toMatchObject({
+    expect(entryOf('owner-a')).toStrictEqual({
       categoryPickerVisible: false,
       showEndDatePicker: false,
       choiceSheet: undefined,
@@ -50,7 +50,7 @@ describe('useCommitmentFormBodyState', () => {
       write('owner-b');
       expect(entryOf('owner-a')).toBe(before);
     }
-    expect(entryOf('owner-b')).toMatchObject({
+    expect(entryOf('owner-b')).toEqual({
       categoryPickerVisible: true,
       showEndDatePicker: true,
       choiceSheet: 'repeats',
