@@ -13,8 +13,8 @@ import { type CommitmentFormValues, SET_OPTS, composeFieldBlur } from '../commit
 import {
   COMMITMENT_FORM_PICKER_GAP,
   COMMITMENT_FORM_PILL_SLOP,
-  COMMITMENT_PICKER_CAPTION_ROW_EDGE,
-  COMMITMENT_PICKER_CAPTION_ROW_OVER_ROW_EDGE,
+  COMMITMENT_PICKER_FIRST_ROW_EDGE,
+  COMMITMENT_PICKER_FIRST_ROW_OVER_ROW_EDGE,
 } from './commitment_form.geometry';
 import { useRecurrencePeriodRoom } from './recurrence_picker.hook';
 
@@ -47,7 +47,7 @@ export function RecurrencePicker({ form, recurrencePreset, onPresetChange }: Pro
   const periodRoom = useRecurrencePeriodRoom();
   const presetTouch = useTouchFloorGridHitSlop(
     COMMITMENT_FORM_PICKER_GAP,
-    isCustom ? COMMITMENT_PICKER_CAPTION_ROW_OVER_ROW_EDGE : COMMITMENT_PICKER_CAPTION_ROW_EDGE,
+    isCustom ? COMMITMENT_PICKER_FIRST_ROW_OVER_ROW_EDGE : COMMITMENT_PICKER_FIRST_ROW_EDGE,
     COMMITMENT_FORM_PILL_SLOP,
     PRESET_KEYS,
   );
@@ -98,7 +98,8 @@ export function RecurrencePicker({ form, recurrencePreset, onPresetChange }: Pro
                   value={value != null ? String(value) : ''}
                   onChangeText={(v) => {
                     if (v === '') {
-                      onChange(undefined);
+                      // An `undefined` field reads back as its default value through `Controller`, so an emptied field holds `null`.
+                      onChange(null);
                       return;
                     }
                     const n = parseInt(v, 10);

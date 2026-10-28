@@ -17,8 +17,8 @@ import { type CommitmentFormValues, SET_OPTS, composeFieldBlur } from '../commit
 import {
   COMMITMENT_FORM_PICKER_GAP,
   COMMITMENT_FORM_PILL_SLOP,
-  COMMITMENT_PICKER_CAPTION_ROW_EDGE,
-  COMMITMENT_PICKER_CAPTION_ROW_OVER_ROW_EDGE,
+  COMMITMENT_PICKER_FIRST_ROW_EDGE,
+  COMMITMENT_PICKER_FIRST_ROW_OVER_ROW_EDGE,
 } from './commitment_form.geometry';
 
 interface Props {
@@ -49,8 +49,8 @@ export function DurationPicker({
   const durationTouch = useTouchFloorGridHitSlop(
     COMMITMENT_FORM_PICKER_GAP,
     durationType === DurationType.Forever
-      ? COMMITMENT_PICKER_CAPTION_ROW_EDGE
-      : COMMITMENT_PICKER_CAPTION_ROW_OVER_ROW_EDGE,
+      ? COMMITMENT_PICKER_FIRST_ROW_EDGE
+      : COMMITMENT_PICKER_FIRST_ROW_OVER_ROW_EDGE,
     COMMITMENT_FORM_PILL_SLOP,
   );
 

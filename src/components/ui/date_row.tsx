@@ -8,7 +8,7 @@ import { CoreTokens } from '@/constants/theme_tokens';
 import { formatWeekdayDate } from '@/utils/format_date';
 
 import { DatePickerSheet } from './date_picker_sheet';
-import { useTransactionDatePicker } from './date_picker_sheet.hook';
+import { useDateRowPicker } from './date_picker_sheet.hook';
 import { FormPickerRow } from './form_picker_row';
 
 interface Props {
@@ -20,6 +20,7 @@ interface Props {
   testID?: string;
   pickerTitle?: string;
   capsAtToday?: boolean;
+  disabled?: boolean;
 }
 
 export function DateRow({
@@ -31,8 +32,9 @@ export function DateRow({
   testID = 'date-row',
   pickerTitle = Strings.addTxDatePickerTitle,
   capsAtToday = true,
+  disabled,
 }: Props): React.ReactElement {
-  const picker = useTransactionDatePicker(ownerId, value, onChange, capsAtToday);
+  const picker = useDateRowPicker(ownerId, value, onChange, { capsAtToday });
   const formatted = formatWeekdayDate(value);
 
   return (
@@ -42,6 +44,7 @@ export function DateRow({
         label={label}
         value={formatted}
         onPress={picker.open}
+        disabled={disabled}
         divider={divider}
         accessibilityLabel={`${label}: ${formatted}`}
         suffix={

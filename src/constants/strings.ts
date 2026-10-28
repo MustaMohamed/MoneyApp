@@ -1113,6 +1113,7 @@ export const Strings = {
   commitmentsDurationAfterCount: 'After N payments',
   commitmentsDurationUntilDate: 'Until date',
   commitmentsEndsNever: 'Never',
+  commitmentsEndsRowNever: 'Never',
   commitmentsDurationStopAfter: 'Stop after',
   commitmentsDurationPayments: 'payments',
   commitmentsSave: 'Save Commitment',

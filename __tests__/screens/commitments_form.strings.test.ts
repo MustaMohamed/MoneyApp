@@ -39,7 +39,7 @@ describe('commitment form copy (MA-255)', () => {
 
   it('ships the Ends row no-end value and the Stop link byte-exact', () => {
     expect({
-      never: Strings.commitmentsEndsNever,
+      never: Strings.commitmentsEndsRowNever,
       stop: Strings.commitmentsStopLink,
     }).toEqual({
       never: 'Never',

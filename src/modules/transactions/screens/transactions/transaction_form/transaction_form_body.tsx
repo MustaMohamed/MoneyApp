@@ -26,9 +26,9 @@ import { CoreTokens } from '@/constants/theme_tokens';
 import { resolveAccountGlyphColor } from '@/modules/accounts/constants/account_glyph_color';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
+import { CategoryPickerRow } from '@/modules/categories/components/category_picker_row';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { isRateStale } from '@/modules/currency/store/currency.helpers';
-import { toIconName } from '@/utils/icon_name_guard';
 
 import { TransactionAmountHero } from './components/transaction_amount_hero';
 import {
@@ -237,29 +237,12 @@ export function TransactionFormBody(props: Props): React.ReactElement {
 
           {!isTransferOrCC ? (
             <View className={FORM_FACT_CELL_CLASS}>
-              <FormPickerRow
+              <CategoryPickerRow
                 testID="category-row"
-                divider={false}
-                onPress={onOpenCategoryPicker}
                 label={Strings.addTxCategoryLabel}
+                category={selectedCategory ?? undefined}
+                onPress={onOpenCategoryPicker}
                 accessibilityHint={categoryError}
-                value={selectedCategory?.name ?? Strings.addTxPickCategoryTitle}
-                prefix={
-                  <MaterialCommunityIcons
-                    name={
-                      selectedCategory ? toIconName(selectedCategory.icon, 'tag') : 'tag-outline'
-                    }
-                    size={Size.filterSegmentIcon}
-                    color={selectedCategory?.color ?? CoreTokens.text1}
-                  />
-                }
-                suffix={
-                  <MaterialCommunityIcons
-                    name="chevron-right"
-                    size={Size.iconSm}
-                    color={CoreTokens.text2}
-                  />
-                }
               />
               {categoryError !== undefined ? <DangerRing testID="category-ring" /> : null}
             </View>

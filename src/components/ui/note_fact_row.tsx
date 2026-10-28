@@ -19,9 +19,11 @@ interface NoteFactRowProps {
   testID?: string;
   maxLength?: number;
   inset?: boolean;
+  disabled?: boolean;
+  accessibilityHint?: string;
 }
 
-/** A form card's last row; it renders inside a `Sheet`'s children, where the sheet-aware handlers reach gorhom. */
+/** A form card's free-text row; it renders inside a `Sheet`'s children, where the sheet-aware handlers reach gorhom. */
 export function NoteFactRow({
   label,
   placeholder,
@@ -32,6 +34,8 @@ export function NoteFactRow({
   testID = 'note-row',
   maxLength,
   inset = true,
+  disabled,
+  accessibilityHint,
 }: NoteFactRowProps): ReactElement {
   const { onFocus: onSheetFocus, onBlur: onSheetBlur } = useBottomSheetAwareHandlers();
   const { fontScale } = useWindowDimensions();
@@ -51,6 +55,8 @@ export function NoteFactRow({
         value={value}
         onChangeText={onChangeText}
         maxLength={maxLength}
+        isDisabled={disabled}
+        accessibilityHint={accessibilityHint}
         placeholder={placeholder}
         placeholderTextColor={CoreTokens.text2}
         onFocus={handleFocus}

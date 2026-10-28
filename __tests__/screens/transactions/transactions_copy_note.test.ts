@@ -152,7 +152,6 @@ describe('the two departures from the Copy note', () => {
 describe('labels the note does not write stay as shipped', () => {
   it.each([
     ['emptyFilteredClearCta', Strings.emptyFilteredClearCta, 'Clear Filters'],
-    ['addTxPickCategoryTitle', Strings.addTxPickCategoryTitle, 'Select category'],
     ['addTxNoAccountsCta', Strings.addTxNoAccountsCta, 'Add Account'],
   ])('%s keeps its shipped case', (_key, value, expected) => {
     expect(value).toBe(expected);

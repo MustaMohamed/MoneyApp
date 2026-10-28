@@ -31,8 +31,8 @@ import { Size, Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 import type { Account } from '@/database/entities/account.entity';
 import type { Category } from '@/database/entities/category.entity';
+import { CategoryPickerRow } from '@/modules/categories/components/category_picker_row';
 import { CategoryPickerSheet } from '@/modules/categories/components/category_picker_sheet';
-import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
 
 import {
@@ -259,6 +259,8 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
                     testID="name-row"
                     inset={false}
                     maxLength={50}
+                    disabled={locked}
+                    accessibilityHint={errors.name}
                     label={Strings.commitmentsFieldName}
                     placeholder={Strings.commitmentsNamePlaceholder}
                     // oxlint-disable-next-line typescript/no-unnecessary-condition -- RHF field value can be null at reset
@@ -272,24 +274,13 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
             </View>
 
             <View className={FORM_FACT_CELL_CLASS}>
-              <FormPickerRow
+              <CategoryPickerRow
                 testID="category-row"
-                divider={false}
+                label={Strings.commitmentsFieldCategory}
+                category={selectedCategory}
                 onPress={() => setCategoryPickerVisible(true)}
                 disabled={locked}
-                label={Strings.commitmentsFieldCategory}
                 accessibilityHint={errors.categoryId}
-                value={selectedCategory?.name ?? Strings.addTxPickCategoryTitle}
-                prefix={
-                  <MaterialCommunityIcons
-                    name={
-                      selectedCategory ? toIconName(selectedCategory.icon, 'tag') : 'tag-outline'
-                    }
-                    size={Size.filterSegmentIcon}
-                    color={selectedCategory?.color ?? CoreTokens.text1}
-                  />
-                }
-                suffix={chevron}
               />
               {errors.categoryId !== undefined ? <DangerRing testID="category-ring" /> : null}
             </View>
@@ -318,6 +309,7 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
                 testID="starts-row"
                 pickerTitle={Strings.commitmentsFieldStartDate}
                 capsAtToday={false}
+                disabled={locked}
               />
               {errors.startDate !== undefined ? <DangerRing testID="starts-ring" /> : null}
             </View>

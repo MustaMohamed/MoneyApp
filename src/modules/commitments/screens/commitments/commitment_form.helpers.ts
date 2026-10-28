@@ -1,7 +1,7 @@
 import type { UseFormReturn } from 'react-hook-form';
 
 import type { AccountStripChip } from '@/components/ui/form_sheet.helpers';
-import { AccountType, type DurationType, type RecurrencePeriod } from '@/constants/enums';
+import { AccountType, DurationType, type RecurrencePeriod } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import {
@@ -12,12 +12,12 @@ import { formatStoredMoneyText } from '@/utils/money_text';
 import { parseTypingDecimalText } from '@/utils/parse_decimal';
 import { holdStillTypingDecimal } from '@/utils/use_zod_form.hook';
 
+import { buildCommitmentEndsLabel } from '../../utils/commitment_ends_label';
 import { buildRecurrenceLabel } from '../../utils/recurrence_label';
 import {
   COMMITMENT_AMOUNT_REFUSES_ZERO,
   type CommitmentFormValues,
 } from './commitment_form.shared';
-import { buildCommitmentEndsLabel } from './detail/detail.helpers';
 
 export const NO_ACCOUNT_CHIP_ID = 'no-account';
 
@@ -90,7 +90,7 @@ export function applyCommitmentAmountText(
   }
 }
 
-/** The Repeats row: `Custom` while the Every input is empty, which RHF holds as `undefined`, or `null` at reset. */
+/** The Repeats row: `Custom` while the Every input is empty, which the field holds as `null`. */
 export function resolveRepeatsRowValue(
   every: number | undefined,
   period: RecurrencePeriod,
@@ -99,12 +99,13 @@ export function resolveRepeatsRowValue(
   return buildRecurrenceLabel({ recurrence_every: every, recurrence_period: period });
 }
 
-/** The Ends row reads as the detail's Ends fact, so a missing count or date reads the incomplete label. */
+/** The Ends row reads `Never` from its own key, and otherwise as the detail's Ends fact, so a missing count or date reads the incomplete label. */
 export function resolveEndsRowValue(
   durationType: DurationType,
   endAfterCount: number | undefined,
   endDate: string | undefined,
 ): string {
+  if (durationType === DurationType.Forever) return Strings.commitmentsEndsRowNever;
   return buildCommitmentEndsLabel({
     duration_type: durationType,
     end_after_count: endAfterCount ?? null,
