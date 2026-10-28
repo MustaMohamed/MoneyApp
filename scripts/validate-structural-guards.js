@@ -288,19 +288,16 @@ const NAMED_ROWS = [
     rule: 'in `Screen`; `SafeAreaView` collapses the flex chain on Android Fabric',
   },
   {
-    files: [`${UI}/filter_rail.tsx`],
-    required: [tag('MonthFilter'), tag('SegmentFilter')],
-    needs: '`FilterRail` composes `MonthFilter` and `SegmentFilter`',
-  },
-  {
     files: [COMMITMENTS_INDEX],
     banned: [identifier('CommitmentHeader')],
     rule: 'in the commitments screen; its header is the HeroUI tab header',
     required: [
-      tag('FilterRail'),
+      tag('MonthFilter'),
+      tag('SegmentFilter'),
       ...members('CommitmentPaymentStatus', ['Overdue', 'Due', 'Upcoming', 'Paid', 'Skipped']),
     ],
-    needs: 'the commitments screen filters through `FilterRail` over every payment status',
+    needs:
+      'the commitments screen filters through `MonthFilter` and `SegmentFilter` over every payment status',
   },
   {
     files: [

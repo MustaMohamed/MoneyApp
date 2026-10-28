@@ -5,7 +5,7 @@ import { Size, Spacing, touchFloorHitSlopWithin } from '@/constants/theme';
 // Raw dp: `ms(8)` is 7 on a narrow phone, and three 7s leave the block short of two touch floors.
 const RAIL_SPACE_FLOOR = 8;
 
-export interface TransactionsRailGeometry {
+export interface ListRailGeometry {
   /** Above the month row, between the two rows and under the tab track. */
   space: number;
   monthRowHitSlop: MonthRowHitSlop;
@@ -13,7 +13,7 @@ export interface TransactionsRailGeometry {
 }
 
 /** The gap between the rows splits at its middle. */
-export function resolveTransactionsRailGeometry(scaledSpace: number): TransactionsRailGeometry {
+export function resolveListRailGeometry(scaledSpace: number): ListRailGeometry {
   const space = Math.max(scaledSpace, RAIL_SPACE_FLOOR);
   return {
     space,
@@ -24,11 +24,11 @@ export function resolveTransactionsRailGeometry(scaledSpace: number): Transactio
   };
 }
 
-export const TRANSACTIONS_RAIL = resolveTransactionsRailGeometry(Spacing.xs);
+export const LIST_RAIL = resolveListRailGeometry(Spacing.xs);
 
-export const TRANSACTIONS_RAIL_STYLE = {
-  paddingTop: TRANSACTIONS_RAIL.space,
-  paddingBottom: TRANSACTIONS_RAIL.space,
+export const LIST_RAIL_STYLE = {
+  paddingTop: LIST_RAIL.space,
+  paddingBottom: LIST_RAIL.space,
 } as const;
 // A margin, never a `gap` on the rail: Yoga would count a gap twice around `MonthFilter`'s in-flow sheet root.
-export const TRANSACTIONS_RAIL_TABS_STYLE = { marginTop: TRANSACTIONS_RAIL.space } as const;
+export const LIST_RAIL_TABS_STYLE = { marginTop: LIST_RAIL.space } as const;

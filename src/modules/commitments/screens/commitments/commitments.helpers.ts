@@ -1,8 +1,10 @@
 import type { DayCardTone } from '@/components/ui/day_card_row.helpers';
 import type { DayHeaderFigures, DayHeaderSection } from '@/components/ui/day_header';
+import type { SearchTallyModel } from '@/components/ui/search_tally';
+import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AmountType, CommitmentPaymentStatus, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { formatAmount, formatDisplayAmount } from '@/utils/format_amount';
+import { formatAmount, formatDisplayAmount, formatDisplayMagnitude } from '@/utils/format_amount';
 
 import {
   type CommitmentRowsTotal,
@@ -13,6 +15,7 @@ import { isDueInMonth, resolvePaymentState } from '../../domain/payment_state';
 import type { Commitment } from '../../entities/commitment.entity';
 import type { CommitmentMonthPayment } from '../../entities/commitment_payment.entity';
 import type { CommitmentStatusFilter } from './commitments.state';
+import type { CommitmentsHeroMode } from './components/commitments_hero.helpers';
 
 export interface CommitmentsSection extends DayHeaderSection {
   key: CommitmentPaymentStatus;
@@ -142,4 +145,67 @@ export function buildCommitmentSections(input: CommitmentSectionsInput): Commitm
   }
 
   return { sections, tally: sumCommitmentRowsEgp(heldSumRows, liveRate) };
+}
+
+interface CommitmentsSearchTallyInput {
+  isOn: boolean;
+  heroMode: CommitmentsHeroMode;
+  /** `undefined` while the rows are not summed. */
+  total: CommitmentRowsTotal | undefined;
+}
+
+const NO_TALLY_TEXT = {
+  count: undefined,
+  label: '',
+  filterSummary: undefined,
+  sum: undefined,
+  accessibilityLabel: undefined,
+} as const;
+
+function tallyLine(
+  mode: SearchTallyModel['mode'],
+  count: string,
+  label: string,
+  sum: SearchTallyModel['sum'],
+): SearchTallyModel {
+  const spoken = sum === undefined ? [count, label] : [count, label, sum.text, sum.currencyCode];
+  return {
+    mode,
+    count,
+    label,
+    filterSummary: undefined,
+    sum,
+    accessibilityLabel: spoken.join(' '),
+  };
+}
+
+/** Follows the hero: its skeleton draws one bar, its dashes print `— payments`. */
+export function buildCommitmentsSearchTally(input: CommitmentsSearchTallyInput): SearchTallyModel {
+  const { isOn, heroMode, total } = input;
+  if (!isOn) return { mode: 'empty', ...NO_TALLY_TEXT };
+  if (heroMode === 'skeleton' || (heroMode === 'figures' && total === undefined)) {
+    return { mode: 'skeleton', ...NO_TALLY_TEXT };
+  }
+  if (heroMode === 'dashes' || total === undefined) {
+    return tallyLine(
+      'failed',
+      Strings.commitmentsHeroUnavailable,
+      Strings.commitmentsTallyPayments,
+      undefined,
+    );
+  }
+  if (total.count === 0) {
+    return tallyLine('figures', formatAmount(0), Strings.commitmentsTallyPayments, undefined);
+  }
+  const magnitude = formatDisplayMagnitude(total.egp, Currency.EGP).text;
+  return tallyLine(
+    'figures',
+    formatAmount(total.count),
+    total.count === 1 ? Strings.commitmentsTallyOnePayment : Strings.commitmentsTallyPayments,
+    {
+      text: total.showTilde ? Strings.commitmentsSectionSumEstimate(magnitude) : magnitude,
+      polarity: 'neutral',
+      currencyCode: CURRENCY_CONFIG[Currency.EGP].code,
+    },
+  );
 }

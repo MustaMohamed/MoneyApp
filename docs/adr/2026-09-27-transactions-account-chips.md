@@ -3,7 +3,7 @@
 - **Date:** 2026-09-27
 - **Status:** accepted
 - **Ticket:** MA-120
-- **Applies to:** `toggleAccountFilter`, `countFunnelFilters` and `pruneAccountFilter` in `src/modules/transactions/screens/transactions/filter/filter.helpers.ts`; `AccountChipModel` and `buildAccountChips` in `src/components/ui/account_chips.helpers.ts`; `useTransactions` in `src/modules/transactions/screens/transactions/transactions.hook.ts`; `AccountChips` in `src/components/ui/account_chips.tsx`
+- **Applies to:** `toggleAccountFilter`, `countFunnelFilters`, `pruneAccountFilter`, `AccountChipModel` and `buildAccountChips` in `src/components/ui/account_chips.helpers.ts`; `useTransactions` in `src/modules/transactions/screens/transactions/transactions.hook.ts`; `useCommitments` in `src/modules/commitments/screens/commitments/commitments.hook.ts`; `AccountChips` in `src/components/ui/account_chips.tsx`
 
 A row of chips sits between the hero and the search field: All accounts first, then one chip per active account in list order. A chip is on when the applied account filter holds exactly its one account, and All accounts is on when it holds none. Each account chip leads with its account-type icon in the account's glyph tone, matching the sheet's account pill, instead of the frame's coloured dot (ruled 2026-09-27).
 
@@ -20,3 +20,5 @@ One applied account is already shown by its lit chip, so the filter button's cou
 ## 3. An applied account that is no longer active leaves the filter once accounts have loaded
 
 An account archived or deleted while it sits in the applied filter would otherwise scope the tab to a chip that no longer exists. Once the account store has loaded, the hook derives the effective filter with `pruneAccountFilter`, which drops every id missing from the active account list, and writes it back to the store. Every query, the hero title, the section context label and the sheet's draft read the effective filter, so no query carries a dropped id. Before the first account load lands, the applied ids stay as they are. See all from an archived account's detail therefore lands on All accounts.
+
+**Extended 2026-10-28 (#834, MA-241).** `toggleAccountFilter`, `pruneAccountFilter` and `countFunnelFilters` moved from the transactions filter helpers to `src/components/ui/account_chips.helpers.ts`, beside `buildAccountChips`, because the commitments tab mounts the same chips. The toggle and the prune are generic over any filter with `accountIds`, so the commitments filter keeps its other fields, and `countFunnelFilters(activeCount, accountIds)` takes the count each tab's own counter gives. The commitments tab follows §1 to §3 as the transactions tab does: a chip writes the applied account filter, the funnel counts accounts only at two or more, and an account that is no longer active leaves the filter once accounts have loaded. Two or more applied accounts light no chip on either tab, and only no account lights All accounts (Decision 2026-10-23, C).

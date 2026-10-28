@@ -146,7 +146,7 @@ export async function getPaymentMonthAggregate(
     scope.accountId === undefined
       ? { sql: '', params: [] }
       : {
-          sql: 'AND COALESCE(payment.account_id, commitment.account_id) = ?',
+          sql: `AND CASE WHEN ${paidPaymentSql('payment')} THEN payment.account_id ELSE commitment.account_id END = ?`,
           params: [scope.accountId],
         };
 

@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { HERO_SHELL_MARGIN_BOTTOM } from '@/components/ui/hero_shell.geometry';
+import { CHIP_ROW_ROOM_BELOW } from '@/components/ui/account_chips.geometry';
 import { SearchFilterRow } from '@/components/ui/search_filter_row';
 import { Strings } from '@/constants/strings';
 
@@ -25,7 +25,7 @@ export function CommitmentSearchRow({
       onOpenFilter={onOpenFilter}
       activeFilterCount={activeFilterCount}
       filterBadgeTestID="commitment-filter-badge"
-      topRoom={HERO_SHELL_MARGIN_BOTTOM}
+      topRoom={CHIP_ROW_ROOM_BELOW}
     />
   );
 }

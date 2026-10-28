@@ -9,18 +9,19 @@ import {
 } from '@/components/ui/detail_fact_row.helpers';
 import type { AccountStripChip, AccountStripTile } from '@/components/ui/form_sheet.helpers';
 import {
-  type ScaledTextStyle,
   resolveFitLineTextProps,
   resolveKeptSpaceHeight,
+  resolveOpeningLettersMinWidth,
   resolveRowStacking,
   scaledLineHeight,
   scaledTextStyle,
+  type ScaledTextStyle,
 } from '@/components/ui/text_scale.geometry';
 import { TYPE_BADGE_VERTICAL_CHROME } from '@/components/ui/type_badge';
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Type, lineHeightFor } from '@/constants/theme';
+import { Size, Type, lineHeightFor } from '@/constants/theme';
 import {
   AccentCCTokens,
   AcctTokens,
@@ -55,6 +56,19 @@ type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 // Whole device pixels, so stacked rows and day-card slices meet on a pixel edge.
 export const TRANSACTION_ROW_HEIGHT = PixelRatio.roundToNearestPixel(ms(60));
 export const TRANSACTION_ROW_TITLE_FONT_SIZE = Type.bodyStrong;
+// Raw dp: the 6 dp `gap-1.5` drew, which the title line's minimum adds up exactly.
+export const ROW_TITLE_LINE_GAP = 6;
+
+/** Above 1.0 the title line's narrowest: its glyph, the title's opening letters, and its slot's minimum when it holds one. */
+export function resolveRowTitleLineMinWidth(
+  slotMinWidth: number | undefined,
+  fontScale: number,
+): number | undefined {
+  const openingLetters = resolveOpeningLettersMinWidth(TRANSACTION_ROW_TITLE_FONT_SIZE, fontScale);
+  if (openingLetters === undefined) return undefined;
+  const titleLine = Size.rowGlyph + ROW_TITLE_LINE_GAP + openingLetters;
+  return slotMinWidth === undefined ? titleLine : titleLine + ROW_TITLE_LINE_GAP + slotMinWidth;
+}
 export const TRANSACTION_ROW_CAPTION_FONT_SIZE = Type.micro;
 export const TRANSACTION_ROW_AMOUNT_FONT_SIZE = Type.bodyStrong;
 export const TRANSACTION_ROW_CODE_FONT_SIZE = Type.micro;

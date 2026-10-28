@@ -30,7 +30,9 @@ A paid row counts the EGP amount its transaction wrote, never `amount_paid` or t
 
 ## 4. One account, by the row's account
 
-With an `accountId`, each branch adds `AND COALESCE(payment.account_id, commitment.account_id) = ?`. Pay writes the paid-from account to `payment.account_id`, so a paid row counts under that account. An unpaid or skipped row with no `account_id` falls back to its commitment's account, as `commitments.hook.ts` does. Without an `accountId` the clause and its parameter are absent; there is no `? IS NULL OR` chain (audit L34). `account_id` has no index, so the `COALESCE` wraps no indexed column.
+With an `accountId`, each branch adds `AND CASE WHEN <paid> THEN payment.account_id ELSE commitment.account_id END = ?`, `<paid>` being `paidPaymentSql('payment')`. Pay writes the paid-from account to `payment.account_id`, so a paid row counts under that account. An unpaid or skipped row counts under its commitment's current account. Without an `accountId` the clause and its parameter are absent; there is no `? IS NULL OR` chain (audit L34). `account_id` has no index, so the `CASE` wraps no indexed column.
+
+**Amended 2026-10-28 (#834, MA-241).** The clause above replaces `COALESCE(payment.account_id, commitment.account_id)`, which counted an unpaid or skipped row under its own stored `account_id` when it held one. A row now counts under the account the list matches it by and the row tile names (epic #777 R18): `resolveCommitmentRowAccountId` in `src/modules/commitments/screens/commitments/components/commitment_row.helpers.ts`, which `commitmentMatchesAdvancedFilters` reads. A skipped row, or an unpaid row an Undo restored, whose commitment an edit moved to another account counts under the commitment's account in the hero and the list alike. A paid row with a `null` `account_id`, which no app write produces, counts under no account in either. The parameters are unchanged and both branches still plan `idx_cp_due_date` (§5).
 
 ## 5. Both branches plan the due-date index
 

@@ -25,6 +25,7 @@ import { RowCaption } from './row_caption';
 import { useRowPressScale } from './transaction_row.anim';
 import {
   buildTransactionRowPresentation,
+  ROW_TITLE_LINE_GAP,
   type RowTileSet,
   TRANSACTION_ROW_AMOUNT_FONT_SIZE,
   TRANSACTION_ROW_CODE_FONT_SIZE,
@@ -33,6 +34,7 @@ import {
   TRANSACTION_ROW_DUAL_RING_COLOR,
   TRANSACTION_ROW_LINE_GAP,
   TRANSACTION_ROW_TITLE_FONT_SIZE,
+  resolveRowTitleLineMinWidth,
   resolveTransactionRowHeight,
   resolveTransactionRowValueTrackMaxWidth,
   type TransactionRowPresentation,
@@ -132,6 +134,13 @@ export function TransactionRowBody({
   const { fontScale } = useWindowDimensions();
   // Above 1.0 the badge and the label give up their width before the title does.
   const badgeShrinks = fontScale > 1;
+  const slotMinWidth = isCommitmentOwned
+    ? resolveTypeBadgeMinWidth(fontScale)
+    : presentation.ownershipLabel
+      ? scaledFontSize(Type.chip, fontScale) * OWNERSHIP_LABEL_MIN_EM
+      : undefined;
+  // Above 1.0 the value track gives way before the title line drops under its opening letters.
+  const titleLineMinWidth = resolveRowTitleLineMinWidth(slotMinWidth, fontScale);
   const primaryText = resolveFitAmountTextProps(TRANSACTION_ROW_AMOUNT_FONT_SIZE, fontScale);
   const secondaryText = resolveFitAmountTextProps(TRANSACTION_ROW_CODE_FONT_SIZE, fontScale);
 
@@ -152,8 +161,11 @@ export function TransactionRowBody({
       >
         <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-3">
           <RowTiles tiles={presentation.tiles} />
-          <View testID="transaction-row-content-track" style={{ flex: 1, minWidth: 0 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-1.5">
+          <View
+            testID="transaction-row-content-track"
+            style={{ flex: 1, minWidth: titleLineMinWidth ?? 0 }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: ROW_TITLE_LINE_GAP }}>
               <MaterialCommunityIcons
                 name={presentation.glyphName}
                 size={Size.rowGlyph}
@@ -168,20 +180,12 @@ export function TransactionRowBody({
                 {presentation.title}
               </Text>
               {isCommitmentOwned ? (
-                <YieldingSlot
-                  minWidth={badgeShrinks ? resolveTypeBadgeMinWidth(fontScale) : undefined}
-                >
+                <YieldingSlot minWidth={badgeShrinks ? slotMinWidth : undefined}>
                   <TypeBadge type="commitment" fontScale={badgeShrinks ? fontScale : undefined} />
                 </YieldingSlot>
               ) : null}
               {!isCommitmentOwned && presentation.ownershipLabel ? (
-                <YieldingSlot
-                  minWidth={
-                    badgeShrinks
-                      ? scaledFontSize(Type.chip, fontScale) * OWNERSHIP_LABEL_MIN_EM
-                      : undefined
-                  }
-                >
+                <YieldingSlot minWidth={badgeShrinks ? slotMinWidth : undefined}>
                   <Text
                     allowFontScaling={false}
                     className="font-inter-bold text-info"
@@ -205,7 +209,7 @@ export function TransactionRowBody({
           <View
             testID="transaction-row-value-track"
             style={{
-              flexShrink: 0,
+              flexShrink: titleLineMinWidth === undefined ? 0 : 1,
               alignItems: 'flex-end',
               maxWidth: resolveTransactionRowValueTrackMaxWidth(fontScale),
             }}

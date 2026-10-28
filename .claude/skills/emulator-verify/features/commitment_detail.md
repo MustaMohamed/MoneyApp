@@ -5,7 +5,7 @@ Route `/commitments/[id]?cycle=<payment id>` on the tab stack from the list, and
 ## Reach it
 
 - User path: a commitment row on the `Commitments` tab (`commitments.md` § Outbound).
-- Script: `$MQA tap '<commitment name>'` on the list; the row pushes `/commitments/<commitment id>?cycle=<payment id>` (`commitments.hook.ts:311-313`).
+- Script: `$MQA tap '<commitment name>'` on the list; the row pushes `/commitments/<commitment id>?cycle=<payment id>` (`commitments.hook.ts:328-330`).
 - Deep link: `$MQA open '/commitments/<commitment id>?cycle=<payment id>'`; the detail reads the commitment and its rows from the repository, so it opens before any month has loaded.
 
 ## States
@@ -49,7 +49,7 @@ Route `/commitments/[id]?cycle=<payment id>` on the tab stack from the list, and
 ## Gotchas
 
 - The pill is a `View` with no touch handler, so it is flattened out of the accessibility tree: read the label `TextView` and add `py-0.5` (2 dp each side), or measure the painted pill on the shot (`README.md` § The rule).
-- `Mark as paid` is the only way to `Paid` without a seed push, and it does not come back — use one commitment per status, or re-push the seed.
+- `Mark as paid` is the only way to `Paid` without a seed push, and it does not come back: use one commitment per status, or re-push the seed. A seed push that reaches `Paid` gives the row the transaction a Pay writes, by the `Paid row` rule of `commitments.md` § Seeding and forcing states (MA-246).
 
 ## Seeding and forcing states
 

@@ -4,6 +4,7 @@ import { hasAmountFilter, sameStringSet } from '@/modules/transactions/utils/fil
 
 import { isPaidPayment } from '../../../domain/payment_state';
 import { detectPreset } from '../commitment_form.shared';
+import { resolveCommitmentRowAccountId } from '../components/commitment_row.helpers';
 import type { CommitmentAdvancedFilters } from './filter.store';
 
 export interface CommitmentFilterCandidate {
@@ -51,10 +52,8 @@ export function commitmentMatchesAdvancedFilters(
   const { payment, commitment } = candidate;
 
   if (filters.accountIds.length > 0) {
-    const ids = [payment.account_id, commitment?.account_id].filter(
-      (id): id is string => id !== null && id !== undefined,
-    );
-    if (!ids.some((id) => filters.accountIds.includes(id))) return false;
+    const accountId = resolveCommitmentRowAccountId(payment, commitment);
+    if (accountId === undefined || !filters.accountIds.includes(accountId)) return false;
   }
 
   if (filters.categoryIds.length > 0) {

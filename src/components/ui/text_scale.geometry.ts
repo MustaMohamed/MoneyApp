@@ -32,6 +32,17 @@ export function scaledTextStyle(
   return { fontSize: scaled, lineHeight: lineHeightFor(scaled) };
 }
 
+// Two letters and a `…` of Inter medium, in ems of the text's size.
+export const OPENING_LETTERS_EM = 2.4;
+
+/** `undefined` at or below scale 1, where the title keeps its own width. */
+export function resolveOpeningLettersMinWidth(
+  fontSize: number,
+  fontScale: number,
+): number | undefined {
+  return fontScale <= 1 ? undefined : scaledFontSize(fontSize, fontScale) * OPENING_LETTERS_EM;
+}
+
 /** The line box of a size scaled as `scaledTextStyle` scales it. */
 export function scaledLineHeight(
   fontSize: number,
