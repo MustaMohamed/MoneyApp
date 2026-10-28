@@ -608,14 +608,14 @@ describe('buildCommitmentsSearchTally', () => {
       pay('rent-paid-usd', 'rent', {
         due_date: '2026-10-02',
         paid_date: '2026-10-02',
-        amount_paid: 160,
+        amount_paid: 8000,
         account_id: 'acc-usd',
         paid_egp_amount: 8000,
       }),
       pay('netflix-paid-egp', 'netflix', {
         due_date: '2026-10-03',
         paid_date: '2026-10-03',
-        amount_paid: 775,
+        amount_paid: 15.5,
         account_id: 'acc-egp',
         paid_egp_amount: 775,
       }),

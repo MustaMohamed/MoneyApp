@@ -17,9 +17,9 @@ import {
   isDueInMonth,
   resolvePaymentState,
 } from '@/modules/commitments/domain/payment_state';
+import { resolveCommitmentRowAccountId } from '@/modules/commitments/domain/payment_state';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
-import { resolveCommitmentRowAccountId } from '@/modules/commitments/screens/commitments/components/commitment_row.helpers';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
 import { bridgeBetterSQLite, getExpoSQLiteTestDatabase } from '@/test_helpers/sqlite';

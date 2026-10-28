@@ -2,7 +2,6 @@ import { PixelRatio } from 'react-native';
 
 import {
   resolveFitLineTextProps,
-  resolveOpeningLettersMinWidth,
   scaledFontSize,
   scaledTextStyle,
 } from '@/components/ui/text_scale.geometry';
@@ -911,8 +910,8 @@ describe('resolveRowCaptionTrail (MA-243)', () => {
 });
 
 describe('resolveRowTitleLineMinWidth (MA-263)', () => {
-  it('draws the title line gap at the 6 dp gap-1.5 draws', () => {
-    expect(ROW_TITLE_LINE_GAP).toBe(6);
+  it('draws the title line gap at ms(6), 7 dp under Jest’s window', () => {
+    expect(ROW_TITLE_LINE_GAP).toBe(7);
   });
 
   it.each([1, 0.85])('is undefined at font scale %d, with or without a slot', (fontScale) => {
@@ -921,19 +920,11 @@ describe('resolveRowTitleLineMinWidth (MA-263)', () => {
   });
 
   it('holds the glyph, a gap and the title’s opening letters at font scale 2.0 with no slot', () => {
-    const openingLetters = resolveOpeningLettersMinWidth(TRANSACTION_ROW_TITLE_FONT_SIZE, 2) ?? 0;
-
-    expect(openingLetters).toBeGreaterThan(0);
-    expect(resolveRowTitleLineMinWidth(undefined, 2)).toBe(
-      Size.rowGlyph + ROW_TITLE_LINE_GAP + openingLetters,
-    );
+    // Jest's window: glyph 16 + gap 7 + 2.4 em of the 17.5 dp title at 2.0, 84.
+    expect(resolveRowTitleLineMinWidth(undefined, 2)).toBeCloseTo(107, 6);
   });
 
   it('adds a second gap and the slot’s minimum at font scale 2.0 with a slot', () => {
-    const openingLetters = resolveOpeningLettersMinWidth(TRANSACTION_ROW_TITLE_FONT_SIZE, 2) ?? 0;
-
-    expect(resolveRowTitleLineMinWidth(40, 2)).toBe(
-      Size.rowGlyph + ROW_TITLE_LINE_GAP + openingLetters + ROW_TITLE_LINE_GAP + 40,
-    );
+    expect(resolveRowTitleLineMinWidth(40, 2)).toBeCloseTo(107 + 7 + 40, 6);
   });
 });

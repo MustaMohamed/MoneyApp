@@ -33,7 +33,7 @@ export function scaledTextStyle(
 }
 
 // Two letters and a `…` of Inter medium, in ems of the text's size.
-export const OPENING_LETTERS_EM = 2.4;
+const OPENING_LETTERS_EM = 2.4;
 
 /** `undefined` at or below scale 1, where the title keeps its own width. */
 export function resolveOpeningLettersMinWidth(

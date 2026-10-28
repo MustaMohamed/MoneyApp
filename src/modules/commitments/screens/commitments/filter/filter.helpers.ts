@@ -2,9 +2,8 @@ import type { Commitment } from '@/modules/commitments/entities/commitment.entit
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import { hasAmountFilter, sameStringSet } from '@/modules/transactions/utils/filter_selection';
 
-import { isPaidPayment } from '../../../domain/payment_state';
+import { isPaidPayment, resolveCommitmentRowAccountId } from '../../../domain/payment_state';
 import { detectPreset } from '../commitment_form.shared';
-import { resolveCommitmentRowAccountId } from '../components/commitment_row.helpers';
 import type { CommitmentAdvancedFilters } from './filter.store';
 
 export interface CommitmentFilterCandidate {

@@ -56,8 +56,7 @@ type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 // Whole device pixels, so stacked rows and day-card slices meet on a pixel edge.
 export const TRANSACTION_ROW_HEIGHT = PixelRatio.roundToNearestPixel(ms(60));
 export const TRANSACTION_ROW_TITLE_FONT_SIZE = Type.bodyStrong;
-// Raw dp: the 6 dp `gap-1.5` drew, which the title line's minimum adds up exactly.
-export const ROW_TITLE_LINE_GAP = 6;
+export const ROW_TITLE_LINE_GAP = ms(6);
 
 /** Above 1.0 the title line's narrowest: its glyph, the title's opening letters, and its slot's minimum when it holds one. */
 export function resolveRowTitleLineMinWidth(

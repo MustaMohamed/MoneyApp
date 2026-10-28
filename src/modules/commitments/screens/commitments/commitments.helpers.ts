@@ -1,10 +1,11 @@
 import type { DayCardTone } from '@/components/ui/day_card_row.helpers';
 import type { DayHeaderFigures, DayHeaderSection } from '@/components/ui/day_header';
 import type { SearchTallyModel } from '@/components/ui/search_tally';
+import { NO_TALLY_TEXT, withTallyAccessibilityLabel } from '@/components/ui/search_tally.helpers';
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AmountType, CommitmentPaymentStatus, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { formatAmount, formatDisplayAmount, formatDisplayMagnitude } from '@/utils/format_amount';
+import { formatAmount, formatDisplayAmount, formatDisplayAmountParts } from '@/utils/format_amount';
 
 import {
   type CommitmentRowsTotal,
@@ -154,31 +155,6 @@ interface CommitmentsSearchTallyInput {
   total: CommitmentRowsTotal | undefined;
 }
 
-const NO_TALLY_TEXT = {
-  count: undefined,
-  label: '',
-  filterSummary: undefined,
-  sum: undefined,
-  accessibilityLabel: undefined,
-} as const;
-
-function tallyLine(
-  mode: SearchTallyModel['mode'],
-  count: string,
-  label: string,
-  sum: SearchTallyModel['sum'],
-): SearchTallyModel {
-  const spoken = sum === undefined ? [count, label] : [count, label, sum.text, sum.currencyCode];
-  return {
-    mode,
-    count,
-    label,
-    filterSummary: undefined,
-    sum,
-    accessibilityLabel: spoken.join(' '),
-  };
-}
-
 /** Follows the hero: its skeleton draws one bar, its dashes print `— payments`. */
 export function buildCommitmentsSearchTally(input: CommitmentsSearchTallyInput): SearchTallyModel {
   const { isOn, heroMode, total } = input;
@@ -187,25 +163,42 @@ export function buildCommitmentsSearchTally(input: CommitmentsSearchTallyInput):
     return { mode: 'skeleton', ...NO_TALLY_TEXT };
   }
   if (heroMode === 'dashes' || total === undefined) {
-    return tallyLine(
-      'failed',
-      Strings.commitmentsHeroUnavailable,
-      Strings.commitmentsTallyPayments,
+    return withTallyAccessibilityLabel(
+      {
+        mode: 'failed',
+        count: Strings.commitmentsHeroUnavailable,
+        label: Strings.commitmentsTallyPayments,
+        sum: undefined,
+      },
       undefined,
     );
   }
   if (total.count === 0) {
-    return tallyLine('figures', formatAmount(0), Strings.commitmentsTallyPayments, undefined);
+    return withTallyAccessibilityLabel(
+      {
+        mode: 'figures',
+        count: formatAmount(0),
+        label: Strings.commitmentsTallyPayments,
+        sum: undefined,
+      },
+      undefined,
+    );
   }
-  const magnitude = formatDisplayMagnitude(total.egp, Currency.EGP).text;
-  return tallyLine(
-    'figures',
-    formatAmount(total.count),
-    total.count === 1 ? Strings.commitmentsTallyOnePayment : Strings.commitmentsTallyPayments,
+  const amount = formatDisplayAmountParts(total.egp, Currency.EGP);
+  const estimate = (text: string) =>
+    total.showTilde ? Strings.commitmentsSectionSumEstimate(text) : text;
+  return withTallyAccessibilityLabel(
     {
-      text: total.showTilde ? Strings.commitmentsSectionSumEstimate(magnitude) : magnitude,
-      polarity: 'neutral',
-      currencyCode: CURRENCY_CONFIG[Currency.EGP].code,
+      mode: 'figures',
+      count: formatAmount(total.count),
+      label:
+        total.count === 1 ? Strings.commitmentsTallyOnePayment : Strings.commitmentsTallyPayments,
+      sum: {
+        text: estimate(amount.text),
+        polarity: 'neutral',
+        currencyCode: CURRENCY_CONFIG[Currency.EGP].code,
+      },
     },
+    estimate(amount.withCode),
   );
 }

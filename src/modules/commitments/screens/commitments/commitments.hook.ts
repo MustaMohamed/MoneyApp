@@ -20,13 +20,13 @@ import { runAfterInteractions } from '@/utils/run_after_interactions';
 import { useDebouncedValue } from '@/utils/use_debounced_value.hook';
 import { shiftYearMonth } from '@/utils/year_month';
 
+import { resolveCommitmentRowAccountId } from '../../domain/payment_state';
 import type { Commitment } from '../../entities/commitment.entity';
 import type { CommitmentMonthPayment } from '../../entities/commitment_payment.entity';
 import { monthAggregateKey, useCommitmentStore } from '../../store/commitment.store';
 import { useCommitmentFormHostState } from '../../store/commitment_form_host.state';
 import { buildCommitmentSections, buildCommitmentsSearchTally } from './commitments.helpers';
 import { useCommitmentsScreenState } from './commitments.state';
-import { resolveCommitmentRowAccountId } from './components/commitment_row.helpers';
 import {
   buildCommitmentsHeroModel,
   resolveCommitmentsHeroAccountId,
@@ -213,7 +213,7 @@ export function useCommitments() {
   );
   const activeFilterCount = countFunnelFilters(advancedFilterCount, effectiveFilters.accountIds);
   const hasListFilters =
-    statusFilter !== 'all' || searchQuery.trim().length > 0 || advancedFilterCount > 0;
+    statusFilter !== 'all' || debouncedSearch.trim().length > 0 || advancedFilterCount > 0;
   const accountChips = useMemo(
     () => buildAccountChips(accounts, effectiveFilters.accountIds),
     [accounts, effectiveFilters.accountIds],

@@ -2,6 +2,7 @@ import type { DayHeaderFigures, DayHeaderSection } from '@/components/ui/day_hea
 import type { PolaritySignal } from '@/components/ui/flow_polarity';
 import type { ListHeroModel } from '@/components/ui/list_hero';
 import type { SearchTallyModel } from '@/components/ui/search_tally';
+import { NO_TALLY_TEXT, withTallyAccessibilityLabel } from '@/components/ui/search_tally.helpers';
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -348,25 +349,6 @@ export function resolveSearchTallyFiguresMode(
   }
 }
 
-const NO_TALLY_TEXT = {
-  count: undefined,
-  label: '',
-  filterSummary: undefined,
-  sum: undefined,
-  accessibilityLabel: undefined,
-} as const;
-
-function withAccessibilityLabel(
-  model: Omit<SearchTallyModel, 'accessibilityLabel'>,
-  spokenSum: string | undefined,
-): SearchTallyModel {
-  const parts = [model.count, model.label, model.filterSummary, spokenSum];
-  return {
-    ...model,
-    accessibilityLabel: parts.filter((part): part is string => part !== undefined).join(' '),
-  };
-}
-
 export function buildSearchTally(input: SearchTallyInput): SearchTallyModel {
   if (!input.isOn) return { mode: 'empty', ...NO_TALLY_TEXT };
   if (input.figuresMode === 'skeleton') return { mode: 'skeleton', ...NO_TALLY_TEXT };
@@ -375,7 +357,7 @@ export function buildSearchTally(input: SearchTallyInput): SearchTallyModel {
   const { matchCount, matchNetEgp, filterSummary } = input;
 
   if (input.figuresMode === 'dashes' || matchCount === undefined || matchNetEgp === undefined) {
-    return withAccessibilityLabel(
+    return withTallyAccessibilityLabel(
       {
         mode: 'failed',
         count: Strings.transactionsHeroUnavailable,
@@ -387,7 +369,7 @@ export function buildSearchTally(input: SearchTallyInput): SearchTallyModel {
     );
   }
   if (matchCount === 0) {
-    return withAccessibilityLabel(
+    return withTallyAccessibilityLabel(
       {
         mode: 'figures',
         count: undefined,
@@ -400,7 +382,7 @@ export function buildSearchTally(input: SearchTallyInput): SearchTallyModel {
   }
 
   const net = formatSignedNet(matchNetEgp);
-  return withAccessibilityLabel(
+  return withTallyAccessibilityLabel(
     {
       mode: 'figures',
       count: formatAmount(matchCount),

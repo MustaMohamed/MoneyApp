@@ -2,7 +2,6 @@ import { PixelRatio } from 'react-native';
 
 import {
   FITTED_LINE_SLACK,
-  OPENING_LETTERS_EM,
   resolveFitAmountTextProps,
   resolveFitLineTextProps,
   resolveLoneWordLines,
@@ -258,12 +257,14 @@ describe('resolveOpeningLettersMinWidth (MA-263)', () => {
     expect(resolveOpeningLettersMinWidth(Type.bodyStrong, fontScale)).toBeUndefined();
   });
 
-  it.each([1.3, 2])(
-    'is the scaled size times the opening-letters em at font scale %d',
-    (fontScale) => {
-      expect(resolveOpeningLettersMinWidth(Type.bodyStrong, fontScale)).toBe(
-        scaledFontSize(Type.bodyStrong, fontScale) * OPENING_LETTERS_EM,
-      );
-    },
-  );
+  it('reads Type.bodyStrong at 17.5 dp under Jest’s window, the base of the figures below', () => {
+    expect(Type.bodyStrong).toBe(17.5);
+  });
+
+  it.each([
+    [1.3, 54.6],
+    [2, 84],
+  ])('is 2.4 em of the scaled size at font scale %d: %d dp', (fontScale, width) => {
+    expect(resolveOpeningLettersMinWidth(Type.bodyStrong, fontScale)).toBeCloseTo(width, 6);
+  });
 });

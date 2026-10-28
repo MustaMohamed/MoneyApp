@@ -23,6 +23,7 @@ import { CommitmentPaymentStatus } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, Size } from '@/constants/theme';
 import { GoldTokens } from '@/constants/theme_tokens';
+import { resolveCommitmentRowAccountId } from '@/modules/commitments/domain/payment_state';
 import type { CommitmentMonthPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import {
   STATUS_COLORS,
@@ -36,7 +37,6 @@ import { useCommitments } from './commitments.hook';
 import type { CommitmentStatusFilter } from './commitments.state';
 import { CommitmentDeleteConfirmSheet } from './components/commitment_delete_confirm_sheet';
 import { CommitmentRow } from './components/commitment_row';
-import { resolveCommitmentRowAccountId } from './components/commitment_row.helpers';
 import { CommitmentRowsSkeleton } from './components/commitment_rows_skeleton';
 import { CommitmentsHero } from './components/commitments_hero';
 import { CommitmentsEmptyState } from './components/empty_state';
