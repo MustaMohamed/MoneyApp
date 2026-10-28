@@ -1,8 +1,10 @@
 import { AmountType, Currency } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import {
   type PaySheetFieldErrors,
   type PayWritePreview,
   resolvePayButtonLabel,
+  resolvePayCycleLine,
   resolvePaySheetStatusMessage,
   resolvePayTrackFootnote,
 } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.helpers';
@@ -163,5 +165,61 @@ describe('resolvePaySheetStatusMessage', () => {
     expect(resolvePaySheetStatusMessage({ amount: undefined, account: 'Select an account' })).toBe(
       'Fix the 1 field marked above.',
     );
+  });
+});
+
+describe('resolvePayCycleLine', () => {
+  const payment = (
+    due_date: string,
+    paid_date: string | null = null,
+    skipped_date: string | null = null,
+  ) => ({ due_date, paid_date, skipped_date });
+
+  it('reads Due with the due day and Due today in gold on the due day', () => {
+    const line = resolvePayCycleLine(payment('2026-10-01'), '2026-10-01');
+    expect(line.statusLabel).toBe(Strings.commitmentsStatusDue);
+    expect(line.text).toBe('Thu 1 Oct 2026 · Due today');
+    expect(line.tone).toBe('gold');
+  });
+
+  it('reads Overdue one day late across a month end', () => {
+    const line = resolvePayCycleLine(payment('2026-10-31'), '2026-11-01');
+    expect(line.statusLabel).toBe(Strings.commitmentsStatusOverdue);
+    expect(line.text).toBe('Sat 31 Oct 2026 · 1 day late');
+    expect(line.tone).toBe('danger');
+  });
+
+  it('reads Upcoming toward a leap day', () => {
+    const line = resolvePayCycleLine(payment('2028-02-29'), '2028-02-26');
+    expect(line.statusLabel).toBe(Strings.commitmentsStatusUpcoming);
+    expect(line.text).toBe('Tue 29 Feb 2028 · in 3 days');
+    expect(line.tone).toBe('caption');
+  });
+
+  it('counts the leap day between today and the due day', () => {
+    expect(resolvePayCycleLine(payment('2028-03-01'), '2028-02-28').text).toBe(
+      'Wed 1 Mar 2028 · in 2 days',
+    );
+  });
+
+  // A settled cycle reads as the detail's This cycle card reads it: red marks only an actionable state.
+  it('reads Paid against the due day from the paid date, in success', () => {
+    const line = resolvePayCycleLine(payment('2026-10-01', '2026-10-03'), '2026-10-05');
+    expect(line.statusLabel).toBe(Strings.commitmentsStatusPaid);
+    expect(line.text).toBe('Thu 1 Oct 2026 · paid · 2 days late');
+    expect(line.tone).toBe('success');
+  });
+
+  it('reads Skipped against the due day from the skipped date, in caption', () => {
+    const line = resolvePayCycleLine(payment('2026-10-01', null, '2026-10-02'), '2026-10-05');
+    expect(line.statusLabel).toBe(Strings.commitmentsStatusSkipped);
+    expect(line.text).toBe('Thu 1 Oct 2026 · skipped · 1 day late');
+    expect(line.tone).toBe('caption');
+  });
+
+  it('reads today itself as a leap day', () => {
+    const line = resolvePayCycleLine(payment('2028-03-01'), '2028-02-29');
+    expect(line.statusLabel).toBe(Strings.commitmentsStatusUpcoming);
+    expect(line.text).toBe('Wed 1 Mar 2028 · in 1 day');
   });
 });

@@ -128,7 +128,7 @@ export interface CommitmentCycleCardInput {
 }
 
 /** A paid cycle reads success at every distance: red marks only an actionable state. */
-function resolveCycleDayLine(distance: PaymentDayDistance): DayIndicator {
+export function resolveCycleDayLine(distance: PaymentDayDistance): DayIndicator {
   const indicator = resolveDayIndicator(distance);
   switch (distance.settlement) {
     case 'paid':

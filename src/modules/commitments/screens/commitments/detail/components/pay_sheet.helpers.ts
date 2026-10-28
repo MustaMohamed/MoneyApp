@@ -1,8 +1,18 @@
 import { AmountType, type Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { formatDisplayAmount } from '@/utils/format_amount';
-import { formatShortWeekdayDate } from '@/utils/format_date';
+import { formatShortWeekdayDate, formatWeekdayDate } from '@/utils/format_date';
 import { parsePositiveDecimal } from '@/utils/parse_decimal';
+
+import { resolvePaymentDayDistance } from '../../../../domain/payment_day_distance';
+import { resolvePaymentState } from '../../../../domain/payment_state';
+import type { CommitmentPayment } from '../../../../entities/commitment_payment.entity';
+import type { DayIndicatorTone } from '../../../../utils/day_indicator';
+import {
+  type CommitmentStatusTag,
+  resolveCommitmentStatusTag,
+} from '../../components/commitment_row.helpers';
+import { resolveCycleDayLine } from '../detail.helpers';
 
 /** What the write moves on the paying account, from `deriveResolution`'s figures. */
 export interface PayWritePreview {
@@ -57,4 +67,22 @@ export function resolvePayButtonLabel(amountText: string, currency: Currency): s
 export function resolvePaySheetStatusMessage(errors: PaySheetFieldErrors): string | undefined {
   const count = Object.values(errors).filter((message) => message !== undefined).length;
   return count === 0 ? undefined : Strings.fixFieldsMarkedAbove(count);
+}
+
+export interface PayCycleLine extends CommitmentStatusTag {
+  text: string;
+  tone: DayIndicatorTone;
+}
+
+/** The cycle line under the title: its status tag, then the due day and its distance from `today`. */
+export function resolvePayCycleLine(
+  payment: Pick<CommitmentPayment, 'due_date' | 'paid_date' | 'skipped_date'>,
+  today: string,
+): PayCycleLine {
+  const indicator = resolveCycleDayLine(resolvePaymentDayDistance(payment, today));
+  return {
+    ...resolveCommitmentStatusTag(resolvePaymentState(payment, today)),
+    text: Strings.commitmentsPayCycleLine(formatWeekdayDate(payment.due_date), indicator.text),
+    tone: indicator.tone,
+  };
 }

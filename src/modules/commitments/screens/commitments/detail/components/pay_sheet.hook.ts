@@ -31,6 +31,7 @@ import {
   type PaySheetFieldErrors,
   type PayWritePreview,
   resolvePayButtonLabel,
+  resolvePayCycleLine,
   resolvePaySheetStatusMessage,
   resolvePayTrackFootnote,
 } from './pay_sheet.helpers';
@@ -390,6 +391,10 @@ export function usePaySheet(
     () => resolveAccountStripChips(accounts, accountId),
     [accounts, accountId],
   );
+  const cycleLine = useMemo(
+    () => (payment && today ? resolvePayCycleLine(payment, today) : undefined),
+    [payment, today],
+  );
   const trackFootnote =
     commitment === undefined || today === undefined
       ? undefined
@@ -425,6 +430,7 @@ export function usePaySheet(
       paidDate,
       note: notes ?? '',
       stripChips,
+      cycleLine,
       errors,
       trackFootnote,
       // A fault counts only once a press marked it, so the live converted line counts nothing.

@@ -191,6 +191,29 @@ describe('usePaySheet', () => {
     expect(result.current.state.ctaLabel).toBe('Pay');
   });
 
+  it('reads the cycle line from the payment and the today passed in', async () => {
+    const { result } = await renderHook(() =>
+      usePaySheet(OWNER, fixedCommitment, { ...duePayment, due_date: TODAY }, TODAY),
+    );
+
+    expect(result.current.state.cycleLine?.statusLabel).toBe(Strings.commitmentsStatusDue);
+    expect(result.current.state.cycleLine?.text).toBe('Tue 20 Oct 2026 · Due today');
+  });
+
+  it('draws no cycle line before the payment loads', async () => {
+    const { result } = await renderHook(() => usePaySheet(OWNER, undefined, undefined, TODAY));
+
+    expect(result.current.state.cycleLine).toBeUndefined();
+  });
+
+  it('draws no cycle line before today resolves', async () => {
+    const { result } = await renderHook(() =>
+      usePaySheet(OWNER, fixedCommitment, duePayment, undefined),
+    );
+
+    expect(result.current.state.cycleLine).toBeUndefined();
+  });
+
   // Housekeeping mints payments from legacy `commitments.amount`, so `amount_due` can be sub-cent.
   it.each([
     [0.005, '0.005'],

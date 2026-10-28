@@ -12,13 +12,15 @@ import {
   FORM_SHEET_STATUS_GAP,
   resolveFormSupportLineTextProps,
 } from '@/components/ui/form_sheet.geometry';
-import { FormStripRow, FormSupportLineSlot } from '@/components/ui/form_type_tabs';
+import { FormStripRow, FormSupportLineSlot, FormTypeTabsRow } from '@/components/ui/form_type_tabs';
 import { ListCard } from '@/components/ui/list_card';
 import { NoteFactRow } from '@/components/ui/note_fact_row';
 import { useNoteReveal } from '@/components/ui/note_reveal.hook';
 import { Sheet } from '@/components/ui/sheet';
+import { StatusBadge } from '@/components/ui/status_badge';
 import { StatusTrack } from '@/components/ui/status_track';
 import { Text } from '@/components/ui/text';
+import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { ValidationSlot } from '@/components/ui/validation_slot';
 import { TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -29,6 +31,7 @@ import { formatCurrencyAmount } from '@/utils/format_amount';
 
 import type { Commitment } from '../../../../entities/commitment.entity';
 import type { CommitmentPayment } from '../../../../entities/commitment_payment.entity';
+import { DAY_INDICATOR_CLASS } from '../../../../utils/day_indicator';
 import { usePaySheet } from './pay_sheet.hook';
 
 interface Props {
@@ -100,6 +103,38 @@ export function PaySheet({ owner, commitment, payment, today }: Props) {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
+          {state.cycleLine ? (
+            <FormTypeTabsRow>
+              <View
+                testID="pay-sheet-cycle-row"
+                style={{
+                  flexDirection: 'row',
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                  gap: Spacing.xs,
+                }}
+              >
+                <View testID="pay-sheet-cycle-tag">
+                  <StatusBadge
+                    size="tagMd"
+                    fontScale={fontScale}
+                    label={state.cycleLine.statusLabel}
+                    icon={state.cycleLine.statusIcon}
+                    fill={state.cycleLine.statusFill}
+                    foreground={state.cycleLine.statusForeground}
+                  />
+                </View>
+                <Text
+                  testID="pay-sheet-cycle-line"
+                  allowFontScaling={false}
+                  className={DAY_INDICATOR_CLASS[state.cycleLine.tone]}
+                  style={scaledTextStyle(Type.micro, fontScale)}
+                >
+                  {state.cycleLine.text}
+                </Text>
+              </View>
+            </FormTypeTabsRow>
+          ) : null}
           <FormSupportLineSlot>
             <Text
               testID="pay-sheet-strip-caption"
