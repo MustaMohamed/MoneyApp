@@ -205,7 +205,7 @@ describe('useCommitmentFormHost', () => {
     expect(result.current.state.hasSession).toBe(true);
     expect(result.current.state.mode).toBe('add');
     expect(result.current.state.isDismissable).toBe(true);
-    expect(result.current.state.title).toBe(Strings.commitmentsAddTitle);
+    expect(result.current.state.title).toBe('Add commitment');
 
     await act(() => result.current.handleOpenChange(false));
 
@@ -222,7 +222,7 @@ describe('useCommitmentFormHost', () => {
     expect(result.current.state.hasSession).toBe(true);
     expect(result.current.state.mode).toBe('edit');
     expect(result.current.state.editingCommitmentId).toBe('c-1');
-    expect(result.current.state.title).toBe(Strings.commitmentsEditTitle);
+    expect(result.current.state.title).toBe('Edit commitment');
   });
 
   it('reads saving and the save error from the footer the session publishes', async () => {

@@ -52,10 +52,10 @@ export function EditCommitmentSession({
             onPress={handleDeactivate}
             className="items-center px-4 py-5"
             accessibilityRole="button"
-            accessibilityLabel={Strings.commitmentsDeactivate}
+            accessibilityLabel={Strings.commitmentsStopLink}
           >
             <Typography className="font-inter-semibold text-danger text-[15px]">
-              {Strings.commitmentsDeactivate}
+              {Strings.commitmentsStopLink}
             </Typography>
           </PressableFeedback>
         }

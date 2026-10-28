@@ -14,11 +14,16 @@ interface NoteFactRowProps {
   placeholder: string;
   value: string;
   onChangeText: (text: string) => void;
-  onFocus: () => void;
+  onFocus?: () => void;
   onBlur: () => void;
+  testID?: string;
+  maxLength?: number;
+  inset?: boolean;
+  disabled?: boolean;
+  accessibilityHint?: string;
 }
 
-/** A form card's last row; it renders inside a `Sheet`'s children, where the sheet-aware handlers reach gorhom. */
+/** A form card's free-text row; it renders inside a `Sheet`'s children, where the sheet-aware handlers reach gorhom. */
 export function NoteFactRow({
   label,
   placeholder,
@@ -26,13 +31,18 @@ export function NoteFactRow({
   onChangeText,
   onFocus,
   onBlur,
+  testID = 'note-row',
+  maxLength,
+  inset = true,
+  disabled,
+  accessibilityHint,
 }: NoteFactRowProps): ReactElement {
   const { onFocus: onSheetFocus, onBlur: onSheetBlur } = useBottomSheetAwareHandlers();
   const { fontScale } = useWindowDimensions();
   const noteGeometry = resolveNoteInputGeometry(fontScale);
   const handleFocus: typeof onSheetFocus = (event) => {
     onSheetFocus(event);
-    onFocus();
+    onFocus?.();
   };
   const handleBlur: typeof onSheetBlur = (event) => {
     onSheetBlur(event);
@@ -40,10 +50,13 @@ export function NoteFactRow({
   };
 
   return (
-    <FactRow testID="note-row" label={label} showDivider={false}>
+    <FactRow testID={testID} label={label} showDivider={false} inset={inset}>
       <Input
         value={value}
         onChangeText={onChangeText}
+        maxLength={maxLength}
+        isDisabled={disabled}
+        accessibilityHint={accessibilityHint}
         placeholder={placeholder}
         placeholderTextColor={CoreTokens.text2}
         onFocus={handleFocus}
