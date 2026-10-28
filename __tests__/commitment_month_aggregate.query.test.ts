@@ -15,9 +15,9 @@ import { sumCommitmentRowsEgp } from '@/modules/commitments/domain/commitment_se
 import {
   carriedDueBound,
   isDueInMonth,
+  resolveCommitmentRowAccountId,
   resolvePaymentState,
 } from '@/modules/commitments/domain/payment_state';
-import { resolveCommitmentRowAccountId } from '@/modules/commitments/domain/payment_state';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
