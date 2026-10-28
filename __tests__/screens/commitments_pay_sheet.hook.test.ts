@@ -39,13 +39,14 @@ const OWNER = 'owner-a';
 const TODAY = '2026-10-20';
 
 // Stateful mock so `act()`-wrapped setters actually update what the hook reads.
-let paySheetStateInner = {
+const CLEAN_PAY_SHEET = {
   visible: false,
   saving: false,
   settled: false,
   rateOverride: false,
   saveError: undefined as string | undefined,
 };
+let paySheetStateInner = { ...CLEAN_PAY_SHEET };
 const mockPaySheetState = {
   get entries() {
     return { [OWNER]: paySheetStateInner };
@@ -64,15 +65,6 @@ const mockPaySheetState = {
   }),
   setSaveError: jest.fn((_owner: string, message?: string) => {
     paySheetStateInner = { ...paySheetStateInner, saveError: message };
-  }),
-  resetEntry: jest.fn((_owner: string) => {
-    paySheetStateInner = {
-      visible: false,
-      saving: false,
-      settled: false,
-      rateOverride: false,
-      saveError: undefined,
-    };
   }),
   open: jest.fn(),
   release: jest.fn(),
@@ -140,7 +132,7 @@ function setupStoreMocks() {
 describe('usePaySheet', () => {
   beforeEach(() => {
     setupStoreMocks();
-    mockPaySheetState.resetEntry(OWNER);
+    paySheetStateInner = { ...CLEAN_PAY_SHEET };
     jest.clearAllMocks();
     // Re-wire setters after `clearAllMocks`.
     mockPaySheetState.setVisible.mockImplementation((_owner: string, v: boolean) => {
@@ -154,15 +146,6 @@ describe('usePaySheet', () => {
     });
     mockPaySheetState.setSaveError.mockImplementation((_owner: string, message?: string) => {
       paySheetStateInner = { ...paySheetStateInner, saveError: message };
-    });
-    mockPaySheetState.resetEntry.mockImplementation((_owner: string) => {
-      paySheetStateInner = {
-        visible: false,
-        saving: false,
-        settled: false,
-        rateOverride: false,
-        saveError: undefined,
-      };
     });
     mockAccounts = [];
     mockMarkAsPaid.mockClear();
@@ -1623,7 +1606,6 @@ describe('usePaySheet', () => {
       });
       await act(() => rerender(undefined));
 
-      expect(mockPaySheetState.resetEntry).not.toHaveBeenCalled();
       expect(result.current.state.visible).toBe(false);
       expect(result.current.state.trackFootnote).toBe(before);
     });

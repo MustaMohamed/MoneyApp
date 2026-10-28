@@ -24,7 +24,6 @@ type PaySheetState = PaySheetStateShape & {
   setSettled: (owner: string, v: boolean) => void;
   setRateOverride: (owner: string, v: boolean) => void;
   setSaveError: (owner: string, message?: string) => void;
-  resetEntry: (owner: string) => void;
   release: (owner: string) => void;
   reset: () => void;
 };
@@ -51,17 +50,21 @@ export const usePaySheetState = createMoneyAppSelectors(
 
     return {
       ...initialState(),
-      // The begin action: a copy's first Mark as paid has no entry yet, so this takes no guard; each open starts clean.
+      // The begin action: no guard, since a copy's first Mark as paid has no entry; a save in flight survives a reopen.
       open: (owner, openedOn) =>
         set((state) =>
-          withEntry(state, owner, { ...INITIAL_PAY_SHEET_ENTRY, visible: true, openedOn }),
+          withEntry(state, owner, {
+            ...INITIAL_PAY_SHEET_ENTRY,
+            visible: true,
+            saving: owner in state.entries && state.entries[owner].saving,
+            openedOn,
+          }),
         ),
       setVisible: (owner, v) => updateEntry(owner, { visible: v }),
       setSaving: (owner, v) => updateEntry(owner, { saving: v }),
       setSettled: (owner, v) => updateEntry(owner, { settled: v }),
       setRateOverride: (owner, v) => updateEntry(owner, { rateOverride: v }),
       setSaveError: (owner, message) => updateEntry(owner, { saveError: message }),
-      resetEntry: (owner) => updateEntry(owner, INITIAL_PAY_SHEET_ENTRY),
       release: (owner) => set((state) => withoutEntry(state, owner)),
       reset: () => set(initialState()),
     };

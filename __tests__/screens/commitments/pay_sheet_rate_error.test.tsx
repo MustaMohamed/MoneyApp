@@ -126,7 +126,6 @@ const paySheetState = {
   setSaving: jest.fn(),
   setRateOverride: jest.fn(),
   setSaveError: jest.fn(),
-  resetEntry: jest.fn(),
   open: jest.fn(),
   release: jest.fn(),
   reset: jest.fn(),
