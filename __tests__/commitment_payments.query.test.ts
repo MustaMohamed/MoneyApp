@@ -9,7 +9,6 @@ import {
   clearPaymentSkipped,
   deleteUnpaidPaymentsByCommitment,
   getExistingDueDates,
-  getLastPaidPayment,
   getPaymentById,
   getPaymentsByCommitment,
   getPaymentsByMonth,
@@ -665,39 +664,6 @@ describe('getPaidCountByCommitment — null row fallback', () => {
     expect(count).toBe(0);
 
     if (original) mocked.getAllAsync.mockImplementation(original);
-  });
-});
-
-describe('getLastPaidPayment', () => {
-  it('returns the most recent paid payment', async () => {
-    const payments = [
-      makePayment({
-        id: 'pay-last-1',
-        due_date: '2026-03-01',
-        paid_date: '2026-03-02',
-        amount_paid: 200,
-      }),
-      makePayment({
-        id: 'pay-last-2',
-        due_date: '2026-04-01',
-        paid_date: '2026-04-03',
-        amount_paid: 200,
-      }),
-      makePayment({
-        id: 'pay-last-3',
-        due_date: '2026-05-01',
-      }),
-    ];
-    await addPayments(mockDb, payments);
-
-    const last = await getLastPaidPayment(mockDb, 'commitment1');
-    expect(last).not.toBeNull();
-    expect(last?.id).toBe('pay-last-2');
-  });
-
-  it('returns null when there are no paid payments', async () => {
-    const last = await getLastPaidPayment(mockDb, 'commitment1');
-    expect(last).toBeNull();
   });
 });
 

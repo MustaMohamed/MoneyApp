@@ -109,6 +109,8 @@ specified — it is the "it will fix itself in a moment" reading that is wrong.
 at 49.06 resolves to `0.00 USD`. The mockup's 0.40 EGP illustration does not reach this branch;
 `roundMoney(0.40 / 49.06)` is `0.01`.
 
+**Extended 2026-10-28 (#860, MA-259).** The pay sheet's status track previews the write from `deriveResolution`'s `accountNativeAmount` in the account's currency. The Pay button reads the entered amount in the commitment's currency. A variable commitment's hint reads `resolveDisplayAmount`'s estimate. All three go through `formatDisplayAmount`. The prefill lights the commitment's account only while the loaded list holds it, and falls back to neither the last paid account nor `accounts[0]` (epic #777 R7, Acceptance 2). This supersedes the fallback sentence above: an id that misses the list leaves no account lit.
+
 ## 6. Decimals
 
 The converted line passes no `decimals` override, so it takes `CURRENCY_CONFIG`'s value for the

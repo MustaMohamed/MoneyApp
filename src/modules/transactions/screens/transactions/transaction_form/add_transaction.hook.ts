@@ -12,6 +12,10 @@ import type { Category } from '@/modules/categories/entities/category.entity';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import {
+  resolveAccountStripChips,
+  resolveStripSelectedId,
+} from '@/modules/transactions/components/transaction_row.helpers';
+import {
   requiresExchangeRate,
   resolveTransactionAmounts,
 } from '@/modules/transactions/domain/transaction_amounts';
@@ -28,11 +32,9 @@ import {
   REFINE_DESPITE_FIELD_ERRORS,
   applyRateCommit,
   resolveAccountPreselect,
-  resolveAccountStripChips,
   resolveDestinationFloorError,
   resolveEligibleFromAccounts,
   resolveEligibleToAccounts,
-  resolveStripSelectedId,
   resolveTransactionFormSemantics,
   resolveTransactionFormStatus,
   resolveTransactionSaveError,

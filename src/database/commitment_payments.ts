@@ -5,7 +5,6 @@ export {
   addPayments,
   updatePaymentSkipped,
   deleteUnpaidPaymentsByCommitment,
-  getLastPaidPayment,
   getPaidCountByCommitment,
   getExistingDueDates,
   markCommitmentAsPaid,

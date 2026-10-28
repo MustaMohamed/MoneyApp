@@ -1172,14 +1172,19 @@ export const Strings = {
 
   // Commitments: C5 Pay Sheet
   commitmentsPayTitle: (name: string) => `Pay ${name}`,
-  commitmentsPayAmount: 'Amount',
-  commitmentsAmountPlaceholder: '0.00',
-  commitmentsPayAccount: 'Pay from Account',
-  commitmentsPayDate: 'Payment Date',
-  commitmentsPayDatePlaceholder: 'Select date',
-  commitmentsPayNotes: 'Notes',
-  commitmentsPayConfirm: 'Confirm Payment',
-  commitmentsPayErrAmountRequired: 'Amount is required',
+  commitmentsPayStripCaption: 'Pays this cycle from this account.',
+  commitmentsPayEstimateHint: (amount: string) =>
+    `Estimated ${amount}. Enter the amount on the bill.`,
+  commitmentsPayNoEstimateHint: 'Enter the amount on the bill.',
+  commitmentsPayPreviewToday: (amount: string, account: string) =>
+    `Writes an expense of ${amount} on ${account}, dated today.`,
+  commitmentsPayPreviewOnDay: (amount: string, account: string, day: string) =>
+    `Writes an expense of ${amount} on ${account}, dated ${day}.`,
+  commitmentsPayCta: (amount: string) => `Pay ${amount}`,
+  commitmentsPayCtaBare: 'Pay',
+  commitmentsPayAmountA11y: 'Payment amount',
+  commitmentsPayConvertedTotal: (amount: string) => `= ${amount}`,
+  commitmentsPayErrAmountRequired: 'Enter an amount',
   commitmentsPayErrAmountMin: 'Amount must be at least 0.01',
   commitmentsPayErrAccountRequired: 'Select an account',
   // A rate is required even when no currency crosses; the ledger stores `egp_amount`.

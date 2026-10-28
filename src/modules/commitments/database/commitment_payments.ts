@@ -310,20 +310,6 @@ export async function updateUnpaidPaymentsAccount(
   return result.changes;
 }
 
-export async function getLastPaidPayment(
-  db: SQLiteDatabase,
-  commitmentId: string,
-): Promise<CommitmentPayment | null> {
-  const rows = await db.getAllAsync<CommitmentPayment>(
-    `SELECT * FROM commitment_payments
-     WHERE commitment_id = ? AND ${paidPaymentSql()}
-     ORDER BY paid_date DESC
-     LIMIT 1`,
-    [commitmentId],
-  );
-  return rows[0] ?? null;
-}
-
 export async function getPaidCountByCommitment(
   db: SQLiteDatabase,
   commitmentId: string,
