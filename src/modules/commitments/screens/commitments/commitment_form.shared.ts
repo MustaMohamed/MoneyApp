@@ -43,7 +43,8 @@ export const COMMITMENT_SCHEMA = z
     notes: z.string().optional(),
     durationType: z.enum(DurationType),
     endDate: z.string().optional(),
-    endAfterCount: z.number().int().min(1).optional(),
+    // `null` is an emptied count, refused below only while Ends is After.
+    endAfterCount: z.number().int().min(1).nullish(),
   })
   .superRefine(
     (data, ctx) => {

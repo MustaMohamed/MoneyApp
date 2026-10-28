@@ -90,6 +90,13 @@ export function applyCommitmentAmountText(
   }
 }
 
+/** A whole-number input's typed text as its field value: `null` once emptied, since `Controller` reads an `undefined` field back as its default; `undefined` for text that is not a number. */
+export function parseWholeNumberInput(text: string): number | null | undefined {
+  if (text === '') return null;
+  const n = parseInt(text, 10);
+  return isNaN(n) ? undefined : n;
+}
+
 /** The Repeats row: `Custom` while the Every input is empty, which the field holds as `null`. */
 export function resolveRepeatsRowValue(
   every: number | undefined,
@@ -102,7 +109,7 @@ export function resolveRepeatsRowValue(
 /** The Ends row reads `Never` from its own key, and otherwise as the detail's Ends fact, so a missing count or date reads the incomplete label. */
 export function resolveEndsRowValue(
   durationType: DurationType,
-  endAfterCount: number | undefined,
+  endAfterCount: number | null | undefined,
   endDate: string | undefined,
 ): string {
   if (durationType === DurationType.Forever) return Strings.commitmentsEndsRowNever;

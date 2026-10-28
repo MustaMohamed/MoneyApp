@@ -9,6 +9,7 @@ import { useTouchFloorGridHitSlop } from '@/components/ui/touch_floor.hook';
 import { RecurrencePeriod, RecurrencePreset } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 
+import { parseWholeNumberInput } from '../commitment_form.helpers';
 import { type CommitmentFormValues, SET_OPTS, composeFieldBlur } from '../commitment_form.shared';
 import {
   COMMITMENT_FORM_PICKER_GAP,
@@ -97,13 +98,8 @@ export function RecurrencePicker({ form, recurrencePreset, onPresetChange }: Pro
                   // oxlint-disable-next-line typescript/no-unnecessary-condition -- RHF value can be null/undefined at reset
                   value={value != null ? String(value) : ''}
                   onChangeText={(v) => {
-                    if (v === '') {
-                      // An `undefined` field reads back as its default value through `Controller`, so an emptied field holds `null`.
-                      onChange(null);
-                      return;
-                    }
-                    const n = parseInt(v, 10);
-                    if (!isNaN(n)) onChange(n);
+                    const next = parseWholeNumberInput(v);
+                    if (next !== undefined) onChange(next);
                   }}
                   onFocus={onInputFocus}
                   onBlur={composeFieldBlur(onInputBlur, onBlur)}

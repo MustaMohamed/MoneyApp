@@ -13,6 +13,7 @@ import { Strings } from '@/constants/strings';
 import { CoreTokens } from '@/constants/theme_tokens';
 import { formatLongDate, toLocalDateString } from '@/utils/format_date';
 
+import { parseWholeNumberInput } from '../commitment_form.helpers';
 import { type CommitmentFormValues, SET_OPTS, composeFieldBlur } from '../commitment_form.shared';
 import {
   COMMITMENT_FORM_PICKER_GAP,
@@ -95,10 +96,7 @@ export function DurationPicker({
               render={({ field: { value, onChange, onBlur } }) => (
                 <Input
                   value={value != null ? String(value) : ''}
-                  onChangeText={(v) => {
-                    const n = parseInt(v, 10);
-                    onChange(isNaN(n) ? undefined : n);
-                  }}
+                  onChangeText={(v) => onChange(parseWholeNumberInput(v))}
                   onFocus={onInputFocus}
                   onBlur={composeFieldBlur(onInputBlur, onBlur)}
                   keyboardType="number-pad"

@@ -16,6 +16,7 @@ import {
   resolveCommitmentStripChips,
   resolveEndsRowValue,
   resolveRepeatsRowValue,
+  parseWholeNumberInput,
 } from '@/modules/commitments/screens/commitments/commitment_form.helpers';
 import { useAddCommitment } from '@/modules/commitments/screens/commitments/commitment_form/add_commitment.hook';
 import { useAddCommitmentState } from '@/modules/commitments/screens/commitments/commitment_form/add_commitment.state';
@@ -298,6 +299,20 @@ describe('resolveRepeatsRowValue (MA-255)', () => {
   });
 });
 
+describe('parseWholeNumberInput (MA-255)', () => {
+  it.each([
+    ['', null],
+    ['0', 0],
+    ['2', 2],
+    ['12', 12],
+    ['366', 366],
+    ['-', undefined],
+    ['abc', undefined],
+  ] as const)('maps %p to %p', (text, value) => {
+    expect(parseWholeNumberInput(text)).toBe(value);
+  });
+});
+
 describe('resolveEndsRowValue (MA-255)', () => {
   it.each([
     [DurationType.Forever, undefined, undefined, 'Never'],
@@ -335,7 +350,13 @@ describe('useCommitmentFormBodyFaults (MA-255)', () => {
   function useAddWithBodyFaults() {
     const hook = useAddCommitment({ onSaved });
     const every = useController({ control: hook.form.control, name: 'recurrenceEvery' });
-    return { ...hook, every: every.field, body: useCommitmentFormBodyFaults(hook.form) };
+    const count = useController({ control: hook.form.control, name: 'endAfterCount' });
+    return {
+      ...hook,
+      every: every.field,
+      count: count.field,
+      body: useCommitmentFormBodyFaults(hook.form),
+    };
   }
 
   type Mounted = { current: ReturnType<typeof useAddWithBodyFaults> };
@@ -358,15 +379,18 @@ describe('useCommitmentFormBodyFaults (MA-255)', () => {
     });
   }
 
-  it.each([[undefined], [0], [366]])('rings Repeats on a Save with Every %p', async (every) => {
-    const result = await mountFilled();
-    await act(async () => result.current.every.onChange(every));
+  it.each([[parseWholeNumberInput('')], [0], [366]])(
+    'rings Repeats on a Save with Every %p',
+    async (every) => {
+      const result = await mountFilled();
+      await act(async () => result.current.every.onChange(every));
 
-    await save(result);
+      await save(result);
 
-    expect(addCommitmentMock).not.toHaveBeenCalled();
-    expect(result.current.body.faults.recurrenceEvery).toEqual(expect.any(String));
-  });
+      expect(addCommitmentMock).not.toHaveBeenCalled();
+      expect(result.current.body.faults.recurrenceEvery).toEqual(expect.any(String));
+    },
+  );
 
   it('rings Ends on a Save with After and no count', async () => {
     const result = await mountFilled();
@@ -376,6 +400,56 @@ describe('useCommitmentFormBodyFaults (MA-255)', () => {
 
     expect(result.current.body.faults.endAfterCount).toBe(Strings.commitmentsErrAfterCountRequired);
   });
+
+  it('reads an emptied Every back as empty, not as its default', async () => {
+    const result = await mountFilled();
+    await act(async () => result.current.every.onChange(parseWholeNumberInput('')));
+
+    expect(result.current.every.value).toBeNull();
+  });
+
+  async function mountWithStoredCount(): Promise<Mounted> {
+    const result = await mountFilled();
+    await act(async () => {
+      result.current.form.setValue('durationType', DurationType.AfterCount);
+      result.current.form.resetField('endAfterCount', { defaultValue: 12 });
+    });
+    return result;
+  }
+
+  it('reads an emptied stored count back as empty, not as the stored count', async () => {
+    const result = await mountWithStoredCount();
+    await act(async () => result.current.count.onChange(parseWholeNumberInput('')));
+
+    expect(result.current.count.value).toBeNull();
+  });
+
+  it('rings Ends on a Save with After and its stored count emptied', async () => {
+    const result = await mountWithStoredCount();
+    await act(async () => result.current.count.onChange(parseWholeNumberInput('')));
+
+    await save(result);
+
+    expect(addCommitmentMock).not.toHaveBeenCalled();
+    expect(result.current.body.faults.endAfterCount).toBe(Strings.commitmentsErrAfterCountRequired);
+  });
+
+  it.each([[DurationType.Forever], [DurationType.UntilDate]])(
+    'saves with Ends %p after the count was emptied',
+    async (type) => {
+      const result = await mountWithStoredCount();
+      await act(async () => {
+        result.current.count.onChange(parseWholeNumberInput(''));
+        result.current.form.setValue('durationType', type);
+        result.current.form.setValue('endDate', '2027-01-31');
+      });
+
+      await save(result);
+
+      expect(addCommitmentMock).toHaveBeenCalledTimes(1);
+      expect(result.current.body.faults).toEqual(NO_FAULTS);
+    },
+  );
 
   it('rings Ends on a Save with Until date and no date', async () => {
     const result = await mountFilled();
@@ -389,7 +463,7 @@ describe('useCommitmentFormBodyFaults (MA-255)', () => {
   it('rings Repeats and Ends on one Save with Every emptied and After with no count', async () => {
     const result = await mountFilled();
     await act(async () => {
-      result.current.every.onChange(undefined);
+      result.current.every.onChange(parseWholeNumberInput(''));
       result.current.form.setValue('durationType', DurationType.AfterCount);
     });
 
