@@ -5,6 +5,7 @@ import { AccountStrip } from '@/components/ui/account_strip';
 import { AmountHero } from '@/components/ui/amount_hero';
 import { Button } from '@/components/ui/button';
 import { DateRow } from '@/components/ui/date_row';
+import { FormErrorText } from '@/components/ui/form_error_text';
 import {
   FORM_FACT_CELL_CLASS,
   FORM_SHEET_CONTENT_CONTAINER_STYLE,
@@ -19,9 +20,11 @@ import { Sheet } from '@/components/ui/sheet';
 import { StatusTrack } from '@/components/ui/status_track';
 import { Text } from '@/components/ui/text';
 import { ValidationSlot } from '@/components/ui/validation_slot';
+import { TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { ExchangeRateRow } from '@/modules/transactions/components/exchange_rate_row';
+import { AMOUNT_HERO_TONE } from '@/modules/transactions/constants/amount_hero_tone';
 import { formatCurrencyAmount } from '@/utils/format_amount';
 
 import type { Commitment } from '../../../../entities/commitment.entity';
@@ -63,13 +66,13 @@ export function PaySheet({ owner, commitment, payment, today }: Props) {
       footer={
         <View>
           {state.saveError !== undefined ? (
-            <Text
-              testID="pay-sheet-save-error"
-              className="font-inter text-danger"
-              style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
-            >
-              {state.saveError}
-            </Text>
+            <View testID="pay-sheet-save-error">
+              <FormErrorText
+                message={state.saveError}
+                disableAnimation
+                style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
+              />
+            </View>
           ) : null}
           <StatusTrack
             testID="pay-sheet-status"
@@ -117,7 +120,7 @@ export function PaySheet({ owner, commitment, payment, today }: Props) {
           <AmountHero
             value={state.amountText}
             onChange={setAmountText}
-            tone="danger"
+            tone={AMOUNT_HERO_TONE[TransactionType.Expense]}
             currency={commitment.currency}
             invalid={state.errors.amount !== undefined}
             accessibilityLabel={Strings.commitmentsPayAmountA11y}

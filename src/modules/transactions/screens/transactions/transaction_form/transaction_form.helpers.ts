@@ -1,4 +1,3 @@
-import type { AmountHeroTone } from '@/components/ui/amount_hero';
 import {
   type AccountStripChip,
   type ConvertedAmount,
@@ -86,13 +85,6 @@ export function resolveTransactionFormSemantics(
   };
 }
 
-export const AMOUNT_HERO_TONE: Record<TransactionType, AmountHeroTone> = {
-  [TransactionType.Expense]: 'danger',
-  [TransactionType.Income]: 'success',
-  [TransactionType.Transfer]: 'info',
-  [TransactionType.CCPayment]: 'accentCc',
-};
-
 export function resolveEligibleFromAccounts(type: TransactionType, accounts: Account[]): Account[] {
   if (type === TransactionType.Transfer || type === TransactionType.CCPayment) {
     return accounts.filter((account) => account.type !== AccountType.CreditCard);
@@ -108,23 +100,6 @@ export function resolveEligibleToAccounts(type: TransactionType, accounts: Accou
     return accounts.filter((account) => account.type !== AccountType.CreditCard);
   }
   return accounts;
-}
-
-export function resolveStripSelectedId(eligible: Account[], accountId: string): string | undefined {
-  return eligible.some((account) => account.id === accountId) ? accountId : undefined;
-}
-
-export function resolveAccountStripChips(
-  eligible: Account[],
-  selectedId: string | undefined,
-): AccountStripChip[] {
-  return eligible.map((account) =>
-    toAccountStripChip(account.id, account, {
-      selected: account.id === selectedId,
-      locked: false,
-      dimmed: false,
-    }),
-  );
 }
 
 export function resolveLockedStripChips(input: {

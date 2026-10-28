@@ -267,6 +267,23 @@ export function toAccountStripChip(
   return { id, name: resolveAccountName(account), tile: resolveRowTile(account), ...state };
 }
 
+export function resolveStripSelectedId(eligible: Account[], accountId: string): string | undefined {
+  return eligible.some((account) => account.id === accountId) ? accountId : undefined;
+}
+
+export function resolveAccountStripChips(
+  eligible: Account[],
+  selectedId: string | undefined,
+): AccountStripChip[] {
+  return eligible.map((account) =>
+    toAccountStripChip(account.id, account, {
+      selected: account.id === selectedId,
+      locked: false,
+      dimmed: false,
+    }),
+  );
+}
+
 function titleFor(tx: Transaction, account?: Account, category?: Category): string {
   if (isCardCredit(tx, account)) return Strings.cardCreditTitle;
   if (tx.type === TransactionType.Transfer) return Strings.transferTitle;

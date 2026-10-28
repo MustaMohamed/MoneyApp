@@ -9,12 +9,14 @@ interface PaySheetEntry {
   rateOverride: boolean;
   /** The banner copy to render; `undefined` means no failed save (mirrors edit_commitment). */
   saveError?: string;
+  /** The local day the sheet opened on, the day a payment is dated by default. */
+  openedOn?: string;
 }
 
 type PaySheetStateShape = KeyedEntries<PaySheetEntry>;
 
 type PaySheetState = PaySheetStateShape & {
-  open: (owner: string) => void;
+  open: (owner: string, openedOn?: string) => void;
   setVisible: (owner: string, v: boolean) => void;
   setSaving: (owner: string, v: boolean) => void;
   setRateOverride: (owner: string, v: boolean) => void;
@@ -29,6 +31,7 @@ export const INITIAL_PAY_SHEET_ENTRY: PaySheetEntry = Object.freeze({
   saving: false,
   rateOverride: false,
   saveError: undefined,
+  openedOn: undefined,
 });
 
 const initialState = (): PaySheetStateShape => ({ entries: {} });
@@ -45,11 +48,12 @@ export const usePaySheetState = createMoneyAppSelectors(
     return {
       ...initialState(),
       // The begin action: a copy's first Mark as paid has no entry yet, so this takes no guard.
-      open: (owner) =>
+      open: (owner, openedOn) =>
         set((state) =>
           withEntry(state, owner, {
             ...(state.entries[owner] ?? INITIAL_PAY_SHEET_ENTRY),
             visible: true,
+            openedOn,
           }),
         ),
       setVisible: (owner, v) => updateEntry(owner, { visible: v }),

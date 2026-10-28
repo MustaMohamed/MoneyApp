@@ -93,6 +93,7 @@ export function useCommitmentDetail() {
   const setDetail = useCommitmentDetailStore.getState().setDetail;
   const releaseData = useCommitmentDetailStore.getState().release;
   const releasePaySheet = usePaySheetState.getState().release;
+  const paySheetToday = usePaySheetState((s) => s.entries[owner]?.openedOn);
 
   // `payments` is the refresh trigger: every store publish re-reads the detail in place.
   useEffect(() => {
@@ -190,7 +191,8 @@ export function useCommitmentDetail() {
   );
 
   const openPaySheet = useCallback(() => {
-    usePaySheetState.getState().open(owner);
+    // The pay sheet dates by the day it opens, not the day the detail last read.
+    usePaySheetState.getState().open(owner, toLocalDateString(new Date()));
   }, [owner]);
 
   const skipPayment = useCallback(async () => {
@@ -244,6 +246,7 @@ export function useCommitmentDetail() {
       allPayments: historyRows,
       category,
       today,
+      paySheetToday,
       hero,
       facts,
       loadingCommitmentHint,

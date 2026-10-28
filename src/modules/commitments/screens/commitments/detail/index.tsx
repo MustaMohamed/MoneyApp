@@ -99,7 +99,7 @@ export default function CommitmentDetailScreen() {
         owner={state.owner}
         commitment={state.commitment}
         payment={state.payment}
-        today={state.today}
+        today={state.paySheetToday}
       />
 
       <SkipConfirmSheet

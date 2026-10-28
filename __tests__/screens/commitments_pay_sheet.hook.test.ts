@@ -580,7 +580,7 @@ describe('usePaySheet', () => {
     expect(result.current.form.getValues('exchange_rate')).toBeUndefined();
   });
 
-  // `AccountPickerSheet` fires `onSelect` for every row, the already-checked one included.
+  // `AccountStrip` fires `onSelect` for every chip, the lit one included.
   it('G1: keeps a typed override rate when the already-selected account is re-picked', async () => {
     mockAccounts = [{ id: 'acc-egp', name: 'Cash', currency: Currency.EGP } as unknown as Account];
     const { result, rerender } = await renderHook(() =>
@@ -1218,7 +1218,7 @@ describe('usePaySheet', () => {
       const state = await renderPreview(fixedCommitment, egpAccount, '100', '49.06');
 
       expect(state.convertedTotal).toEqual({ amount: 4906, currency: Currency.EGP });
-      expect(state.convertedBelowMin).toBe(false);
+      expect(state.errors.amount).toBeUndefined();
       expect(state.previewEgpAmount).toBe(4906);
       expect(state.previewHidden).toBe(false);
       expect(state.purposeCaption).toBeUndefined();
@@ -1274,7 +1274,7 @@ describe('usePaySheet', () => {
     it('row 5: flags a converted amount below the floor instead of rendering it', async () => {
       const state = await renderPreview(egpCommitment, usdAccount, '0.01', '49.06');
 
-      expect(state.convertedBelowMin).toBe(true);
+      expect(state.errors.amount).toBe(Strings.commitmentsPayErrConvertedBelowMin(Currency.USD));
       expect(state.convertedTotal).toBeUndefined();
     });
 
@@ -1282,7 +1282,7 @@ describe('usePaySheet', () => {
     it('row 5: suppresses the rate-row preview below the floor, not just the line', async () => {
       const state = await renderPreview(fixedCommitment, egpAccount, '0.50', '0.01');
 
-      expect(state.convertedBelowMin).toBe(true);
+      expect(state.errors.amount).toBe(Strings.commitmentsPayErrConvertedBelowMin(Currency.EGP));
       expect(state.previewHidden).toBe(false);
       expect(state.previewEgpAmount).toBeUndefined();
       expect(state.convertedTotal).toBeUndefined();
@@ -1300,7 +1300,7 @@ describe('usePaySheet', () => {
 
       expect(state.requiresRate).toBe(false);
       expect(state.convertedTotal).toBeUndefined();
-      expect(state.convertedBelowMin).toBe(false);
+      expect(state.errors.amount).toBeUndefined();
       expect(state.previewEgpAmount).toBe(5000);
       expect(state.previewHidden).toBe(true);
       expect(state.purposeCaption).toBeUndefined();
@@ -1546,6 +1546,31 @@ describe('usePaySheet', () => {
       expect(result.current.state.errors.rate).toBe(Strings.addTxErrRateRequired);
       expect(result.current.state.errors.amount).toBeUndefined();
       expect(result.current.state.statusMessage).toBe('Fix the 1 field marked above.');
+    });
+  });
+
+  describe('after a press', () => {
+    it('re-validates every field when a pick follows a failed press', async () => {
+      mockAccounts = [cib, payoneer];
+      const { result, rerender } = await renderHook(() =>
+        usePaySheet(OWNER, egpCommitment, duePayment, TODAY),
+      );
+      await act(() => {
+        result.current.form.setValue('account_id', payoneer.id);
+        result.current.form.setValue('amountText', '4906');
+        result.current.form.setValue('exchange_rate', '');
+      });
+      await act(async () => {
+        await result.current.onSubmit();
+      });
+      await act(() => rerender(undefined));
+      expect(result.current.state.errors.rate).toBe(Strings.addTxErrRateRequired);
+
+      const state = await settle({ result, rerender }, () => result.current.selectAccount(cib.id));
+
+      expect(state.errors.rate).toBeUndefined();
+      expect(state.statusMessage).toBeUndefined();
+      expect(mockMarkAsPaid).not.toHaveBeenCalled();
     });
   });
 

@@ -3,17 +3,9 @@ import {
   type PaySheetFieldErrors,
   type PayWritePreview,
   resolvePayButtonLabel,
-  resolvePayPrefillAccountId,
   resolvePaySheetStatusMessage,
-  resolvePayStripChips,
   resolvePayTrackFootnote,
 } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.helpers';
-import { makeTestAccount } from '@/test_helpers/transaction';
-
-const cib = makeTestAccount({ id: 'acc-cib', name: 'CIB', currency: Currency.EGP });
-const wallet = makeTestAccount({ id: 'acc-wallet', name: 'Wallet', currency: Currency.EGP });
-const payoneer = makeTestAccount({ id: 'acc-usd', name: 'Payoneer', currency: Currency.USD });
-const ACCOUNTS = [cib, wallet, payoneer];
 
 const TODAY = '2026-10-20';
 
@@ -30,46 +22,6 @@ const footnote = (
     today: TODAY,
     ...overrides,
   });
-
-describe('resolvePayStripChips', () => {
-  it('draws one chip per account in the given order, lighting the held id only', () => {
-    const chips = resolvePayStripChips(ACCOUNTS, 'acc-wallet');
-
-    expect(chips.map((chip) => [chip.id, chip.name, chip.selected])).toEqual([
-      ['acc-cib', 'CIB', false],
-      ['acc-wallet', 'Wallet', true],
-      ['acc-usd', 'Payoneer', false],
-    ]);
-    expect(chips.every((chip) => !chip.locked && !chip.dimmed)).toBe(true);
-  });
-
-  it('lights no chip when the held id is empty', () => {
-    const chips = resolvePayStripChips(ACCOUNTS, '');
-
-    expect(chips).toHaveLength(3);
-    expect(chips.some((chip) => chip.selected)).toBe(false);
-  });
-
-  it('lights no chip for an id the list does not hold', () => {
-    const chips = resolvePayStripChips(ACCOUNTS, 'acc-archived');
-
-    expect(chips.some((chip) => chip.selected)).toBe(false);
-  });
-});
-
-describe('resolvePayPrefillAccountId', () => {
-  it("keeps the commitment's account while the loaded list holds it", () => {
-    expect(resolvePayPrefillAccountId('acc-wallet', ACCOUNTS)).toBe('acc-wallet');
-  });
-
-  it('drops an archived account, which the loaded list no longer holds', () => {
-    expect(resolvePayPrefillAccountId('acc-archived', ACCOUNTS)).toBe('');
-  });
-
-  it('falls back to no account, not the first one, for a commitment with none', () => {
-    expect(resolvePayPrefillAccountId(null, ACCOUNTS)).toBe('');
-  });
-});
 
 describe('resolvePayTrackFootnote', () => {
   it('reads the estimate hint for a variable commitment with the amount empty', () => {

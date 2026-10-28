@@ -8,6 +8,10 @@ import type { Account } from '@/database/entities/account.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import {
+  resolveAccountStripChips,
+  resolveStripSelectedId,
+} from '@/modules/transactions/components/transaction_row.helpers';
+import {
   type CommitmentPaymentAmounts,
   requiresExchangeRate,
   resolveCommitmentPaymentAmounts,
@@ -27,9 +31,7 @@ import {
   type PaySheetFieldErrors,
   type PayWritePreview,
   resolvePayButtonLabel,
-  resolvePayPrefillAccountId,
   resolvePaySheetStatusMessage,
-  resolvePayStripChips,
   resolvePayTrackFootnote,
 } from './pay_sheet.helpers';
 import { INITIAL_PAY_SHEET_ENTRY, usePaySheetState } from './pay_sheet.state';
@@ -244,21 +246,22 @@ export function usePaySheet(
     const convertedBelowMin = resolved ? resolved.accountNativeAmount < MIN_MONEY_AMOUNT : true;
     // The gate is currency inequality, not `requiresRate`: USD/USD answers those differently.
     const converts = commitment.currency !== selectedAccount.currency;
+    const writePreview: PayWritePreview | undefined =
+      !convertedBelowMin && resolved
+        ? {
+            amount: resolved.accountNativeAmount,
+            currency: resolved.accountCurrency,
+            accountName: resolveAccountName(selectedAccount),
+          }
+        : undefined;
     return {
       ...base,
       previewEgpAmount: convertedBelowMin ? undefined : resolved?.egpAmount,
       convertedBelowMin,
-      writePreview:
-        !convertedBelowMin && resolved
-          ? {
-              amount: resolved.accountNativeAmount,
-              currency: resolved.accountCurrency,
-              accountName: resolveAccountName(selectedAccount),
-            }
-          : undefined,
+      writePreview,
       convertedTotal:
-        converts && !convertedBelowMin && resolved
-          ? { amount: resolved.accountNativeAmount, currency: resolved.accountCurrency }
+        converts && writePreview
+          ? { amount: writePreview.amount, currency: writePreview.currency }
           : undefined,
     };
   }, [amountText, commitment, exchangeRateValue, requiresRate, selectedAccount]);
@@ -273,7 +276,10 @@ export function usePaySheet(
         : isFixed && commitment.amount != null
           ? commitment.amount
           : 0;
-    const prefillAccountId = resolvePayPrefillAccountId(commitment.account_id, accounts);
+    const prefillAccountId =
+      commitment.account_id === null
+        ? ''
+        : (resolveStripSelectedId(accounts, commitment.account_id) ?? '');
 
     form.reset({
       // `amount_due` can be sub-cent or exponential, so format it to text that re-parses.
@@ -329,8 +335,7 @@ export function usePaySheet(
   }
 
   function selectAccount(accountId: string) {
-    // After a press, a pick clears the strip's ring and recounts the track.
-    form.setValue('account_id', accountId, { shouldValidate: isSubmitted });
+    form.setValue('account_id', accountId);
     const account = accounts.find((a) => a.id === accountId);
     // A pick that turns `requiresRate` on seeds the global rate, unless the user typed their own.
     if (
@@ -343,6 +348,8 @@ export function usePaySheet(
       form.setValue('exchange_rate', formatStoredMoneyText(rate), { shouldValidate: isSubmitted });
       setRateOverride(owner, false);
     }
+    // After a press, every field re-validates against the account just picked, so a stale fault cannot stay counted.
+    if (isSubmitted) void form.trigger();
   }
 
   // The field is hidden when the override is off, so restore the global rate or the save fails.
@@ -379,7 +386,7 @@ export function usePaySheet(
         : undefined),
   };
   const stripChips = useMemo(
-    () => resolvePayStripChips(accounts, accountId),
+    () => resolveAccountStripChips(accounts, accountId),
     [accounts, accountId],
   );
   const trackFootnote =
@@ -403,15 +410,12 @@ export function usePaySheet(
     state: {
       saving,
       requiresRate,
-      selectedAccount,
-      accounts,
       visible,
       rateOverride,
       exchangeRateValue,
       rateUpdatedAt,
       saveError,
       convertedTotal: preview.convertedTotal,
-      convertedBelowMin: preview.convertedBelowMin,
       previewEgpAmount: preview.previewEgpAmount,
       previewHidden: preview.previewHidden,
       purposeCaption: preview.purposeCaption,

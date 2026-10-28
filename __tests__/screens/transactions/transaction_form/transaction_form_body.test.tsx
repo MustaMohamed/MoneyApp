@@ -86,13 +86,11 @@ import { FORM_SHEET_CONTENT_CONTAINER_STYLE } from '@/components/ui/form_sheet.g
 import { useRateEditorSheetState } from '@/components/ui/rate_editor_sheet.state';
 import { VALIDATION_SLOT_MIN_HEIGHT } from '@/components/ui/validation_slot';
 import { ExchangeRateRow } from '@/modules/transactions/components/exchange_rate_row';
+import { resolveAccountStripChips } from '@/modules/transactions/components/transaction_row.helpers';
 import { useAddTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.store';
 import { TransactionFormLoading } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_loading';
 import { useEditTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.store';
-import {
-  resolveAccountStripChips,
-  resolveLockedStripChips,
-} from '@/modules/transactions/screens/transactions/transaction_form/transaction_form.helpers';
+import { resolveLockedStripChips } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form.helpers';
 import { TransactionFormBody } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_body';
 import { makeTestAccount } from '@/test_helpers/transaction';
 

@@ -1,8 +1,8 @@
 import { AmountHero } from '@/components/ui/amount_hero';
 import type { Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { AMOUNT_HERO_TONE } from '@/modules/transactions/constants/amount_hero_tone';
 
-import { AMOUNT_HERO_TONE } from '../transaction_form.helpers';
 import type { TransactionFormMode } from '../transaction_form.types';
 import { useTransactionAmount } from './transaction_amount.hook';
 

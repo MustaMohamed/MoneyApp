@@ -24,11 +24,6 @@ jest.mock('@gorhom/bottom-sheet', () => {
     BottomSheetScrollView: ({ children }: { children?: ReactNode }) => <View>{children}</View>,
   };
 });
-jest.mock('@react-native-community/datetimepicker', () => ({
-  __esModule: true,
-  default: () => null,
-  DateTimePickerAndroid: { open: jest.fn() },
-}));
 jest.mock('@/components/ui/sheet', () => ({
   useBottomSheetAwareHandlers: () => ({ onFocus: jest.fn(), onBlur: jest.fn() }),
   Sheet: ({
@@ -79,12 +74,6 @@ jest.mock('@/modules/accounts/store/account.store', () => ({
   useAccountStore: jest.fn(),
 }));
 jest.mock('@/modules/currency/store/currency.store', () => ({ useCurrencyStore: jest.fn() }));
-jest.mock('@/modules/commitments/repositories/commitment.repository', () => ({
-  commitmentRepository: {
-    getLastPaidPayment: jest.fn().mockResolvedValue(null),
-    getPaymentsByCommitment: jest.fn().mockResolvedValue([]),
-  },
-}));
 jest.mock('@/modules/commitments/screens/commitments/detail/components/pay_sheet.state', () => ({
   ...jest.requireActual<
     typeof import('@/modules/commitments/screens/commitments/detail/components/pay_sheet.state')
