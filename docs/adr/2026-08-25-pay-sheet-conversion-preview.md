@@ -123,3 +123,5 @@ paying account's currency: `= 4,906 EGP` at 0 dp, `= 101.92 USD` at 2 dp. The ra
 `2026-08-21-currency-aware-display-decimals.md`. Frame 1 therefore renders the same quantity twice
 at two precisions, `≈ 4,906.00 EGP` on the rate row and `= 4,906 EGP` below it. That is intended:
 one is the ledger figure, the other is what leaves the account.
+
+**Amended 2026-10-29, MA-219 (#793).** The rate row's preview and `RATE_PREVIEW_AMOUNT_DECIMALS` are deleted with `ExchangeRateRow`, and so is the `= <amount>` total. The pay sheet prints one converted figure, `ConvertedAmountLine` under the hero, through `formatConvertedAmount` at `CURRENCY_CONFIG`'s decimals.

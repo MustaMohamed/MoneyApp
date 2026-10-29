@@ -34,6 +34,8 @@ A USD to USD transfer shows the EGP value the ledger stores, 4,900 for USD 100, 
 
 `formatConvertedAmount(converted: ConvertedAmount | undefined): string` is `Strings.addTxConvertedAmount(formatDisplayAmount(converted.amount, converted.currency))`, and `Strings.addTxConvertedAmountNone`, `≈ —`, for `undefined`. `formatDisplayAmount` prints EGP at 0 dp and USD at 2 dp and never prints an amount above zero as zero, so USD 0.01 at 49 reads `≈ 0.49 EGP`. `RATE_PREVIEW_AMOUNT_DECIMALS` stays in `exchange_rate_row.tsx` and keeps the pay sheet's preview at 2 dp, as `docs/adr/2026-08-25-pay-sheet-conversion-preview.md` §6 records.
 
+**Amended 2026-10-29, MA-219 (#793).** `RATE_PREVIEW_AMOUNT_DECIMALS` and `exchange_rate_row.tsx` are deleted. The pay sheet's converted amount prints through `formatConvertedAmount` as this form's does.
+
 ## 4. The transactions wrappers are the amount's subscribers on the form
 
 `useTransactionRatePreview(input)` returns a converter, `(exchangeRate: string) => ConvertedAmount | undefined`, through `useCallback` over the amount from `useTransactionAmount(mode)`, the type and both currencies; each call is one `resolveConvertedAmount`. Its two callers are `TransactionConvertedAmountLine` and `TransactionRateEditor` in `components/transaction_rate_preview.tsx`. The shared `ConvertedAmountLine` (`src/components/ui/converted_amount_line.tsx`) takes the converted amount and subscribes to nothing. The typed amount lives in the add and edit stores and the form hooks do not re-render on a keystroke, so the two callers subscribe as children of their own, as `TransactionAmountHero` does. A keystroke re-renders the converted line, mounted on a USD form, and the rate editor, `TransactionRateEditor`, `RateEditor` and `RateEditorSheet`, and never `TransactionFormBody`. The rate card's wrapper no longer reads the amount.
@@ -51,6 +53,8 @@ A USD to USD transfer shows the EGP value the ledger stores, 4,900 for USD 100, 
 **Amended 2026-10-14, MA-169 (#696).** A row given `onOpenEditor` never draws the field: the press opens the rate editor in every state, so the row is a button that speaks `Strings.addTxRateEditAccessibility` with the override on as with it off. The pay sheet's row takes no `onOpenEditor` and keeps `''` while its override is on.
 
 **Amended 2026-10-14, MA-170 (#697).** `onOpenEditor` and its branch are removed with the form's card, and `ExchangeRateRow` has one props shape again; the pay sheet's row keeps `''` while its override is on. See `docs/adr/2026-10-14-rate-row.md` §7.
+
+**Amended 2026-10-29, MA-219 (#793).** `ExchangeRateRow` is deleted, so no row draws the field or speaks this label. The pay sheet's rate is `RateRow`, the button this form draws.
 
 ## What this does not decide
 

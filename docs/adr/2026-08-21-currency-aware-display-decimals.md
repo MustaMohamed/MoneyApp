@@ -243,6 +243,8 @@ example, `N4_HERO_AMOUNT_DECIMALS` living beside its own surface
 This satisfies `review.md:13`'s requirement that a `decimals` override be a named constant
 recorded in an ADR — the obligation `exchange_rate_row.tsx`'s prior bare literal never discharged.
 
+**Amended 2026-10-29, MA-219 (#793).** `exchange_rate_row.tsx` is deleted, and `RATE_PREVIEW_AMOUNT_DECIMALS` with it. The pay sheet prints its converted amount through `ConvertedAmountLine` under the hero, at `CURRENCY_CONFIG`'s decimals by `formatDisplayAmount`, so no rate preview keeps a decimals constant of its own.
+
 ## 4. What MA-016 does not close
 
 - **Excludes M24 (#274)** — `formatAmount`'s per-call `Intl.NumberFormat` allocation
