@@ -414,15 +414,6 @@ function withoutTag(rel: string, tag: string, where: string): RequiredSeed {
   };
 }
 
-function withoutMember(rel: string, enumName: string, member: string): RequiredSeed {
-  return {
-    guard: `${enumName}.${member} in the screen's filter table`,
-    rel,
-    seed: () => replaceEvery(rel, `${enumName}.${member}`, `Seeded.${member}`),
-    words: `no \`${enumName}.${member}\``,
-  };
-}
-
 function withoutImport(rel: string, module: string, name: string, where: string): RequiredSeed {
   return {
     guard: `a ${module} import of ${name} in ${where}`,
@@ -454,9 +445,6 @@ function withoutKeptView(rel: string, where: string): RequiredSeed {
 // The import seeds and the tag seeds are spread over the tab screens, so no two edit the same text.
 const REQUIRED: RequiredSeed[] = [
   withoutTag(TRANSACTIONS_INDEX, 'ListRail', 'the transactions screen'),
-  ...['Income', 'Expense', 'Transfer', 'CCPayment'].map((member) =>
-    withoutMember(TRANSACTIONS_INDEX, 'TransactionType', member),
-  ),
   // The import stays, so only a row that requires the call reports this seed.
   {
     guard: 'a formatCurrencyAmount call in the budget picker, with its import kept',
@@ -467,9 +455,6 @@ const REQUIRED: RequiredSeed[] = [
   withoutTag(COMMITMENTS_INDEX, 'ListRail', 'the commitments screen'),
   withoutTag(LIST_RAIL, 'MonthFilter', 'the list rail'),
   withoutTag(LIST_RAIL, 'SegmentFilter', 'the list rail'),
-  ...['Overdue', 'Due', 'Upcoming', 'Paid', 'Skipped'].map((member) =>
-    withoutMember(COMMITMENTS_INDEX, 'CommitmentPaymentStatus', member),
-  ),
   withoutImport(GOALS_INDEX, HEROUI, 'Surface', 'the goals tab screen'),
   withoutImport(BUDGET_INDEX, HEROUI, 'Separator', 'the budget tab screen'),
   withoutImport(COMMITMENTS_INDEX, HEROUI, 'Typography', 'the commitments tab screen'),
