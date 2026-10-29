@@ -9,7 +9,10 @@ import {
   resolvePaySheetSaveError,
   usePaySheet,
 } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.hook';
-import { usePaySheetState } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.state';
+import {
+  type PaySheetPostCloseAction,
+  usePaySheetState,
+} from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.state';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { TransactionAmountError } from '@/modules/transactions/domain/transaction_amounts';
@@ -48,7 +51,7 @@ const CLEAN_PAY_SHEET = {
   saving: false,
   settled: false,
   rateOverride: false,
-  opensAddAccountOnClose: false,
+  postCloseAction: undefined as PaySheetPostCloseAction | undefined,
   saveError: undefined as string | undefined,
 };
 let paySheetStateInner = { ...CLEAN_PAY_SHEET };
@@ -73,13 +76,14 @@ const mockPaySheetState = {
   }),
   requestAccountCreation: jest.fn((_owner: string): boolean => {
     if (!paySheetStateInner.visible || paySheetStateInner.saving) return false;
-    paySheetStateInner = { ...paySheetStateInner, visible: false, opensAddAccountOnClose: true };
+    paySheetStateInner = { ...paySheetStateInner, visible: false, postCloseAction: 'addAccount' };
     return true;
   }),
-  completeClose: jest.fn((_owner: string): 'addAccount' | undefined => {
-    if (!paySheetStateInner.opensAddAccountOnClose) return undefined;
-    paySheetStateInner = { ...paySheetStateInner, opensAddAccountOnClose: false };
-    return 'addAccount';
+  completeClose: jest.fn((_owner: string): PaySheetPostCloseAction | undefined => {
+    const action = paySheetStateInner.postCloseAction;
+    if (action !== undefined)
+      paySheetStateInner = { ...paySheetStateInner, postCloseAction: undefined };
+    return action;
   }),
   open: jest.fn(),
   release: jest.fn(),
@@ -1243,7 +1247,6 @@ describe('usePaySheet', () => {
       // Deterministic failure gets its own copy, not the retry-implying banner.
       await act(() => rerender(undefined));
       expect(result.current.state.statusMessage).toBe(Strings.commitmentsPayErrAmountUnstorable);
-      expect(result.current.state.statusMessage).toBe(Strings.commitmentsPayErrAmountUnstorable);
     });
 
     it('saves the same amount when the rate leaves the converted value on the floor', async () => {
@@ -1659,7 +1662,7 @@ describe('usePaySheet', () => {
         saving: false,
         settled: false,
         rateOverride: false,
-        opensAddAccountOnClose: false,
+        postCloseAction: undefined,
         saveError: undefined,
       };
       await act(() => rerender(undefined));

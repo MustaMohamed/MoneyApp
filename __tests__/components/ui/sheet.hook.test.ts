@@ -461,9 +461,8 @@ describe('useSheetCloseLifecycle re-drives a close the sheet did not carry out (
     expect(sheet.retryClose).toHaveBeenCalledTimes(1);
   });
 
-  it('settles the close itself after SHEET_CLOSE_RETRY_LIMIT retries with no -1, once, and retries no more', async () => {
+  it('settles a close asked for before any index report after SHEET_CLOSE_RETRY_LIMIT retries, once, and retries no more', async () => {
     const sheet = await mountRetryingSheet(true);
-    await sheet.settleAt(0);
     await sheet.setOpen(false);
 
     await sheet.tick(SHEET_CLOSE_RETRY_LIMIT * SHEET_CLOSE_RETRY_MS);
@@ -478,6 +477,17 @@ describe('useSheetCloseLifecycle re-drives a close the sheet did not carry out (
     await sheet.tick(5 * SHEET_CLOSE_RETRY_MS);
     expect(sheet.retryClose).toHaveBeenCalledTimes(SHEET_CLOSE_RETRY_LIMIT);
     expect(sheet.onCloseComplete).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps retrying past SHEET_CLOSE_RETRY_LIMIT a close undone after a reported open, and never settles it', async () => {
+    const sheet = await mountRetryingSheet(true);
+    await sheet.settleAt(0);
+    await sheet.setOpen(false);
+
+    await sheet.tick((SHEET_CLOSE_RETRY_LIMIT + 3) * SHEET_CLOSE_RETRY_MS);
+    expect(sheet.retryClose).toHaveBeenCalledTimes(SHEET_CLOSE_RETRY_LIMIT + 3);
+    expect(sheet.onCloseComplete).not.toHaveBeenCalled();
+    expect(sheet.pending()).toBe(true);
   });
 
   it('stops retrying on unmount', async () => {

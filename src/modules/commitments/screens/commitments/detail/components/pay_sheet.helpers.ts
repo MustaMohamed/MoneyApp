@@ -19,14 +19,7 @@ export interface PayWritePreview {
   accountName: string;
 }
 
-/**
- * `resolved` is `undefined` for inputs that cannot resolve yet (the resolver would throw on
- * them for a reason other than the destination leg). `zeroDestination` is `true` specifically
- * for the resolver's #363 refusal — the caller already knows the destination currency from its
- * own `accountCurrency` argument, so it never needs a fabricated `CommitmentPaymentAmounts` to render
- * "converts below the floor": both call sites only read `accountNativeAmount`/`accountCurrency`
- * off `resolved` once that flag is set, and this flag is what stands in for them instead.
- */
+// `zeroDestination` stands for the resolver's #363 refusal, so a caller needs no fabricated amounts to draw the floor line.
 export function deriveResolution(
   commitmentCurrency: Currency | undefined,
   accountCurrency: Currency | undefined,
