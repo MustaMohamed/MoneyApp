@@ -8,20 +8,21 @@ import { DayCardRow } from '@/components/ui/day_card_row';
 import { resolveDayCardSwipeCorners } from '@/components/ui/day_card_row.helpers';
 import { DayHeader } from '@/components/ui/day_header';
 import { EmptyState } from '@/components/ui/empty_state';
-import { ListRail } from '@/components/ui/list_rail';
+import { LIST_RAIL_ALL_OPTION, ListRail } from '@/components/ui/list_rail';
 import { Screen } from '@/components/ui/screen';
 import { SearchTally } from '@/components/ui/search_tally';
 import type { SegmentFilterOption } from '@/components/ui/segment_filter';
 import { closeAllRows } from '@/components/ui/swipeable_row';
 import { TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Colors, Size } from '@/constants/theme';
+import { Size } from '@/constants/theme';
 import { GoldTokens } from '@/constants/theme_tokens';
 import { TRANSACTION_TYPE_ICONS } from '@/constants/transaction_type_icons';
 import { TransactionRow } from '@/modules/transactions/components/transaction_row';
 import { TransactionRowsSkeleton } from '@/modules/transactions/components/transaction_rows_skeleton';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import type { TransactionFilter } from '@/modules/transactions/store/transactions.store';
+import { orderByRank } from '@/utils/rank_order';
 import { ms } from '@/utils/responsive';
 
 import { SearchRow } from './components/search_row';
@@ -32,32 +33,27 @@ import { FilterSheet } from './filter';
 import { useTransactions } from './transactions.hook';
 import type { TransactionSection } from './transactions.hook';
 
+const TYPE_RAIL_RANK = {
+  [TransactionType.Income]: 0,
+  [TransactionType.Expense]: 1,
+  [TransactionType.Transfer]: 2,
+  [TransactionType.CCPayment]: 3,
+} satisfies Record<TransactionType, number>;
+
+const TYPE_RAIL_LABELS: Record<TransactionType, string> = {
+  [TransactionType.Income]: Strings.addTxTypeIncome,
+  [TransactionType.Expense]: Strings.addTxTypeExpense,
+  [TransactionType.Transfer]: Strings.addTxTypeTransfer,
+  [TransactionType.CCPayment]: Strings.filterCcPayment,
+};
+
 const TRANSACTION_FILTERS: ReadonlyArray<SegmentFilterOption<TransactionFilter>> = [
-  {
-    value: 'all',
-    label: Strings.filterAll,
-    icon: { name: 'view-grid', color: Colors.dark.text2 },
-  },
-  {
-    value: TransactionType.Income,
-    label: Strings.addTxTypeIncome,
-    icon: TRANSACTION_TYPE_ICONS[TransactionType.Income],
-  },
-  {
-    value: TransactionType.Expense,
-    label: Strings.addTxTypeExpense,
-    icon: TRANSACTION_TYPE_ICONS[TransactionType.Expense],
-  },
-  {
-    value: TransactionType.Transfer,
-    label: Strings.addTxTypeTransfer,
-    icon: TRANSACTION_TYPE_ICONS[TransactionType.Transfer],
-  },
-  {
-    value: TransactionType.CCPayment,
-    label: Strings.filterCcPayment,
-    icon: TRANSACTION_TYPE_ICONS[TransactionType.CCPayment],
-  },
+  LIST_RAIL_ALL_OPTION,
+  ...orderByRank(TYPE_RAIL_RANK).map((type) => ({
+    value: type,
+    label: TYPE_RAIL_LABELS[type],
+    icon: TRANSACTION_TYPE_ICONS[type],
+  })),
 ];
 
 const LIST_BOTTOM_CLEARANCE = ms(160);

@@ -69,13 +69,6 @@ function tag(/** @type {string} */ name) {
   return holds(new RegExp(`<${name}(?![\\w$])`), `no \`<${name}\` element`);
 }
 
-/** @param {string} enumName @param {string[]} names */
-function members(enumName, names) {
-  return names.map((name) =>
-    holds(identifier(`${enumName}.${name}`), `no \`${enumName}.${name}\``),
-  );
-}
-
 // Matched against the joined source, so `[^}]*` spans a named-import list oxfmt wrapped.
 /** @param {string} module @param {string} name @returns {Requirement} */
 function namedImport(module, name) {
@@ -262,11 +255,8 @@ const NAMED_ROWS = [
     files: [TRANSACTIONS_INDEX],
     banned: ['useConfirmAction', 'useTransactionFormState', 'useTransactionStore'].map(identifier),
     rule: 'in the transactions template; its hook owns confirm, form and store access',
-    required: [
-      tag('ListRail'),
-      ...members('TransactionType', ['Income', 'Expense', 'Transfer', 'CCPayment']),
-    ],
-    needs: 'the transactions screen filters through `ListRail` over every `TransactionType`',
+    required: [tag('ListRail')],
+    needs: 'the transactions screen filters through `ListRail`',
   },
   {
     files: [`${TRANSACTIONS}/detail/index.tsx`],
@@ -289,11 +279,8 @@ const NAMED_ROWS = [
     files: [COMMITMENTS_INDEX],
     banned: [identifier('CommitmentHeader')],
     rule: 'in the commitments screen; its header is the HeroUI tab header',
-    required: [
-      tag('ListRail'),
-      ...members('CommitmentPaymentStatus', ['Overdue', 'Due', 'Upcoming', 'Paid', 'Skipped']),
-    ],
-    needs: 'the commitments screen filters through `ListRail` over every payment status',
+    required: [tag('ListRail')],
+    needs: 'the commitments screen filters through `ListRail`',
   },
   {
     files: [`${UI}/list_rail.tsx`],

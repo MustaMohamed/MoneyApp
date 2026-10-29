@@ -8,6 +8,14 @@ import {
 } from '@/components/ui/list_rail.geometry';
 import { MonthFilter } from '@/components/ui/month_filter';
 import { SegmentFilter, type SegmentFilterOption } from '@/components/ui/segment_filter';
+import { Strings } from '@/constants/strings';
+import { Colors } from '@/constants/theme';
+
+export const LIST_RAIL_ALL_OPTION: SegmentFilterOption<'all'> = {
+  value: 'all',
+  label: Strings.filterAll,
+  icon: { name: 'view-grid', color: Colors.dark.text2 },
+};
 
 export interface ListRailProps<T extends string> {
   testID: string;

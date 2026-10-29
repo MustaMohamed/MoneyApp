@@ -2,14 +2,10 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
-import {
-  buildAccountChips,
-  countFunnelFilters,
-  pruneAccountFilter,
-  toggleAccountFilter,
-} from '@/components/ui/account_chips.helpers';
+import { countFunnelFilters } from '@/components/ui/account_chips.helpers';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { lookupLeavesUnresolved } from '@/modules/accounts/store/account_lookup.helpers';
+import { useAccountChipFilter } from '@/modules/accounts/store/use_account_chip_filter.hook';
 import { useAccountsById } from '@/modules/accounts/store/use_accounts_by_id.hook';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
@@ -104,9 +100,6 @@ export function useCommitments() {
   const accountRead = useAccountsById();
   const { accountsById } = accountRead;
   const loadAccountLookup = useAccountStore.getState().loadAccountLookup;
-  const { accounts, accountsLoaded } = useAccountStore(
-    useShallow((s) => ({ accounts: s.accounts, accountsLoaded: s.hasLoaded })),
-  );
   const categories = useCategoryStore.useState.categories();
   const { rate, hasLoaded: rateLoaded } = useCurrencyStore(
     useShallow((s) => ({ rate: s.rate, hasLoaded: s.hasLoaded })),
@@ -130,17 +123,10 @@ export function useCommitments() {
   const openFilter = useCommitmentFilterState.getState().open;
   const setFilterDraft = useCommitmentFilterStore.getState().setDraft;
 
-  const effectiveFilters = useMemo(
-    () => (accountsLoaded ? pruneAccountFilter(appliedFilters, accounts) : appliedFilters),
-    [accounts, accountsLoaded, appliedFilters],
+  const { effectiveFilters, accountChips, toggleAccountChip } = useAccountChipFilter(
+    appliedFilters,
+    useCommitmentsScreenState,
   );
-  useEffect(() => {
-    if (!accountsLoaded) return;
-    // Prunes the store's current filter, never this render's, so a press that landed first survives.
-    const current = useCommitmentsScreenState.getState().appliedFilters;
-    const pruned = pruneAccountFilter(current, accounts);
-    if (pruned !== current) setAppliedFilters(pruned);
-  }, [accounts, accountsLoaded, appliedFilters, setAppliedFilters]);
 
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const hasMatchingSnapshot =
@@ -214,10 +200,6 @@ export function useCommitments() {
   const activeFilterCount = countFunnelFilters(advancedFilterCount, effectiveFilters.accountIds);
   const hasListFilters =
     statusFilter !== 'all' || debouncedSearch.trim().length > 0 || advancedFilterCount > 0;
-  const accountChips = useMemo(
-    () => buildAccountChips(accounts, effectiveFilters.accountIds),
-    [accounts, effectiveFilters.accountIds],
-  );
 
   const heroAccountId = resolveCommitmentsHeroAccountId(effectiveFilters.accountIds);
   const heroKeyOnScreen = monthAggregateKey(selectedMonth, heroAccountId);
@@ -345,11 +327,6 @@ export function useCommitments() {
     setFilterDraft(effectiveFilters);
     openFilter();
   }, [effectiveFilters, openFilter, setFilterDraft]);
-
-  const toggleAccountChip = useCallback((accountId: string | undefined) => {
-    const screenState = useCommitmentsScreenState.getState();
-    screenState.setAppliedFilters(toggleAccountFilter(screenState.appliedFilters, accountId));
-  }, []);
 
   const resetFilters = useCallback(() => {
     setStatusFilter('all');

@@ -8,15 +8,14 @@ import { DayCardRow } from '@/components/ui/day_card_row';
 import { resolveDayCardSwipeCorners } from '@/components/ui/day_card_row.helpers';
 import { DayHeader } from '@/components/ui/day_header';
 import { EmptyState } from '@/components/ui/empty_state';
-import { ListRail } from '@/components/ui/list_rail';
+import { LIST_RAIL_ALL_OPTION, ListRail } from '@/components/ui/list_rail';
 import { LoadErrorAlert } from '@/components/ui/load_error_alert';
 import { Screen } from '@/components/ui/screen';
 import { SearchTally } from '@/components/ui/search_tally';
 import type { SegmentFilterOption } from '@/components/ui/segment_filter';
 import { closeAllRows } from '@/components/ui/swipeable_row';
-import { CommitmentPaymentStatus } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Colors, Size } from '@/constants/theme';
+import { Size } from '@/constants/theme';
 import { GoldTokens } from '@/constants/theme_tokens';
 import { resolveCommitmentRowAccountId } from '@/modules/commitments/domain/payment_state';
 import type { CommitmentMonthPayment } from '@/modules/commitments/entities/commitment_payment.entity';
@@ -27,7 +26,7 @@ import {
 } from '@/modules/commitments/utils/commitment_status';
 import { useConfirmAction } from '@/utils/use_confirm_action.hook';
 
-import type { CommitmentsSection } from './commitments.helpers';
+import { SECTION_ORDER, type CommitmentsSection } from './commitments.helpers';
 import { useCommitments } from './commitments.hook';
 import type { CommitmentStatusFilter } from './commitments.state';
 import { CommitmentDeleteConfirmSheet } from './components/commitment_delete_confirm_sheet';
@@ -40,51 +39,12 @@ import { SkipConfirmSheet } from './detail/components/skip_confirm_sheet';
 import { CommitmentFilterSheet } from './filter';
 
 const COMMITMENT_FILTERS: ReadonlyArray<SegmentFilterOption<CommitmentStatusFilter>> = [
-  {
-    value: 'all',
-    label: Strings.filterAll,
-    icon: { name: 'view-grid', color: Colors.dark.text2 },
-  },
-  {
-    value: CommitmentPaymentStatus.Overdue,
-    label: STATUS_LABELS[CommitmentPaymentStatus.Overdue],
-    icon: {
-      name: STATUS_ICONS[CommitmentPaymentStatus.Overdue],
-      color: STATUS_COLORS[CommitmentPaymentStatus.Overdue],
-    },
-  },
-  {
-    value: CommitmentPaymentStatus.Due,
-    label: STATUS_LABELS[CommitmentPaymentStatus.Due],
-    icon: {
-      name: STATUS_ICONS[CommitmentPaymentStatus.Due],
-      color: STATUS_COLORS[CommitmentPaymentStatus.Due],
-    },
-  },
-  {
-    value: CommitmentPaymentStatus.Upcoming,
-    label: STATUS_LABELS[CommitmentPaymentStatus.Upcoming],
-    icon: {
-      name: STATUS_ICONS[CommitmentPaymentStatus.Upcoming],
-      color: STATUS_COLORS[CommitmentPaymentStatus.Upcoming],
-    },
-  },
-  {
-    value: CommitmentPaymentStatus.Paid,
-    label: STATUS_LABELS[CommitmentPaymentStatus.Paid],
-    icon: {
-      name: STATUS_ICONS[CommitmentPaymentStatus.Paid],
-      color: STATUS_COLORS[CommitmentPaymentStatus.Paid],
-    },
-  },
-  {
-    value: CommitmentPaymentStatus.Skipped,
-    label: STATUS_LABELS[CommitmentPaymentStatus.Skipped],
-    icon: {
-      name: STATUS_ICONS[CommitmentPaymentStatus.Skipped],
-      color: STATUS_COLORS[CommitmentPaymentStatus.Skipped],
-    },
-  },
+  LIST_RAIL_ALL_OPTION,
+  ...SECTION_ORDER.map((status) => ({
+    value: status,
+    label: STATUS_LABELS[status],
+    icon: { name: STATUS_ICONS[status], color: STATUS_COLORS[status] },
+  })),
 ];
 
 export default function CommitmentsScreen() {
