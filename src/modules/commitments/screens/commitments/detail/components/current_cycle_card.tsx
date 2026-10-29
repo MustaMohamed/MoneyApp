@@ -7,11 +7,11 @@ import { StatusBadge } from '@/components/ui/status_badge';
 import { Text } from '@/components/ui/text';
 import { resolveFitAmountTextProps, scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Strings } from '@/constants/strings';
-import { LetterSpacing, Spacing } from '@/constants/theme';
+import { LetterSpacing } from '@/constants/theme';
 
 import { DAY_INDICATOR_CLASS } from '../../../../utils/day_indicator';
 import { cardEntering } from '../detail.anim';
-import type { CommitmentCycleCardModel } from '../detail.helpers';
+import { type CommitmentCycleCardModel, cycleActionDrawsRow } from '../detail.helpers';
 import {
   CURRENT_CYCLE_ACTIONS_GAP,
   CURRENT_CYCLE_ACTION_GAP,
@@ -19,6 +19,7 @@ import {
   CURRENT_CYCLE_AMOUNT_GAP,
   CURRENT_CYCLE_CARD_FRAME_STYLE,
   CURRENT_CYCLE_CODE_FONT_SIZE,
+  CURRENT_CYCLE_COLUMN_GAP,
   CURRENT_CYCLE_DAY_LINE_FONT_SIZE,
   CURRENT_CYCLE_DUE_DAY_FONT_SIZE,
   CURRENT_CYCLE_LINE_GAP,
@@ -92,7 +93,7 @@ export function CurrentCycleCard(props: Props): React.ReactElement {
   const { model } = props;
   const { fontScale } = useWindowDimensions();
   const amountProps = resolveFitAmountTextProps(CURRENT_CYCLE_AMOUNT_FONT_SIZE, fontScale);
-  const { height } = resolveCurrentCycleCardGeometry(fontScale, model.action.kind !== 'none');
+  const { height } = resolveCurrentCycleCardGeometry(fontScale, cycleActionDrawsRow(model.action));
 
   return (
     <Animated.View entering={cardEntering} className="mx-4 mt-4">
@@ -106,7 +107,7 @@ export function CurrentCycleCard(props: Props): React.ReactElement {
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: Spacing.xs,
+            gap: CURRENT_CYCLE_COLUMN_GAP,
           }}
         >
           <Text
@@ -136,7 +137,7 @@ export function CurrentCycleCard(props: Props): React.ReactElement {
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: Spacing.xs,
+            gap: CURRENT_CYCLE_COLUMN_GAP,
             marginTop: CURRENT_CYCLE_ROW_GAP,
           }}
         >

@@ -19,8 +19,11 @@ import { Strings } from '@/constants/strings';
 import { Radius, Size, Type, lineHeightFor } from '@/constants/theme';
 
 import type { Commitment } from '../../../../entities/commitment.entity';
-import type { CommitmentPayment } from '../../../../entities/commitment_payment.entity';
-import { commitmentCycleShowsActions, resolveCommitmentDetailFactKinds } from '../detail.helpers';
+import {
+  type CycleActionPayment,
+  commitmentCycleShowsActions,
+  resolveCommitmentDetailFactKinds,
+} from '../detail.helpers';
 import {
   CURRENT_CYCLE_ACTIONS_GAP,
   CURRENT_CYCLE_ACTION_GAP,
@@ -33,7 +36,7 @@ const CYCLE_ACTION_BAR_STYLE = { flex: 1, height: Size.ctaFooterTrack, borderRad
 
 interface Props {
   commitmentHint: Commitment | undefined;
-  cycleHint: Pick<CommitmentPayment, 'paid_date' | 'skipped_date' | 'transaction_id'> | undefined;
+  cycleHint: CycleActionPayment | undefined;
 }
 
 export function CommitmentDetailSkeleton({ commitmentHint, cycleHint }: Props): React.ReactElement {

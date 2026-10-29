@@ -137,6 +137,7 @@ export function useEditCommitment(options: EditCommitmentOptions) {
 
   return {
     state: {
+      hasCommitment: commitment !== undefined,
       saving,
       saveError,
       deactivateDialogVisible,

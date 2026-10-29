@@ -1,14 +1,13 @@
 import { PixelRatio } from 'react-native';
 
 import { STATUS_BADGE_PADDING_VERTICAL } from '@/components/ui/status_badge';
-import { FITTED_LINE_SLACK } from '@/components/ui/text_scale.geometry';
-import { Radius, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
+import { FITTED_LINE_SLACK, deviceLineHeight } from '@/components/ui/text_scale.geometry';
+import { Radius, Size, Spacing, Type } from '@/constants/theme';
 import {
   CURRENT_CYCLE_ACTIONS_GAP,
   CURRENT_CYCLE_ACTION_GAP,
   CURRENT_CYCLE_AMOUNT_FONT_SIZE,
   CURRENT_CYCLE_AMOUNT_GAP,
-  CURRENT_CYCLE_CARD_BORDER_WIDTH,
   CURRENT_CYCLE_CARD_FRAME_STYLE,
   CURRENT_CYCLE_CODE_FONT_SIZE,
   CURRENT_CYCLE_DAY_LINE_FONT_SIZE,
@@ -28,6 +27,7 @@ interface CardTokens {
   size: typeof Size;
   slack: number;
   ratio: number;
+  line: (fontSize: number, fontScale: number) => number;
 }
 
 interface CardGeometry {
@@ -42,11 +42,11 @@ const JEST_TOKENS: CardTokens = {
   size: Size,
   slack: FITTED_LINE_SLACK,
   ratio: PixelRatio.get(),
+  line: deviceLineHeight,
 };
 
-// Android ceils a scaled line box to a whole device pixel.
 function lineBox(tokens: CardTokens, fontSize: number, fontScale: number): number {
-  return Math.ceil(lineHeightFor(fontSize * fontScale) * tokens.ratio - 1e-6) / tokens.ratio;
+  return tokens.line(fontSize, fontScale);
 }
 
 // The overline beside the `tagMd` badge, whose padding no font scale grows.
@@ -98,7 +98,6 @@ describe('resolveCurrentCycleCardGeometry (MA-267)', () => {
     expect(Object.isFrozen(CURRENT_CYCLE_CARD_FRAME_STYLE)).toBe(true);
     expect({
       frame: CURRENT_CYCLE_CARD_FRAME_STYLE,
-      border: CURRENT_CYCLE_CARD_BORDER_WIDTH,
       rowGap: CURRENT_CYCLE_ROW_GAP,
       lineGap: CURRENT_CYCLE_LINE_GAP,
       amountGap: CURRENT_CYCLE_AMOUNT_GAP,
@@ -118,7 +117,6 @@ describe('resolveCurrentCycleCardGeometry (MA-267)', () => {
         paddingHorizontal: Spacing.md,
         borderWidth: Size.hairline,
       },
-      border: Size.hairline,
       rowGap: Spacing.xs,
       lineGap: Spacing.xxxs,
       amountGap: Spacing.xxs,
@@ -183,9 +181,10 @@ describe('resolveCurrentCycleCardGeometry (MA-267)', () => {
         Spacing: typeof Spacing;
         Size: typeof Size;
       }>('@/constants/theme');
-      const textScale = jest.requireActual<{ FITTED_LINE_SLACK: number }>(
-        '@/components/ui/text_scale.geometry',
-      );
+      const textScale = jest.requireActual<{
+        FITTED_LINE_SLACK: number;
+        deviceLineHeight: typeof deviceLineHeight;
+      }>('@/components/ui/text_scale.geometry');
       const card = jest.requireActual<{
         resolveCurrentCycleCardGeometry: typeof resolveCurrentCycleCardGeometry;
       }>('@/modules/commitments/screens/commitments/detail/components/current_cycle_card.geometry');
@@ -195,6 +194,7 @@ describe('resolveCurrentCycleCardGeometry (MA-267)', () => {
         size: theme.Size,
         slack: textScale.FITTED_LINE_SLACK,
         ratio: PIXEL_2_DENSITY,
+        line: textScale.deviceLineHeight,
       };
       for (const fontScale of [1, 1.3, 2]) {
         for (const showsActions of [true, false]) {

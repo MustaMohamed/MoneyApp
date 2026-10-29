@@ -144,7 +144,10 @@ function resolveCycleDayLine(distance: PaymentDayDistance): DayIndicator {
   }
 }
 
-type CycleActionPayment = Pick<CommitmentPayment, 'paid_date' | 'skipped_date' | 'transaction_id'>;
+export type CycleActionPayment = Pick<
+  CommitmentPayment,
+  'paid_date' | 'skipped_date' | 'transaction_id'
+>;
 
 function resolveCycleAction(payment: CycleActionPayment): CommitmentCycleAction {
   if (isUnpaidPayment(payment)) return { kind: 'paySkip' };
@@ -154,9 +157,13 @@ function resolveCycleAction(payment: CycleActionPayment): CommitmentCycleAction 
   return { kind: 'none' };
 }
 
+export function cycleActionDrawsRow(action: CommitmentCycleAction): boolean {
+  return action.kind !== 'none';
+}
+
 /** Whether the cycle card draws its action row; with no store copy of the cycle, it does. */
 export function commitmentCycleShowsActions(payment: CycleActionPayment | undefined): boolean {
-  return payment === undefined || resolveCycleAction(payment).kind !== 'none';
+  return payment === undefined || cycleActionDrawsRow(resolveCycleAction(payment));
 }
 
 export function buildCommitmentCycleCard({

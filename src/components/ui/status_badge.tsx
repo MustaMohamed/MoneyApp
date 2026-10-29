@@ -24,6 +24,7 @@ export const STATUS_BADGE_PADDING_VERTICAL = 2;
 // Raw, as above: A1 `.stag`, the commitment row's tag; its geometry adds it around the label.
 export const STATUS_BADGE_XS_PADDING_VERTICAL = 1;
 export const STATUS_BADGE_XS_LABEL_FONT_SIZE = Type.compactBadge;
+export const STATUS_BADGE_TAG_MD_LABEL_FONT_SIZE = Type.micro;
 const PADDING_VERTICAL = {
   xs: STATUS_BADGE_XS_PADDING_VERTICAL,
   sm: STATUS_BADGE_PADDING_VERTICAL,
@@ -68,7 +69,10 @@ const LABEL_STYLE = {
   },
   sm: { fontSize: Type.pillLabel, lineHeight: lineHeightFor(Type.pillLabel) },
   md: { fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) },
-  tagMd: { fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) },
+  tagMd: {
+    fontSize: STATUS_BADGE_TAG_MD_LABEL_FONT_SIZE,
+    lineHeight: lineHeightFor(STATUS_BADGE_TAG_MD_LABEL_FONT_SIZE),
+  },
 } as const;
 
 /** The xs badge's narrowest box at `fontScale`: its chrome, its icon and a `…`. */

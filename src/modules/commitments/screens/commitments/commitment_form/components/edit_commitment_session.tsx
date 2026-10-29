@@ -24,7 +24,7 @@ export function EditCommitmentSession({
   onSaved,
   onDeactivated,
   onClose,
-}: EditCommitmentSessionProps): React.ReactElement {
+}: EditCommitmentSessionProps): React.ReactElement | null {
   const { state, form, onSubmit, handleDeactivate, confirmDeactivate, cancelDeactivate } =
     useEditCommitment({
       commitmentId,
@@ -40,6 +40,9 @@ export function EditCommitmentSession({
     onRegisterSubmit,
     publishFooter: useCommitmentFormHostState.getState().publishFooter,
   });
+
+  // The body formats the commitment's dates; with no store copy, `onMissing` closes the sheet.
+  if (!state.hasCommitment) return null;
 
   return (
     <>
