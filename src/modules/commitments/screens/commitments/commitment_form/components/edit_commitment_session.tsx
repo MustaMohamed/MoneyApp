@@ -41,8 +41,8 @@ export function EditCommitmentSession({
     publishFooter: useCommitmentFormHostState.getState().publishFooter,
   });
 
-  // The body formats the commitment's dates; with no store copy, `onMissing` closes the sheet.
-  if (!state.hasCommitment) return null;
+  // The body formats the draft's dates; a session seeded with no commitment draws none while `onMissing` closes it.
+  if (!state.hasDraft) return null;
 
   return (
     <>

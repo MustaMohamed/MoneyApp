@@ -2,6 +2,7 @@ import { PixelRatio } from 'react-native';
 
 import {
   FITTED_LINE_SLACK,
+  deviceLineHeight,
   resolveFitAmountTextProps,
   resolveFitLineTextProps,
   resolveLoneWordLines,
@@ -21,6 +22,25 @@ import { Type, lineHeightFor } from '@/constants/theme';
 describe('FITTED_LINE_SLACK', () => {
   it('MA-162: is one device pixel, in dp', () => {
     expect(FITTED_LINE_SLACK * PixelRatio.get()).toBe(1);
+  });
+});
+
+describe('deviceLineHeight (MA-267)', () => {
+  // Pixel_2_API_34, 420 dpi.
+  beforeEach(() => {
+    jest.spyOn(PixelRatio, 'get').mockReturnValue(2.625);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('ceils a 13 dp line, 34.125 px, to 35 px', () => {
+    expect(deviceLineHeight(10, 1)).toBeCloseTo(13.333333, 6);
+  });
+
+  it('leaves a 16 dp line, 42 px, on its device pixel', () => {
+    expect(deviceLineHeight(10, 1.2)).toBe(16);
   });
 });
 
