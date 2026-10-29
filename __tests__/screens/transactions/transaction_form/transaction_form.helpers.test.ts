@@ -3,6 +3,7 @@ import {
   formatRateRowValue,
   resolveRateCommit,
   resolveRateEditorSource,
+  applyRateCommit,
 } from '@/components/ui/form_sheet.helpers';
 import { AccountType, CategoryType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -22,7 +23,6 @@ import {
   TransactionValidationError,
 } from '@/modules/transactions/repositories/transaction.errors';
 import {
-  applyRateCommit,
   countTransactionFormFieldErrors,
   resolveAccountPreselect,
   resolveBudgetFieldError,

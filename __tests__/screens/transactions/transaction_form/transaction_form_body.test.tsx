@@ -85,7 +85,6 @@ jest.mock(
 import { FORM_SHEET_CONTENT_CONTAINER_STYLE } from '@/components/ui/form_sheet.geometry';
 import { useRateEditorSheetState } from '@/components/ui/rate_editor_sheet.state';
 import { VALIDATION_SLOT_MIN_HEIGHT } from '@/components/ui/validation_slot';
-import { ExchangeRateRow } from '@/modules/transactions/components/exchange_rate_row';
 import { resolveAccountStripChips } from '@/modules/transactions/components/transaction_row.helpers';
 import { useAddTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.store';
 import { TransactionFormLoading } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_loading';
@@ -464,48 +463,6 @@ describe('TransactionFormBody fact rows', () => {
   });
 });
 
-describe("ExchangeRateRow, the pay sheet's card", () => {
-  it('speaks no label left from the stored state once the rate row holds a field', async () => {
-    const rowProps = {
-      value: '49',
-      onChange: jest.fn(),
-      onToggleOverride: jest.fn(),
-      rateUpdatedAt: null,
-      previewEgpAmount: undefined,
-    };
-    const { rerender } = await render(<ExchangeRateRow {...rowProps} overrideEnabled={false} />);
-
-    expect(screen.getByTestId('exchange-rate-row')).toHaveProp(
-      'accessibilityLabel',
-      Strings.addTxRateEditAccessibility,
-    );
-
-    await rerender(<ExchangeRateRow {...rowProps} overrideEnabled />);
-
-    expect(screen.getByTestId('exchange-rate-row')).toHaveProp('accessibilityLabel', '');
-  });
-
-  it("MA-170: the pay sheet's card keeps its stored line and stale line, and its Custom rate and Reset to global", async () => {
-    const rowProps = {
-      value: '49',
-      onChange: jest.fn(),
-      onToggleOverride: jest.fn(),
-      rateUpdatedAt: '2000-01-01T12:00:00.000Z',
-      previewEgpAmount: undefined,
-    };
-    const { rerender } = await render(<ExchangeRateRow {...rowProps} overrideEnabled={false} />);
-
-    expect(screen.getByText('Using stored rate · Last updated Jan 1, 2000')).toBeTruthy();
-    expect(screen.getByText('Rate may be stale')).toBeTruthy();
-
-    await rerender(<ExchangeRateRow {...rowProps} overrideEnabled />);
-
-    expect(screen.getByText('Custom rate')).toBeTruthy();
-    expect(screen.getByText('Reset to global')).toBeTruthy();
-    expect(screen.getByText('Rate may be stale')).toBeTruthy();
-  });
-});
-
 describe('MA-170 Rate row', () => {
   const usdAccount = makeTestAccount({ id: 'account-usd', currency: Currency.USD });
   const usdExpense = (
@@ -537,7 +494,6 @@ describe('MA-170 Rate row', () => {
     expect(within(row).getByText(Strings.addTxRateLabel)).toBeTruthy();
     expect(within(row).getByText('52.14')).toBeTruthy();
     expect(screen.queryByText(Strings.currencyRateLabel)).toBeNull();
-    expect(screen.queryByText(Strings.addTxRateReset)).toBeNull();
     expect(screen.queryByTestId('exchange-rate-input')).toBeNull();
   });
 

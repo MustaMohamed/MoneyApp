@@ -47,6 +47,8 @@ So the USD/USD case shows no converted line and still demands a rate. The rate r
 saying why (`commitmentsPayRatePurposeEgp`), above the existing source and freshness line, because a
 required field with no visible purpose reads as a bug.
 
+**Amended 2026-10-28, MA-219 (#793).** The gate is now `requiresRate`, true whenever the commitment or the paying account is USD, and a USD commitment needs no account lit for it. The line sits under the hero, in the amount's message slot, and comes from `resolvePayConvertedAmount` in `pay_sheet.helpers.ts`, over `resolveCommitmentPaymentAmounts`. A USD commitment reads its EGP amount whatever the account, USD to USD included. An EGP commitment paid from a USD account reads the USD amount. EGP to EGP draws no line. The purpose caption and its key, `commitmentsPayRatePurposeEgp`, are gone, and so is the `= <amount>` total under the card.
+
 ## 3. Suppression is a flag, never an encoded `undefined`
 
 `previewEgpAmount === undefined` means one thing: not derivable from what is on screen yet. It
@@ -63,6 +65,8 @@ transaction forms set `previewHidden` on every add and edit sheet, where the par
 them never set it, and an EGP-source amount paid into a USD account prints the USD its destination
 receives on the line under the amount, where it has the identity value in the row.
 `docs/adr/2026-10-13-converted-amount.md` §1 and §2 record both.
+
+**Amended 2026-10-28, MA-219 (#793).** The pay sheet no longer sets `previewHidden` or `previewEgpAmount`. `ExchangeRateRow` is deleted, so neither prop exists. The line under the hero, gated on `requiresRate`, takes the preview's place.
 
 ## 4. Where each surface's preview is derived, and why they differ
 
@@ -119,3 +123,5 @@ paying account's currency: `= 4,906 EGP` at 0 dp, `= 101.92 USD` at 2 dp. The ra
 `2026-08-21-currency-aware-display-decimals.md`. Frame 1 therefore renders the same quantity twice
 at two precisions, `≈ 4,906.00 EGP` on the rate row and `= 4,906 EGP` below it. That is intended:
 one is the ledger figure, the other is what leaves the account.
+
+**Amended 2026-10-29, MA-219 (#793).** The rate row's preview and `RATE_PREVIEW_AMOUNT_DECIMALS` are deleted with `ExchangeRateRow`, and so is the `= <amount>` total. The pay sheet prints one converted figure, `ConvertedAmountLine` under the hero, through `formatConvertedAmount` at `CURRENCY_CONFIG`'s decimals.

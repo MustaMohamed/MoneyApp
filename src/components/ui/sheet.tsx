@@ -1,7 +1,7 @@
 // Scrollable content in a Sheet must use `BottomSheetScrollView`; RN `ScrollView` will not scroll.
 import { BottomSheetFooter, type BottomSheetFooterProps } from '@gorhom/bottom-sheet';
 import { BottomSheet } from 'heroui-native';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Keyboard, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -86,8 +86,10 @@ export function Sheet({
   const insets = useSafeAreaInsets();
   // Measured, not derived: the footer's height is inset- and content-dependent, and gorhom's dynamic sizing does not fully count an absolute footer.
   const [footerHeight, setFooterHeight] = useState(0);
+  const contentRef = useRef<React.ComponentRef<typeof BottomSheet.Content>>(null);
+  const retryClose = useCallback(() => contentRef.current?.close(), []);
   const { closeLifecycle, handleSheetIndexChange, handleSheetClosed, handleSheetCloseRequest } =
-    useSheetCloseLifecycle(isOpen, onCloseComplete, onOpenComplete);
+    useSheetCloseLifecycle(isOpen, onCloseComplete, onOpenComplete, retryClose);
   const closeTouch = useSheetCloseHitSlop();
   // Plain View props, which no animated style writes: a sheet closed at rest stays hidden whatever redraws its content.
   const closedAtRestProps = resolveSheetClosedAtRestProps(closeLifecycle);
@@ -177,6 +179,7 @@ export function Sheet({
           style={[StyleSheet.absoluteFill, { opacity: closedAtRestProps.opacity }]}
         >
           <BottomSheet.Content
+            ref={contentRef}
             {...contentSizingProps}
             onChange={handleSheetIndexChange}
             onClose={handleSheetClosed}

@@ -9,7 +9,10 @@ import {
   resolvePaySheetSaveError,
   usePaySheet,
 } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.hook';
-import { usePaySheetState } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.state';
+import {
+  type PaySheetPostCloseAction,
+  usePaySheetState,
+} from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.state';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { TransactionAmountError } from '@/modules/transactions/domain/transaction_amounts';
@@ -18,6 +21,10 @@ import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 import { makeTestAccount } from '@/test_helpers/transaction';
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
+const mockRouterPush = jest.fn();
+jest.mock('expo-router', () => ({
+  router: { push: (...args: unknown[]) => mockRouterPush(...args) },
+}));
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
   useCommitmentStore: jest.fn(),
 }));
@@ -44,6 +51,7 @@ const CLEAN_PAY_SHEET = {
   saving: false,
   settled: false,
   rateOverride: false,
+  postCloseAction: undefined as PaySheetPostCloseAction | undefined,
   saveError: undefined as string | undefined,
 };
 let paySheetStateInner = { ...CLEAN_PAY_SHEET };
@@ -65,6 +73,17 @@ const mockPaySheetState = {
   }),
   setSaveError: jest.fn((_owner: string, message?: string) => {
     paySheetStateInner = { ...paySheetStateInner, saveError: message };
+  }),
+  requestAccountCreation: jest.fn((_owner: string): boolean => {
+    if (!paySheetStateInner.visible || paySheetStateInner.saving) return false;
+    paySheetStateInner = { ...paySheetStateInner, visible: false, postCloseAction: 'addAccount' };
+    return true;
+  }),
+  completeClose: jest.fn((_owner: string): PaySheetPostCloseAction | undefined => {
+    const action = paySheetStateInner.postCloseAction;
+    if (action !== undefined)
+      paySheetStateInner = { ...paySheetStateInner, postCloseAction: undefined };
+    return action;
   }),
   open: jest.fn(),
   release: jest.fn(),
@@ -106,6 +125,8 @@ const mockMarkAsPaid = jest.fn().mockResolvedValue(undefined);
 const mockLoadPaymentsForMonth = jest.fn().mockResolvedValue(undefined);
 const mockLoadAccounts = jest.fn().mockResolvedValue(undefined);
 let mockAccounts: Account[] = [];
+let mockHasLoaded = false;
+let mockLoadError = false;
 
 function setupStoreMocks() {
   attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
@@ -118,6 +139,12 @@ function setupStoreMocks() {
   attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
     get accounts() {
       return mockAccounts;
+    },
+    get hasLoaded() {
+      return mockHasLoaded;
+    },
+    get loadError() {
+      return mockLoadError;
     },
     loadAccounts: mockLoadAccounts,
   }));
@@ -148,6 +175,8 @@ describe('usePaySheet', () => {
       paySheetStateInner = { ...paySheetStateInner, saveError: message };
     });
     mockAccounts = [];
+    mockHasLoaded = false;
+    mockLoadError = false;
     mockMarkAsPaid.mockClear();
     mockMarkAsPaid.mockResolvedValue(undefined);
     mockLoadPaymentsForMonth.mockClear();
@@ -223,20 +252,58 @@ describe('usePaySheet', () => {
     );
   });
 
-  it('starts with rateOverride false on open', async () => {
+  it('commitRate of a typed rate writes it as typed and turns the override on', async () => {
+    mockAccounts = [egpAccount];
     const { result } = await renderHook(() =>
       usePaySheet(OWNER, fixedCommitment, duePayment, TODAY),
     );
-    expect(result.current.state.rateOverride).toBe(false);
+    let committed = false;
+    await act(() => {
+      committed = result.current.commitRate('48.6');
+    });
+
+    expect(committed).toBe(true);
+    expect(result.current.form.getValues('exchange_rate')).toBe('48.6');
+    expect(mockPaySheetState.setRateOverride).toHaveBeenLastCalledWith(OWNER, true);
   });
 
-  it('toggleRateOverride flips the flag', async () => {
+  it('commitRate of the stored rate writes the stored text and turns the override off', async () => {
+    mockAccounts = [egpAccount];
     const { result } = await renderHook(() =>
       usePaySheet(OWNER, fixedCommitment, duePayment, TODAY),
     );
-    expect(result.current.state.rateOverride).toBe(false);
-    await act(() => result.current.toggleRateOverride());
-    expect(mockPaySheetState.setRateOverride).toHaveBeenCalledWith(OWNER, true);
+    await act(() => {
+      result.current.commitRate('48.6');
+    });
+    let committed = false;
+    await act(() => {
+      committed = result.current.commitRate('55');
+    });
+
+    expect(committed).toBe(true);
+    expect(result.current.form.getValues('exchange_rate')).toBe('55');
+    expect(mockPaySheetState.setRateOverride).toHaveBeenLastCalledWith(OWNER, false);
+    expect(paySheetStateInner.rateOverride).toBe(false);
+  });
+
+  it('commitRate of a text the rate parser refuses returns false and changes nothing', async () => {
+    mockAccounts = [egpAccount];
+    const { result } = await renderHook(() =>
+      usePaySheet(OWNER, fixedCommitment, duePayment, TODAY),
+    );
+    await act(() => {
+      result.current.commitRate('48.6');
+    });
+    mockPaySheetState.setRateOverride.mockClear();
+    let committed = true;
+    await act(() => {
+      committed = result.current.commitRate('0');
+    });
+
+    expect(committed).toBe(false);
+    expect(result.current.form.getValues('exchange_rate')).toBe('48.6');
+    expect(mockPaySheetState.setRateOverride).not.toHaveBeenCalled();
+    expect(paySheetStateInner.rateOverride).toBe(true);
   });
 
   it('setPaidDate writes an ISO string into the form (date-picker upgrade)', async () => {
@@ -493,7 +560,7 @@ describe('usePaySheet', () => {
     );
     // The mocked selector store does not subscribe, so the flag reaches state on the next render.
     await act(() => rerender(undefined));
-    expect(result.current.state.saveError).toBe(Strings.commitmentsPayError);
+    expect(result.current.state.statusMessage).toBe(Strings.commitmentsPayError);
     expect(mockPaySheetState.setVisible).not.toHaveBeenCalledWith(OWNER, false);
   });
 
@@ -578,12 +645,11 @@ describe('usePaySheet', () => {
     await act(() => {
       result.current.form.setValue('account_id', 'acc-egp');
     });
-    await act(() => result.current.toggleRateOverride());
     await act(() => {
-      result.current.form.setValue('exchange_rate', '60');
+      result.current.commitRate('60');
     });
     await act(() => rerender(undefined));
-    expect(result.current.state.rateOverride).toBe(true);
+    expect(paySheetStateInner.rateOverride).toBe(true);
 
     await act(() => {
       result.current.selectAccount(mockAccounts[0].id);
@@ -591,10 +657,10 @@ describe('usePaySheet', () => {
     await act(() => rerender(undefined));
 
     expect(result.current.form.getValues('exchange_rate')).toBe('60');
-    expect(result.current.state.rateOverride).toBe(true);
+    expect(paySheetStateInner.rateOverride).toBe(true);
   });
 
-  it('F2: restores the global rate when the override is turned back off', async () => {
+  it('F2: restores the global rate when the stored rate is committed after a typed one', async () => {
     mockAccounts = [{ id: 'acc-egp', name: 'Cash', currency: Currency.EGP } as unknown as Account];
     const { result, rerender } = await renderHook(() =>
       usePaySheet(OWNER, fixedCommitment, duePayment, TODAY),
@@ -603,30 +669,38 @@ describe('usePaySheet', () => {
       result.current.form.setValue('account_id', 'acc-egp');
     });
 
-    await act(() => result.current.toggleRateOverride());
+    await act(() => {
+      result.current.commitRate('48.6');
+    });
     await act(() => rerender(undefined));
-    expect(result.current.state.rateOverride).toBe(true);
+    expect(paySheetStateInner.rateOverride).toBe(true);
 
     await act(() => {
       result.current.form.setValue('exchange_rate', '');
     });
 
-    await act(() => result.current.toggleRateOverride());
+    await act(() => {
+      result.current.commitRate('55');
+    });
     await act(() => rerender(undefined));
 
-    expect(result.current.state.rateOverride).toBe(false);
+    expect(paySheetStateInner.rateOverride).toBe(false);
     expect(result.current.form.getValues('exchange_rate')).toBe('55');
   });
 
-  it('F2: does not overwrite the typed rate when the override is turned on', async () => {
+  it('F2: commits a typed rate over a seeded one, not the global rate', async () => {
     mockAccounts = [{ id: 'acc-egp', name: 'Cash', currency: Currency.EGP } as unknown as Account];
     const { result } = await renderHook(() =>
       usePaySheet(OWNER, fixedCommitment, duePayment, TODAY),
     );
     await act(() => {
-      result.current.form.setValue('exchange_rate', '48.6');
+      result.current.selectAccount('acc-egp');
     });
-    await act(() => result.current.toggleRateOverride());
+    expect(result.current.form.getValues('exchange_rate')).toBe('55');
+
+    await act(() => {
+      result.current.commitRate('48.6');
+    });
     expect(result.current.form.getValues('exchange_rate')).toBe('48.6');
   });
 
@@ -649,7 +723,7 @@ describe('usePaySheet', () => {
     expect(result.current.form.getValues('exchange_rate')).toBe('0.0000001');
   });
 
-  it('reseeds positional text when the override toggles back off at that rate', async () => {
+  it('commits positional text when the stored exponential-band rate is committed', async () => {
     attachMockSelectorStore(useCurrencyStore as unknown as jest.Mock, () => ({
       rate: 1e-7,
       isManualOverride: false,
@@ -659,11 +733,15 @@ describe('usePaySheet', () => {
     const { result } = await renderHook(() =>
       usePaySheet(OWNER, fixedCommitment, duePayment, TODAY),
     );
-    await act(() => result.current.toggleRateOverride());
-    await act(() => result.current.form.setValue('exchange_rate', '48.6'));
-    await act(() => result.current.toggleRateOverride());
+    await act(() => {
+      result.current.commitRate('48.6');
+    });
+    await act(() => {
+      result.current.commitRate('0.0000001');
+    });
 
     expect(result.current.form.getValues('exchange_rate')).toBe('0.0000001');
+    expect(paySheetStateInner.rateOverride).toBe(false);
   });
 
   // The save-error flag lives in a module-level store, so it survives a dismiss.
@@ -685,7 +763,7 @@ describe('usePaySheet', () => {
       await result.current.onSubmit();
     });
     await act(() => rerender(undefined));
-    expect(result.current.state.saveError).toBe(Strings.commitmentsPayError);
+    expect(result.current.state.statusMessage).toBe(Strings.commitmentsPayError);
 
     mockPaySheetState.setSaveError.mockClear();
 
@@ -701,7 +779,7 @@ describe('usePaySheet', () => {
     await act(() => rerender(undefined));
 
     expect(mockPaySheetState.setSaveError).toHaveBeenCalledWith(OWNER, undefined);
-    expect(result.current.state.saveError).toBeUndefined();
+    expect(result.current.state.statusMessage).toBeUndefined();
   });
 
   it('F3: clears the save error on a submit that fails validation', async () => {
@@ -709,7 +787,7 @@ describe('usePaySheet', () => {
     const { result, rerender } = await submitAmount('15');
     await act(() => rerender(undefined));
     expect(mockMarkAsPaid).toHaveBeenCalledTimes(1);
-    expect(result.current.state.saveError).toBe(Strings.commitmentsPayError);
+    expect(result.current.state.statusMessage).toBe(Strings.commitmentsPayError);
 
     mockPaySheetState.setSaveError.mockClear();
 
@@ -726,7 +804,7 @@ describe('usePaySheet', () => {
       Strings.errAmountInvalid,
     );
     expect(mockPaySheetState.setSaveError).toHaveBeenCalledWith(OWNER, undefined);
-    expect(result.current.state.saveError).toBeUndefined();
+    expect(result.current.state.statusMessage).toBe(Strings.fixFieldsMarkedAbove(1));
   });
 
   // The rate row is not a `Controller`, so `setValue` is the only thing that can revalidate it.
@@ -741,11 +819,13 @@ describe('usePaySheet', () => {
       });
     }
 
-    async function typeRate(result: PayHookResult, text: string) {
+    async function commitRate(result: PayHookResult, text: string): Promise<boolean> {
+      let committed = false;
       await act(async () => {
-        result.current.setExchangeRate(text);
+        committed = result.current.commitRate(text);
         await new Promise((resolve) => setTimeout(resolve, 0));
       });
+      return committed;
     }
 
     const amountError = (result: PayHookResult) =>
@@ -784,25 +864,28 @@ describe('usePaySheet', () => {
       expect(amountError(result)).toBe(Strings.commitmentsPayErrAmountRequired);
     });
 
-    it.each(['48.', '0', '0.', '0.0'])(
-      'after a refused Save the rate shows no error at %p',
+    it.each(['48.', '0', '0.', '0.0', '48x'])(
+      'after a refused Save the rate commit refuses %p and leaves the field and its fault as they were',
       async (text) => {
         const result = await submitRate('');
         expect(rateError(result)).toBe(Strings.addTxErrRateRequired);
 
-        await typeRate(result, text);
+        expect(await commitRate(result, text)).toBe(false);
 
-        expect(result.current.form.getValues('exchange_rate')).toBe(text);
-        expect(rateError(result)).toBeUndefined();
+        expect(result.current.form.getValues('exchange_rate')).toBe('');
+        expect(rateError(result)).toBe(Strings.addTxErrRateRequired);
       },
     );
 
-    it('after a refused Save an unreadable rate shows the invalid message', async () => {
+    it('after a refused Save a rate commit that parses clears the fault with no second Save', async () => {
       const result = await submitRate('');
+      expect(rateError(result)).toBe(Strings.addTxErrRateRequired);
 
-      await typeRate(result, '48x');
+      expect(await commitRate(result, '48.5')).toBe(true);
 
-      expect(rateError(result)).toBe(Strings.addTxErrRateInvalid);
+      expect(result.current.form.getValues('exchange_rate')).toBe('48.5');
+      expect(rateError(result)).toBeUndefined();
+      expect(mockMarkAsPaid).not.toHaveBeenCalled();
     });
 
     it('before any Save neither field raises anything at "48."', async () => {
@@ -811,11 +894,13 @@ describe('usePaySheet', () => {
         usePaySheet(OWNER, fixedCommitment, duePayment, TODAY),
       );
 
+      const rateBefore = result.current.form.getValues('exchange_rate');
+
       await typeAmount(result, '48.');
-      await typeRate(result, '48.');
+      expect(await commitRate(result, '48.')).toBe(false);
 
       expect(result.current.form.getValues('amountText')).toBe('48.');
-      expect(result.current.form.getValues('exchange_rate')).toBe('48.');
+      expect(result.current.form.getValues('exchange_rate')).toBe(rateBefore);
       expect(amountError(result)).toBeUndefined();
       expect(rateError(result)).toBeUndefined();
     });
@@ -850,18 +935,20 @@ describe('usePaySheet', () => {
       expect(amountError(result)).toBeUndefined();
     });
 
-    it('a clear and "48." sent back to back leave no rate fault once the validation settles', async () => {
+    it('a refused "" and "48." committed back to back keep the parsed rate and raise no fault', async () => {
       const result = await submitRate('');
-      await typeRate(result, '50');
+      expect(await commitRate(result, '50')).toBe(true);
       expect(rateError(result)).toBeUndefined();
 
+      const committed: boolean[] = [];
       await act(async () => {
-        result.current.setExchangeRate('');
-        result.current.setExchangeRate('48.');
+        committed.push(result.current.commitRate(''));
+        committed.push(result.current.commitRate('48.'));
         await new Promise((resolve) => setTimeout(resolve, 0));
       });
 
-      expect(result.current.form.getValues('exchange_rate')).toBe('48.');
+      expect(committed).toEqual([false, false]);
+      expect(result.current.form.getValues('exchange_rate')).toBe('50');
       expect(rateError(result)).toBeUndefined();
     });
   });
@@ -905,7 +992,7 @@ describe('usePaySheet', () => {
     expect(result.current.form.getFieldState('exchange_rate').error).toBeUndefined();
   });
 
-  it('H4: turning the override off after a failed submit clears the stale rate error', async () => {
+  it('H4: committing the stored rate after a failed submit clears the stale rate error', async () => {
     mockAccounts = [
       { id: 'acc-usd', name: 'Dollars', currency: Currency.USD } as unknown as Account,
     ];
@@ -920,7 +1007,9 @@ describe('usePaySheet', () => {
     await act(() => rerender(undefined));
     expect(result.current.state.requiresRate).toBe(true);
 
-    await act(() => result.current.toggleRateOverride());
+    await act(() => {
+      result.current.commitRate('48.6');
+    });
     await act(() => rerender(undefined));
     await act(() => {
       result.current.form.setValue('exchange_rate', '');
@@ -937,12 +1026,12 @@ describe('usePaySheet', () => {
 
     // The revalidate `setValue` schedules is async, hence the microtask flush.
     await act(async () => {
-      result.current.toggleRateOverride();
+      result.current.commitRate('55');
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
     await act(() => rerender(undefined));
 
-    expect(result.current.state.rateOverride).toBe(false);
+    expect(paySheetStateInner.rateOverride).toBe(false);
     expect(result.current.form.getValues('exchange_rate')).toBe('55');
     expect(result.current.form.getFieldState('exchange_rate').error).toBeUndefined();
   });
@@ -1021,12 +1110,12 @@ describe('usePaySheet', () => {
       );
     });
 
-    // The membership issue precedes the rate demand, and `requiresRate` stays false without one.
+    // The membership issue precedes the rate demand; a USD commitment demands the rate with no account lit.
     it('does not fall through to "no rate needed" when the account is missing from the list', async () => {
       mockAccounts = [egpAccount];
       const result = await submitWithAccountId(fixedCommitment, 'acc-gone');
 
-      expect(result.current.state.requiresRate).toBe(false);
+      expect(result.current.state.requiresRate).toBe(true);
       expect(mockMarkAsPaid).not.toHaveBeenCalled();
       expect(result.current.form.getFieldState('account_id').error?.message).toBe(
         Strings.commitmentsPayErrAccountUnavailable,
@@ -1130,7 +1219,7 @@ describe('usePaySheet', () => {
         result.current.form.setValue('exchange_rate', '49.06');
       });
 
-      expect(result.current.state.convertedTotal).toBeUndefined();
+      expect(result.current.state).toHaveProperty('converted', undefined);
     });
 
     // A huge finite amount clears the refine, so the resolver throws at `markAsPaid`, not here.
@@ -1157,7 +1246,7 @@ describe('usePaySheet', () => {
 
       // Deterministic failure gets its own copy, not the retry-implying banner.
       await act(() => rerender(undefined));
-      expect(result.current.state.saveError).toBe(Strings.commitmentsPayErrAmountUnstorable);
+      expect(result.current.state.statusMessage).toBe(Strings.commitmentsPayErrAmountUnstorable);
     });
 
     it('saves the same amount when the rate leaves the converted value on the floor', async () => {
@@ -1206,31 +1295,22 @@ describe('usePaySheet', () => {
     it('row 1: a USD commitment paid from an EGP account converts by multiplying', async () => {
       const state = await renderPreview(fixedCommitment, egpAccount, '100', '49.06');
 
-      expect(state.convertedTotal).toEqual({ amount: 4906, currency: Currency.EGP });
+      expect(state.converted).toEqual({ amount: 4906, currency: Currency.EGP });
       expect(state.errors.amount).toBeUndefined();
-      expect(state.previewEgpAmount).toBe(4906);
-      expect(state.previewHidden).toBe(false);
-      expect(state.purposeCaption).toBeUndefined();
     });
 
-    // The rate-row preview is hidden here because the entered amount already is the EGP one.
     it('row 2: an EGP commitment paid from a USD account converts by dividing', async () => {
       const state = await renderPreview(egpCommitment, usdAccount, '5000', '49.06');
 
-      expect(state.convertedTotal).toEqual({ amount: 101.92, currency: Currency.USD });
-      expect(state.previewHidden).toBe(true);
-      expect(state.purposeCaption).toBeUndefined();
+      expect(state.converted).toEqual({ amount: 101.92, currency: Currency.USD });
     });
 
     // A rate is still demanded USD to USD because `egp_amount` is the ledger's storage currency.
-    it('row 3: a USD commitment paid from a USD account shows no line and captions the rate', async () => {
+    it('row 3: a USD commitment paid from a USD account reads the EGP amount on the line', async () => {
       const state = await renderPreview(fixedCommitment, usdAccount, '100', '49.06');
 
       expect(state.requiresRate).toBe(true);
-      expect(state.convertedTotal).toBeUndefined();
-      expect(state.previewEgpAmount).toBe(4906);
-      expect(state.previewHidden).toBe(false);
-      expect(state.purposeCaption).toBe(Strings.commitmentsPayRatePurposeEgp);
+      expect(state.converted).toEqual({ amount: 4906, currency: Currency.EGP });
     });
 
     // `roundMoney(0.004)` is 0 and the resolver throws on it, which in a render is a red screen.
@@ -1241,22 +1321,21 @@ describe('usePaySheet', () => {
     ] as const)('row 4: shows no line for %s', async (_label, amountText) => {
       const state = await renderPreview(fixedCommitment, egpAccount, amountText, '49.06');
 
-      expect(state.convertedTotal).toBeUndefined();
-      expect(state.previewEgpAmount).toBeUndefined();
+      expect(state).toHaveProperty('converted', undefined);
     });
 
-    it('row 4: shows no line and demands no rate before an account is picked', async () => {
+    it('row 4: a USD commitment demands a rate and reads the EGP amount before an account is picked', async () => {
       mockAccounts = [egpAccount];
       const { result } = await renderHook(() =>
         usePaySheet(OWNER, fixedCommitment, duePayment, TODAY),
       );
       await act(() => {
         result.current.form.setValue('amountText', '100');
+        result.current.form.setValue('exchange_rate', '49.06');
       });
 
-      expect(result.current.state.requiresRate).toBe(false);
-      expect(result.current.state.convertedTotal).toBeUndefined();
-      expect(result.current.state.previewEgpAmount).toBeUndefined();
+      expect(result.current.state.requiresRate).toBe(true);
+      expect(result.current.state.converted).toEqual({ amount: 4906, currency: Currency.EGP });
     });
 
     // The line must not render a confident zero, so the flag drives the amount-field message.
@@ -1264,35 +1343,30 @@ describe('usePaySheet', () => {
       const state = await renderPreview(egpCommitment, usdAccount, '0.01', '49.06');
 
       expect(state.errors.amount).toBe(Strings.commitmentsPayErrConvertedBelowMin(Currency.USD));
-      expect(state.convertedTotal).toBeUndefined();
+      expect(state).toHaveProperty('converted', undefined);
     });
 
-    // Below the floor the rate-row preview must go quiet too, not render a confident 0.00 EGP.
-    it('row 5: suppresses the rate-row preview below the floor, not just the line', async () => {
+    // Below the floor the line must go quiet too, not render a confident 0 EGP.
+    it('row 5: reads no converted amount below the floor into EGP', async () => {
       const state = await renderPreview(fixedCommitment, egpAccount, '0.50', '0.01');
 
       expect(state.errors.amount).toBe(Strings.commitmentsPayErrConvertedBelowMin(Currency.EGP));
-      expect(state.previewHidden).toBe(false);
-      expect(state.previewEgpAmount).toBeUndefined();
-      expect(state.convertedTotal).toBeUndefined();
+      expect(state).toHaveProperty('converted', undefined);
     });
 
     // The resolver rounds the amount to 1.00 first, so 0.02, not `roundMoney(1.005 / 40)` = 0.03.
     it('renders the resolver rounding, not a re-derived one: 1.005 EGP at 40 is 0.02 USD', async () => {
       const state = await renderPreview(egpCommitment, usdAccount, '1.005', '40');
 
-      expect(state.convertedTotal).toEqual({ amount: 0.02, currency: Currency.USD });
+      expect(state.converted).toEqual({ amount: 0.02, currency: Currency.USD });
     });
 
     it('row 1-4 fourth pair: EGP commitment paid from an EGP account converts nothing', async () => {
       const state = await renderPreview(egpCommitment, egpAccount, '5000');
 
       expect(state.requiresRate).toBe(false);
-      expect(state.convertedTotal).toBeUndefined();
+      expect(state).toHaveProperty('converted', undefined);
       expect(state.errors.amount).toBeUndefined();
-      expect(state.previewEgpAmount).toBe(5000);
-      expect(state.previewHidden).toBe(true);
-      expect(state.purposeCaption).toBeUndefined();
     });
   });
 
@@ -1413,7 +1487,9 @@ describe('usePaySheet', () => {
         'Writes an expense of 735 EGP on CIB, dated today.',
       );
 
-      const state = await settle({ result, rerender }, () => result.current.setExchangeRate('48x'));
+      const state = await settle({ result, rerender }, () =>
+        result.current.form.setValue('exchange_rate', ''),
+      );
 
       expect(state.trackFootnote).toBeUndefined();
       expect(state.statusMessage).toBeUndefined();
@@ -1586,6 +1662,7 @@ describe('usePaySheet', () => {
         saving: false,
         settled: false,
         rateOverride: false,
+        postCloseAction: undefined,
         saveError: undefined,
       };
       await act(() => rerender(undefined));
@@ -1608,6 +1685,200 @@ describe('usePaySheet', () => {
 
       expect(result.current.state.visible).toBe(false);
       expect(result.current.state.trackFootnote).toBe(before);
+    });
+  });
+
+  describe('MA-219 failed write, unavailable account, no accounts and the add-account hand-off', () => {
+    const walletAccount = {
+      id: 'acc-wallet',
+      name: 'Wallet',
+      currency: Currency.EGP,
+    } as unknown as Account;
+
+    async function renderLit(accounts: Account[], payment = duePayment, today = TODAY) {
+      mockHasLoaded = true;
+      mockAccounts = accounts;
+      const hook = await renderHook(() => usePaySheet(OWNER, egpCommitment, payment, today));
+      await act(() => {
+        hook.result.current.form.setValue('account_id', egpAccount.id);
+        hook.result.current.form.setValue('amountText', '15');
+        hook.result.current.form.setValue('paid_date', '2026-05-20');
+      });
+      return hook;
+    }
+
+    async function press(result: { current: ReturnType<typeof usePaySheet> }) {
+      await act(async () => {
+        await result.current.onSubmit();
+      });
+    }
+
+    it('a failed write reads the failed-write copy on the status track, keeps the sheet open, and a second Pay retries', async () => {
+      paySheetStateInner = { ...paySheetStateInner, visible: true };
+      mockMarkAsPaid.mockRejectedValueOnce(new Error('write failed'));
+      const { result, rerender } = await renderLit([egpAccount]);
+
+      await press(result);
+      await act(() => rerender(undefined));
+
+      expect(result.current.state.statusMessage).toBe(Strings.commitmentsPayError);
+      expect(result.current.state.visible).toBe(true);
+      expect(mockPaySheetState.setVisible).not.toHaveBeenCalledWith(OWNER, false);
+
+      await press(result);
+      expect(mockMarkAsPaid).toHaveBeenCalledTimes(2);
+    });
+
+    it('a failed write whose account reload also fails reloads once and still reads the failed-write copy', async () => {
+      mockMarkAsPaid.mockRejectedValueOnce(new Error('write failed'));
+      mockLoadAccounts.mockImplementationOnce(async () => {
+        mockLoadError = true;
+        throw new Error('reload failed');
+      });
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const { result, rerender } = await renderLit([egpAccount]);
+
+      await press(result);
+      await act(() => rerender(undefined));
+
+      expect(mockLoadAccounts).toHaveBeenCalledTimes(1);
+      expect(result.current.state.statusMessage).toBe(Strings.commitmentsPayError);
+      expect(result.current.state.errors.account).toBeUndefined();
+      consoleSpy.mockRestore();
+    });
+
+    it('a failed write whose reload drops the lit account rings the strip with the unavailable copy, counts it, and sets no save error', async () => {
+      mockMarkAsPaid.mockRejectedValueOnce(new Error('account archived'));
+      mockLoadAccounts.mockImplementationOnce(async () => {
+        mockAccounts = [walletAccount];
+      });
+      const { result, rerender } = await renderLit([egpAccount, walletAccount]);
+
+      await press(result);
+      await act(() => rerender(undefined));
+
+      expect(mockLoadAccounts).toHaveBeenCalledTimes(1);
+      expect(result.current.state.errors.account).toBe(Strings.commitmentsPayErrAccountUnavailable);
+      expect(result.current.state.statusMessage).toBe(Strings.fixFieldsMarkedAbove(1));
+      expect(mockPaySheetState.setSaveError).not.toHaveBeenCalledWith(
+        OWNER,
+        Strings.commitmentsPayError,
+      );
+    });
+
+    it('a reload that drops the lit account before any press rings the strip and counts nothing', async () => {
+      const { result, rerender } = await renderLit([egpAccount, walletAccount]);
+      expect(result.current.state.errors.account).toBeUndefined();
+
+      mockAccounts = [walletAccount];
+      await act(() => rerender(undefined));
+
+      expect(result.current.state.errors.account).toBe(Strings.commitmentsPayErrAccountUnavailable);
+      expect(result.current.state.statusMessage).toBeUndefined();
+      expect(mockMarkAsPaid).not.toHaveBeenCalled();
+    });
+
+    it('a failed write that settles after a close and reopen marks nothing on the new open', async () => {
+      paySheetStateInner = { ...paySheetStateInner, visible: true };
+      let rejectWrite: (error: Error) => void = () => undefined;
+      mockMarkAsPaid.mockImplementationOnce(
+        () =>
+          new Promise((_resolve, reject: (error: Error) => void) => {
+            rejectWrite = reject;
+          }),
+      );
+      mockLoadAccounts.mockImplementationOnce(async () => {
+        mockAccounts = [walletAccount];
+      });
+      const { result, rerender } = await renderLit([egpAccount, walletAccount]);
+
+      let submitted: Promise<void> = Promise.resolve();
+      await act(async () => {
+        submitted = result.current.onSubmit();
+      });
+      expect(mockMarkAsPaid).toHaveBeenCalledTimes(1);
+      paySheetStateInner = { ...paySheetStateInner, visible: false };
+      await act(() => rerender(undefined));
+      paySheetStateInner = { ...paySheetStateInner, visible: true };
+      await act(() => rerender(undefined));
+
+      await act(async () => {
+        rejectWrite(new Error('account archived'));
+        await submitted;
+      });
+      await act(() => rerender(undefined));
+
+      expect(mockLoadAccounts).toHaveBeenCalledTimes(1);
+      expect(result.current.form.getFieldState('account_id').error).toBeUndefined();
+      expect(mockPaySheetState.setSaveError).not.toHaveBeenCalledWith(
+        OWNER,
+        Strings.commitmentsPayError,
+      );
+    });
+
+    it('reads noAccounts once the accounts load empty, not before the load and not with an account', async () => {
+      mockAccounts = [];
+      const { result, rerender } = await renderHook(() =>
+        usePaySheet(OWNER, egpCommitment, duePayment, TODAY),
+      );
+      expect(result.current.state.noAccounts).toBe(false);
+
+      mockHasLoaded = true;
+      await act(() => rerender(undefined));
+      expect(result.current.state.noAccounts).toBe(true);
+
+      mockAccounts = [egpAccount];
+      await act(() => rerender(undefined));
+      expect(result.current.state.noAccounts).toBe(false);
+    });
+
+    it('opens add account on the close after a hand-off, once, and on no plain close', async () => {
+      mockHasLoaded = true;
+      paySheetStateInner = { ...paySheetStateInner, visible: true };
+      const { result } = await renderHook(() =>
+        usePaySheet(OWNER, egpCommitment, duePayment, TODAY),
+      );
+
+      await act(() => result.current.handleCloseComplete());
+      expect(mockRouterPush).not.toHaveBeenCalled();
+
+      await act(() => result.current.requestAccountCreation());
+      expect(mockPaySheetState.requestAccountCreation).toHaveBeenCalledWith(OWNER);
+      await act(() => result.current.handleCloseComplete());
+      expect(mockRouterPush).toHaveBeenCalledTimes(1);
+      expect(mockRouterPush).toHaveBeenCalledWith('/accounts/add_account');
+
+      await act(() => result.current.handleCloseComplete());
+      expect(mockRouterPush).toHaveBeenCalledTimes(1);
+    });
+
+    it('writes the picked day as the paid date: a leap day', async () => {
+      const { result } = await renderLit([egpAccount]);
+      await act(() => result.current.setPaidDate('2024-02-29'));
+
+      await press(result);
+
+      expect(mockMarkAsPaid).toHaveBeenCalledTimes(1);
+      expect(mockMarkAsPaid.mock.calls[0][1]).toMatchObject({ paid_date: '2024-02-29' });
+    });
+
+    it('pays a cycle carried from an earlier month by its own id', async () => {
+      const carried = makeTestPayment({
+        commitment_id: egpCommitment.id,
+        due_date: '2026-03-31',
+        amount_due: 15,
+        currency: Currency.EGP,
+        created_at: '2026-01-01T00:00:00.000Z',
+        updated_at: '2026-01-01T00:00:00.000Z',
+      });
+      const { result } = await renderLit([egpAccount], carried, '2026-05-08');
+      await act(() => result.current.setPaidDate('2026-05-08'));
+
+      await press(result);
+
+      expect(mockMarkAsPaid).toHaveBeenCalledTimes(1);
+      expect(mockMarkAsPaid.mock.calls[0][0]).toBe(carried.id);
+      expect(mockMarkAsPaid.mock.calls[0][1]).toMatchObject({ paid_date: '2026-05-08' });
     });
   });
 

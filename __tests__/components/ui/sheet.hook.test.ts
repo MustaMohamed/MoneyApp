@@ -7,6 +7,11 @@ import {
   resolveSheetClosedAtRestProps,
 } from '@/components/ui/sheet.helpers';
 import { useSheetCloseHitSlop, useSheetCloseLifecycle } from '@/components/ui/sheet.hook';
+import {
+  SHEET_CLOSE_RETRY_LIMIT,
+  SHEET_CLOSE_RETRY_MS,
+  isSheetClosePending,
+} from '@/components/ui/sheet_close_lifecycle';
 import { Size, touchFloorHitSlop } from '@/constants/theme';
 
 const HIDDEN = { opacity: 0, pointerEvents: 'none' };
@@ -370,5 +375,152 @@ describe('useSheetCloseHitSlop', () => {
 
     await act(() => hook.result.current.onHeaderLayout(layoutOf(headerHeight)));
     expect(hook.result.current.hitSlop).toEqual(resolveSheetCloseHitSlop(headerHeight));
+  });
+});
+
+// gorhom reports nothing for a close that ends back at the open index, so the sheet drives the close again.
+describe('useSheetCloseLifecycle re-drives a close the sheet did not carry out (MA-244)', () => {
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => jest.useRealTimers());
+
+  async function mountRetryingSheet(isOpen: boolean, { withRetry = true } = {}) {
+    const onCloseComplete = jest.fn();
+    const retryClose = jest.fn();
+    const hook = await renderHook(
+      ({ open }: { open: boolean }) =>
+        useSheetCloseLifecycle(
+          open,
+          onCloseComplete,
+          undefined,
+          withRetry ? retryClose : undefined,
+        ),
+      { initialProps: { open: isOpen } },
+    );
+    return {
+      onCloseComplete,
+      retryClose,
+      pending: () => isSheetClosePending(hook.result.current.closeLifecycle),
+      setOpen: (open: boolean) => hook.rerender({ open }),
+      settleAt: (index: number) => act(() => hook.result.current.handleSheetIndexChange(index)),
+      tick: (ms: number) => act(() => jest.advanceTimersByTime(ms)),
+      unmount: () => hook.unmount(),
+    };
+  }
+
+  it('calls retryClose once per SHEET_CLOSE_RETRY_MS after the drop while no -1 arrives', async () => {
+    const sheet = await mountRetryingSheet(true);
+    await sheet.settleAt(0);
+    await sheet.setOpen(false);
+    expect(sheet.pending()).toBe(true);
+
+    await sheet.tick(SHEET_CLOSE_RETRY_MS - 1);
+    expect(sheet.retryClose).not.toHaveBeenCalled();
+
+    await sheet.tick(1);
+    expect(sheet.retryClose).toHaveBeenCalledTimes(1);
+
+    await sheet.tick(SHEET_CLOSE_RETRY_MS);
+    expect(sheet.retryClose).toHaveBeenCalledTimes(2);
+    expect(sheet.onCloseComplete).not.toHaveBeenCalled();
+  });
+
+  it('completes once on a -1 after two retries, and retries no more', async () => {
+    const sheet = await mountRetryingSheet(true);
+    await sheet.settleAt(0);
+    await sheet.setOpen(false);
+    await sheet.tick(2 * SHEET_CLOSE_RETRY_MS);
+    expect(sheet.retryClose).toHaveBeenCalledTimes(2);
+
+    await sheet.settleAt(-1);
+    expect(sheet.onCloseComplete).toHaveBeenCalledTimes(1);
+    expect(sheet.pending()).toBe(false);
+
+    await sheet.tick(5 * SHEET_CLOSE_RETRY_MS);
+    expect(sheet.retryClose).toHaveBeenCalledTimes(2);
+    expect(sheet.onCloseComplete).toHaveBeenCalledTimes(1);
+  });
+
+  it('stops retrying on a reopen before the -1, never completes that close, and completes the next close once', async () => {
+    const sheet = await mountRetryingSheet(true);
+    await sheet.settleAt(0);
+    await sheet.setOpen(false);
+    await sheet.tick(SHEET_CLOSE_RETRY_MS);
+    expect(sheet.retryClose).toHaveBeenCalledTimes(1);
+
+    await sheet.setOpen(true);
+    expect(sheet.pending()).toBe(false);
+    await sheet.tick(3 * SHEET_CLOSE_RETRY_MS);
+    expect(sheet.retryClose).toHaveBeenCalledTimes(1);
+    expect(sheet.onCloseComplete).not.toHaveBeenCalled();
+
+    await sheet.settleAt(0);
+    await sheet.setOpen(false);
+    await sheet.settleAt(-1);
+    expect(sheet.onCloseComplete).toHaveBeenCalledTimes(1);
+    await sheet.tick(3 * SHEET_CLOSE_RETRY_MS);
+    expect(sheet.retryClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('settles a close asked for before any index report after SHEET_CLOSE_RETRY_LIMIT retries, once, and retries no more', async () => {
+    const sheet = await mountRetryingSheet(true);
+    await sheet.setOpen(false);
+
+    await sheet.tick(SHEET_CLOSE_RETRY_LIMIT * SHEET_CLOSE_RETRY_MS);
+    expect(sheet.retryClose).toHaveBeenCalledTimes(SHEET_CLOSE_RETRY_LIMIT);
+    expect(sheet.onCloseComplete).not.toHaveBeenCalled();
+
+    await sheet.tick(SHEET_CLOSE_RETRY_MS);
+    expect(sheet.onCloseComplete).toHaveBeenCalledTimes(1);
+    expect(sheet.pending()).toBe(false);
+
+    await sheet.settleAt(-1);
+    await sheet.tick(5 * SHEET_CLOSE_RETRY_MS);
+    expect(sheet.retryClose).toHaveBeenCalledTimes(SHEET_CLOSE_RETRY_LIMIT);
+    expect(sheet.onCloseComplete).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps retrying past SHEET_CLOSE_RETRY_LIMIT a close undone after a reported open, and never settles it', async () => {
+    const sheet = await mountRetryingSheet(true);
+    await sheet.settleAt(0);
+    await sheet.setOpen(false);
+
+    await sheet.tick((SHEET_CLOSE_RETRY_LIMIT + 3) * SHEET_CLOSE_RETRY_MS);
+    expect(sheet.retryClose).toHaveBeenCalledTimes(SHEET_CLOSE_RETRY_LIMIT + 3);
+    expect(sheet.onCloseComplete).not.toHaveBeenCalled();
+    expect(sheet.pending()).toBe(true);
+  });
+
+  it('stops retrying on unmount', async () => {
+    const sheet = await mountRetryingSheet(true);
+    await sheet.settleAt(0);
+    await sheet.setOpen(false);
+    await sheet.tick(SHEET_CLOSE_RETRY_MS);
+    expect(sheet.retryClose).toHaveBeenCalledTimes(1);
+
+    await sheet.unmount();
+    await sheet.tick(3 * SHEET_CLOSE_RETRY_MS);
+    expect(sheet.retryClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('never retries a sheet that never opened', async () => {
+    const sheet = await mountRetryingSheet(false);
+    await sheet.setOpen(false);
+    expect(sheet.pending()).toBe(false);
+
+    await sheet.tick(5 * SHEET_CLOSE_RETRY_MS);
+    expect(sheet.retryClose).not.toHaveBeenCalled();
+  });
+
+  it('throws nothing on the ticks with no retryClose, stays pending, and completes once on the -1', async () => {
+    const sheet = await mountRetryingSheet(true, { withRetry: false });
+    await sheet.settleAt(0);
+    await sheet.setOpen(false);
+
+    await sheet.tick(3 * SHEET_CLOSE_RETRY_MS);
+    expect(sheet.pending()).toBe(true);
+
+    await sheet.settleAt(-1);
+    expect(sheet.onCloseComplete).toHaveBeenCalledTimes(1);
+    expect(sheet.pending()).toBe(false);
   });
 });

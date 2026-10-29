@@ -57,3 +57,13 @@ export function settleSheetCloseLifecycle(
     shouldComplete,
   };
 }
+
+/** How often `Sheet` asks gorhom again for a close it was asked for and has not carried out. */
+export const SHEET_CLOSE_RETRY_MS = 250;
+
+/** Retries before the sheet settles a close asked for before gorhom reported any index, such as one before its layout. */
+export const SHEET_CLOSE_RETRY_LIMIT = 8;
+
+export function isSheetClosePending(lifecycle: SheetCloseLifecycle): boolean {
+  return !lifecycle.isOpen && lifecycle.hasOpened && !lifecycle.completed;
+}

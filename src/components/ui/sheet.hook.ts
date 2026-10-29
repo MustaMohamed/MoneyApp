@@ -3,7 +3,10 @@ import type { Insets, LayoutChangeEvent } from 'react-native';
 
 import { resolveSheetCloseHitSlop } from './sheet.helpers';
 import {
+  SHEET_CLOSE_RETRY_LIMIT,
+  SHEET_CLOSE_RETRY_MS,
   createSheetCloseLifecycle,
+  isSheetClosePending,
   settleSheetCloseLifecycle,
   syncSheetCloseLifecycle,
   type SheetCloseLifecycle,
@@ -19,11 +22,12 @@ interface SheetCloseLifecycleHook {
 // The fields a render reads: a report that changes none of them, `openReported` alone, stays in the ref and schedules no render.
 const RENDERED_FIELDS = ['isOpen', 'hasOpened', 'completed', 'restsClosed'] as const;
 
-/** Holds the sheet's close lifecycle as state, so the render after a settled close reads it; `onCloseComplete` runs once per settled close, `onOpenComplete` once per settled open. */
+/** Holds the sheet's close lifecycle as state, so the render after a settled close reads it; `onCloseComplete` runs once per settled close, `onOpenComplete` once per settled open, and `retryClose` every `SHEET_CLOSE_RETRY_MS` while a close is pending. */
 export function useSheetCloseLifecycle(
   isOpen: boolean,
   onCloseComplete: (() => void) | undefined,
   onOpenComplete?: () => void,
+  retryClose?: () => void,
 ): SheetCloseLifecycleHook {
   const [storedLifecycle, setStoredLifecycle] = useState(() => createSheetCloseLifecycle(isOpen));
   const closeLifecycle =
@@ -35,6 +39,9 @@ export function useSheetCloseLifecycle(
   // The handlers read the ref, which alone holds a reported open, so a render writes it only with a change of `isOpen`.
   const closeLifecycleRef = useRef(closeLifecycle);
   if (closeLifecycle !== storedLifecycle) closeLifecycleRef.current = closeLifecycle;
+  // Set only by gorhom's own report of an index of 0 or more since the open, never by the close request's stand-in.
+  const indexReportedRef = useRef(false);
+  if (closeLifecycle !== storedLifecycle && isOpen) indexReportedRef.current = false;
 
   // `fromIndexReport` is false for the close request's stand-in 0, which reports no settled open.
   const settle = useCallback(
@@ -52,7 +59,13 @@ export function useSheetCloseLifecycle(
     [onCloseComplete, onOpenComplete],
   );
 
-  const handleSheetIndexChange = useCallback((index: number) => settle(index, true), [settle]);
+  const handleSheetIndexChange = useCallback(
+    (index: number) => {
+      if (index >= 0) indexReportedRef.current = true;
+      settle(index, true);
+    },
+    [settle],
+  );
 
   const handleSheetClosed = useCallback(() => handleSheetIndexChange(-1), [handleSheetIndexChange]);
 
@@ -67,6 +80,31 @@ export function useSheetCloseLifecycle(
   useEffect(() => {
     if (settlesOnDrop) handleSheetIndexChange(-1);
   }, [settlesOnDrop, handleSheetIndexChange]);
+
+  // Read through a ref so a new `onCloseComplete` identity does not restart the retries below.
+  const settleClosedRef = useRef(handleSheetClosed);
+  useEffect(() => {
+    settleClosedRef.current = handleSheetClosed;
+  }, [handleSheetClosed]);
+
+  // gorhom reports nothing for a close that ends back at the open index, so the close is asked for again until a -1 settles it.
+  const closePending = isSheetClosePending(closeLifecycle);
+  useEffect(() => {
+    if (!closePending || retryClose === undefined) return undefined;
+    let retries = 0;
+    const timer = setInterval(() => {
+      if (!isSheetClosePending(closeLifecycleRef.current)) return;
+      // A close asked for before gorhom reported any index cannot settle by itself; one after a reported open keeps retrying.
+      if (retries >= SHEET_CLOSE_RETRY_LIMIT && !indexReportedRef.current) {
+        clearInterval(timer);
+        settleClosedRef.current();
+        return;
+      }
+      retries += 1;
+      retryClose();
+    }, SHEET_CLOSE_RETRY_MS);
+    return () => clearInterval(timer);
+  }, [closePending, retryClose]);
 
   return { closeLifecycle, handleSheetIndexChange, handleSheetClosed, handleSheetCloseRequest };
 }

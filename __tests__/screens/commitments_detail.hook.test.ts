@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { createContext, createElement, useContext, type PropsWithChildren } from 'react';
 
 import { AccountType, AmountType, Currency, DurationType } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import { AcctTokens } from '@/constants/theme_tokens';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
@@ -703,6 +704,26 @@ describe('useCommitmentDetail', () => {
     expect(
       useCommitmentDetailStore.getState().entries[result.current.state.owner].allPayments,
     ).toBe(rentHistory);
+  });
+
+  // MA-219: a pay closes the sheet to the detail, whose cycle then reads paid.
+  it('reads the open cycle as paid, by the same payment id, once the store publishes its paid row', async () => {
+    seedRent();
+    paymentsState = [payment];
+    const paidRow: CommitmentPayment = { ...payment, paid_date: TODAY, amount_paid: 5000 };
+    mockGetPaymentsByCommitment.mockResolvedValueOnce(rentHistory).mockResolvedValueOnce([paidRow]);
+
+    const { result, rerender } = await renderHook(() => useCommitmentDetail());
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+    expect(result.current.state.cycleCard?.statusLabel).not.toBe(Strings.commitmentsStatusPaid);
+
+    paymentsState = [paidRow];
+    await rerender({});
+
+    await waitFor(() =>
+      expect(result.current.state.cycleCard?.statusLabel).toBe(Strings.commitmentsStatusPaid),
+    );
+    expect(result.current.state.payment?.id).toBe(payment.id);
   });
 
   it('a failed skip keeps the sheet open with its error, and a retry that lands closes it', async () => {

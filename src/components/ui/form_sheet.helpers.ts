@@ -59,6 +59,22 @@ export function resolveRateCommit(input: {
   return { exchangeRate: override ? text : formatStoredMoneyText(storedRate), override };
 }
 
+/** Every rate editor owner's commit, the two transaction form hooks' and the pay sheet's: a refused rate writes nothing; an accepted one clears the save error, then sets the override when given and the rate. */
+export function applyRateCommit(input: {
+  text: string;
+  storedRate: number;
+  clearError: () => void;
+  setRateOverride?: (override: boolean) => void;
+  setExchangeRate: (exchangeRate: string) => void;
+}): boolean {
+  const commit = resolveRateCommit({ text: input.text, storedRate: input.storedRate });
+  if (commit === undefined) return false;
+  input.clearError();
+  input.setRateOverride?.(commit.override);
+  input.setExchangeRate(commit.exchangeRate);
+  return true;
+}
+
 export function formatConvertedAmount(converted: ConvertedAmount | undefined): string {
   return converted === undefined
     ? Strings.addTxConvertedAmountNone

@@ -1,8 +1,4 @@
-import {
-  type AccountStripChip,
-  type ConvertedAmount,
-  resolveRateCommit,
-} from '@/components/ui/form_sheet.helpers';
+import { type AccountStripChip, type ConvertedAmount } from '@/components/ui/form_sheet.helpers';
 import { AccountType, CategoryType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/modules/accounts/entities/account.entity';
@@ -234,22 +230,6 @@ export function resolveConvertedAmount(input: {
     if (error instanceof TransactionAmountError) return undefined;
     throw error;
   }
-}
-
-/** Both form hooks' `commitExchangeRate`: a refused rate writes nothing; an accepted one clears the save error, then sets the override when given and the rate. */
-export function applyRateCommit(input: {
-  text: string;
-  storedRate: number;
-  clearError: () => void;
-  setRateOverride?: (override: boolean) => void;
-  setExchangeRate: (exchangeRate: string) => void;
-}): boolean {
-  const commit = resolveRateCommit({ text: input.text, storedRate: input.storedRate });
-  if (commit === undefined) return false;
-  input.clearError();
-  input.setRateOverride?.(commit.override);
-  input.setExchangeRate(commit.exchangeRate);
-  return true;
 }
 
 function resolveArchivedAccountLine(error: unknown): string | undefined {

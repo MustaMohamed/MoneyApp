@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { z } from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 
+import { applyRateCommit } from '@/components/ui/form_sheet.helpers';
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/modules/accounts/entities/account.entity';
@@ -30,7 +31,6 @@ import { useAddTransactionStore } from './add_transaction.store';
 import { resolveBudgetAssignment } from './budget_assignment.helpers';
 import {
   REFINE_DESPITE_FIELD_ERRORS,
-  applyRateCommit,
   resolveAccountPreselect,
   resolveDestinationFloorError,
   resolveEligibleFromAccounts,

@@ -4,8 +4,9 @@ import { View, useWindowDimensions } from 'react-native';
 import { AccountStrip } from '@/components/ui/account_strip';
 import { AmountHero } from '@/components/ui/amount_hero';
 import { Button } from '@/components/ui/button';
+import { ConvertedAmountLine } from '@/components/ui/converted_amount_line';
+import { DangerRing } from '@/components/ui/danger_ring';
 import { DateRow } from '@/components/ui/date_row';
-import { FormErrorText } from '@/components/ui/form_error_text';
 import {
   FORM_FACT_CELL_CLASS,
   FORM_SHEET_CONTENT_CONTAINER_STYLE,
@@ -14,18 +15,18 @@ import {
 } from '@/components/ui/form_sheet.geometry';
 import { FormStripRow, FormSupportLineSlot } from '@/components/ui/form_type_tabs';
 import { ListCard } from '@/components/ui/list_card';
+import { NoAccountsEmpty } from '@/components/ui/no_accounts_empty';
 import { NoteFactRow } from '@/components/ui/note_fact_row';
 import { useNoteReveal } from '@/components/ui/note_reveal.hook';
+import { RateEditor } from '@/components/ui/rate_editor_sheet';
+import { RateRow } from '@/components/ui/rate_row';
 import { Sheet } from '@/components/ui/sheet';
 import { StatusTrack } from '@/components/ui/status_track';
 import { Text } from '@/components/ui/text';
 import { ValidationSlot } from '@/components/ui/validation_slot';
 import { TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Spacing, Type, lineHeightFor } from '@/constants/theme';
-import { ExchangeRateRow } from '@/modules/transactions/components/exchange_rate_row';
 import { AMOUNT_HERO_TONE } from '@/modules/transactions/constants/amount_hero_tone';
-import { formatCurrencyAmount } from '@/utils/format_amount';
 
 import type { Commitment } from '../../../../entities/commitment.entity';
 import type { CommitmentPayment } from '../../../../entities/commitment_payment.entity';
@@ -44,9 +45,11 @@ export function PaySheet({ owner, commitment, payment, today }: Props) {
     onSubmit,
     selectAccount,
     setVisible,
-    toggleRateOverride,
+    commitRate,
+    convertedFor,
+    requestAccountCreation,
+    handleCloseComplete,
     setAmountText,
-    setExchangeRate,
     setPaidDate,
     setNote,
   } = usePaySheet(owner, commitment, payment, today);
@@ -59,39 +62,35 @@ export function PaySheet({ owner, commitment, payment, today }: Props) {
       onOpenChange={(open) => {
         if (!open) setVisible(false);
       }}
+      onCloseComplete={handleCloseComplete}
       title={commitment ? Strings.commitmentsPayTitle(commitment.name) : ''}
       size="lg"
       scrollable
       liftsAboveKeyboard
       footer={
-        <View>
-          {state.saveError !== undefined ? (
-            <View testID="pay-sheet-save-error">
-              <FormErrorText
-                message={state.saveError}
-                disableAnimation
-                style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
-              />
-            </View>
-          ) : null}
-          <StatusTrack
-            testID="pay-sheet-status"
-            footnote={state.trackFootnote}
-            message={state.statusMessage}
-          />
-          <View style={{ height: FORM_SHEET_STATUS_GAP }} />
-          <Button
-            variant="primary"
-            flat
-            label={state.ctaLabel}
-            isLoading={state.saving}
-            isDisabled={state.saving || state.settled}
-            onPress={() => void onSubmit()}
-          />
-        </View>
+        state.noAccounts ? undefined : (
+          <View>
+            <StatusTrack
+              testID="pay-sheet-status"
+              footnote={state.trackFootnote}
+              message={state.statusMessage}
+            />
+            <View style={{ height: FORM_SHEET_STATUS_GAP }} />
+            <Button
+              variant="primary"
+              flat
+              label={state.ctaLabel}
+              isLoading={state.saving}
+              isDisabled={state.saving || state.settled}
+              onPress={() => void onSubmit()}
+            />
+          </View>
+        )
       }
     >
-      {commitment ? (
+      {commitment === undefined ? null : state.noAccounts ? (
+        <NoAccountsEmpty onAddAccount={requestAccountCreation} />
+      ) : (
         <BottomSheetScrollView
           ref={scrollRef}
           testID="pay-sheet-scroll"
@@ -129,51 +128,24 @@ export function PaySheet({ owner, commitment, payment, today }: Props) {
             testID="amount-error-slot"
             liveTestID="amount-error-live"
             message={state.errors.amount}
-          />
-
-          {state.requiresRate ? (
-            <View style={{ paddingHorizontal: Spacing.md }}>
-              <ExchangeRateRow
-                value={state.exchangeRateValue ?? ''}
-                onChange={setExchangeRate}
-                overrideEnabled={state.rateOverride}
-                onToggleOverride={toggleRateOverride}
-                rateUpdatedAt={state.rateUpdatedAt}
-                previewEgpAmount={state.previewEgpAmount}
-                previewHidden={state.previewHidden}
-                purposeCaption={state.purposeCaption}
-                error={state.errors.rate}
-              />
-              {/* Converted total: decimals come from CURRENCY_CONFIG, with no override. */}
-              {state.convertedTotal ? (
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    justifyContent: 'flex-end',
-                    marginTop: Spacing.xs,
-                  }}
-                >
-                  <Text
-                    className="font-sora-semibold text-foreground"
-                    style={{
-                      fontSize: Type.bodyStrong,
-                      lineHeight: lineHeightFor(Type.bodyStrong),
-                    }}
-                  >
-                    {Strings.commitmentsPayConvertedTotal(
-                      formatCurrencyAmount(
-                        state.convertedTotal.amount,
-                        state.convertedTotal.currency,
-                      ),
-                    )}
-                  </Text>
-                </View>
-              ) : null}
-            </View>
-          ) : null}
+          >
+            {state.requiresRate && state.errors.amount === undefined ? (
+              <ConvertedAmountLine converted={state.converted} />
+            ) : null}
+          </ValidationSlot>
 
           <View style={FORM_SHEET_CONTENT_CONTAINER_STYLE}>
             <ListCard testID="pay-sheet-fact-group">
+              {state.requiresRate ? (
+                <View className={FORM_FACT_CELL_CLASS}>
+                  <RateRow
+                    ownerId={owner}
+                    value={state.exchangeRateValue ?? ''}
+                    stale={state.rateStale}
+                  />
+                  {state.errors.rate !== undefined ? <DangerRing testID="rate-ring" /> : null}
+                </View>
+              ) : null}
               <View className={FORM_FACT_CELL_CLASS}>
                 <DateRow
                   ownerId={owner}
@@ -192,8 +164,17 @@ export function PaySheet({ owner, commitment, payment, today }: Props) {
               />
             </ListCard>
           </View>
+          <RateEditor
+            ownerId={owner}
+            value={state.exchangeRateValue ?? ''}
+            onCommit={commitRate}
+            storedRate={state.storedRate}
+            rateUpdatedAt={state.rateUpdatedAt}
+            stale={state.rateStale}
+            convertedFor={convertedFor}
+          />
         </BottomSheetScrollView>
-      ) : null}
+      )}
     </Sheet>
   );
 }

@@ -6,13 +6,12 @@ import { Strings } from '@/constants/strings';
 import type { Account } from '@/database/entities/account.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { PaySheet } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet';
+import { resolvePayButtonLabel } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.helpers';
 import { usePaySheetState } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.state';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
-
-jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: unknown) => sel }));
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => {
   const { View } = jest.requireActual<typeof import('react-native')>('react-native');
@@ -24,48 +23,57 @@ jest.mock('@gorhom/bottom-sheet', () => {
     BottomSheetScrollView: ({ children }: { children?: ReactNode }) => <View>{children}</View>,
   };
 });
+const mockRouterPush = jest.fn();
+jest.mock('expo-router', () => ({
+  router: { push: (...args: unknown[]) => mockRouterPush(...args) },
+}));
+// The rendered `Sheet`'s `onCloseComplete`, which a case calls as the settled close would.
+let mockSheetCloseComplete: (() => void) | undefined;
 jest.mock('@/components/ui/sheet', () => ({
   useBottomSheetAwareHandlers: () => ({ onFocus: jest.fn(), onBlur: jest.fn() }),
   Sheet: ({
     isOpen,
     children,
     footer,
+    onCloseComplete,
   }: {
     isOpen: boolean;
     children?: ReactNode;
     footer?: ReactNode;
+    onCloseComplete?: () => void;
   }) => {
     const { View } = jest.requireActual<typeof import('react-native')>('react-native');
+    mockSheetCloseComplete = onCloseComplete;
     return isOpen ? (
       <View testID="pay-sheet">
         {children}
-        {footer}
+        {footer === undefined ? null : <View testID="sheet-footer">{footer}</View>}
       </View>
     ) : null;
   },
 }));
 jest.mock('@/components/ui/button', () => ({
-  Button: ({ label, onPress }: { label: string; onPress?: () => void }) => {
+  Button: ({
+    label,
+    onPress,
+    testID,
+  }: {
+    label: string;
+    onPress?: () => void;
+    testID?: string;
+  }) => {
     const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
-    return <Text onPress={onPress}>{label}</Text>;
+    return (
+      <Text testID={testID} onPress={onPress}>
+        {label}
+      </Text>
+    );
   },
 }));
 jest.mock('@/components/ui/date_row', () => {
   const { View } = jest.requireActual<typeof import('react-native')>('react-native');
   return { DateRow: () => <View testID="date-row" /> };
 });
-jest.mock('@/modules/transactions/components/exchange_rate_row', () => ({
-  ExchangeRateRow: ({ onChange, error }: { onChange: (v: string) => void; error?: string }) => {
-    const { Text, TextInput, View } =
-      jest.requireActual<typeof import('react-native')>('react-native');
-    return (
-      <View>
-        <TextInput testID="rate-input" onChangeText={onChange} />
-        {error ? <Text testID="rate-error">{error}</Text> : null}
-      </View>
-    );
-  },
-}));
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
   useCommitmentStore: jest.fn(),
 }));
@@ -126,22 +134,28 @@ const paySheetState = {
   setSaving: jest.fn(),
   setRateOverride: jest.fn(),
   setSaveError: jest.fn(),
+  requestAccountCreation: jest.fn(),
+  completeClose: jest.fn(),
   open: jest.fn(),
   release: jest.fn(),
   reset: jest.fn(),
 };
 
 const mockMarkAsPaid = jest.fn().mockResolvedValue(undefined);
+let suiteAccounts: Account[] = [payAccount];
 
 beforeEach(() => {
   jest.clearAllMocks();
   mockMarkAsPaid.mockResolvedValue(undefined);
+  suiteAccounts = [payAccount];
   attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
     markAsPaid: mockMarkAsPaid,
     loadPaymentsForMonth: jest.fn().mockResolvedValue(undefined),
   }));
   attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
-    accounts: [payAccount],
+    accounts: suiteAccounts,
+    hasLoaded: true,
+    loadError: false,
     loadAccounts: jest.fn().mockResolvedValue(undefined),
   }));
   attachMockSelectorStore(useCurrencyStore as unknown as jest.Mock, () => ({
@@ -161,44 +175,23 @@ async function renderOpenSheet(commitment = variableCommitment) {
   return utils;
 }
 
-describe('PaySheet exchange-rate error', () => {
-  it('clears the rate error as soon as a valid rate is typed, with no second Save', async () => {
+// MA-219: an unreadable stored rate prefills no rate, so a press rings the Rate row and counts its fault.
+describe('PaySheet press with no readable rate', () => {
+  it('rings the Rate row and counts its fault on the track, with the amount filled and the account lit', async () => {
+    attachMockSelectorStore(useCurrencyStore as unknown as jest.Mock, () => ({
+      rate: Number.NaN,
+      isManualOverride: false,
+      rate_updated_at: null,
+    }));
     const { getByTestId, getByText, queryByTestId } = await renderOpenSheet();
+    await fireEvent.changeText(getByTestId('amount-hero-value'), '15');
+    expect(queryByTestId('rate-ring')).toBeNull();
 
-    await fireEvent.changeText(getByTestId('rate-input'), '');
-    await fireEvent.press(getByText(Strings.commitmentsPayCtaBare));
-    await waitFor(() =>
-      expect(getByTestId('rate-error')).toHaveTextContent(Strings.addTxErrRateRequired),
-    );
+    await fireEvent.press(getByText(resolvePayButtonLabel('15', Currency.USD)));
+
+    await waitFor(() => expect(getByTestId('rate-ring')).toBeTruthy());
+    expect(getByTestId('pay-sheet-status')).toHaveTextContent(Strings.fixFieldsMarkedAbove(1));
     expect(mockMarkAsPaid).not.toHaveBeenCalled();
-
-    await fireEvent.changeText(getByTestId('rate-input'), '48.6');
-    await waitFor(() => expect(queryByTestId('rate-error')).toBeNull());
-  });
-
-  it('revalidates rather than just clearing: an unreadable rate swaps the message', async () => {
-    const { getByTestId, getByText } = await renderOpenSheet();
-
-    await fireEvent.changeText(getByTestId('rate-input'), '');
-    await fireEvent.press(getByText(Strings.commitmentsPayCtaBare));
-    await waitFor(() =>
-      expect(getByTestId('rate-error')).toHaveTextContent(Strings.addTxErrRateRequired),
-    );
-
-    // "48x" is present but unreadable, so the required message must give way to the invalid one.
-    await fireEvent.changeText(getByTestId('rate-input'), '48x');
-    await waitFor(() =>
-      expect(getByTestId('rate-error')).toHaveTextContent(Strings.addTxErrRateInvalid),
-    );
-  });
-
-  it('raises no rate error while typing before the first Save', async () => {
-    const { getByTestId, queryByTestId } = await renderOpenSheet();
-
-    await fireEvent.changeText(getByTestId('rate-input'), '');
-    expect(queryByTestId('rate-error')).toBeNull();
-    await fireEvent.changeText(getByTestId('rate-input'), '4');
-    expect(queryByTestId('rate-error')).toBeNull();
   });
 });
 
@@ -218,5 +211,30 @@ describe('PaySheet press with the amount empty and no account lit', () => {
     expect(within(getByTestId('amount-error-slot')).getByText('Enter an amount')).toBeTruthy();
     expect(getByTestId('pay-sheet-status')).toHaveTextContent('Fix the 2 fields marked above.');
     expect(mockMarkAsPaid).not.toHaveBeenCalled();
+  });
+});
+
+// MA-219: with no active accounts the sheet draws the shared no-accounts state, and its Add account hands off.
+describe('PaySheet with no active accounts', () => {
+  it('draws the no-accounts state with no footer, and its Add account requests the hand-off', async () => {
+    suiteAccounts = [];
+    const { getByTestId, getByText, queryByTestId } = await renderOpenSheet({
+      ...variableCommitment,
+      account_id: null,
+    });
+
+    expect(getByText(Strings.addTxNoAccountsTitle)).toBeTruthy();
+    expect(queryByTestId('sheet-footer')).toBeNull();
+
+    await fireEvent.press(getByTestId('no-accounts-cta'));
+
+    expect(paySheetState.requestAccountCreation).toHaveBeenCalledWith('owner-a');
+
+    paySheetState.completeClose.mockReturnValueOnce('addAccount');
+    mockSheetCloseComplete?.();
+
+    expect(paySheetState.completeClose).toHaveBeenCalledWith('owner-a');
+    expect(mockRouterPush).toHaveBeenCalledTimes(1);
+    expect(mockRouterPush).toHaveBeenCalledWith('/accounts/add_account');
   });
 });
