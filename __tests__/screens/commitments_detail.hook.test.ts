@@ -1107,3 +1107,54 @@ describe('useCommitmentDetail This cycle card (MA-262)', () => {
     expect(result.current.state).toHaveProperty('cycleCard', undefined);
   });
 });
+
+describe('useCommitmentDetail skeleton cycle hint (MA-267)', () => {
+  beforeEach(() => {
+    const pending = deferred<Commitment | undefined>();
+    mockGetById.mockImplementation(() => pending.promise);
+  });
+
+  it('hints the skeleton with the store’s row for the route’s cycle while the detail loads', async () => {
+    paymentsState = [otherPayment, payment];
+
+    const { result } = await renderHook(() => useCommitmentDetail());
+
+    expect(result.current.state.viewState).toBe('loading');
+    expect(result.current.state.loadingCycleHint).toBe(payment);
+  });
+
+  it('hints no cycle when the store holds no row with the route’s cycle', async () => {
+    paymentsState = [otherPayment];
+
+    const { result } = await renderHook(() => useCommitmentDetail());
+
+    expect(result.current.state.viewState).toBe('loading');
+    expect('loadingCycleHint' in result.current.state).toBe(true);
+    expect(result.current.state.loadingCycleHint).toBeUndefined();
+  });
+
+  it('hints no cycle when the route names none', async () => {
+    mockParams = { id: commitment.id };
+    paymentsState = [payment, otherPayment];
+
+    const { result } = await renderHook(() => useCommitmentDetail());
+
+    expect(result.current.state.viewState).toBe('loading');
+    expect('loadingCycleHint' in result.current.state).toBe(true);
+    expect(result.current.state.loadingCycleHint).toBeUndefined();
+  });
+
+  it('hints the skeleton once the store gains the route’s cycle while the detail loads', async () => {
+    paymentsState = [otherPayment];
+
+    const { result, rerender } = await renderHook(() => useCommitmentDetail());
+
+    expect(result.current.state.loadingCycleHint).toBeUndefined();
+
+    paymentsState = [otherPayment, payment];
+    await rerender({});
+
+    expect(result.current.state.viewState).toBe('loading');
+    expect(result.current.state.loadingCycleHint).toBe(payment);
+  });
+});
