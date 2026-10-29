@@ -16,6 +16,8 @@ The add and edit sheet printed `≈ {amount} EGP` inside the rate card, from `eg
 
 **Amended 2026-10-14, MA-170 (#697).** `TransactionExchangeRateRow` is removed and the form draws no card: the Rate row opens the editor, whose converted amount is `ConvertedAmountLine` at the draft. See `docs/adr/2026-10-14-rate-row.md` §1, §5 and §7.
 
+**Amended 2026-10-28, MA-219 (#793).** `ExchangeRateRow` is deleted, and the pay sheet no longer draws `≈ {amount} EGP` in a card. It draws `ConvertedAmountLine` under the hero from `resolvePayConvertedAmount` over `resolveCommitmentPaymentAmounts`, gated on `requiresRate`. The Rate row and `RateEditor` serve it as they serve this form.
+
 ## 2. The converted amount is one leg of `resolveTransactionAmounts`
 
 `resolveConvertedAmount(input: { type: TransactionType; amountText: string; sourceCurrency: Currency | undefined; destinationCurrency: Currency | undefined; exchangeRateText: string }): ConvertedAmount | undefined` parses the two texts with `parsePositiveDecimal` and `parseRateText` and calls `resolveTransactionAmounts` once, with the arguments the save passes. It returns a leg of that result and does no arithmetic on it.
