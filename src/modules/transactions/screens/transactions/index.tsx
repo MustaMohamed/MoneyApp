@@ -8,15 +8,10 @@ import { DayCardRow } from '@/components/ui/day_card_row';
 import { resolveDayCardSwipeCorners } from '@/components/ui/day_card_row.helpers';
 import { DayHeader } from '@/components/ui/day_header';
 import { EmptyState } from '@/components/ui/empty_state';
-import {
-  LIST_RAIL,
-  LIST_RAIL_STYLE,
-  LIST_RAIL_TABS_STYLE,
-} from '@/components/ui/list_rail.geometry';
-import { MonthFilter } from '@/components/ui/month_filter';
+import { ListRail } from '@/components/ui/list_rail';
 import { Screen } from '@/components/ui/screen';
 import { SearchTally } from '@/components/ui/search_tally';
-import { SegmentFilter, type SegmentFilterOption } from '@/components/ui/segment_filter';
+import type { SegmentFilterOption } from '@/components/ui/segment_filter';
 import { closeAllRows } from '@/components/ui/swipeable_row';
 import { TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -229,23 +224,15 @@ export default function TransactionsScreen(): React.ReactElement {
       </Surface>
       <Separator />
 
-      <View testID="transactions-rail" className="px-4" style={LIST_RAIL_STYLE}>
-        <MonthFilter
-          selectedMonth={state.selectedMonth}
-          onSelectedMonthChange={setSelectedMonth}
-          rowHitSlop={LIST_RAIL.monthRowHitSlop}
-        />
-        <View style={LIST_RAIL_TABS_STYLE}>
-          <SegmentFilter
-            selectedFilter={state.activeFilter}
-            onSelectedFilterChange={setActiveFilter}
-            filters={TRANSACTION_FILTERS}
-            accessibilityLabel={Strings.transactionTypeFilterAccessibility}
-            corners="form"
-            triggerHitSlop={LIST_RAIL.tabsHitSlop}
-          />
-        </View>
-      </View>
+      <ListRail
+        testID="transactions-rail"
+        selectedMonth={state.selectedMonth}
+        onSelectedMonthChange={setSelectedMonth}
+        selectedFilter={state.activeFilter}
+        onSelectedFilterChange={setActiveFilter}
+        filters={TRANSACTION_FILTERS}
+        accessibilityLabel={Strings.transactionTypeFilterAccessibility}
+      />
 
       <View style={{ flex: 1 }}>
         <SectionList

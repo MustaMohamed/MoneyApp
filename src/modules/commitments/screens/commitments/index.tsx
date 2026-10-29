@@ -8,16 +8,11 @@ import { DayCardRow } from '@/components/ui/day_card_row';
 import { resolveDayCardSwipeCorners } from '@/components/ui/day_card_row.helpers';
 import { DayHeader } from '@/components/ui/day_header';
 import { EmptyState } from '@/components/ui/empty_state';
-import {
-  LIST_RAIL,
-  LIST_RAIL_STYLE,
-  LIST_RAIL_TABS_STYLE,
-} from '@/components/ui/list_rail.geometry';
+import { ListRail } from '@/components/ui/list_rail';
 import { LoadErrorAlert } from '@/components/ui/load_error_alert';
-import { MonthFilter } from '@/components/ui/month_filter';
 import { Screen } from '@/components/ui/screen';
 import { SearchTally } from '@/components/ui/search_tally';
-import { SegmentFilter, type SegmentFilterOption } from '@/components/ui/segment_filter';
+import type { SegmentFilterOption } from '@/components/ui/segment_filter';
 import { closeAllRows } from '@/components/ui/swipeable_row';
 import { CommitmentPaymentStatus } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -261,23 +256,15 @@ export default function CommitmentsScreen() {
         </View>
       </Surface>
       <Separator />
-      <View testID="commitments-rail" className="px-4" style={LIST_RAIL_STYLE}>
-        <MonthFilter
-          selectedMonth={state.selectedMonth}
-          onSelectedMonthChange={handleSelectedMonthChange}
-          rowHitSlop={LIST_RAIL.monthRowHitSlop}
-        />
-        <View style={LIST_RAIL_TABS_STYLE}>
-          <SegmentFilter
-            selectedFilter={state.statusFilter}
-            onSelectedFilterChange={setStatusFilter}
-            filters={COMMITMENT_FILTERS}
-            accessibilityLabel={Strings.commitmentStatusFilterAccessibility}
-            corners="form"
-            triggerHitSlop={LIST_RAIL.tabsHitSlop}
-          />
-        </View>
-      </View>
+      <ListRail
+        testID="commitments-rail"
+        selectedMonth={state.selectedMonth}
+        onSelectedMonthChange={handleSelectedMonthChange}
+        selectedFilter={state.statusFilter}
+        onSelectedFilterChange={setStatusFilter}
+        filters={COMMITMENT_FILTERS}
+        accessibilityLabel={Strings.commitmentStatusFilterAccessibility}
+      />
 
       {state.floatingAlert === 'list' ? (
         <LoadErrorAlert

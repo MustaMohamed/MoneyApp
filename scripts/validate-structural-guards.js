@@ -263,12 +263,10 @@ const NAMED_ROWS = [
     banned: ['useConfirmAction', 'useTransactionFormState', 'useTransactionStore'].map(identifier),
     rule: 'in the transactions template; its hook owns confirm, form and store access',
     required: [
-      tag('MonthFilter'),
-      tag('SegmentFilter'),
+      tag('ListRail'),
       ...members('TransactionType', ['Income', 'Expense', 'Transfer', 'CCPayment']),
     ],
-    needs:
-      'the transactions screen filters through `MonthFilter` and `SegmentFilter` over every `TransactionType`',
+    needs: 'the transactions screen filters through `ListRail` over every `TransactionType`',
   },
   {
     files: [`${TRANSACTIONS}/detail/index.tsx`],
@@ -292,12 +290,15 @@ const NAMED_ROWS = [
     banned: [identifier('CommitmentHeader')],
     rule: 'in the commitments screen; its header is the HeroUI tab header',
     required: [
-      tag('MonthFilter'),
-      tag('SegmentFilter'),
+      tag('ListRail'),
       ...members('CommitmentPaymentStatus', ['Overdue', 'Due', 'Upcoming', 'Paid', 'Skipped']),
     ],
-    needs:
-      'the commitments screen filters through `MonthFilter` and `SegmentFilter` over every payment status',
+    needs: 'the commitments screen filters through `ListRail` over every payment status',
+  },
+  {
+    files: [`${UI}/list_rail.tsx`],
+    required: [tag('MonthFilter'), tag('SegmentFilter')],
+    needs: 'the list rail draws `MonthFilter` over `SegmentFilter`',
   },
   {
     files: [
