@@ -5,6 +5,7 @@ import { AmountType, CommitmentPaymentStatus, type Currency } from '@/constants/
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
 import { formatDisplayAmount, formatDisplayAmountParts } from '@/utils/format_amount';
+import { orderByRank } from '@/utils/rank_order';
 
 import { isPaidPayment } from '../domain/payment_state';
 import type { Commitment } from '../entities/commitment.entity';
@@ -36,14 +37,17 @@ export const STATUS_ICONS: Record<CommitmentPaymentStatus, IconName> = {
   [CommitmentPaymentStatus.Skipped]: 'minus-circle',
 };
 
+const STATUS_COUNTER_RANK = {
+  [CommitmentPaymentStatus.Paid]: 0,
+  [CommitmentPaymentStatus.Overdue]: 1,
+  [CommitmentPaymentStatus.Due]: 2,
+  [CommitmentPaymentStatus.Upcoming]: 3,
+  [CommitmentPaymentStatus.Skipped]: 4,
+} satisfies Record<CommitmentPaymentStatus, number>;
+
 /** The status counters' order on the Home Commitments card and the Commitments hero. */
-export const STATUS_COUNTER_ORDER: readonly CommitmentPaymentStatus[] = [
-  CommitmentPaymentStatus.Paid,
-  CommitmentPaymentStatus.Overdue,
-  CommitmentPaymentStatus.Due,
-  CommitmentPaymentStatus.Upcoming,
-  CommitmentPaymentStatus.Skipped,
-];
+export const STATUS_COUNTER_ORDER: readonly CommitmentPaymentStatus[] =
+  orderByRank(STATUS_COUNTER_RANK);
 
 export interface DisplayAmount {
   amount: number | undefined;

@@ -22,7 +22,11 @@ import type {
 import { useCommitments } from '@/modules/commitments/screens/commitments/commitments.hook';
 import type { CommitmentStatusFilter } from '@/modules/commitments/screens/commitments/commitments.state';
 import { useCommitmentsScreenState } from '@/modules/commitments/screens/commitments/commitments.state';
-import { EMPTY_COMMITMENT_FILTERS } from '@/modules/commitments/screens/commitments/filter/filter.store';
+import { useCommitmentFilterState } from '@/modules/commitments/screens/commitments/filter/filter.state';
+import {
+  EMPTY_COMMITMENT_FILTERS,
+  useCommitmentFilterStore,
+} from '@/modules/commitments/screens/commitments/filter/filter.store';
 import {
   monthAggregateKey,
   useCommitmentStore,
@@ -1445,6 +1449,30 @@ describe('useCommitments account chips, account prune and tally (MA-241)', () =>
       accountId: undefined,
       selected: true,
     });
+  });
+
+  it('opens the filter sheet without an archived account and keeps the category, once accounts have loaded', async () => {
+    useCommitmentFilterStore.getState().resetDraft();
+    useCommitmentFilterState.getState().reset();
+    setup({
+      accounts,
+      archivedAccounts: [archived],
+      appliedFilters: {
+        ...EMPTY_COMMITMENT_FILTERS,
+        accountIds: ['account-archived'],
+        categoryIds: ['cat-bills'],
+      },
+      accountsLoaded: true,
+    });
+    const { result } = await renderHook(() => useCommitments());
+
+    await act(() => result.current.openFilter());
+
+    const { draft } = useCommitmentFilterStore.getState();
+    expect(draft.accountIds).not.toContain('account-archived');
+    expect(draft.categoryIds).toEqual(['cat-bills']);
+    useCommitmentFilterStore.getState().resetDraft();
+    useCommitmentFilterState.getState().reset();
   });
 
   it('counts no account on the filter button with one applied and one with two, while one still marks the list filtered', async () => {

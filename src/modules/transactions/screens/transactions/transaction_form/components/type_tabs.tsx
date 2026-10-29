@@ -3,29 +3,25 @@ import type { TabSegment } from '@/components/ui/tabs';
 import { TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { TRANSACTION_TYPE_ICONS } from '@/constants/transaction_type_icons';
+import { orderByRank } from '@/utils/rank_order';
 
-const TYPE_SEGMENTS: ReadonlyArray<TabSegment<TransactionType>> = [
-  {
-    value: TransactionType.Expense,
-    label: Strings.addTxTypeExpense,
-    icon: TRANSACTION_TYPE_ICONS[TransactionType.Expense],
-  },
-  {
-    value: TransactionType.Income,
-    label: Strings.addTxTypeIncome,
-    icon: TRANSACTION_TYPE_ICONS[TransactionType.Income],
-  },
-  {
-    value: TransactionType.Transfer,
-    label: Strings.addTxTypeTransfer,
-    icon: TRANSACTION_TYPE_ICONS[TransactionType.Transfer],
-  },
-  {
-    value: TransactionType.CCPayment,
-    label: Strings.addTxTypeCCPayment,
-    icon: TRANSACTION_TYPE_ICONS[TransactionType.CCPayment],
-  },
-];
+const TYPE_TAB_RANK = {
+  [TransactionType.Expense]: 0,
+  [TransactionType.Income]: 1,
+  [TransactionType.Transfer]: 2,
+  [TransactionType.CCPayment]: 3,
+} satisfies Record<TransactionType, number>;
+
+const TYPE_TAB_LABELS: Record<TransactionType, string> = {
+  [TransactionType.Expense]: Strings.addTxTypeExpense,
+  [TransactionType.Income]: Strings.addTxTypeIncome,
+  [TransactionType.Transfer]: Strings.addTxTypeTransfer,
+  [TransactionType.CCPayment]: Strings.addTxTypeCCPayment,
+};
+
+const TYPE_SEGMENTS: ReadonlyArray<TabSegment<TransactionType>> = orderByRank(TYPE_TAB_RANK).map(
+  (type) => ({ value: type, label: TYPE_TAB_LABELS[type], icon: TRANSACTION_TYPE_ICONS[type] }),
+);
 
 interface Props {
   active: TransactionType;

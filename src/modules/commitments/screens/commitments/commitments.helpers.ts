@@ -6,6 +6,7 @@ import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AmountType, CommitmentPaymentStatus, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { formatAmount, formatDisplayAmount, formatDisplayAmountParts } from '@/utils/format_amount';
+import { orderByRank } from '@/utils/rank_order';
 
 import {
   type CommitmentRowsTotal,
@@ -46,9 +47,7 @@ const SECTION_RANK = {
   [CommitmentPaymentStatus.Skipped]: 4,
 } satisfies Record<CommitmentPaymentStatus, number>;
 
-const SECTION_ORDER = Object.values(CommitmentPaymentStatus).sort(
-  (a, b) => SECTION_RANK[a] - SECTION_RANK[b],
-);
+export const SECTION_ORDER: readonly CommitmentPaymentStatus[] = orderByRank(SECTION_RANK);
 
 const SECTION_LABELS: Record<CommitmentPaymentStatus, string> = {
   [CommitmentPaymentStatus.Overdue]: Strings.commitmentsOverdue,
