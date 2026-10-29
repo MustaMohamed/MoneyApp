@@ -21,6 +21,7 @@ import {
   buildCommitmentCycleCard,
   buildCommitmentDetailFacts,
   buildCommitmentDetailHero,
+  commitmentCycleShowsActions,
   commitmentDetailShowsBody,
   commitmentDetailShowsCycleCard,
   commitmentDetailShowsEdit,
@@ -803,6 +804,44 @@ describe('buildCommitmentCycleCard (MA-262)', () => {
       dayLine: 'paid · 1 day late',
       dayLineTone: 'success',
     });
+  });
+});
+
+describe('commitmentCycleShowsActions (MA-267)', () => {
+  const ACTIONS_TODAY = '2026-10-20';
+  const row = (overrides: Partial<CommitmentPayment> = {}): CommitmentPayment =>
+    makeTestPayment({ due_date: '2026-10-01', ...overrides });
+  const rows: { name: string; payment: CommitmentPayment; showsActions: boolean }[] = [
+    { name: 'an unpaid cycle', payment: row(), showsActions: true },
+    {
+      name: 'a paid cycle with its transaction',
+      payment: row({ paid_date: '2026-10-05', amount_paid: 8000, transaction_id: 'tx-1' }),
+      showsActions: true,
+    },
+    {
+      name: 'a paid cycle with no transaction',
+      payment: row({ paid_date: '2026-10-05', amount_paid: 8000, transaction_id: null }),
+      showsActions: false,
+    },
+    { name: 'a skipped cycle', payment: row({ skipped_date: '2026-09-30' }), showsActions: false },
+  ];
+
+  it('draws the action row when the store holds no copy of the opened cycle', () => {
+    expect(commitmentCycleShowsActions(undefined)).toBe(true);
+  });
+
+  it.each(rows)('reads $name as $showsActions', ({ payment, showsActions }) => {
+    expect(commitmentCycleShowsActions(payment)).toBe(showsActions);
+  });
+
+  it.each(rows)('agrees with the loaded card’s action on $name', ({ payment }) => {
+    const card = buildCommitmentCycleCard({
+      payment,
+      commitment: makeTestCommitment(),
+      today: ACTIONS_TODAY,
+    });
+
+    expect(commitmentCycleShowsActions(payment)).toBe(card.action.kind !== 'none');
   });
 });
 

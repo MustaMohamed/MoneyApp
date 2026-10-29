@@ -53,6 +53,7 @@ export default function CommitmentDetailScreen() {
         <CommitmentDetailSkeleton
           commitmentHint={state.loadingCommitmentHint}
           cards={state.skeletonCards}
+          cycleHint={state.loadingCycleHint}
         />
       ) : null}
 

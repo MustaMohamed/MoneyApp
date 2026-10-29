@@ -1,5 +1,5 @@
 import { Card, SkeletonGroup } from 'heroui-native';
-import { View, useWindowDimensions, type ViewStyle } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
 import {
   DETAIL_HERO_BADGE_GAP,
@@ -21,22 +21,31 @@ import { Radius, Size, Type, lineHeightFor } from '@/constants/theme';
 import type { Commitment } from '../../../../entities/commitment.entity';
 import {
   type CommitmentDetailSkeletonCards,
+  type CycleActionPayment,
+  commitmentCycleShowsActions,
   resolveCommitmentDetailFactKinds,
 } from '../detail.helpers';
+import {
+  CURRENT_CYCLE_ACTIONS_GAP,
+  CURRENT_CYCLE_ACTION_GAP,
+  CURRENT_CYCLE_CARD_FRAME_STYLE,
+  CURRENT_CYCLE_ROW_GAP,
+  resolveCurrentCycleCardGeometry,
+} from './current_cycle_card.geometry';
 
-const CYCLE_BUTTON_COUNT = 2;
-
-const CYCLE_CARD_FRAME_STYLE: Readonly<ViewStyle> = Object.freeze({
-  borderRadius: Radius.detailCard,
-  boxShadow: 'none',
-});
+const CYCLE_ACTION_BAR_STYLE = { flex: 1, height: Size.ctaFooterTrack, borderRadius: Radius.cta };
 
 interface Props {
   commitmentHint: Commitment | undefined;
   cards: CommitmentDetailSkeletonCards;
+  cycleHint: CycleActionPayment | undefined;
 }
 
-export function CommitmentDetailSkeleton({ commitmentHint, cards }: Props): React.ReactElement {
+export function CommitmentDetailSkeleton({
+  commitmentHint,
+  cards,
+  cycleHint,
+}: Props): React.ReactElement {
   const { fontScale } = useWindowDimensions();
   const hero = resolveDetailHeroGeometry(fontScale);
   const rowHeight = resolveFactRowHeight(fontScale);
@@ -44,6 +53,8 @@ export function CommitmentDetailSkeleton({ commitmentHint, cards }: Props): Reac
     cards.factRows && commitmentHint !== undefined
       ? resolveCommitmentDetailFactKinds(commitmentHint).length
       : 0;
+  const showsActions = commitmentCycleShowsActions(cycleHint);
+  const cycle = resolveCurrentCycleCardGeometry(fontScale, showsActions);
   return (
     <ScreenScroll
       testID="commitment-detail-skeleton"
@@ -101,28 +112,38 @@ export function CommitmentDetailSkeleton({ commitmentHint, cards }: Props): Reac
         {cards.cycleCard ? (
           <Card
             testID="commitment-detail-skeleton-cycle"
-            className="border-separator mx-4 mt-4 gap-3 border px-4 py-3"
-            style={CYCLE_CARD_FRAME_STYLE}
+            className="bg-surface border-accent/18 mx-4 mt-4"
+            style={{ ...CURRENT_CYCLE_CARD_FRAME_STYLE, height: cycle.height }}
           >
-            <ScaledBar height={lineHeightFor(Type.overline)} className="w-20 rounded-md" />
+            <View
+              style={{ flexDirection: 'row', alignItems: 'center', height: cycle.headerHeight }}
+            >
+              <ScaledBar height={lineHeightFor(Type.overline)} className="w-20 rounded-md" />
+            </View>
             <View
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'space-between',
+                height: cycle.bodyHeight,
+                marginTop: CURRENT_CYCLE_ROW_GAP,
               }}
             >
               <ScaledBar height={lineHeightFor(Type.subhead)} className="w-28 rounded-md" />
               <ScaledBar height={lineHeightFor(Type.caption)} className="w-16 rounded-md" />
             </View>
-            <View className="gap-2" style={{ flexDirection: 'row' }}>
-              {Array.from({ length: CYCLE_BUTTON_COUNT }, (_, bar) => (
-                <SkeletonGroup.Item
-                  key={bar}
-                  style={{ flex: 1, height: Size.ctaFooterTrack, borderRadius: Radius.cta }}
-                />
-              ))}
-            </View>
+            {showsActions ? (
+              <View
+                style={{
+                  flexDirection: 'row',
+                  gap: CURRENT_CYCLE_ACTION_GAP,
+                  marginTop: CURRENT_CYCLE_ACTIONS_GAP,
+                }}
+              >
+                <SkeletonGroup.Item style={CYCLE_ACTION_BAR_STYLE} />
+                <SkeletonGroup.Item style={CYCLE_ACTION_BAR_STYLE} />
+              </View>
+            ) : null}
           </Card>
         ) : null}
         {rowCount > 0 ? (

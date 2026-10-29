@@ -84,6 +84,7 @@ export function useCommitmentDetail() {
   const loadingCommitmentHint = useCommitmentStore((s) =>
     s.commitments.find((c) => c.id === commitmentId),
   );
+  const loadingCycleHint = cycle === undefined ? undefined : payments.find((p) => p.id === cycle);
 
   const { activeId, status, refreshError, reloadKey, skipConfirmVisible, skipBusy, skipError } =
     useCommitmentDetailState(useShallow((s) => s.entries[owner] ?? INITIAL_UI_ENTRY));
@@ -304,6 +305,7 @@ export function useCommitmentDetail() {
       facts,
       loadingCommitmentHint,
       skeletonCards,
+      loadingCycleHint,
       skipConfirmVisible,
       skipBusy,
       skipError,

@@ -58,6 +58,7 @@ const FIELD_MESSAGE_RAIL = 'src/modules/accounts/components/field_message_rail.t
 const ACCOUNT_COLOR_SHEET = 'src/modules/accounts/components/account_form/account_color_sheet.tsx';
 const COMMITMENT_FORM_BODY = `${COMMITMENTS}/components/commitment_form_body.tsx`;
 const STATUS_TRACK = 'src/components/ui/status_track.tsx';
+const LIST_RAIL = 'src/components/ui/list_rail.tsx';
 
 const STYLESHEET_SEED = 'const seeded = StyleSheet.create({});';
 const SHADOW_SEED = '<Card className="shadow-none" />';
@@ -413,15 +414,6 @@ function withoutTag(rel: string, tag: string, where: string): RequiredSeed {
   };
 }
 
-function withoutMember(rel: string, enumName: string, member: string): RequiredSeed {
-  return {
-    guard: `${enumName}.${member} in the screen's filter table`,
-    rel,
-    seed: () => replaceEvery(rel, `${enumName}.${member}`, `Seeded.${member}`),
-    words: `no \`${enumName}.${member}\``,
-  };
-}
-
 function withoutImport(rel: string, module: string, name: string, where: string): RequiredSeed {
   return {
     guard: `a ${module} import of ${name} in ${where}`,
@@ -452,11 +444,7 @@ function withoutKeptView(rel: string, where: string): RequiredSeed {
 
 // The import seeds and the tag seeds are spread over the tab screens, so no two edit the same text.
 const REQUIRED: RequiredSeed[] = [
-  withoutTag(TRANSACTIONS_INDEX, 'MonthFilter', 'the transactions screen'),
-  withoutTag(TRANSACTIONS_INDEX, 'SegmentFilter', 'the transactions screen'),
-  ...['Income', 'Expense', 'Transfer', 'CCPayment'].map((member) =>
-    withoutMember(TRANSACTIONS_INDEX, 'TransactionType', member),
-  ),
+  withoutTag(TRANSACTIONS_INDEX, 'ListRail', 'the transactions screen'),
   // The import stays, so only a row that requires the call reports this seed.
   {
     guard: 'a formatCurrencyAmount call in the budget picker, with its import kept',
@@ -464,11 +452,9 @@ const REQUIRED: RequiredSeed[] = [
     seed: () => replaceEvery(BUDGET_PICKER, 'formatCurrencyAmount(', 'formatSeeded('),
     words: 'no `formatCurrencyAmount` call',
   },
-  withoutTag(COMMITMENTS_INDEX, 'MonthFilter', 'the commitments screen'),
-  withoutTag(COMMITMENTS_INDEX, 'SegmentFilter', 'the commitments screen'),
-  ...['Overdue', 'Due', 'Upcoming', 'Paid', 'Skipped'].map((member) =>
-    withoutMember(COMMITMENTS_INDEX, 'CommitmentPaymentStatus', member),
-  ),
+  withoutTag(COMMITMENTS_INDEX, 'ListRail', 'the commitments screen'),
+  withoutTag(LIST_RAIL, 'MonthFilter', 'the list rail'),
+  withoutTag(LIST_RAIL, 'SegmentFilter', 'the list rail'),
   withoutImport(GOALS_INDEX, HEROUI, 'Surface', 'the goals tab screen'),
   withoutImport(BUDGET_INDEX, HEROUI, 'Separator', 'the budget tab screen'),
   withoutImport(COMMITMENTS_INDEX, HEROUI, 'Typography', 'the commitments tab screen'),

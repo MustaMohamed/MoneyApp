@@ -88,6 +88,15 @@ export function resolveOneLineTextProps(scaled: ScaledTextStyle | undefined): On
 /** One device pixel in dp, added to a fixed-height box around a line under `adjustsFontSizeToFit`: RN ceils the line box to a whole px and a layout past its bound fails the fit. */
 export const FITTED_LINE_SLACK = 1 / PixelRatio.get();
 
+// Float noise under which a scaled line already sits on a whole device pixel.
+const DEVICE_PIXEL_EPSILON = 1e-6;
+
+/** The line box Android draws: the scaled line height ceiled to a whole device pixel. */
+export function deviceLineHeight(fontSize: number, fontScale: number): number {
+  const ratio = PixelRatio.get();
+  return Math.ceil(scaledLineHeight(fontSize, fontScale) * ratio - DEVICE_PIXEL_EPSILON) / ratio;
+}
+
 export type RowStacking = 'row' | 'stacked';
 
 /** `'stacked'` above font scale 1, `'row'` at or below it. */

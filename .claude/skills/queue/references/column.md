@@ -22,7 +22,7 @@ A parent candidate is one run and one start. The script has already put the unio
 
 | Hold | Read | Holds the start when |
 |---|---|---|
-| Cap | `cap.ship` and `cap.other` of the board read: the runs holding a lease, a `ship` lease on a ticket at Awaiting Human not counted. The script counts a run once, by the `task=` line its leases share, or for a typed review of a parent by the parent's lease | `cap.ship` is 3, or `cap.other`, `prep` and `issue-review` together, is 5 |
+| Cap | `cap.ship` and `cap.other` of the board read: the runs holding a lease, a `ship` lease on a ticket at Awaiting Human not counted. The script counts a run once, by the `task=` line its leases share, or for a typed review of a parent by the parent's lease | `cap.ship` is 4, or `cap.other`, `prep` and `issue-review` together, is 5 |
 | Overlap | the candidate's `paths` against the `paths` of every action in the `flight` bucket, with `lease: 'held'`, or with `pr.state` `OPEN` | a path is in both |
 | No paths | the candidate's `size` and `paths` | a `prep` or `ship` candidate has a `size` and empty `paths`; the reply names it |
 | No progress | the log's last line for the same skill and ticket; for a parent candidate, the last such line whose outcome ends `, parent`, § Log | it ended in the column the start would run from, with 0 questions parked; the reply names it. A line from the ticket's runs as a leaf, before `/tickets` cut it, holds no parent start |

@@ -249,6 +249,28 @@ describe('useEditCommitment', () => {
     },
   );
 
+  it('keeps the body’s draft gate open after the store drops the commitment (MA-267)', async () => {
+    const hook = await mount();
+    expect(hook.result.current.state.hasDraft).toBe(true);
+
+    commitments = [];
+    await hook.rerender({ commitmentId: 'com-1' });
+
+    expect(hook.result.current.state.hasDraft).toBe(true);
+  });
+
+  it('keeps the draft gate closed for a session seeded with no commitment, until the store gains it (MA-267)', async () => {
+    commitments = [];
+    const hook = await mount();
+
+    expect(hook.result.current.state.hasDraft).toBe(false);
+
+    commitments = [commitment];
+    await hook.rerender({ commitmentId: 'com-1' });
+
+    expect(hook.result.current.state.hasDraft).toBe(true);
+  });
+
   describe('MA-115 a half-typed amount after a refused Save', () => {
     const amountError = (result: { current: ReturnType<typeof useEditCommitment> }) =>
       result.current.form.getFieldState('amount').error?.message;

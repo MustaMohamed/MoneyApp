@@ -1,4 +1,5 @@
 import { useEffect, useId, useMemo } from 'react';
+import { useWatch } from 'react-hook-form';
 import { useShallow } from 'zustand/react/shallow';
 
 import { DurationType } from '@/constants/enums';
@@ -55,6 +56,10 @@ export function useEditCommitment(options: EditCommitmentOptions) {
     reValidateMode: 'onChange',
     defaultValues: commitment ? buildEditDefaults(commitment) : undefined,
   });
+  // RHF types the field as set, but a session seeded with no commitment has none; a draft keeps it after the store drops the commitment.
+  const draftStartDate = useWatch({ control: form.control, name: 'startDate' }) as
+    | string
+    | undefined;
 
   // Read off the store: two taps in one frame both see the render's `saving` as false.
   const isSaving = (): boolean => useEditCommitmentState.getState().entries[owner]?.saving === true;
@@ -137,6 +142,7 @@ export function useEditCommitment(options: EditCommitmentOptions) {
 
   return {
     state: {
+      hasDraft: draftStartDate !== undefined,
       saving,
       saveError,
       deactivateDialogVisible,

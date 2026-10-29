@@ -3,17 +3,13 @@ import { useCallback, useEffect, useId, useMemo, useRef } from 'react';
 import type { SectionList } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
-import {
-  buildAccountChips,
-  countFunnelFilters,
-  pruneAccountFilter,
-  toggleAccountFilter,
-} from '@/components/ui/account_chips.helpers';
+import { countFunnelFilters } from '@/components/ui/account_chips.helpers';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import {
   getTransactionAccountIds,
   lookupLeavesUnresolved,
 } from '@/modules/accounts/store/account_lookup.helpers';
+import { useAccountChipFilter } from '@/modules/accounts/store/use_account_chip_filter.hook';
 import { useAccountsById } from '@/modules/accounts/store/use_accounts_by_id.hook';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
@@ -129,9 +125,6 @@ export function useTransactions() {
   const refresh = useTransactionStore.getState().refresh;
   const retry = useTransactionStore.getState().retry;
 
-  const { accounts, accountsLoaded } = useAccountStore(
-    useShallow((s) => ({ accounts: s.accounts, accountsLoaded: s.hasLoaded })),
-  );
   const accountRead = useAccountsById();
   const { accountsById } = accountRead;
   const loadAccountLookup = useAccountStore.getState().loadAccountLookup;
@@ -152,18 +145,10 @@ export function useTransactions() {
   const setUserRefreshing = useTransactionsState.getState().setUserRefreshing;
   const setExistenceFailed = useTransactionsState.getState().setExistenceFailed;
 
-  const effectiveFilters = useMemo(
-    () =>
-      accountsLoaded ? pruneAccountFilter(storedAppliedFilters, accounts) : storedAppliedFilters,
-    [accounts, accountsLoaded, storedAppliedFilters],
+  const { effectiveFilters, accountChips, toggleAccountChip } = useAccountChipFilter(
+    storedAppliedFilters,
+    useTransactionsScreenStore,
   );
-  useEffect(() => {
-    if (!accountsLoaded) return;
-    // Prunes the store's current filter, never this render's, so a press that landed first survives.
-    const screenStore = useTransactionsScreenStore.getState();
-    const pruned = pruneAccountFilter(screenStore.appliedFilters, accounts);
-    if (pruned !== screenStore.appliedFilters) screenStore.setAppliedFilters(pruned);
-  }, [accounts, accountsLoaded, storedAppliedFilters]);
 
   const debouncedSearch = useDebouncedValue(searchQuery, 300);
   const periodRange = useMemo(() => resolvePeriod(period), [period]);
@@ -441,20 +426,11 @@ export function useTransactions() {
   const hasAdvancedFilters = countActiveFilters(effectiveFilters) > 0;
   const filtersActive =
     transactionQuery.search !== undefined || activeFilter !== 'all' || hasAdvancedFilters;
-  const accountChips = useMemo(
-    () => buildAccountChips(accounts, effectiveFilters.accountIds),
-    [accounts, effectiveFilters.accountIds],
-  );
 
   const handleOpenFilter = useCallback(() => {
     setDraft(effectiveFilters);
     openFilter();
   }, [effectiveFilters, openFilter, setDraft]);
-
-  const toggleAccountChip = useCallback((accountId: string | undefined) => {
-    const screenStore = useTransactionsScreenStore.getState();
-    screenStore.setAppliedFilters(toggleAccountFilter(screenStore.appliedFilters, accountId));
-  }, []);
 
   const resetFilters = useCallback(() => {
     const screenStore = useTransactionsScreenStore.getState();
