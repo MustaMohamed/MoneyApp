@@ -104,6 +104,18 @@ describe('useAccountChipFilter, pruning', () => {
       categoryIds: CATEGORY_IDS,
     });
   });
+
+  it('prunes again when an archived id is applied after the load while the accounts stay the same', async () => {
+    const store = makeFilterStore([cash.id]);
+    const { result } = await renderLive(store);
+
+    await act(async () => {
+      store.getState().setAppliedFilters({ accountIds: [ARCHIVED_ID], categoryIds: CATEGORY_IDS });
+    });
+
+    expect(store.getState().appliedFilters).toEqual({ accountIds: [], categoryIds: CATEGORY_IDS });
+    expect(result.current.effectiveFilters).toEqual({ accountIds: [], categoryIds: CATEGORY_IDS });
+  });
 });
 
 describe('useAccountChipFilter, toggling', () => {

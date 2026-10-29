@@ -9,6 +9,18 @@ import {
   resolveArchivedCardType,
 } from '@/modules/accounts/screens/accounts/list/accounts_list.presentation';
 
+describe('TYPE_OPTIONS', () => {
+  it('lists the account types in the account form grid order', () => {
+    expect(TYPE_OPTIONS.map((option) => option.type)).toEqual([
+      AccountType.Bank,
+      AccountType.SmartWallet,
+      AccountType.PhysicalWallet,
+      AccountType.PhysicalSavings,
+      AccountType.CreditCard,
+    ]);
+  });
+});
+
 describe('ACCOUNTS_LIST_TYPE_FILTERS', () => {
   it('leads with All and follows the account form grid order', () => {
     expect(ACCOUNTS_LIST_TYPE_FILTERS.map((filter) => filter.value)).toEqual([

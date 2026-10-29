@@ -24,4 +24,10 @@ describe('orderByRank', () => {
 
     expect(orderByRank(rank)).toEqual(['first', 'second']);
   });
+
+  it('throws, naming both keys and the rank, when two keys share a rank', () => {
+    const rank = { paid: 0, overdue: 0, due: 1 };
+
+    expect(() => orderByRank(rank)).toThrow('orderByRank: paid and overdue share rank 0');
+  });
 });
