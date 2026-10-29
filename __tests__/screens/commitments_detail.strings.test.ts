@@ -77,3 +77,15 @@ describe('commitment detail This cycle copy (MA-262)', () => {
     });
   });
 });
+
+describe('commitment detail lifecycle copy (MA-266)', () => {
+  it('ships the Stopped and Ended cadence badges byte-exact', () => {
+    expect({
+      stopped: Strings.commitmentsCadenceStopped,
+      ended: Strings.commitmentsCadenceEnded,
+    }).toEqual({
+      stopped: 'Stopped',
+      ended: 'Ended',
+    });
+  });
+});

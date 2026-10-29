@@ -42,6 +42,10 @@ export function isUnpaidPayment(payment: PaymentDates): boolean {
   return payment.paid_date === null && payment.skipped_date === null;
 }
 
+export function countSettledPayments(rows: readonly PaymentDates[]): number {
+  return rows.filter((p) => !isUnpaidPayment(p)).length;
+}
+
 /** The earlier of the month's first day and `today`: unpaid rows due before it carry into `yearMonth`. */
 export function carriedDueBound(yearMonth: string, today: string): string {
   const monthStart = `${yearMonth}-01`;
@@ -55,23 +59,43 @@ export function isDueInMonth(
   return payment.due_date.slice(0, 7) === yearMonth;
 }
 
+type CommitmentEnd = Pick<
+  Commitment,
+  'is_active' | 'duration_type' | 'end_date' | 'end_after_count'
+>;
+
+/** The expiry sweep's end rule (`deactivateExpiredCommitments`), read against `today`. */
+function hasReachedEnd(commitment: CommitmentEnd, settledCount: number, today: string): boolean {
+  const { duration_type, end_after_count, end_date } = commitment;
+  if (duration_type === DurationType.AfterCount) {
+    return end_after_count !== null && settledCount >= end_after_count;
+  }
+  return duration_type === DurationType.UntilDate && end_date !== null && end_date < today;
+}
+
 /** `settledCount` counts the skipped row itself; `today` is the local calendar date `YYYY-MM-DD`. */
 export function resolveUndoSkip(
-  commitment: Pick<Commitment, 'is_active' | 'duration_type' | 'end_date' | 'end_after_count'>,
+  commitment: CommitmentEnd,
   settledCount: number,
   today: string,
 ): 'clear' | 'reactivate' | 'refuse' {
   if (commitment.is_active === 1) return 'clear';
-  const { duration_type, end_after_count, end_date } = commitment;
-  if (
-    duration_type === DurationType.AfterCount &&
-    end_after_count !== null &&
-    settledCount >= end_after_count
-  ) {
+  if (!hasReachedEnd(commitment, settledCount, today)) return 'refuse';
+  const { duration_type, end_after_count } = commitment;
+  if (duration_type === DurationType.AfterCount && end_after_count !== null) {
     return settledCount - 1 < end_after_count ? 'reactivate' : 'clear';
   }
-  if (duration_type === DurationType.UntilDate && end_date !== null && end_date < today) {
-    return 'clear';
-  }
-  return 'refuse';
+  return 'clear';
+}
+
+export type CommitmentLifecycle = 'active' | 'stopped' | 'ended';
+
+/** Ended by the sweep's rule whatever `is_active` holds; `settledCount` counts rows paid or skipped. */
+export function resolveCommitmentLifecycle(
+  commitment: CommitmentEnd,
+  settledCount: number,
+  today: string,
+): CommitmentLifecycle {
+  if (hasReachedEnd(commitment, settledCount, today)) return 'ended';
+  return commitment.is_active === 1 ? 'active' : 'stopped';
 }

@@ -20,6 +20,7 @@ import { Radius, Size, Type, lineHeightFor } from '@/constants/theme';
 
 import type { Commitment } from '../../../../entities/commitment.entity';
 import {
+  type CommitmentDetailSkeletonCards,
   type CycleActionPayment,
   commitmentCycleShowsActions,
   resolveCommitmentDetailFactKinds,
@@ -36,14 +37,22 @@ const CYCLE_ACTION_BAR_STYLE = { flex: 1, height: Size.ctaFooterTrack, borderRad
 
 interface Props {
   commitmentHint: Commitment | undefined;
+  cards: CommitmentDetailSkeletonCards;
   cycleHint: CycleActionPayment | undefined;
 }
 
-export function CommitmentDetailSkeleton({ commitmentHint, cycleHint }: Props): React.ReactElement {
+export function CommitmentDetailSkeleton({
+  commitmentHint,
+  cards,
+  cycleHint,
+}: Props): React.ReactElement {
   const { fontScale } = useWindowDimensions();
   const hero = resolveDetailHeroGeometry(fontScale);
   const rowHeight = resolveFactRowHeight(fontScale);
-  const rowCount = resolveCommitmentDetailFactKinds(commitmentHint).length;
+  const rowCount =
+    cards.factRows && commitmentHint !== undefined
+      ? resolveCommitmentDetailFactKinds(commitmentHint).length
+      : 0;
   const showsActions = commitmentCycleShowsActions(cycleHint);
   const cycle = resolveCurrentCycleCardGeometry(fontScale, showsActions);
   return (
@@ -100,56 +109,62 @@ export function CommitmentDetailSkeleton({ commitmentHint, cycleHint }: Props): 
             />
           </View>
         </HeroShell>
-        <Card
-          testID="commitment-detail-skeleton-cycle"
-          className="bg-surface border-accent/18 mx-4 mt-4"
-          style={{ ...CURRENT_CYCLE_CARD_FRAME_STYLE, height: cycle.height }}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center', height: cycle.headerHeight }}>
-            <ScaledBar height={lineHeightFor(Type.overline)} className="w-20 rounded-md" />
-          </View>
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              height: cycle.bodyHeight,
-              marginTop: CURRENT_CYCLE_ROW_GAP,
-            }}
+        {cards.cycleCard ? (
+          <Card
+            testID="commitment-detail-skeleton-cycle"
+            className="bg-surface border-accent/18 mx-4 mt-4"
+            style={{ ...CURRENT_CYCLE_CARD_FRAME_STYLE, height: cycle.height }}
           >
-            <ScaledBar height={lineHeightFor(Type.subhead)} className="w-28 rounded-md" />
-            <ScaledBar height={lineHeightFor(Type.caption)} className="w-16 rounded-md" />
-          </View>
-          {showsActions ? (
             <View
-              style={{
-                flexDirection: 'row',
-                gap: CURRENT_CYCLE_ACTION_GAP,
-                marginTop: CURRENT_CYCLE_ACTIONS_GAP,
-              }}
+              style={{ flexDirection: 'row', alignItems: 'center', height: cycle.headerHeight }}
             >
-              <SkeletonGroup.Item style={CYCLE_ACTION_BAR_STYLE} />
-              <SkeletonGroup.Item style={CYCLE_ACTION_BAR_STYLE} />
+              <ScaledBar height={lineHeightFor(Type.overline)} className="w-20 rounded-md" />
             </View>
-          ) : null}
-        </Card>
-        <DetailRowsCard testID="commitment-detail-skeleton-rows">
-          {Array.from({ length: rowCount }, (_, row) => (
             <View
-              key={row}
-              className={row < rowCount - 1 ? 'border-separator border-b px-4' : 'px-4'}
               style={{
-                height: rowHeight,
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'space-between',
+                height: cycle.bodyHeight,
+                marginTop: CURRENT_CYCLE_ROW_GAP,
               }}
             >
-              <ScaledBar height={lineHeightFor(Type.overline)} className="w-16 rounded-md" />
-              <ScaledBar height={lineHeightFor(Type.meta)} className="w-28 rounded-md" />
+              <ScaledBar height={lineHeightFor(Type.subhead)} className="w-28 rounded-md" />
+              <ScaledBar height={lineHeightFor(Type.caption)} className="w-16 rounded-md" />
             </View>
-          ))}
-        </DetailRowsCard>
+            {showsActions ? (
+              <View
+                style={{
+                  flexDirection: 'row',
+                  gap: CURRENT_CYCLE_ACTION_GAP,
+                  marginTop: CURRENT_CYCLE_ACTIONS_GAP,
+                }}
+              >
+                <SkeletonGroup.Item style={CYCLE_ACTION_BAR_STYLE} />
+                <SkeletonGroup.Item style={CYCLE_ACTION_BAR_STYLE} />
+              </View>
+            ) : null}
+          </Card>
+        ) : null}
+        {rowCount > 0 ? (
+          <DetailRowsCard testID="commitment-detail-skeleton-rows">
+            {Array.from({ length: rowCount }, (_, row) => (
+              <View
+                key={row}
+                className={row < rowCount - 1 ? 'border-separator border-b px-4' : 'px-4'}
+                style={{
+                  height: rowHeight,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <ScaledBar height={lineHeightFor(Type.overline)} className="w-16 rounded-md" />
+                <ScaledBar height={lineHeightFor(Type.meta)} className="w-28 rounded-md" />
+              </View>
+            ))}
+          </DetailRowsCard>
+        ) : null}
       </SkeletonGroup>
     </ScreenScroll>
   );

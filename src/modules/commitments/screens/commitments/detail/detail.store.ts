@@ -11,6 +11,7 @@ interface CommitmentDetailEntry {
   commitment: Commitment | undefined;
   allPayments: CommitmentMonthPayment[];
   cycleId: string | undefined;
+  openedUnpaidDueDate: string | undefined;
   loadedOn: string | undefined;
 }
 
@@ -35,6 +36,7 @@ export const INITIAL_DATA_ENTRY: CommitmentDetailEntry = Object.freeze({
   commitment: undefined,
   allPayments: EMPTY_PAYMENTS,
   cycleId: undefined,
+  openedUnpaidDueDate: undefined,
   loadedOn: undefined,
 });
 

@@ -25,7 +25,14 @@ import {
   type PaymentDayDistance,
   resolvePaymentDayDistance,
 } from '../../../domain/payment_day_distance';
-import { isPaidPayment, isUnpaidPayment, resolvePaymentState } from '../../../domain/payment_state';
+import {
+  type CommitmentLifecycle,
+  countSettledPayments,
+  isPaidPayment,
+  isUnpaidPayment,
+  resolveCommitmentLifecycle,
+  resolvePaymentState,
+} from '../../../domain/payment_state';
 import type { Commitment } from '../../../entities/commitment.entity';
 import type {
   CommitmentMonthPayment,
@@ -74,8 +81,15 @@ export function resolveCommitmentDetailViewState({
   return 'ready';
 }
 
-export function commitmentDetailShowsEdit(viewState: CommitmentDetailViewState): boolean {
+export function commitmentDetailShowsBody(viewState: CommitmentDetailViewState): boolean {
   return viewState === 'ready' || viewState === 'refreshErrorWithData';
+}
+
+export function commitmentDetailShowsEdit(
+  viewState: CommitmentDetailViewState,
+  lifecycle: CommitmentLifecycle | undefined,
+): boolean {
+  return commitmentDetailShowsBody(viewState) && lifecycle === 'active';
 }
 
 /** `payments` in due-date order; the param's row, then the previous due date, then the earliest unpaid row, then the last. */
@@ -92,6 +106,97 @@ export function resolveCommitmentDetailCycle(
     payments.find(isUnpaidPayment) ??
     payments[payments.length - 1]
   );
+}
+
+/** Keyed on the due date, so a re-read that regenerates row ids keeps what the first read held. */
+export function resolveOpenedUnpaidDueDate({
+  cycle,
+  heldDueDate,
+  heldOpenedUnpaidDueDate,
+}: {
+  cycle: Pick<CommitmentPayment, 'due_date' | 'paid_date' | 'skipped_date'> | undefined;
+  heldDueDate: string | undefined;
+  heldOpenedUnpaidDueDate: string | undefined;
+}): string | undefined {
+  if (cycle === undefined) return undefined;
+  if (heldDueDate !== undefined && cycle.due_date === heldDueDate) return heldOpenedUnpaidDueDate;
+  return isUnpaidPayment(cycle) ? cycle.due_date : undefined;
+}
+
+/** An ended commitment keeps the card only at the cycle it was opened at unpaid (Decision 2026-10-28 C). */
+export function commitmentDetailShowsCycleCard({
+  lifecycle,
+  payment,
+  openedUnpaidDueDate,
+}: {
+  lifecycle: CommitmentLifecycle;
+  payment: Pick<CommitmentPayment, 'due_date'>;
+  openedUnpaidDueDate: string | undefined;
+}): boolean {
+  switch (lifecycle) {
+    case 'active':
+      return true;
+    case 'stopped':
+      return false;
+    case 'ended':
+      return payment.due_date === openedUnpaidDueDate;
+    default: {
+      const unhandled: never = lifecycle;
+      return unhandled;
+    }
+  }
+}
+
+export interface CommitmentDetailSkeletonCards {
+  cycleCard: boolean;
+  factRows: boolean;
+}
+
+const SKELETON_BOTH_CARDS: CommitmentDetailSkeletonCards = Object.freeze({
+  cycleCard: true,
+  factRows: true,
+});
+const SKELETON_ROWS_ONLY: CommitmentDetailSkeletonCards = Object.freeze({
+  cycleCard: false,
+  factRows: true,
+});
+const SKELETON_HERO_ONLY: CommitmentDetailSkeletonCards = Object.freeze({
+  cycleCard: false,
+  factRows: false,
+});
+
+/** The month store's rows give a lower bound on the settled count; an ended commitment's cycle the store lacks draws the hero alone. */
+export function resolveCommitmentDetailSkeletonCards({
+  commitment,
+  storePayments,
+  cycleId,
+  today,
+}: {
+  commitment: Commitment | undefined;
+  storePayments: readonly Pick<
+    CommitmentPayment,
+    'id' | 'commitment_id' | 'due_date' | 'paid_date' | 'skipped_date'
+  >[];
+  cycleId: string | undefined;
+  /** The local calendar date, `YYYY-MM-DD`. */
+  today: string;
+}): CommitmentDetailSkeletonCards {
+  if (commitment === undefined) return SKELETON_HERO_ONLY;
+  const ownRows = storePayments.filter((p) => p.commitment_id === commitment.id);
+  const lifecycle = resolveCommitmentLifecycle(commitment, countSettledPayments(ownRows), today);
+  const cycle = cycleId === undefined ? undefined : ownRows.find((p) => p.id === cycleId);
+  if (cycle === undefined) {
+    if (lifecycle === 'ended') return SKELETON_HERO_ONLY;
+    return lifecycle === 'active' ? SKELETON_BOTH_CARDS : SKELETON_ROWS_ONLY;
+  }
+  const openedUnpaidDueDate = resolveOpenedUnpaidDueDate({
+    cycle,
+    heldDueDate: undefined,
+    heldOpenedUnpaidDueDate: undefined,
+  });
+  return commitmentDetailShowsCycleCard({ lifecycle, payment: cycle, openedUnpaidDueDate })
+    ? SKELETON_BOTH_CARDS
+    : SKELETON_ROWS_ONLY;
 }
 
 /** The store's month array is the optimistic one, so a row both hold reads the store's status. */
@@ -208,15 +313,34 @@ const CADENCE_BADGE_COLORS = resolveBadgeColors({
   inkShare: 1,
 });
 
+function resolveCadenceBadgeLabel(
+  commitment: Pick<Commitment, 'amount_type' | 'recurrence_every' | 'recurrence_period'>,
+  lifecycle: CommitmentLifecycle,
+): string {
+  switch (lifecycle) {
+    case 'stopped':
+      return Strings.commitmentsCadenceStopped;
+    case 'ended':
+      return Strings.commitmentsCadenceEnded;
+    case 'active': {
+      const recurrence = buildRecurrenceLabel(commitment);
+      return commitment.amount_type === AmountType.Variable
+        ? Strings.commitmentsCadenceVaries(recurrence)
+        : recurrence;
+    }
+    default: {
+      const unhandled: never = lifecycle;
+      return unhandled;
+    }
+  }
+}
+
 export function resolveCommitmentCadenceBadge(
   commitment: Pick<Commitment, 'amount_type' | 'recurrence_every' | 'recurrence_period'>,
+  lifecycle: CommitmentLifecycle,
 ): DetailHeroBadge {
-  const recurrence = buildRecurrenceLabel(commitment);
   return {
-    badgeLabel:
-      commitment.amount_type === AmountType.Variable
-        ? Strings.commitmentsCadenceVaries(recurrence)
-        : recurrence,
+    badgeLabel: resolveCadenceBadgeLabel(commitment, lifecycle),
     badgeIcon: 'clock-outline',
     badgeFill: CADENCE_BADGE_COLORS.fill,
     badgeForeground: CADENCE_BADGE_COLORS.foreground,
@@ -229,6 +353,7 @@ export interface CommitmentDetailHeroInput {
   category: Category | undefined;
   /** The local calendar date, `YYYY-MM-DD`. */
   today: string;
+  lifecycle: CommitmentLifecycle;
 }
 
 export function buildCommitmentDetailHero({
@@ -236,6 +361,7 @@ export function buildCommitmentDetailHero({
   payment,
   category,
   today,
+  lifecycle,
 }: CommitmentDetailHeroInput): DetailHeroModel {
   const { glyphName, glyphColor } = resolveCategoryGlyph(category);
   const currency = payment?.currency ?? commitment.currency;
@@ -245,7 +371,7 @@ export function buildCommitmentDetailHero({
   const startDate = formatWeekdayDate(commitment.start_date);
   return {
     title: commitment.name,
-    ...resolveCommitmentCadenceBadge(commitment),
+    ...resolveCommitmentCadenceBadge(commitment, lifecycle),
     tileColor: glyphColor,
     tileGlyph: glyphName,
     tileGlyphColor: resolveHeroTileGlyphColor(glyphColor),
@@ -276,12 +402,11 @@ export type CommitmentDetailFactKind = (typeof USD_COMMITMENT_FACT_KINDS)[number
 const EGP_COMMITMENT_FACT_KINDS: readonly CommitmentDetailFactKind[] =
   USD_COMMITMENT_FACT_KINDS.filter((kind) => kind !== 'amount');
 
-/** No commitment, the skeleton with no hint, reads the six rows an EGP commitment draws. */
 export function resolveCommitmentDetailFactKinds(
-  commitment: Pick<Commitment, 'currency'> | undefined,
+  commitment: Pick<Commitment, 'currency'>,
 ): CommitmentDetailFactKind[] {
   return [
-    ...(commitment?.currency === Currency.USD
+    ...(commitment.currency === Currency.USD
       ? USD_COMMITMENT_FACT_KINDS
       : EGP_COMMITMENT_FACT_KINDS),
   ];

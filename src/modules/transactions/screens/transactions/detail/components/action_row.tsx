@@ -2,6 +2,7 @@ import React from 'react';
 import { View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
+import { DetailEditButton } from '@/components/ui/detail_edit_button';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { Type, lineHeightFor } from '@/constants/theme';
@@ -38,13 +39,7 @@ function ActionRowContent(props: Props): React.ReactElement {
       return (
         <View className="gap-2" style={{ flexDirection: 'row' }}>
           <View style={{ flex: 1 }}>
-            <Button
-              variant="secondary"
-              flat
-              icon="pencil-outline"
-              label={Strings.detailEditButton}
-              onPress={props.onEdit}
-            />
+            <DetailEditButton onPress={props.onEdit} />
           </View>
           <View style={{ flex: 1 }}>
             <Button
