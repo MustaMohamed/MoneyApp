@@ -3,8 +3,10 @@ import type { ReactNode } from 'react';
 import { StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 
 import { DAY_CARD_INNER_RADIUS } from '@/components/ui/day_card_row.helpers';
+import { LIST_RAIL_ALL_OPTION } from '@/components/ui/list_rail';
 import { LIST_RAIL } from '@/components/ui/list_rail.geometry';
 import { Currency, TransactionType } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import { Radius } from '@/constants/theme';
 import { TRANSACTION_TYPE_ICONS } from '@/constants/transaction_type_icons';
 import TransactionsScreen from '@/modules/transactions/screens/transactions';
@@ -243,7 +245,7 @@ interface MonthFilterMockProps {
 }
 
 interface SegmentFilterMockProps {
-  filters: ReadonlyArray<{ value: string; icon?: object }>;
+  filters: ReadonlyArray<{ value: string; label: string; icon?: object }>;
   corners?: string;
   triggerHitSlop?: RailHitSlop;
   onSelectedFilterChange?: (filter: string) => void;
@@ -371,12 +373,20 @@ describe('TransactionsScreen', () => {
     expect(getByTestId('transactions-list')).toHaveProp('ListHeaderComponent');
   });
 
-  it('MA-109: the rail hands the month row and the iconed type tabs its space, hit slops and the hook handlers during the first load, in form corners', async () => {
+  it('MA-109: the rail hands the month row and the iconed type tabs its space, hit slops and the hook handlers during the first load, in form corners; MA-271: the shared All option leads the labels in order', async () => {
     const hook = mockUseTransactions();
     const { getByTestId } = await render(<TransactionsScreen />);
 
     const filters = segmentFilterProps.last?.filters ?? [];
     expect(filters.map(({ value }) => value)).toEqual(['all', ...TYPE_FILTERS]);
+    expect(filters.map(({ label }) => label)).toEqual([
+      Strings.filterAll,
+      Strings.addTxTypeIncome,
+      Strings.addTxTypeExpense,
+      Strings.addTxTypeTransfer,
+      Strings.filterCcPayment,
+    ]);
+    expect(filters[0]).toBe(LIST_RAIL_ALL_OPTION);
     const iconByValue = new Map(filters.map(({ value, icon }) => [value, icon]));
     for (const type of TYPE_FILTERS) {
       expect(iconByValue.get(type)).toBe(TRANSACTION_TYPE_ICONS[type]);

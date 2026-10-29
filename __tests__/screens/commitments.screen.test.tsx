@@ -3,9 +3,11 @@ import type { ReactNode } from 'react';
 import { Dimensions } from 'react-native';
 
 import type { AccountChipModel } from '@/components/ui/account_chips.helpers';
+import { LIST_RAIL_ALL_OPTION } from '@/components/ui/list_rail';
 import { LIST_RAIL } from '@/components/ui/list_rail.geometry';
 import type { SearchTallyModel } from '@/components/ui/search_tally';
 import { CommitmentPaymentStatus } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import type { CommitmentMonthPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import CommitmentsScreen from '@/modules/commitments/screens/commitments';
 import type { CommitmentsSection } from '@/modules/commitments/screens/commitments/commitments.helpers';
@@ -15,7 +17,7 @@ import {
   resolveCommitmentRowHeight,
 } from '@/modules/commitments/screens/commitments/components/commitment_row.helpers';
 import { buildCommitmentsHeroModel } from '@/modules/commitments/screens/commitments/components/commitments_hero.helpers';
-import { STATUS_ICONS } from '@/modules/commitments/utils/commitment_status';
+import { STATUS_ICONS, STATUS_LABELS } from '@/modules/commitments/utils/commitment_status';
 import { makeTestMonthPayment } from '@/test_helpers/commitment';
 
 jest.mock('@/modules/commitments/screens/commitments/commitments.hook', () => ({
@@ -280,7 +282,7 @@ interface MonthFilterMockProps {
 }
 
 interface SegmentFilterMockProps {
-  filters: ReadonlyArray<{ value: string; icon?: { name: string } }>;
+  filters: ReadonlyArray<{ value: string; label: string; icon?: { name: string } }>;
   corners?: string;
   triggerHitSlop?: RailHitSlop;
 }
@@ -386,7 +388,7 @@ describe('CommitmentsScreen', () => {
     expect(monthFilterProps.last?.selectedMonth).toBe('2026-08');
   });
 
-  it('MA-241: the rail hands the month row and the iconed status tabs the list rail space and hit slops in form corners, a chip toggles its account, and the tally slot draws the hook tally', async () => {
+  it('MA-241: the rail hands the month row and the iconed status tabs the list rail space and hit slops in form corners, a chip toggles its account, and the tally slot draws the hook tally; MA-271: the shared All option leads the labels in order', async () => {
     const chips = [
       chip(undefined, 'All accounts', false),
       chip('account-cib', 'CIB', true),
@@ -406,6 +408,11 @@ describe('CommitmentsScreen', () => {
 
     const filters = segmentFilterProps.last?.filters ?? [];
     expect(filters.map(({ value }) => value)).toEqual(['all', ...STATUS_TABS]);
+    expect(filters.map(({ label }) => label)).toEqual([
+      Strings.filterAll,
+      ...STATUS_TABS.map((status) => STATUS_LABELS[status]),
+    ]);
+    expect(filters[0]).toBe(LIST_RAIL_ALL_OPTION);
     const iconByValue = new Map(filters.map(({ value, icon }) => [value, icon?.name]));
     for (const status of STATUS_TABS) {
       expect(iconByValue.get(status)).toBe(STATUS_ICONS[status]);
