@@ -1,5 +1,5 @@
 import { Card } from 'heroui-native';
-import { View, type ViewStyle, useWindowDimensions } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 import Animated from 'react-native-reanimated';
 
 import { Button } from '@/components/ui/button';
@@ -7,20 +7,25 @@ import { StatusBadge } from '@/components/ui/status_badge';
 import { Text } from '@/components/ui/text';
 import { resolveFitAmountTextProps, scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Strings } from '@/constants/strings';
-import { LetterSpacing, Radius, Spacing, Type } from '@/constants/theme';
+import { LetterSpacing, Spacing } from '@/constants/theme';
 
 import { DAY_INDICATOR_CLASS } from '../../../../utils/day_indicator';
 import { cardEntering } from '../detail.anim';
 import type { CommitmentCycleCardModel } from '../detail.helpers';
-
-// Frame C1 `.cyc`.
-const CYCLE_CARD_FRAME_STYLE: Readonly<ViewStyle> = Object.freeze({
-  borderRadius: Radius.detailCard,
-  boxShadow: 'none',
-  paddingTop: Spacing.sm,
-  paddingBottom: Spacing.sm + Spacing.xxxs,
-  paddingHorizontal: Spacing.md,
-});
+import {
+  CURRENT_CYCLE_ACTIONS_GAP,
+  CURRENT_CYCLE_ACTION_GAP,
+  CURRENT_CYCLE_AMOUNT_FONT_SIZE,
+  CURRENT_CYCLE_AMOUNT_GAP,
+  CURRENT_CYCLE_CARD_FRAME_STYLE,
+  CURRENT_CYCLE_CODE_FONT_SIZE,
+  CURRENT_CYCLE_DAY_LINE_FONT_SIZE,
+  CURRENT_CYCLE_DUE_DAY_FONT_SIZE,
+  CURRENT_CYCLE_LINE_GAP,
+  CURRENT_CYCLE_OVERLINE_FONT_SIZE,
+  CURRENT_CYCLE_ROW_GAP,
+  resolveCurrentCycleCardGeometry,
+} from './current_cycle_card.geometry';
 
 interface Props {
   model: CommitmentCycleCardModel;
@@ -39,7 +44,13 @@ function CycleActions({
   switch (action.kind) {
     case 'paySkip':
       return (
-        <View style={{ flexDirection: 'row', gap: Spacing.xs, marginTop: Spacing.sm }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            gap: CURRENT_CYCLE_ACTION_GAP,
+            marginTop: CURRENT_CYCLE_ACTIONS_GAP,
+          }}
+        >
           <View style={{ flex: 1 }}>
             <Button variant="primary" flat label={Strings.commitmentsMarkAsPaid} onPress={onPay} />
           </View>
@@ -56,7 +67,7 @@ function CycleActions({
       );
     case 'viewTransaction':
       return (
-        <View style={{ flexDirection: 'row', marginTop: Spacing.sm }}>
+        <View style={{ flexDirection: 'row', marginTop: CURRENT_CYCLE_ACTIONS_GAP }}>
           <View style={{ flex: 1 }}>
             <Button
               variant="secondary"
@@ -80,14 +91,15 @@ function CycleActions({
 export function CurrentCycleCard(props: Props): React.ReactElement {
   const { model } = props;
   const { fontScale } = useWindowDimensions();
-  const amountProps = resolveFitAmountTextProps(Type.title, fontScale);
+  const amountProps = resolveFitAmountTextProps(CURRENT_CYCLE_AMOUNT_FONT_SIZE, fontScale);
+  const { height } = resolveCurrentCycleCardGeometry(fontScale, model.action.kind !== 'none');
 
   return (
     <Animated.View entering={cardEntering} className="mx-4 mt-4">
       <Card
         testID="commitment-detail-cycle"
-        className="bg-surface border-accent/18 border"
-        style={CYCLE_CARD_FRAME_STYLE}
+        className="bg-surface border-accent/18"
+        style={{ ...CURRENT_CYCLE_CARD_FRAME_STYLE, minHeight: height }}
       >
         <View
           style={{
@@ -102,7 +114,7 @@ export function CurrentCycleCard(props: Props): React.ReactElement {
             numberOfLines={1}
             className="font-inter-semibold text-muted uppercase"
             style={{
-              ...scaledTextStyle(Type.overline, fontScale),
+              ...scaledTextStyle(CURRENT_CYCLE_OVERLINE_FONT_SIZE, fontScale),
               letterSpacing: LetterSpacing.eyebrow,
               flexShrink: 1,
             }}
@@ -125,7 +137,7 @@ export function CurrentCycleCard(props: Props): React.ReactElement {
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: Spacing.xs,
-            marginTop: Spacing.xs,
+            marginTop: CURRENT_CYCLE_ROW_GAP,
           }}
         >
           <View style={{ flex: 1 }}>
@@ -133,7 +145,7 @@ export function CurrentCycleCard(props: Props): React.ReactElement {
               allowFontScaling={false}
               numberOfLines={1}
               className="font-inter-medium text-foreground"
-              style={scaledTextStyle(Type.body, fontScale)}
+              style={scaledTextStyle(CURRENT_CYCLE_DUE_DAY_FONT_SIZE, fontScale)}
             >
               {model.dueDay}
             </Text>
@@ -141,7 +153,10 @@ export function CurrentCycleCard(props: Props): React.ReactElement {
               allowFontScaling={false}
               numberOfLines={1}
               className={DAY_INDICATOR_CLASS[model.dayLineTone]}
-              style={{ ...scaledTextStyle(Type.micro, fontScale), marginTop: Spacing.xxxs }}
+              style={{
+                ...scaledTextStyle(CURRENT_CYCLE_DAY_LINE_FONT_SIZE, fontScale),
+                marginTop: CURRENT_CYCLE_LINE_GAP,
+              }}
             >
               {model.dayLine}
             </Text>
@@ -152,7 +167,7 @@ export function CurrentCycleCard(props: Props): React.ReactElement {
             style={{
               flexDirection: 'row',
               alignItems: 'baseline',
-              gap: Spacing.xxs,
+              gap: CURRENT_CYCLE_AMOUNT_GAP,
               flexShrink: 1,
             }}
           >
@@ -167,7 +182,7 @@ export function CurrentCycleCard(props: Props): React.ReactElement {
               allowFontScaling={false}
               numberOfLines={1}
               className="font-inter text-content-secondary"
-              style={scaledTextStyle(Type.micro, fontScale)}
+              style={scaledTextStyle(CURRENT_CYCLE_CODE_FONT_SIZE, fontScale)}
             >
               {model.amountCode}
             </Text>

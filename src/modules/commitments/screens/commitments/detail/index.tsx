@@ -51,7 +51,10 @@ export default function CommitmentDetailScreen() {
       />
 
       {state.viewState === 'loading' ? (
-        <CommitmentDetailSkeleton commitmentHint={state.loadingCommitmentHint} />
+        <CommitmentDetailSkeleton
+          commitmentHint={state.loadingCommitmentHint}
+          cycleHint={state.loadingCycleHint}
+        />
       ) : null}
 
       {state.viewState === 'notFound' ? (
