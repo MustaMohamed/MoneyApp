@@ -27,6 +27,7 @@ import {
 } from '../../../domain/payment_day_distance';
 import {
   type CommitmentLifecycle,
+  countSettledPayments,
   isPaidPayment,
   isUnpaidPayment,
   resolveCommitmentLifecycle,
@@ -174,7 +175,7 @@ export function resolveCommitmentDetailSkeletonCards({
   commitment: Commitment | undefined;
   storePayments: readonly Pick<
     CommitmentPayment,
-    'id' | 'commitment_id' | 'paid_date' | 'skipped_date'
+    'id' | 'commitment_id' | 'due_date' | 'paid_date' | 'skipped_date'
   >[];
   cycleId: string | undefined;
   /** The local calendar date, `YYYY-MM-DD`. */
@@ -182,23 +183,20 @@ export function resolveCommitmentDetailSkeletonCards({
 }): CommitmentDetailSkeletonCards {
   if (commitment === undefined) return SKELETON_HERO_ONLY;
   const ownRows = storePayments.filter((p) => p.commitment_id === commitment.id);
-  const settledCount = ownRows.filter((p) => !isUnpaidPayment(p)).length;
-  const lifecycle = resolveCommitmentLifecycle(commitment, settledCount, today);
-  switch (lifecycle) {
-    case 'active':
-      return SKELETON_BOTH_CARDS;
-    case 'stopped':
-      return SKELETON_ROWS_ONLY;
-    case 'ended': {
-      const cycle = cycleId === undefined ? undefined : ownRows.find((p) => p.id === cycleId);
-      if (cycle === undefined) return SKELETON_HERO_ONLY;
-      return isUnpaidPayment(cycle) ? SKELETON_BOTH_CARDS : SKELETON_ROWS_ONLY;
-    }
-    default: {
-      const unhandled: never = lifecycle;
-      return unhandled;
-    }
+  const lifecycle = resolveCommitmentLifecycle(commitment, countSettledPayments(ownRows), today);
+  const cycle = cycleId === undefined ? undefined : ownRows.find((p) => p.id === cycleId);
+  if (cycle === undefined) {
+    if (lifecycle === 'ended') return SKELETON_HERO_ONLY;
+    return lifecycle === 'active' ? SKELETON_BOTH_CARDS : SKELETON_ROWS_ONLY;
   }
+  const openedUnpaidDueDate = resolveOpenedUnpaidDueDate({
+    cycle,
+    heldDueDate: undefined,
+    heldOpenedUnpaidDueDate: undefined,
+  });
+  return commitmentDetailShowsCycleCard({ lifecycle, payment: cycle, openedUnpaidDueDate })
+    ? SKELETON_BOTH_CARDS
+    : SKELETON_ROWS_ONLY;
 }
 
 /** The store's month array is the optimistic one, so a row both hold reads the store's status. */
@@ -391,10 +389,10 @@ const EGP_COMMITMENT_FACT_KINDS: readonly CommitmentDetailFactKind[] =
   USD_COMMITMENT_FACT_KINDS.filter((kind) => kind !== 'amount');
 
 export function resolveCommitmentDetailFactKinds(
-  commitment: Pick<Commitment, 'currency'> | undefined,
+  commitment: Pick<Commitment, 'currency'>,
 ): CommitmentDetailFactKind[] {
   return [
-    ...(commitment?.currency === Currency.USD
+    ...(commitment.currency === Currency.USD
       ? USD_COMMITMENT_FACT_KINDS
       : EGP_COMMITMENT_FACT_KINDS),
   ];

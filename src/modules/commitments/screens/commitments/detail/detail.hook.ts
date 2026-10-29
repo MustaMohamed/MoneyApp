@@ -16,7 +16,7 @@ import {
 } from '@/modules/navigation/domain/stacked_route';
 import { toLocalDateString } from '@/utils/format_date';
 
-import { isUnpaidPayment, resolveCommitmentLifecycle } from '../../../domain/payment_state';
+import { countSettledPayments, resolveCommitmentLifecycle } from '../../../domain/payment_state';
 import { commitmentRepository } from '../../../repositories/commitment.repository';
 import { useCommitmentStore } from '../../../store/commitment.store';
 import {
@@ -29,6 +29,7 @@ import {
   buildCommitmentDetailFacts,
   buildCommitmentDetailHero,
   type CommitmentDetailFactKind,
+  commitmentDetailShowsBody,
   commitmentDetailShowsCycleCard,
   commitmentDetailShowsEdit,
   overlayStorePayments,
@@ -160,20 +161,21 @@ export function useCommitmentDetail() {
     () => (cycleId === undefined ? undefined : historyRows.find((p) => p.id === cycleId)),
     [historyRows, cycleId],
   );
-  const settledCount = useMemo(
-    () => historyRows.filter((p) => !isUnpaidPayment(p)).length,
-    [historyRows],
-  );
+  const settledCount = useMemo(() => countSettledPayments(historyRows), [historyRows]);
   const lifecycle =
     commitment && today !== undefined
       ? resolveCommitmentLifecycle(commitment, settledCount, today)
       : undefined;
-  const skeletonCards = resolveCommitmentDetailSkeletonCards({
-    commitment: loadingCommitmentHint,
-    storePayments: payments,
-    cycleId: cycle,
-    today: toLocalDateString(new Date()),
-  });
+  const skeletonCards = useMemo(
+    () =>
+      resolveCommitmentDetailSkeletonCards({
+        commitment: loadingCommitmentHint,
+        storePayments: payments,
+        cycleId: cycle,
+        today: toLocalDateString(new Date()),
+      }),
+    [loadingCommitmentHint, payments, cycle],
+  );
 
   const accountId = commitment?.account_id ?? undefined;
   const accountIds = useMemo(() => (accountId === undefined ? [] : [accountId]), [accountId]);
@@ -183,6 +185,7 @@ export function useCommitmentDetail() {
     status,
     refreshError: refreshError || lookupLeavesUnresolved(accountRead, accountIds),
   });
+  const showsBody = commitmentDetailShowsBody(viewState);
   const showsEdit = commitmentDetailShowsEdit(viewState, lifecycle);
 
   const category = useMemo(
@@ -296,6 +299,7 @@ export function useCommitmentDetail() {
       paySheetToday,
       hero,
       cycleCard,
+      showsBody,
       showsEdit,
       facts,
       loadingCommitmentHint,

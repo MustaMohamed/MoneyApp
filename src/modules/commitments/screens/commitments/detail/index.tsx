@@ -18,7 +18,6 @@ import { heroEntering } from './detail.anim';
 import {
   COMMITMENT_DETAIL_LOAD_ERROR_COPY,
   COMMITMENT_DETAIL_LOAD_ERROR_TEST_ID,
-  commitmentDetailShowsBody,
 } from './detail.helpers';
 import { useCommitmentDetail } from './detail.hook';
 
@@ -34,7 +33,6 @@ export default function CommitmentDetailScreen() {
     goBack,
     viewTransaction,
   } = useCommitmentDetail();
-  const showsBody = commitmentDetailShowsBody(state.viewState);
 
   return (
     <Screen edges={['top', 'bottom']}>
@@ -74,7 +72,10 @@ export default function CommitmentDetailScreen() {
         />
       ) : null}
 
-      {showsBody && state.commitment && state.today !== undefined && state.hero !== undefined ? (
+      {state.showsBody &&
+      state.commitment &&
+      state.today !== undefined &&
+      state.hero !== undefined ? (
         <ScreenScroll
           contentContainerStyle={{ paddingBottom: 40 }}
           showsVerticalScrollIndicator={false}

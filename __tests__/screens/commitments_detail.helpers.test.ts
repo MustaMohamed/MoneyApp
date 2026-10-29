@@ -820,10 +820,6 @@ describe('resolveCommitmentDetailFactKinds (MA-261)', () => {
     expect(resolveCommitmentDetailFactKinds(makeTestCommitment())).toEqual(SIX);
   });
 
-  it('reads six kinds with no commitment, the skeleton with no hint', () => {
-    expect(resolveCommitmentDetailFactKinds(undefined)).toEqual(SIX);
-  });
-
   it('reads seven kinds on a USD commitment, amount third after category and currency last', () => {
     expect(
       resolveCommitmentDetailFactKinds(makeTestCommitment({ currency: Currency.USD })),

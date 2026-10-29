@@ -40,7 +40,10 @@ export function CommitmentDetailSkeleton({ commitmentHint, cards }: Props): Reac
   const { fontScale } = useWindowDimensions();
   const hero = resolveDetailHeroGeometry(fontScale);
   const rowHeight = resolveFactRowHeight(fontScale);
-  const rowCount = resolveCommitmentDetailFactKinds(commitmentHint).length;
+  const rowCount =
+    cards.factRows && commitmentHint !== undefined
+      ? resolveCommitmentDetailFactKinds(commitmentHint).length
+      : 0;
   return (
     <ScreenScroll
       testID="commitment-detail-skeleton"
@@ -122,7 +125,7 @@ export function CommitmentDetailSkeleton({ commitmentHint, cards }: Props): Reac
             </View>
           </Card>
         ) : null}
-        {cards.factRows ? (
+        {rowCount > 0 ? (
           <DetailRowsCard testID="commitment-detail-skeleton-rows">
             {Array.from({ length: rowCount }, (_, row) => (
               <View
