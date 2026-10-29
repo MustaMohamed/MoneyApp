@@ -7,7 +7,11 @@ import {
   resolveSheetClosedAtRestProps,
 } from '@/components/ui/sheet.helpers';
 import { useSheetCloseHitSlop, useSheetCloseLifecycle } from '@/components/ui/sheet.hook';
-import { SHEET_CLOSE_RETRY_MS, isSheetClosePending } from '@/components/ui/sheet_close_lifecycle';
+import {
+  SHEET_CLOSE_RETRY_LIMIT,
+  SHEET_CLOSE_RETRY_MS,
+  isSheetClosePending,
+} from '@/components/ui/sheet_close_lifecycle';
 import { Size, touchFloorHitSlop } from '@/constants/theme';
 
 const HIDDEN = { opacity: 0, pointerEvents: 'none' };
@@ -403,10 +407,6 @@ describe('useSheetCloseLifecycle re-drives a close the sheet did not carry out (
     };
   }
 
-  it('waits 250 ms between retries', () => {
-    expect(SHEET_CLOSE_RETRY_MS).toBe(250);
-  });
-
   it('calls retryClose once per SHEET_CLOSE_RETRY_MS after the drop while no -1 arrives', async () => {
     const sheet = await mountRetryingSheet(true);
     await sheet.settleAt(0);
@@ -459,6 +459,25 @@ describe('useSheetCloseLifecycle re-drives a close the sheet did not carry out (
     expect(sheet.onCloseComplete).toHaveBeenCalledTimes(1);
     await sheet.tick(3 * SHEET_CLOSE_RETRY_MS);
     expect(sheet.retryClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('settles the close itself after SHEET_CLOSE_RETRY_LIMIT retries with no -1, once, and retries no more', async () => {
+    const sheet = await mountRetryingSheet(true);
+    await sheet.settleAt(0);
+    await sheet.setOpen(false);
+
+    await sheet.tick(SHEET_CLOSE_RETRY_LIMIT * SHEET_CLOSE_RETRY_MS);
+    expect(sheet.retryClose).toHaveBeenCalledTimes(SHEET_CLOSE_RETRY_LIMIT);
+    expect(sheet.onCloseComplete).not.toHaveBeenCalled();
+
+    await sheet.tick(SHEET_CLOSE_RETRY_MS);
+    expect(sheet.onCloseComplete).toHaveBeenCalledTimes(1);
+    expect(sheet.pending()).toBe(false);
+
+    await sheet.settleAt(-1);
+    await sheet.tick(5 * SHEET_CLOSE_RETRY_MS);
+    expect(sheet.retryClose).toHaveBeenCalledTimes(SHEET_CLOSE_RETRY_LIMIT);
+    expect(sheet.onCloseComplete).toHaveBeenCalledTimes(1);
   });
 
   it('stops retrying on unmount', async () => {

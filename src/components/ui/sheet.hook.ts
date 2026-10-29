@@ -3,6 +3,7 @@ import type { Insets, LayoutChangeEvent } from 'react-native';
 
 import { resolveSheetCloseHitSlop } from './sheet.helpers';
 import {
+  SHEET_CLOSE_RETRY_LIMIT,
   SHEET_CLOSE_RETRY_MS,
   createSheetCloseLifecycle,
   isSheetClosePending,
@@ -71,12 +72,26 @@ export function useSheetCloseLifecycle(
     if (settlesOnDrop) handleSheetIndexChange(-1);
   }, [settlesOnDrop, handleSheetIndexChange]);
 
+  // Read through a ref so a new `onCloseComplete` identity does not restart the retries below.
+  const settleClosedRef = useRef(handleSheetClosed);
+  useEffect(() => {
+    settleClosedRef.current = handleSheetClosed;
+  }, [handleSheetClosed]);
+
   // gorhom reports nothing for a close that ends back at the open index, so the close is asked for again until a -1 settles it.
   const closePending = isSheetClosePending(closeLifecycle);
   useEffect(() => {
     if (!closePending || retryClose === undefined) return undefined;
+    let retries = 0;
     const timer = setInterval(() => {
-      if (isSheetClosePending(closeLifecycleRef.current)) retryClose();
+      if (!isSheetClosePending(closeLifecycleRef.current)) return;
+      if (retries === SHEET_CLOSE_RETRY_LIMIT) {
+        clearInterval(timer);
+        settleClosedRef.current();
+        return;
+      }
+      retries += 1;
+      retryClose();
     }, SHEET_CLOSE_RETRY_MS);
     return () => clearInterval(timer);
   }, [closePending, retryClose]);

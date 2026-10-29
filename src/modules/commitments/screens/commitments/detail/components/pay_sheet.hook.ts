@@ -1,9 +1,9 @@
 import { router } from 'expo-router';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { z } from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 
-import { type ConvertedAmount, resolveRateCommit } from '@/components/ui/form_sheet.helpers';
+import { applyRateCommit, type ConvertedAmount } from '@/components/ui/form_sheet.helpers';
 import { AmountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/database/entities/account.entity';
@@ -15,9 +15,7 @@ import {
   resolveStripSelectedId,
 } from '@/modules/transactions/components/transaction_row.helpers';
 import {
-  type CommitmentPaymentAmounts,
   requiresExchangeRate,
-  resolveCommitmentPaymentAmounts,
   TransactionAmountError,
 } from '@/modules/transactions/domain/transaction_amounts';
 import { resolveAccountName } from '@/utils/account_name';
@@ -33,6 +31,7 @@ import { resolveDisplayAmount } from '../../../../utils/commitment_status';
 import {
   type PaySheetFieldErrors,
   type PayWritePreview,
+  deriveResolution,
   resolvePayButtonLabel,
   resolvePayConvertedAmount,
   resolvePaySheetStatusMessage,
@@ -41,46 +40,8 @@ import {
 import { INITIAL_PAY_SHEET_ENTRY, usePaySheetState } from './pay_sheet.state';
 
 /**
- * `resolved` is `undefined` for inputs that cannot resolve yet (the resolver would throw on
- * them for a reason other than the destination leg). `zeroDestination` is `true` specifically
- * for the resolver's #363 refusal — the caller already knows the destination currency from its
- * own `account` argument, so it never needs a fabricated `CommitmentPaymentAmounts` to render
- * "converts below the floor": both call sites only read `accountNativeAmount`/`accountCurrency`
- * off `resolved` once that flag is set, and this flag is what stands in for them instead.
- */
-function deriveResolution(
-  commitment: Commitment | undefined,
-  account: Account | undefined,
-  amountText: string,
-  rateText: string | undefined,
-): { resolved: CommitmentPaymentAmounts | undefined; zeroDestination: boolean } {
-  if (!commitment || !account) return { resolved: undefined, zeroDestination: false };
-  // Not a bare `> 0`: `roundMoney(0.004)` is 0, which the resolver throws on.
-  const amount = parsePositiveDecimal(amountText);
-  const exchangeRate = parseRateText(rateText ?? '');
-  if (amount === undefined) return { resolved: undefined, zeroDestination: false };
-  if (requiresExchangeRate(commitment.currency, account.currency) && exchangeRate === undefined) {
-    return { resolved: undefined, zeroDestination: false };
-  }
-  try {
-    const resolved = resolveCommitmentPaymentAmounts({
-      amount,
-      commitmentCurrency: commitment.currency,
-      accountCurrency: account.currency,
-      exchangeRate,
-    });
-    return { resolved, zeroDestination: false };
-  } catch (error) {
-    if (error instanceof TransactionAmountError) {
-      return { resolved: undefined, zeroDestination: error.reason === 'zero-destination' };
-    }
-    throw error;
-  }
-}
-
-/**
  * `'unstorable'` and `'zero-destination'` are deterministic and get their own copy, the shape
- * `resolveTransactionSaveError` uses; everything else keeps the retry banner — a repository
+ * `resolveTransactionSaveError` uses; everything else keeps the status track's retry line — a repository
  * `TransactionValidationError` reaching here is a submit-time race where retrying is accurate.
  * `deriveResolution`'s `zeroDestination` flag already blocks `'zero-destination'` at the field
  * pre-submit (mirroring `resolveDestinationFloorError`), so this branch is the same fallback
@@ -142,8 +103,8 @@ function createPaySheetSchema(commitment: Commitment | undefined, accounts: Acco
 
       // The converted amount can round below the money floor even when the entered one clears it.
       const { resolved, zeroDestination } = deriveResolution(
-        commitment,
-        acc,
+        commitment?.currency,
+        acc?.currency,
         data.amountText,
         data.exchange_rate,
       );
@@ -198,6 +159,8 @@ export function usePaySheet(
 
   const schema = useMemo(() => createPaySheetSchema(commitment, accounts), [commitment, accounts]);
 
+  // Counts the prefill's resets, one per open, so a write that outlives its open leaves the next one alone.
+  const openGenerationRef = useRef(0);
   const form = useZodForm(schema, {
     mode: 'onSubmit',
     reValidateMode: 'onChange',
@@ -229,8 +192,8 @@ export function usePaySheet(
       writePreview: undefined as PayWritePreview | undefined,
     };
     const { resolved, zeroDestination } = deriveResolution(
-      commitment,
-      selectedAccount,
+      commitment?.currency,
+      selectedAccount?.currency,
       amountText,
       exchangeRateValue,
     );
@@ -249,7 +212,7 @@ export function usePaySheet(
     return { convertedBelowMin, writePreview };
   }, [amountText, commitment, exchangeRateValue, selectedAccount]);
 
-  // The line under the hero, at a rate the form holds or the editor drafts.
+  // At a rate the form holds or the editor drafts.
   function convertedFor(rateText: string): ConvertedAmount | undefined {
     if (!commitment) return undefined;
     return resolvePayConvertedAmount({
@@ -275,6 +238,7 @@ export function usePaySheet(
         ? ''
         : (resolveStripSelectedId(accounts, commitment.account_id) ?? '');
 
+    openGenerationRef.current += 1;
     form.reset({
       // `amount_due` can be sub-cent or exponential, so format it to text that re-parses.
       amountText: prefillAmount > 0 ? formatStoredMoneyText(prefillAmount) : '',
@@ -296,6 +260,7 @@ export function usePaySheet(
 
   async function onValid(data: PaySheetFormValues) {
     if (!payment || settled) return;
+    const startedOpen = openGenerationRef.current;
     setSaving(owner, true);
     setSaveError(owner, undefined);
     try {
@@ -319,6 +284,8 @@ export function usePaySheet(
     } catch (error) {
       // The reload rethrows after publishing `loadError`; a failed reload keeps the failed-write line.
       await loadAccounts().catch(() => undefined);
+      // A reopen during the reload owns the form now, so this failure is not its to show.
+      if (openGenerationRef.current !== startedOpen) return;
       const reloaded = useAccountStore.getState();
       if (!reloaded.loadError && !reloaded.accounts.some((a) => a.id === data.account_id)) {
         form.setError('account_id', {
@@ -334,7 +301,7 @@ export function usePaySheet(
     }
   }
 
-  // RHF calls `onValid` only when validation passes, so a stale banner outlives a failed submit.
+  // RHF calls `onValid` only when validation passes, so a stale status track line outlives a failed submit.
   function onInvalid() {
     setSaveError(owner, undefined);
   }
@@ -357,13 +324,15 @@ export function usePaySheet(
     if (isSubmitted) void form.trigger();
   }
 
-  // The rate editor's Done: a refused text writes nothing; the stored rate turns the override off.
   function commitRate(text: string): boolean {
-    const commit = resolveRateCommit({ text, storedRate: rate });
-    if (commit === undefined) return false;
-    setRateOverride(owner, commit.override);
-    form.setValue('exchange_rate', commit.exchangeRate, { shouldValidate: isSubmitted });
-    return true;
+    return applyRateCommit({
+      text,
+      storedRate: rate,
+      clearError: () => setSaveError(owner, undefined),
+      setRateOverride: (override) => setRateOverride(owner, override),
+      setExchangeRate: (exchangeRate) =>
+        form.setValue('exchange_rate', exchangeRate, { shouldValidate: isSubmitted }),
+    });
   }
 
   function requestAccountCreation() {
@@ -435,7 +404,6 @@ export function usePaySheet(
       rateStale: isRateStale(rateUpdatedAt, Date.now()),
       storedRate: rate,
       converted: convertedFor(exchangeRateValue ?? ''),
-      saveError,
       amountText,
       paidDate,
       note: notes ?? '',

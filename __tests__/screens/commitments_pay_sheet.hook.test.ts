@@ -556,7 +556,7 @@ describe('usePaySheet', () => {
     );
     // The mocked selector store does not subscribe, so the flag reaches state on the next render.
     await act(() => rerender(undefined));
-    expect(result.current.state.saveError).toBe(Strings.commitmentsPayError);
+    expect(result.current.state.statusMessage).toBe(Strings.commitmentsPayError);
     expect(mockPaySheetState.setVisible).not.toHaveBeenCalledWith(OWNER, false);
   });
 
@@ -759,7 +759,7 @@ describe('usePaySheet', () => {
       await result.current.onSubmit();
     });
     await act(() => rerender(undefined));
-    expect(result.current.state.saveError).toBe(Strings.commitmentsPayError);
+    expect(result.current.state.statusMessage).toBe(Strings.commitmentsPayError);
 
     mockPaySheetState.setSaveError.mockClear();
 
@@ -775,7 +775,7 @@ describe('usePaySheet', () => {
     await act(() => rerender(undefined));
 
     expect(mockPaySheetState.setSaveError).toHaveBeenCalledWith(OWNER, undefined);
-    expect(result.current.state.saveError).toBeUndefined();
+    expect(result.current.state.statusMessage).toBeUndefined();
   });
 
   it('F3: clears the save error on a submit that fails validation', async () => {
@@ -783,7 +783,7 @@ describe('usePaySheet', () => {
     const { result, rerender } = await submitAmount('15');
     await act(() => rerender(undefined));
     expect(mockMarkAsPaid).toHaveBeenCalledTimes(1);
-    expect(result.current.state.saveError).toBe(Strings.commitmentsPayError);
+    expect(result.current.state.statusMessage).toBe(Strings.commitmentsPayError);
 
     mockPaySheetState.setSaveError.mockClear();
 
@@ -800,7 +800,7 @@ describe('usePaySheet', () => {
       Strings.errAmountInvalid,
     );
     expect(mockPaySheetState.setSaveError).toHaveBeenCalledWith(OWNER, undefined);
-    expect(result.current.state.saveError).toBeUndefined();
+    expect(result.current.state.statusMessage).toBe(Strings.fixFieldsMarkedAbove(1));
   });
 
   // The rate row is not a `Controller`, so `setValue` is the only thing that can revalidate it.
@@ -1242,7 +1242,7 @@ describe('usePaySheet', () => {
 
       // Deterministic failure gets its own copy, not the retry-implying banner.
       await act(() => rerender(undefined));
-      expect(result.current.state.saveError).toBe(Strings.commitmentsPayErrAmountUnstorable);
+      expect(result.current.state.statusMessage).toBe(Strings.commitmentsPayErrAmountUnstorable);
       expect(result.current.state.statusMessage).toBe(Strings.commitmentsPayErrAmountUnstorable);
     });
 
@@ -1761,7 +1761,6 @@ describe('usePaySheet', () => {
         OWNER,
         Strings.commitmentsPayError,
       );
-      expect(result.current.state.saveError).toBeUndefined();
     });
 
     it('a reload that drops the lit account before any press rings the strip and counts nothing', async () => {
@@ -1774,6 +1773,44 @@ describe('usePaySheet', () => {
       expect(result.current.state.errors.account).toBe(Strings.commitmentsPayErrAccountUnavailable);
       expect(result.current.state.statusMessage).toBeUndefined();
       expect(mockMarkAsPaid).not.toHaveBeenCalled();
+    });
+
+    it('a failed write that settles after a close and reopen marks nothing on the new open', async () => {
+      paySheetStateInner = { ...paySheetStateInner, visible: true };
+      let rejectWrite: (error: Error) => void = () => undefined;
+      mockMarkAsPaid.mockImplementationOnce(
+        () =>
+          new Promise((_resolve, reject: (error: Error) => void) => {
+            rejectWrite = reject;
+          }),
+      );
+      mockLoadAccounts.mockImplementationOnce(async () => {
+        mockAccounts = [walletAccount];
+      });
+      const { result, rerender } = await renderLit([egpAccount, walletAccount]);
+
+      let submitted: Promise<void> = Promise.resolve();
+      await act(async () => {
+        submitted = result.current.onSubmit();
+      });
+      expect(mockMarkAsPaid).toHaveBeenCalledTimes(1);
+      paySheetStateInner = { ...paySheetStateInner, visible: false };
+      await act(() => rerender(undefined));
+      paySheetStateInner = { ...paySheetStateInner, visible: true };
+      await act(() => rerender(undefined));
+
+      await act(async () => {
+        rejectWrite(new Error('account archived'));
+        await submitted;
+      });
+      await act(() => rerender(undefined));
+
+      expect(mockLoadAccounts).toHaveBeenCalledTimes(1);
+      expect(result.current.form.getFieldState('account_id').error).toBeUndefined();
+      expect(mockPaySheetState.setSaveError).not.toHaveBeenCalledWith(
+        OWNER,
+        Strings.commitmentsPayError,
+      );
     });
 
     it('reads noAccounts once the accounts load empty, not before the load and not with an account', async () => {

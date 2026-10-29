@@ -147,8 +147,8 @@ describe('usePaySheet under two owners', () => {
       await a.result.current.onSubmit();
     });
 
-    expect(a.result.current.state.saveError).toBe(Strings.commitmentsPayError);
-    expect(b.result.current.state.saveError).toBeUndefined();
+    expect(a.result.current.state.statusMessage).toBe(Strings.commitmentsPayError);
+    expect(b.result.current.state.statusMessage).toBeUndefined();
     expect(b.result.current.state.visible).toBe(true);
   });
 

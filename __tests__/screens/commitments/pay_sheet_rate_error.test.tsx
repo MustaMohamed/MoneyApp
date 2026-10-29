@@ -23,18 +23,27 @@ jest.mock('@gorhom/bottom-sheet', () => {
     BottomSheetScrollView: ({ children }: { children?: ReactNode }) => <View>{children}</View>,
   };
 });
+const mockRouterPush = jest.fn();
+jest.mock('expo-router', () => ({
+  router: { push: (...args: unknown[]) => mockRouterPush(...args) },
+}));
+// The rendered `Sheet`'s `onCloseComplete`, which a case calls as the settled close would.
+let mockSheetCloseComplete: (() => void) | undefined;
 jest.mock('@/components/ui/sheet', () => ({
   useBottomSheetAwareHandlers: () => ({ onFocus: jest.fn(), onBlur: jest.fn() }),
   Sheet: ({
     isOpen,
     children,
     footer,
+    onCloseComplete,
   }: {
     isOpen: boolean;
     children?: ReactNode;
     footer?: ReactNode;
+    onCloseComplete?: () => void;
   }) => {
     const { View } = jest.requireActual<typeof import('react-native')>('react-native');
+    mockSheetCloseComplete = onCloseComplete;
     return isOpen ? (
       <View testID="pay-sheet">
         {children}
@@ -220,5 +229,12 @@ describe('PaySheet with no active accounts', () => {
     await fireEvent.press(getByTestId('no-accounts-cta'));
 
     expect(paySheetState.requestAccountCreation).toHaveBeenCalledWith('owner-a');
+
+    paySheetState.completeClose.mockReturnValueOnce('addAccount');
+    mockSheetCloseComplete?.();
+
+    expect(paySheetState.completeClose).toHaveBeenCalledWith('owner-a');
+    expect(mockRouterPush).toHaveBeenCalledTimes(1);
+    expect(mockRouterPush).toHaveBeenCalledWith('/accounts/add_account');
   });
 });

@@ -2,6 +2,8 @@ import type { ConvertedAmount } from '@/components/ui/form_sheet.helpers';
 import { AmountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import {
+  type CommitmentPaymentAmounts,
+  requiresExchangeRate,
   resolveCommitmentPaymentAmounts,
   TransactionAmountError,
 } from '@/modules/transactions/domain/transaction_amounts';
@@ -15,6 +17,46 @@ export interface PayWritePreview {
   amount: number;
   currency: Currency;
   accountName: string;
+}
+
+/**
+ * `resolved` is `undefined` for inputs that cannot resolve yet (the resolver would throw on
+ * them for a reason other than the destination leg). `zeroDestination` is `true` specifically
+ * for the resolver's #363 refusal — the caller already knows the destination currency from its
+ * own `accountCurrency` argument, so it never needs a fabricated `CommitmentPaymentAmounts` to render
+ * "converts below the floor": both call sites only read `accountNativeAmount`/`accountCurrency`
+ * off `resolved` once that flag is set, and this flag is what stands in for them instead.
+ */
+export function deriveResolution(
+  commitmentCurrency: Currency | undefined,
+  accountCurrency: Currency | undefined,
+  amountText: string,
+  rateText: string | undefined,
+): { resolved: CommitmentPaymentAmounts | undefined; zeroDestination: boolean } {
+  if (commitmentCurrency === undefined || accountCurrency === undefined) {
+    return { resolved: undefined, zeroDestination: false };
+  }
+  // Not a bare `> 0`: `roundMoney(0.004)` is 0, which the resolver throws on.
+  const amount = parsePositiveDecimal(amountText);
+  const exchangeRate = parseRateText(rateText ?? '');
+  if (amount === undefined) return { resolved: undefined, zeroDestination: false };
+  if (requiresExchangeRate(commitmentCurrency, accountCurrency) && exchangeRate === undefined) {
+    return { resolved: undefined, zeroDestination: false };
+  }
+  try {
+    const resolved = resolveCommitmentPaymentAmounts({
+      amount,
+      commitmentCurrency,
+      accountCurrency,
+      exchangeRate,
+    });
+    return { resolved, zeroDestination: false };
+  } catch (error) {
+    if (error instanceof TransactionAmountError) {
+      return { resolved: undefined, zeroDestination: error.reason === 'zero-destination' };
+    }
+    throw error;
+  }
 }
 
 export interface PaySheetFieldErrors {
@@ -78,26 +120,19 @@ export function resolvePayConvertedAmount(input: {
   const { commitmentCurrency, accountCurrency, amountText, rateText } = input;
   const usdCommitment = commitmentCurrency === Currency.USD;
   if (!usdCommitment && accountCurrency !== Currency.USD) return undefined;
-  const amount = parsePositiveDecimal(amountText);
-  const exchangeRate = parseRateText(rateText ?? '');
-  if (amount === undefined || exchangeRate === undefined) return undefined;
-  try {
-    // With no account lit, a USD commitment's EGP leg reads the same from either account currency.
-    const resolved = resolveCommitmentPaymentAmounts({
-      amount,
-      commitmentCurrency,
-      accountCurrency: accountCurrency ?? Currency.USD,
-      exchangeRate,
-    });
-    const converted = usdCommitment
-      ? { amount: resolved.egpAmount, currency: Currency.EGP }
-      : { amount: resolved.accountNativeAmount, currency: Currency.USD };
-    if (resolved.accountNativeAmount < MIN_MONEY_AMOUNT || converted.amount < MIN_MONEY_AMOUNT) {
-      return undefined;
-    }
-    return converted;
-  } catch (error) {
-    if (error instanceof TransactionAmountError) return undefined;
-    throw error;
+  // With no account lit, a USD commitment's EGP leg reads the same from either account currency.
+  const { resolved } = deriveResolution(
+    commitmentCurrency,
+    accountCurrency ?? Currency.USD,
+    amountText,
+    rateText,
+  );
+  if (resolved === undefined) return undefined;
+  const converted = usdCommitment
+    ? { amount: resolved.egpAmount, currency: Currency.EGP }
+    : { amount: resolved.accountNativeAmount, currency: Currency.USD };
+  if (resolved.accountNativeAmount < MIN_MONEY_AMOUNT || converted.amount < MIN_MONEY_AMOUNT) {
+    return undefined;
   }
+  return converted;
 }

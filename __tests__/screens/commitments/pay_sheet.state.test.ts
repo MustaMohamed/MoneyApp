@@ -13,22 +13,22 @@ describe('pay sheet state: the add-account hand-off (MA-219)', () => {
   beforeEach(() => store().reset());
 
   it('starts every entry with no hand-off pending', () => {
-    expect(INITIAL_PAY_SHEET_ENTRY.opensAddAccountOnClose).toBe(false);
+    expect(INITIAL_PAY_SHEET_ENTRY.postCloseAction).toBeUndefined();
 
     store().open(OWNER, OPENED_ON);
 
-    expect(entry().opensAddAccountOnClose).toBe(false);
+    expect(entry().postCloseAction).toBeUndefined();
   });
 
   it('hides a visible entry once and reads addAccount once on the close that follows', () => {
     store().open(OWNER, OPENED_ON);
 
     expect(store().requestAccountCreation(OWNER)).toBe(true);
-    expect(entry()).toMatchObject({ visible: false, opensAddAccountOnClose: true });
+    expect(entry()).toMatchObject({ visible: false, postCloseAction: 'addAccount' });
     expect(store().requestAccountCreation(OWNER)).toBe(false);
 
     expect(store().completeClose(OWNER)).toBe('addAccount');
-    expect(entry().opensAddAccountOnClose).toBe(false);
+    expect(entry().postCloseAction).toBeUndefined();
     expect(store().completeClose(OWNER)).toBeUndefined();
   });
 
@@ -37,7 +37,7 @@ describe('pay sheet state: the add-account hand-off (MA-219)', () => {
     store().setSaving(OWNER, true);
 
     expect(store().requestAccountCreation(OWNER)).toBe(false);
-    expect(entry()).toMatchObject({ visible: true, saving: true, opensAddAccountOnClose: false });
+    expect(entry()).toMatchObject({ visible: true, saving: true, postCloseAction: undefined });
     expect(store().completeClose(OWNER)).toBeUndefined();
   });
 
@@ -46,7 +46,7 @@ describe('pay sheet state: the add-account hand-off (MA-219)', () => {
     store().setVisible(OWNER, false);
 
     expect(store().requestAccountCreation(OWNER)).toBe(false);
-    expect(entry().opensAddAccountOnClose).toBe(false);
+    expect(entry().postCloseAction).toBeUndefined();
     expect(store().completeClose(OWNER)).toBeUndefined();
   });
 
@@ -65,7 +65,7 @@ describe('pay sheet state: the add-account hand-off (MA-219)', () => {
 
     store().open(OWNER, OPENED_ON);
 
-    expect(entry()).toMatchObject({ visible: true, opensAddAccountOnClose: false });
+    expect(entry()).toMatchObject({ visible: true, postCloseAction: undefined });
     expect(store().completeClose(OWNER)).toBeUndefined();
   });
 });
