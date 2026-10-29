@@ -19,7 +19,10 @@ import { Strings } from '@/constants/strings';
 import { Radius, Size, Type, lineHeightFor } from '@/constants/theme';
 
 import type { Commitment } from '../../../../entities/commitment.entity';
-import { resolveCommitmentDetailFactKinds } from '../detail.helpers';
+import {
+  type CommitmentDetailSkeletonCards,
+  resolveCommitmentDetailFactKinds,
+} from '../detail.helpers';
 
 const CYCLE_BUTTON_COUNT = 2;
 
@@ -30,9 +33,10 @@ const CYCLE_CARD_FRAME_STYLE: Readonly<ViewStyle> = Object.freeze({
 
 interface Props {
   commitmentHint: Commitment | undefined;
+  cards: CommitmentDetailSkeletonCards;
 }
 
-export function CommitmentDetailSkeleton({ commitmentHint }: Props): React.ReactElement {
+export function CommitmentDetailSkeleton({ commitmentHint, cards }: Props): React.ReactElement {
   const { fontScale } = useWindowDimensions();
   const hero = resolveDetailHeroGeometry(fontScale);
   const rowHeight = resolveFactRowHeight(fontScale);
@@ -91,44 +95,52 @@ export function CommitmentDetailSkeleton({ commitmentHint }: Props): React.React
             />
           </View>
         </HeroShell>
-        <Card
-          testID="commitment-detail-skeleton-cycle"
-          className="border-separator mx-4 mt-4 gap-3 border px-4 py-3"
-          style={CYCLE_CARD_FRAME_STYLE}
-        >
-          <ScaledBar height={lineHeightFor(Type.overline)} className="w-20 rounded-md" />
-          <View
-            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+        {cards.cycleCard ? (
+          <Card
+            testID="commitment-detail-skeleton-cycle"
+            className="border-separator mx-4 mt-4 gap-3 border px-4 py-3"
+            style={CYCLE_CARD_FRAME_STYLE}
           >
-            <ScaledBar height={lineHeightFor(Type.subhead)} className="w-28 rounded-md" />
-            <ScaledBar height={lineHeightFor(Type.caption)} className="w-16 rounded-md" />
-          </View>
-          <View className="gap-2" style={{ flexDirection: 'row' }}>
-            {Array.from({ length: CYCLE_BUTTON_COUNT }, (_, bar) => (
-              <SkeletonGroup.Item
-                key={bar}
-                style={{ flex: 1, height: Size.ctaFooterTrack, borderRadius: Radius.cta }}
-              />
-            ))}
-          </View>
-        </Card>
-        <DetailRowsCard testID="commitment-detail-skeleton-rows">
-          {Array.from({ length: rowCount }, (_, row) => (
+            <ScaledBar height={lineHeightFor(Type.overline)} className="w-20 rounded-md" />
             <View
-              key={row}
-              className={row < rowCount - 1 ? 'border-separator border-b px-4' : 'px-4'}
               style={{
-                height: rowHeight,
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'space-between',
               }}
             >
-              <ScaledBar height={lineHeightFor(Type.overline)} className="w-16 rounded-md" />
-              <ScaledBar height={lineHeightFor(Type.meta)} className="w-28 rounded-md" />
+              <ScaledBar height={lineHeightFor(Type.subhead)} className="w-28 rounded-md" />
+              <ScaledBar height={lineHeightFor(Type.caption)} className="w-16 rounded-md" />
             </View>
-          ))}
-        </DetailRowsCard>
+            <View className="gap-2" style={{ flexDirection: 'row' }}>
+              {Array.from({ length: CYCLE_BUTTON_COUNT }, (_, bar) => (
+                <SkeletonGroup.Item
+                  key={bar}
+                  style={{ flex: 1, height: Size.ctaFooterTrack, borderRadius: Radius.cta }}
+                />
+              ))}
+            </View>
+          </Card>
+        ) : null}
+        {cards.factRows ? (
+          <DetailRowsCard testID="commitment-detail-skeleton-rows">
+            {Array.from({ length: rowCount }, (_, row) => (
+              <View
+                key={row}
+                className={row < rowCount - 1 ? 'border-separator border-b px-4' : 'px-4'}
+                style={{
+                  height: rowHeight,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <ScaledBar height={lineHeightFor(Type.overline)} className="w-16 rounded-md" />
+                <ScaledBar height={lineHeightFor(Type.meta)} className="w-28 rounded-md" />
+              </View>
+            ))}
+          </DetailRowsCard>
+        ) : null}
       </SkeletonGroup>
     </ScreenScroll>
   );

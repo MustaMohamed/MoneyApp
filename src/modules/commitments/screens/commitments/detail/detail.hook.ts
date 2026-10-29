@@ -16,6 +16,7 @@ import {
 } from '@/modules/navigation/domain/stacked_route';
 import { toLocalDateString } from '@/utils/format_date';
 
+import { isUnpaidPayment, resolveCommitmentLifecycle } from '../../../domain/payment_state';
 import { commitmentRepository } from '../../../repositories/commitment.repository';
 import { useCommitmentStore } from '../../../store/commitment.store';
 import {
@@ -28,9 +29,13 @@ import {
   buildCommitmentDetailFacts,
   buildCommitmentDetailHero,
   type CommitmentDetailFactKind,
+  commitmentDetailShowsCycleCard,
+  commitmentDetailShowsEdit,
   overlayStorePayments,
   resolveCommitmentDetailCycle,
+  resolveCommitmentDetailSkeletonCards,
   resolveCommitmentDetailViewState,
+  resolveOpenedUnpaidDueDate,
 } from './detail.helpers';
 import { INITIAL_UI_ENTRY, useCommitmentDetailState } from './detail.state';
 import { INITIAL_DATA_ENTRY, useCommitmentDetailStore } from './detail.store';
@@ -113,10 +118,16 @@ export function useCommitmentDetail() {
     ])
       .then(([found, rows]) => {
         if (cancelled) return;
+        const cycleRow = resolveCommitmentDetailCycle(rows, cycle, previousDueDate);
         setDetail(owner, commitmentId, {
           commitment: found,
           allPayments: rows,
-          cycleId: resolveCommitmentDetailCycle(rows, cycle, previousDueDate)?.id,
+          cycleId: cycleRow?.id,
+          openedUnpaidDueDate: resolveOpenedUnpaidDueDate({
+            cycle: cycleRow,
+            heldDueDate: previousDueDate,
+            heldOpenedUnpaidDueDate: preserveData ? held.openedUnpaidDueDate : undefined,
+          }),
           loadedOn,
         });
         resolve(owner, commitmentId);
@@ -143,11 +154,26 @@ export function useCommitmentDetail() {
   const rows = holdsRoute ? entry.allPayments : INITIAL_DATA_ENTRY.allPayments;
   const cycleId = holdsRoute ? entry.cycleId : undefined;
   const today = holdsRoute ? entry.loadedOn : undefined;
+  const openedUnpaidDueDate = holdsRoute ? entry.openedUnpaidDueDate : undefined;
   const historyRows = useMemo(() => overlayStorePayments(rows, payments), [rows, payments]);
   const payment = useMemo(
     () => (cycleId === undefined ? undefined : historyRows.find((p) => p.id === cycleId)),
     [historyRows, cycleId],
   );
+  const settledCount = useMemo(
+    () => historyRows.filter((p) => !isUnpaidPayment(p)).length,
+    [historyRows],
+  );
+  const lifecycle =
+    commitment && today !== undefined
+      ? resolveCommitmentLifecycle(commitment, settledCount, today)
+      : undefined;
+  const skeletonCards = resolveCommitmentDetailSkeletonCards({
+    commitment: loadingCommitmentHint,
+    storePayments: payments,
+    cycleId: cycle,
+    today: toLocalDateString(new Date()),
+  });
 
   const accountId = commitment?.account_id ?? undefined;
   const accountIds = useMemo(() => (accountId === undefined ? [] : [accountId]), [accountId]);
@@ -157,6 +183,7 @@ export function useCommitmentDetail() {
     status,
     refreshError: refreshError || lookupLeavesUnresolved(accountRead, accountIds),
   });
+  const showsEdit = commitmentDetailShowsEdit(viewState, lifecycle);
 
   const category = useMemo(
     () => (commitment ? categories.find((c) => c.id === commitment.category_id) : undefined),
@@ -185,18 +212,22 @@ export function useCommitmentDetail() {
 
   const hero = useMemo(
     () =>
-      commitment && today !== undefined
-        ? buildCommitmentDetailHero({ commitment, payment, category, today })
+      commitment && today !== undefined && lifecycle !== undefined
+        ? buildCommitmentDetailHero({ commitment, payment, category, today, lifecycle })
         : undefined,
-    [commitment, payment, category, today],
+    [commitment, payment, category, today, lifecycle],
   );
 
   const cycleCard = useMemo(
     () =>
-      payment && commitment && today !== undefined
+      payment &&
+      commitment &&
+      today !== undefined &&
+      lifecycle !== undefined &&
+      commitmentDetailShowsCycleCard({ lifecycle, payment, openedUnpaidDueDate })
         ? buildCommitmentCycleCard({ payment, commitment, today })
         : undefined,
-    [payment, commitment, today],
+    [payment, commitment, today, lifecycle, openedUnpaidDueDate],
   );
 
   const openPaySheet = useCallback(() => {
@@ -265,8 +296,10 @@ export function useCommitmentDetail() {
       paySheetToday,
       hero,
       cycleCard,
+      showsEdit,
       facts,
       loadingCommitmentHint,
+      skeletonCards,
       skipConfirmVisible,
       skipBusy,
       skipError,

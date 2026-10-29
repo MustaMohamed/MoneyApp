@@ -8,6 +8,7 @@ import { StackHeader } from '@/components/ui/stack_header';
 import { Strings } from '@/constants/strings';
 
 import { CurrentCycleCard } from './components/current_cycle_card';
+import { CommitmentDetailActions } from './components/detail_actions';
 import { CommitmentDetailSkeleton } from './components/detail_skeleton';
 import { DetailsCard } from './components/details_card';
 import { PaySheet } from './components/pay_sheet';
@@ -17,7 +18,7 @@ import { heroEntering } from './detail.anim';
 import {
   COMMITMENT_DETAIL_LOAD_ERROR_COPY,
   COMMITMENT_DETAIL_LOAD_ERROR_TEST_ID,
-  commitmentDetailShowsEdit,
+  commitmentDetailShowsBody,
 } from './detail.helpers';
 import { useCommitmentDetail } from './detail.hook';
 
@@ -33,7 +34,7 @@ export default function CommitmentDetailScreen() {
     goBack,
     viewTransaction,
   } = useCommitmentDetail();
-  const showsBody = commitmentDetailShowsEdit(state.viewState);
+  const showsBody = commitmentDetailShowsBody(state.viewState);
 
   return (
     <Screen edges={['top', 'bottom']}>
@@ -41,7 +42,7 @@ export default function CommitmentDetailScreen() {
         title={Strings.commitmentsDetailHeader}
         onBack={goBack}
         right={
-          commitmentDetailShowsEdit(state.viewState) ? (
+          state.showsEdit ? (
             <DetailEditAction
               accessibilityLabel={Strings.commitmentsDetailEditAccessibility}
               onPress={goToEdit}
@@ -51,7 +52,10 @@ export default function CommitmentDetailScreen() {
       />
 
       {state.viewState === 'loading' ? (
-        <CommitmentDetailSkeleton commitmentHint={state.loadingCommitmentHint} />
+        <CommitmentDetailSkeleton
+          commitmentHint={state.loadingCommitmentHint}
+          cards={state.skeletonCards}
+        />
       ) : null}
 
       {state.viewState === 'notFound' ? (
@@ -91,6 +95,7 @@ export default function CommitmentDetailScreen() {
             today={state.today}
             commitment={state.commitment}
           />
+          {state.showsEdit ? <CommitmentDetailActions onEdit={goToEdit} /> : null}
         </ScreenScroll>
       ) : null}
 

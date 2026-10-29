@@ -75,3 +75,25 @@ export function resolveUndoSkip(
   }
   return 'refuse';
 }
+
+export type CommitmentLifecycle = 'active' | 'stopped' | 'ended';
+
+/** The sweep's end rule read against `today`, whatever `is_active` holds; `settledCount` counts rows paid or skipped. */
+export function resolveCommitmentLifecycle(
+  commitment: Pick<Commitment, 'is_active' | 'duration_type' | 'end_date' | 'end_after_count'>,
+  settledCount: number,
+  today: string,
+): CommitmentLifecycle {
+  const { duration_type, end_after_count, end_date } = commitment;
+  if (
+    duration_type === DurationType.AfterCount &&
+    end_after_count !== null &&
+    settledCount >= end_after_count
+  ) {
+    return 'ended';
+  }
+  if (duration_type === DurationType.UntilDate && end_date !== null && end_date < today) {
+    return 'ended';
+  }
+  return commitment.is_active === 1 ? 'active' : 'stopped';
+}
