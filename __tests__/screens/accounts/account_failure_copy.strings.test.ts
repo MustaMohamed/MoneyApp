@@ -44,7 +44,6 @@ const UNREDESIGNED_OLD_VOICE_KEYS = [
   'commitmentsLoadRetry',
   'commitmentsSaveError',
   'commitmentsDeactivateError',
-  'commitmentsPayError',
 ] as const satisfies readonly (keyof typeof Strings)[];
 
 function readsOldVoice(text: string): boolean {
@@ -61,6 +60,14 @@ describe('account detail failure copy (MA-201)', () => {
   it('ships the adjust balance save failure byte-exact', () => {
     expect(Strings.adjustBalanceSaveError).toBe(
       "Couldn't save this balance. Nothing was changed. Try again.",
+    );
+  });
+});
+
+describe('pay sheet failure copy (MA-219)', () => {
+  it('ships the failed pay write byte-exact', () => {
+    expect(Strings.commitmentsPayError).toBe(
+      "Couldn't save this payment. Nothing was changed. Try again.",
     );
   });
 });

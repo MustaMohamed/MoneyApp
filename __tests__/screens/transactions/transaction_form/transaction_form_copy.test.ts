@@ -43,10 +43,10 @@ describe('MA-106 saved toast and prerequisite state copy', () => {
     expect(Strings.transactionSavedToast).toBe('Transaction saved.');
   });
 
-  it('reads the form data failure and its retry as written, beside the shipped no-accounts title', () => {
+  it('reads the form data failure and its retry as written, beside the sentence-case no-accounts title (MA-219)', () => {
     expect(Strings.addTxDataLoadError).toBe("Couldn't load your accounts and categories.");
     expect(Strings.addTxDataLoadRetry).toBe('Try again');
-    expect(Strings.addTxNoAccountsTitle).toBe('No Accounts Yet');
+    expect(Strings.addTxNoAccountsTitle).toBe('No accounts yet');
   });
 
   it('keeps no string that still reads Could not load the accounts and categories', () => {
@@ -74,9 +74,8 @@ describe('MA-168 converted amount copy', () => {
     expect(Strings.addTxConvertedAmount('102.04 USD')).toBe('≈ 102.04 USD');
   });
 
-  it('reads a dash with no code when there is nothing to convert, and leaves the pay sheet its own preview string', () => {
+  it('reads a dash with no code when there is nothing to convert', () => {
     expect(Strings.addTxConvertedAmountNone).toBe('≈ —');
-    expect(Strings.addTxEgpPreview).toBe('≈ {amount} EGP');
   });
 });
 

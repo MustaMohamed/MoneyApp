@@ -1,5 +1,6 @@
 import {
   createSheetCloseLifecycle,
+  isSheetClosePending,
   settleSheetCloseLifecycle,
   syncSheetCloseLifecycle,
 } from '@/components/ui/sheet_close_lifecycle';
@@ -78,5 +79,36 @@ describe('sheet close lifecycle', () => {
       -1,
     );
     expect(currentClose.shouldComplete).toBe(true);
+  });
+});
+
+describe('isSheetClosePending (MA-244)', () => {
+  it('reads false for a sheet that never opened', () => {
+    expect(isSheetClosePending(createSheetCloseLifecycle(false))).toBe(false);
+    expect(
+      isSheetClosePending(syncSheetCloseLifecycle(createSheetCloseLifecycle(false), false)),
+    ).toBe(false);
+  });
+
+  it('reads false for an open sheet, its open reported or not', () => {
+    const opened = syncSheetCloseLifecycle(createSheetCloseLifecycle(false), true);
+    expect(isSheetClosePending(opened)).toBe(false);
+    expect(isSheetClosePending(settleSheetCloseLifecycle(opened, 0).lifecycle)).toBe(false);
+  });
+
+  it('reads true once the open flag drops and no -1 has settled the close', () => {
+    const reportedOpen = settleSheetCloseLifecycle(createSheetCloseLifecycle(true), 0).lifecycle;
+    const dropped = syncSheetCloseLifecycle(reportedOpen, false);
+
+    expect(isSheetClosePending(dropped)).toBe(true);
+    expect(isSheetClosePending(settleSheetCloseLifecycle(dropped, 0).lifecycle)).toBe(true);
+  });
+
+  it('reads false once the -1 completes the close', () => {
+    const dropped = syncSheetCloseLifecycle(createSheetCloseLifecycle(true), false);
+    const completed = settleSheetCloseLifecycle(dropped, -1);
+
+    expect(completed.shouldComplete).toBe(true);
+    expect(isSheetClosePending(completed.lifecycle)).toBe(false);
   });
 });

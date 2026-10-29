@@ -156,17 +156,19 @@ describe('usePaySheet under two owners', () => {
     const { a, b } = await mountTwoSheets();
     await openAndPrefill([OWNER_A, a], [OWNER_B, b]);
     await act(async () => {
-      b.result.current.toggleRateOverride();
-      a.result.current.form.setValue('exchange_rate', '60');
-      b.result.current.form.setValue('exchange_rate', '60');
+      b.result.current.commitRate('60');
+    });
+    await act(async () => {
+      a.result.current.commitRate('60');
+    });
+    await act(async () => {
+      a.result.current.commitRate(formatStoredMoneyText(RATE));
     });
 
-    await act(async () => a.result.current.toggleRateOverride());
-    await act(async () => a.result.current.toggleRateOverride());
-
-    expect(a.result.current.state.rateOverride).toBe(false);
+    const { entries } = usePaySheetState.getState();
+    expect(entries[OWNER_A].rateOverride).toBe(false);
     expect(a.result.current.form.getValues('exchange_rate')).toBe(formatStoredMoneyText(RATE));
-    expect(b.result.current.state.rateOverride).toBe(true);
+    expect(entries[OWNER_B].rateOverride).toBe(true);
     expect(b.result.current.form.getValues('exchange_rate')).toBe('60');
   });
 

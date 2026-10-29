@@ -271,3 +271,28 @@ describe('CommitmentRepository.markAsPaid — a carried row pays by id', () => {
     },
   );
 });
+
+// MA-219: the date row's picked day is the payment's paid date and the expense's date.
+describe('CommitmentRepository.markAsPaid — a picked day dates both rows', () => {
+  it('writes a leap day as the paid_date and the transaction_date', async () => {
+    insertCommitment(commitmentRow('commitment-leap', Currency.EGP, 250));
+    insertPayment('payment-leap', 'commitment-leap', Currency.EGP, 250);
+    const repo = new CommitmentRepository();
+
+    await repo.markAsPaid('payment-leap', {
+      amount_paid: 250,
+      account_id: 'acc_egp',
+      paid_date: '2024-02-29',
+    });
+
+    const payment = realDb
+      .prepare('SELECT paid_date, transaction_id FROM commitment_payments WHERE id = ?')
+      .get('payment-leap') as { paid_date: string; transaction_id: string };
+    const tx = realDb
+      .prepare('SELECT transaction_date FROM transactions WHERE id = ?')
+      .get(payment.transaction_id) as { transaction_date: string };
+
+    expect(payment.paid_date).toBe('2024-02-29');
+    expect(tx.transaction_date).toBe('2024-02-29');
+  });
+});

@@ -39,15 +39,27 @@ jest.mock('@/components/ui/sheet', () => ({
     return isOpen ? (
       <View testID="pay-sheet">
         {children}
-        {footer}
+        {footer === undefined ? null : <View testID="sheet-footer">{footer}</View>}
       </View>
     ) : null;
   },
 }));
 jest.mock('@/components/ui/button', () => ({
-  Button: ({ label, onPress }: { label: string; onPress?: () => void }) => {
+  Button: ({
+    label,
+    onPress,
+    testID,
+  }: {
+    label: string;
+    onPress?: () => void;
+    testID?: string;
+  }) => {
     const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
-    return <Text onPress={onPress}>{label}</Text>;
+    return (
+      <Text testID={testID} onPress={onPress}>
+        {label}
+      </Text>
+    );
   },
 }));
 jest.mock('@/components/ui/date_row', () => {
@@ -126,22 +138,28 @@ const paySheetState = {
   setSaving: jest.fn(),
   setRateOverride: jest.fn(),
   setSaveError: jest.fn(),
+  requestAccountCreation: jest.fn(),
+  completeClose: jest.fn(),
   open: jest.fn(),
   release: jest.fn(),
   reset: jest.fn(),
 };
 
 const mockMarkAsPaid = jest.fn().mockResolvedValue(undefined);
+let suiteAccounts: Account[] = [payAccount];
 
 beforeEach(() => {
   jest.clearAllMocks();
   mockMarkAsPaid.mockResolvedValue(undefined);
+  suiteAccounts = [payAccount];
   attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
     markAsPaid: mockMarkAsPaid,
     loadPaymentsForMonth: jest.fn().mockResolvedValue(undefined),
   }));
   attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
-    accounts: [payAccount],
+    accounts: suiteAccounts,
+    hasLoaded: true,
+    loadError: false,
     loadAccounts: jest.fn().mockResolvedValue(undefined),
   }));
   attachMockSelectorStore(useCurrencyStore as unknown as jest.Mock, () => ({
@@ -218,5 +236,23 @@ describe('PaySheet press with the amount empty and no account lit', () => {
     expect(within(getByTestId('amount-error-slot')).getByText('Enter an amount')).toBeTruthy();
     expect(getByTestId('pay-sheet-status')).toHaveTextContent('Fix the 2 fields marked above.');
     expect(mockMarkAsPaid).not.toHaveBeenCalled();
+  });
+});
+
+// MA-219: with no active accounts the sheet draws the shared no-accounts state, and its Add account hands off.
+describe('PaySheet with no active accounts', () => {
+  it('draws the no-accounts state with no footer, and its Add account requests the hand-off', async () => {
+    suiteAccounts = [];
+    const { getByTestId, getByText, queryByTestId } = await renderOpenSheet({
+      ...variableCommitment,
+      account_id: null,
+    });
+
+    expect(getByText(Strings.addTxNoAccountsTitle)).toBeTruthy();
+    expect(queryByTestId('sheet-footer')).toBeNull();
+
+    await fireEvent.press(getByTestId('no-accounts-cta'));
+
+    expect(paySheetState.requestAccountCreation).toHaveBeenCalledWith('owner-a');
   });
 });

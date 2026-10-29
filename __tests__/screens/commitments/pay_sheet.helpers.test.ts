@@ -3,6 +3,7 @@ import {
   type PaySheetFieldErrors,
   type PayWritePreview,
   resolvePayButtonLabel,
+  resolvePayConvertedAmount,
   resolvePaySheetStatusMessage,
   resolvePayTrackFootnote,
 } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.helpers';
@@ -159,9 +160,120 @@ describe('resolvePaySheetStatusMessage', () => {
     expect(resolvePaySheetStatusMessage(errors)).toBe('Fix the 3 fields marked above.');
   });
 
+  it('reads the save error with no fault, the count over it once a fault is set, and nothing with neither (MA-219)', () => {
+    const saveError = "Couldn't save this payment. Nothing was changed. Try again.";
+
+    expect(resolvePaySheetStatusMessage({}, saveError)).toBe(saveError);
+    expect(resolvePaySheetStatusMessage({ account: 'Select an account' }, saveError)).toBe(
+      'Fix the 1 field marked above.',
+    );
+    expect(resolvePaySheetStatusMessage({}, undefined)).toBeUndefined();
+  });
+
   it('skips a field whose message is undefined', () => {
     expect(resolvePaySheetStatusMessage({ amount: undefined, account: 'Select an account' })).toBe(
       'Fix the 1 field marked above.',
     );
+  });
+});
+
+// Every expected figure is `resolveCommitmentPaymentAmounts` output: EGP to USD divides, USD to EGP multiplies.
+describe('resolvePayConvertedAmount (MA-219)', () => {
+  const converted = (
+    overrides: Partial<Parameters<typeof resolvePayConvertedAmount>[0]> = {},
+  ): ReturnType<typeof resolvePayConvertedAmount> =>
+    resolvePayConvertedAmount({
+      commitmentCurrency: Currency.USD,
+      accountCurrency: Currency.EGP,
+      amountText: '100',
+      rateText: '49.06',
+      ...overrides,
+    });
+
+  it('reads the EGP amount for a USD commitment paid from an EGP account', () => {
+    expect(converted()).toEqual({ amount: 4906, currency: Currency.EGP });
+  });
+
+  it('reads the EGP amount for a USD commitment paid from a USD account', () => {
+    expect(converted({ accountCurrency: Currency.USD })).toEqual({
+      amount: 4906,
+      currency: Currency.EGP,
+    });
+  });
+
+  it('reads the USD amount for an EGP commitment paid from a USD account', () => {
+    expect(
+      converted({
+        commitmentCurrency: Currency.EGP,
+        accountCurrency: Currency.USD,
+        amountText: '5000',
+      }),
+    ).toEqual({ amount: 101.92, currency: Currency.USD });
+  });
+
+  it('reads nothing for an EGP commitment paid from an EGP account', () => {
+    expect(
+      converted({
+        commitmentCurrency: Currency.EGP,
+        accountCurrency: Currency.EGP,
+        amountText: '5000',
+        rateText: undefined,
+      }),
+    ).toBeUndefined();
+  });
+
+  it('reads the EGP amount for a USD commitment before an account is lit', () => {
+    expect(converted({ accountCurrency: undefined })).toEqual({
+      amount: 4906,
+      currency: Currency.EGP,
+    });
+  });
+
+  it('reads nothing for an EGP commitment before an account is lit', () => {
+    expect(
+      converted({ commitmentCurrency: Currency.EGP, accountCurrency: undefined }),
+    ).toBeUndefined();
+  });
+
+  it.each(['', '0', '1,23', '48.', '-5'])(
+    'reads nothing for the refused amount %p',
+    (amountText) => {
+      expect(converted({ amountText })).toBeUndefined();
+    },
+  );
+
+  it.each([undefined, '', '0', 'abc', '48.'])(
+    'reads nothing for the refused rate %p',
+    (rateText) => {
+      expect(converted({ rateText })).toBeUndefined();
+    },
+  );
+
+  it('reads nothing for an amount the resolver refuses to store', () => {
+    expect(converted({ amountText: '99999999999999999999' })).toBeUndefined();
+  });
+
+  it.each([
+    ['0.01 EGP at 49.06 into USD', Currency.EGP, Currency.USD, '0.01', '49.06'],
+    ['0.50 USD at 0.01 into EGP', Currency.USD, Currency.EGP, '0.50', '0.01'],
+  ] as const)(
+    'reads nothing for a conversion under the money floor: %s',
+    (_label, commitmentCurrency, accountCurrency, amountText, rateText) => {
+      expect(
+        converted({ commitmentCurrency, accountCurrency, amountText, rateText }),
+      ).toBeUndefined();
+    },
+  );
+
+  // The resolver rounds the amount to 1.00 first, so 0.02, not `roundMoney(1.005 / 40)` = 0.03.
+  it("reads the resolver's rounding: 1.005 EGP at 40 is 0.02 USD", () => {
+    expect(
+      converted({
+        commitmentCurrency: Currency.EGP,
+        accountCurrency: Currency.USD,
+        amountText: '1.005',
+        rateText: '40',
+      }),
+    ).toEqual({ amount: 0.02, currency: Currency.USD });
   });
 });

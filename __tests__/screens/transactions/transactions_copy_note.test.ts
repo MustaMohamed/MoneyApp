@@ -150,10 +150,17 @@ describe('the two departures from the Copy note', () => {
 });
 
 describe('labels the note does not write stay as shipped', () => {
-  it.each([
-    ['emptyFilteredClearCta', Strings.emptyFilteredClearCta, 'Clear Filters'],
-    ['addTxNoAccountsCta', Strings.addTxNoAccountsCta, 'Add Account'],
-  ])('%s keeps its shipped case', (_key, value, expected) => {
-    expect(value).toBe(expected);
+  it.each([['emptyFilteredClearCta', Strings.emptyFilteredClearCta, 'Clear Filters']])(
+    '%s keeps its shipped case',
+    (_key, value, expected) => {
+      expect(value).toBe(expected);
+    },
+  );
+});
+
+describe('the shared no-accounts state reads in sentence case (MA-219)', () => {
+  it('labels the add account action Add account on both sheets that mount it', () => {
+    expect(Strings.addTxNoAccountsCta).toBe('Add account');
+    expect(Strings.addTxNoAccountsBody).toBe('Add an account first to record transactions.');
   });
 });
