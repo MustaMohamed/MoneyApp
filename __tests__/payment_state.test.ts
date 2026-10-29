@@ -5,8 +5,10 @@ import {
   isPaidPayment,
   isSkippedPayment,
   isUnpaidPayment,
+  resolveCommitmentLifecycle,
   resolvePaymentState,
   resolveUndoSkip,
+  type CommitmentLifecycle,
 } from '@/modules/commitments/domain/payment_state';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 
@@ -182,5 +184,128 @@ describe('resolveUndoSkip', () => {
 
   it('refuses on an inactive forever commitment', () => {
     expect(resolveUndoSkip(undoCommitment(), 1, TODAY)).toBe('refuse');
+  });
+});
+
+describe('resolveCommitmentLifecycle', () => {
+  type LifecycleCommitment = Pick<
+    Commitment,
+    'is_active' | 'duration_type' | 'end_date' | 'end_after_count'
+  >;
+  const TODAY = '2026-05-01';
+
+  function lifecycleCommitment(overrides: Partial<LifecycleCommitment> = {}): LifecycleCommitment {
+    return {
+      is_active: 1,
+      duration_type: DurationType.Forever,
+      end_date: null,
+      end_after_count: null,
+      ...overrides,
+    };
+  }
+
+  it.each<[string, CommitmentLifecycle, Partial<LifecycleCommitment>, number]>([
+    ['an active forever commitment', 'active', {}, 0],
+    ['an inactive forever commitment, which a Stop ended', 'stopped', { is_active: 0 }, 4],
+  ])('reads %s as %s', (_name, expected, overrides, settledCount) => {
+    expect(resolveCommitmentLifecycle(lifecycleCommitment(overrides), settledCount, TODAY)).toBe(
+      expected,
+    );
+  });
+
+  describe('after_count', () => {
+    it.each<[string, CommitmentLifecycle, Partial<LifecycleCommitment>, number]>([
+      [
+        'an active after-3 commitment with 3 settled, before the sweep runs',
+        'ended',
+        { duration_type: DurationType.AfterCount, end_after_count: 3 },
+        3,
+      ],
+      [
+        'an inactive after-3 commitment with 3 settled',
+        'ended',
+        { is_active: 0, duration_type: DurationType.AfterCount, end_after_count: 3 },
+        3,
+      ],
+      [
+        'an inactive after-3 commitment with 2 settled, which a Stop ended',
+        'stopped',
+        { is_active: 0, duration_type: DurationType.AfterCount, end_after_count: 3 },
+        2,
+      ],
+      [
+        'an active after-3 commitment with 2 settled',
+        'active',
+        { duration_type: DurationType.AfterCount, end_after_count: 3 },
+        2,
+      ],
+      [
+        'an inactive after-count commitment with no count',
+        'stopped',
+        { is_active: 0, duration_type: DurationType.AfterCount, end_after_count: null },
+        5,
+      ],
+    ])('reads %s as %s', (_name, expected, overrides, settledCount) => {
+      expect(resolveCommitmentLifecycle(lifecycleCommitment(overrides), settledCount, TODAY)).toBe(
+        expected,
+      );
+    });
+  });
+
+  describe('until_date', () => {
+    it.each<[number, CommitmentLifecycle, CommitmentLifecycle]>([
+      [1, 'ended', 'active'],
+      [0, 'ended', 'stopped'],
+    ])(
+      'at is_active %s reads an end date the day before today as %s, and on today as %s',
+      (isActive, dayBefore, onToday) => {
+        const until = (end_date: string) =>
+          lifecycleCommitment({
+            is_active: isActive,
+            duration_type: DurationType.UntilDate,
+            end_date,
+          });
+
+        expect(resolveCommitmentLifecycle(until('2026-04-30'), 0, TODAY)).toBe(dayBefore);
+        expect(resolveCommitmentLifecycle(until(TODAY), 0, TODAY)).toBe(onToday);
+      },
+    );
+
+    it.each<[string, string, CommitmentLifecycle]>([
+      ['2026-01-31', '2026-02-01', 'ended'],
+      ['2026-01-31', '2026-01-31', 'active'],
+      ['2026-04-30', '2026-05-01', 'ended'],
+      ['2026-04-30', '2026-04-30', 'active'],
+    ])('reads a month-end end date %s against today %s as %s', (end_date, today, expected) => {
+      const until = lifecycleCommitment({ duration_type: DurationType.UntilDate, end_date });
+      expect(resolveCommitmentLifecycle(until, 0, today)).toBe(expected);
+    });
+
+    it.each<[string, CommitmentLifecycle]>([
+      ['2028-02-28', 'active'],
+      ['2028-02-29', 'active'],
+      ['2028-03-01', 'ended'],
+    ])('reads the leap-day end date 2028-02-29 against today %s as %s', (today, expected) => {
+      const untilLeapDay = lifecycleCommitment({
+        duration_type: DurationType.UntilDate,
+        end_date: '2028-02-29',
+      });
+      expect(resolveCommitmentLifecycle(untilLeapDay, 0, today)).toBe(expected);
+    });
+
+    it.each<[number, CommitmentLifecycle]>([
+      [1, 'active'],
+      [0, 'stopped'],
+    ])(
+      'never reads an until-date commitment with no end date as ended, at is_active %s',
+      (isActive, expected) => {
+        const untilNull = lifecycleCommitment({
+          is_active: isActive,
+          duration_type: DurationType.UntilDate,
+          end_date: null,
+        });
+        expect(resolveCommitmentLifecycle(untilNull, 9, TODAY)).toBe(expected);
+      },
+    );
   });
 });

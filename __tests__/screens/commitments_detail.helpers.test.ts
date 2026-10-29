@@ -10,6 +10,7 @@ import { BADGE_TEXT_MIN_CONTRAST } from '@/modules/accounts/constants/account_ba
 import { contrastRatio } from '@/modules/accounts/constants/account_palette';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
+import type { CommitmentLifecycle } from '@/modules/commitments/domain/payment_state';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import type {
   CommitmentMonthPayment,
@@ -20,13 +21,17 @@ import {
   buildCommitmentCycleCard,
   buildCommitmentDetailFacts,
   buildCommitmentDetailHero,
+  commitmentDetailShowsBody,
+  commitmentDetailShowsCycleCard,
   commitmentDetailShowsEdit,
   overlayStorePayments,
   resolveCommitmentAmountInEgpText,
   resolveCommitmentCadenceBadge,
   resolveCommitmentDetailCycle,
   resolveCommitmentDetailFactKinds,
+  resolveCommitmentDetailSkeletonCards,
   resolveCommitmentDetailViewState,
+  resolveOpenedUnpaidDueDate,
   type CommitmentDetailFactKind,
   type CommitmentDetailFactsInput,
   type CommitmentDetailViewState,
@@ -196,7 +201,7 @@ describe('resolveCommitmentDetailCycle', () => {
   });
 });
 
-describe('commitmentDetailShowsEdit', () => {
+describe('commitmentDetailShowsBody', () => {
   it.each<[CommitmentDetailViewState, boolean]>([
     ['ready', true],
     ['refreshErrorWithData', true],
@@ -204,7 +209,33 @@ describe('commitmentDetailShowsEdit', () => {
     ['notFound', false],
     ['firstLoadError', false],
   ])('%s -> %s', (viewState, expected) => {
-    expect(commitmentDetailShowsEdit(viewState)).toBe(expected);
+    expect(commitmentDetailShowsBody(viewState)).toBe(expected);
+  });
+});
+
+describe('commitmentDetailShowsEdit (MA-266)', () => {
+  it('shows only on ready and refreshErrorWithData of an active commitment', () => {
+    const viewStates: CommitmentDetailViewState[] = [
+      'ready',
+      'refreshErrorWithData',
+      'loading',
+      'notFound',
+      'firstLoadError',
+    ];
+    const lifecycles: (CommitmentLifecycle | undefined)[] = [
+      'active',
+      'stopped',
+      'ended',
+      undefined,
+    ];
+
+    const shown = viewStates.flatMap((viewState) =>
+      lifecycles
+        .filter((lifecycle) => commitmentDetailShowsEdit(viewState, lifecycle))
+        .map((lifecycle) => `${viewState}/${lifecycle}`),
+    );
+
+    expect(shown).toEqual(['ready/active', 'refreshErrorWithData/active']);
   });
 });
 
@@ -277,7 +308,7 @@ const variableCommitment = (overrides: Partial<Commitment> = {}): Commitment =>
 
 describe('resolveCommitmentCadenceBadge', () => {
   it('reads Every month on a fixed monthly commitment, the clock glyph on a legible fill', () => {
-    const badge = resolveCommitmentCadenceBadge(makeTestCommitment());
+    const badge = resolveCommitmentCadenceBadge(makeTestCommitment(), 'active');
 
     expect(badge.badgeLabel).toBe('Every month');
     expect(badge.badgeIcon).toBe('clock-outline');
@@ -287,7 +318,7 @@ describe('resolveCommitmentCadenceBadge', () => {
   });
 
   it('appends · varies on a variable commitment', () => {
-    const badge = resolveCommitmentCadenceBadge(variableCommitment());
+    const badge = resolveCommitmentCadenceBadge(variableCommitment(), 'active');
 
     expect(badge.badgeLabel).toBe('Every month · varies');
     expect(badge.badgeIcon).toBe('clock-outline');
@@ -295,9 +326,41 @@ describe('resolveCommitmentCadenceBadge', () => {
       BADGE_TEXT_MIN_CONTRAST,
     );
   });
+
+  it.each<[string, CommitmentLifecycle, string]>([
+    ['a fixed commitment', 'stopped', 'Stopped'],
+    ['a variable commitment', 'stopped', 'Stopped'],
+    ['a fixed commitment', 'ended', 'Ended'],
+    ['a variable commitment', 'ended', 'Ended'],
+  ])('reads %s at %s as %s, with no · varies', (name, lifecycle, label) => {
+    const commitment =
+      name === 'a variable commitment' ? variableCommitment() : makeTestCommitment();
+    const active = resolveCommitmentCadenceBadge(commitment, 'active');
+
+    const badge = resolveCommitmentCadenceBadge(commitment, lifecycle);
+
+    expect(badge.badgeLabel).toBe(label);
+    expect(badge.badgeLabel).not.toContain('varies');
+    expect(badge).toEqual({ ...active, badgeLabel: label });
+  });
 });
 
 describe('buildCommitmentDetailHero', () => {
+  it.each<[CommitmentLifecycle, string]>([
+    ['stopped', 'Stopped'],
+    ['ended', 'Ended'],
+  ])('passes the %s lifecycle to the badge of a variable commitment: %s', (lifecycle, label) => {
+    const hero = buildCommitmentDetailHero({
+      commitment: variableCommitment(),
+      payment: makeTestPayment({ amount_due: 600 }),
+      category: bills,
+      lifecycle,
+      today: TODAY,
+    });
+
+    expect(hero.badgeLabel).toBe(label);
+  });
+
   it('heroes an unpaid fixed EGP cycle: name, cadence badge, category tile and the neutral amount', () => {
     const commitment = makeTestCommitment();
 
@@ -305,11 +368,12 @@ describe('buildCommitmentDetailHero', () => {
       commitment,
       payment: makeTestPayment(),
       category: bills,
+      lifecycle: 'active',
       today: TODAY,
     });
 
     expect(hero).toEqual({
-      ...resolveCommitmentCadenceBadge(commitment),
+      ...resolveCommitmentCadenceBadge(commitment, 'active'),
       title: 'Rent',
       tileColor: '#5C7FC4',
       tileGlyph: 'cart',
@@ -327,6 +391,7 @@ describe('buildCommitmentDetailHero', () => {
       commitment: variableCommitment(),
       payment: makeTestPayment({ amount_due: 600 }),
       category: bills,
+      lifecycle: 'active',
       today: TODAY,
     });
 
@@ -343,6 +408,7 @@ describe('buildCommitmentDetailHero', () => {
       commitment: variableCommitment({ amount: null }),
       payment: makeTestPayment({ amount_due: null }),
       category: bills,
+      lifecycle: 'active',
       today: TODAY,
     });
 
@@ -358,6 +424,7 @@ describe('buildCommitmentDetailHero', () => {
       commitment: makeTestCommitment({ amount: null }),
       payment: makeTestPayment({ amount_due: null }),
       category: bills,
+      lifecycle: 'active',
       today: TODAY,
     });
 
@@ -373,6 +440,7 @@ describe('buildCommitmentDetailHero', () => {
       commitment: variableCommitment(),
       payment: makeTestPayment({ amount_due: 600, paid_date: '2026-09-01', amount_paid: 640 }),
       category: bills,
+      lifecycle: 'active',
       today: TODAY,
     });
 
@@ -386,6 +454,7 @@ describe('buildCommitmentDetailHero', () => {
       commitment: makeTestCommitment({ currency: Currency.USD, amount: 12.5 }),
       payment: makeTestPayment({ currency: Currency.USD, amount_due: 12.5 }),
       category: bills,
+      lifecycle: 'active',
       today: TODAY,
     });
 
@@ -401,6 +470,7 @@ describe('buildCommitmentDetailHero', () => {
       commitment: makeTestCommitment({ amount: 7500 }),
       payment: undefined,
       category: bills,
+      lifecycle: 'active',
       today: TODAY,
     });
 
@@ -412,6 +482,7 @@ describe('buildCommitmentDetailHero', () => {
       commitment: variableCommitment(),
       payment: makeTestPayment({ amount_due: 600 }),
       category: bills,
+      lifecycle: 'active',
       today: TODAY,
     });
 
@@ -453,6 +524,7 @@ describe('buildCommitmentDetailHero', () => {
       commitment: makeTestCommitment({ start_date: startDate }),
       payment: makeTestPayment(),
       category: bills,
+      lifecycle: 'active',
       today,
     });
 
@@ -464,6 +536,7 @@ describe('buildCommitmentDetailHero', () => {
       commitment: makeTestCommitment(),
       payment: makeTestPayment(),
       category: undefined,
+      lifecycle: 'active',
       today: TODAY,
     });
 
@@ -1113,5 +1186,219 @@ describe('buildCommitmentDetailFacts (MA-261)', () => {
       expect(factOf(facts, 'amount')).toBeUndefined();
       expect(facts).toHaveLength(6);
     });
+  });
+});
+
+describe('resolveOpenedUnpaidDueDate (MA-266)', () => {
+  const unpaid = makeTestPayment({ id: 'p2', due_date: '2026-04-30' });
+  const paid = makeTestPayment({ id: 'p2', due_date: '2026-04-30', paid_date: '2026-05-02' });
+  const skipped = makeTestPayment({ id: 'p2', due_date: '2026-04-30', skipped_date: '2026-05-02' });
+
+  it('reads undefined with no cycle, whatever is held', () => {
+    expect(
+      resolveOpenedUnpaidDueDate({
+        cycle: undefined,
+        heldDueDate: '2026-04-30',
+        heldOpenedUnpaidDueDate: '2026-04-30',
+      }),
+    ).toBeUndefined();
+  });
+
+  it("reads an unpaid cycle's due date on the first read", () => {
+    expect(
+      resolveOpenedUnpaidDueDate({
+        cycle: unpaid,
+        heldDueDate: undefined,
+        heldOpenedUnpaidDueDate: undefined,
+      }),
+    ).toBe('2026-04-30');
+  });
+
+  it.each([
+    ['paid', paid],
+    ['skipped', skipped],
+  ])('reads undefined on a first read of a %s cycle', (_name, cycle) => {
+    expect(
+      resolveOpenedUnpaidDueDate({
+        cycle,
+        heldDueDate: undefined,
+        heldOpenedUnpaidDueDate: undefined,
+      }),
+    ).toBeUndefined();
+  });
+
+  it.each([
+    ['paid', paid],
+    ['skipped', skipped],
+  ])(
+    'holds the opened due date over a re-read of the same due date %s on the detail',
+    (_name, cycle) => {
+      expect(
+        resolveOpenedUnpaidDueDate({
+          cycle,
+          heldDueDate: '2026-04-30',
+          heldOpenedUnpaidDueDate: '2026-04-30',
+        }),
+      ).toBe('2026-04-30');
+    },
+  );
+
+  it('holds undefined over a re-read of the same due date opened settled, though the row reads unpaid now', () => {
+    expect(
+      resolveOpenedUnpaidDueDate({
+        cycle: unpaid,
+        heldDueDate: '2026-04-30',
+        heldOpenedUnpaidDueDate: undefined,
+      }),
+    ).toBeUndefined();
+  });
+
+  it('recomputes from the cycle when the re-read resolves another due date', () => {
+    const next = makeTestPayment({ id: 'p3', due_date: '2026-05-31' });
+    const nextPaid = makeTestPayment({ id: 'p3', due_date: '2026-05-31', paid_date: '2026-05-31' });
+    const held = { heldDueDate: '2026-04-30', heldOpenedUnpaidDueDate: '2026-04-30' };
+
+    expect(resolveOpenedUnpaidDueDate({ cycle: next, ...held })).toBe('2026-05-31');
+    expect(resolveOpenedUnpaidDueDate({ cycle: nextPaid, ...held })).toBeUndefined();
+  });
+});
+
+describe('commitmentDetailShowsCycleCard (MA-266)', () => {
+  const payment = { due_date: '2026-04-30' };
+
+  it.each<[string, boolean, CommitmentLifecycle, string | undefined]>([
+    ['active, opened at no unpaid cycle', true, 'active', undefined],
+    ['active, opened at this unpaid cycle', true, 'active', '2026-04-30'],
+    ['stopped, opened at no unpaid cycle', false, 'stopped', undefined],
+    ['stopped, the opened due date matching', false, 'stopped', '2026-04-30'],
+    ['ended, opened at this unpaid cycle', true, 'ended', '2026-04-30'],
+    ['ended, opened at a settled cycle', false, 'ended', undefined],
+    ['ended, opened unpaid at another due date', false, 'ended', '2026-03-31'],
+  ])('%s -> %s', (_name, expected, lifecycle, openedUnpaidDueDate) => {
+    expect(commitmentDetailShowsCycleCard({ lifecycle, payment, openedUnpaidDueDate })).toBe(
+      expected,
+    );
+  });
+});
+
+describe('resolveCommitmentDetailSkeletonCards (MA-266)', () => {
+  const MONTH_END_TODAY = '2026-04-30';
+  const ended = makeTestCommitment({
+    id: 'c1',
+    is_active: 0,
+    duration_type: DurationType.UntilDate,
+    end_date: '2026-04-29',
+  });
+  const storeRow = (overrides: Partial<CommitmentPayment> = {}): CommitmentPayment =>
+    makeTestPayment({ id: 'p1', commitment_id: 'c1', due_date: '2026-04-01', ...overrides });
+
+  it('draws neither card when the store holds no copy of the commitment', () => {
+    expect(
+      resolveCommitmentDetailSkeletonCards({
+        commitment: undefined,
+        storePayments: [storeRow()],
+        cycleId: 'p1',
+        today: MONTH_END_TODAY,
+      }),
+    ).toEqual({ cycleCard: false, factRows: false });
+  });
+
+  it('draws both cards for an active commitment', () => {
+    expect(
+      resolveCommitmentDetailSkeletonCards({
+        commitment: makeTestCommitment({ id: 'c1' }),
+        storePayments: [],
+        cycleId: undefined,
+        today: MONTH_END_TODAY,
+      }),
+    ).toEqual({ cycleCard: true, factRows: true });
+  });
+
+  it('draws the rows alone for a stopped commitment, even at an unpaid stored cycle', () => {
+    expect(
+      resolveCommitmentDetailSkeletonCards({
+        commitment: makeTestCommitment({ id: 'c1', is_active: 0 }),
+        storePayments: [storeRow()],
+        cycleId: 'p1',
+        today: MONTH_END_TODAY,
+      }),
+    ).toEqual({ cycleCard: false, factRows: true });
+  });
+
+  it.each<
+    [string, CommitmentPayment[], string | undefined, { cycleCard: boolean; factRows: boolean }]
+  >([
+    ['the stored cycle unpaid', [storeRow()], 'p1', { cycleCard: true, factRows: true }],
+    [
+      'the stored cycle paid',
+      [storeRow({ paid_date: '2026-04-02', amount_paid: 8000 })],
+      'p1',
+      { cycleCard: false, factRows: true },
+    ],
+    [
+      'the stored cycle skipped',
+      [storeRow({ skipped_date: '2026-04-02' })],
+      'p1',
+      { cycleCard: false, factRows: true },
+    ],
+    ['the cycle absent from the store', [storeRow()], 'p9', { cycleCard: false, factRows: false }],
+    ['no cycle param', [storeRow()], undefined, { cycleCard: false, factRows: false }],
+    [
+      "another commitment's unpaid row under the cycle's id",
+      [storeRow({ commitment_id: 'c2' })],
+      'p1',
+      { cycleCard: false, factRows: false },
+    ],
+  ])(
+    'reads an until-date commitment ended the day before a month-end today, %s',
+    (_name, storePayments, cycleId, expected) => {
+      expect(
+        resolveCommitmentDetailSkeletonCards({
+          commitment: ended,
+          storePayments,
+          cycleId,
+          today: MONTH_END_TODAY,
+        }),
+      ).toEqual(expected);
+    },
+  );
+
+  it('reads the same commitment on its end date as active, both cards drawn', () => {
+    expect(
+      resolveCommitmentDetailSkeletonCards({
+        commitment: { ...ended, is_active: 1 },
+        storePayments: [],
+        cycleId: undefined,
+        today: '2026-04-29',
+      }),
+    ).toEqual({ cycleCard: true, factRows: true });
+  });
+
+  it("counts only this commitment's settled store rows toward an after-count end", () => {
+    const afterTwo = makeTestCommitment({
+      id: 'c1',
+      duration_type: DurationType.AfterCount,
+      end_after_count: 2,
+    });
+    const firstSkipped = storeRow({ id: 'p1', skipped_date: '2026-03-02', due_date: '2026-03-01' });
+    const secondPaid = storeRow({ id: 'p2', paid_date: '2026-04-02', amount_paid: 8000 });
+    const elsewherePaid = storeRow({ id: 'p9', commitment_id: 'c2', paid_date: '2026-04-02' });
+
+    expect(
+      resolveCommitmentDetailSkeletonCards({
+        commitment: afterTwo,
+        storePayments: [firstSkipped, secondPaid],
+        cycleId: 'p2',
+        today: MONTH_END_TODAY,
+      }),
+    ).toEqual({ cycleCard: false, factRows: true });
+    expect(
+      resolveCommitmentDetailSkeletonCards({
+        commitment: afterTwo,
+        storePayments: [elsewherePaid, secondPaid],
+        cycleId: 'p2',
+        today: MONTH_END_TODAY,
+      }),
+    ).toEqual({ cycleCard: true, factRows: true });
   });
 });

@@ -41,7 +41,7 @@ describe('useCommitmentDetailStore', () => {
     expect(useCommitmentDetailStore.getState().entries).toEqual({});
   });
 
-  it('setDetail creates the owner entry with its commitment, rows, cycle and load date', () => {
+  it('setDetail creates the owner entry with its commitment, rows, cycle, opened unpaid due date and load date', () => {
     const commitment = makeCommitment();
     const payments = [makePayment()];
 
@@ -49,6 +49,7 @@ describe('useCommitmentDetailStore', () => {
       commitment,
       allPayments: payments,
       cycleId: 'pay-1',
+      openedUnpaidDueDate: '2026-05-01',
       loadedOn: LOADED_ON,
     });
 
@@ -57,6 +58,7 @@ describe('useCommitmentDetailStore', () => {
       commitment,
       allPayments: payments,
       cycleId: 'pay-1',
+      openedUnpaidDueDate: '2026-05-01',
       loadedOn: LOADED_ON,
     });
     expect(entryOf('owner-a').allPayments).toBe(payments);
@@ -67,6 +69,7 @@ describe('useCommitmentDetailStore', () => {
       commitment: undefined,
       allPayments: [],
       cycleId: undefined,
+      openedUnpaidDueDate: undefined,
       loadedOn: LOADED_ON,
     });
 
@@ -75,6 +78,7 @@ describe('useCommitmentDetailStore', () => {
       commitment: undefined,
       allPayments: [],
       cycleId: undefined,
+      openedUnpaidDueDate: undefined,
       loadedOn: LOADED_ON,
     });
   });
@@ -87,6 +91,7 @@ describe('useCommitmentDetailStore', () => {
       commitment: makeCommitment(),
       allPayments: first,
       cycleId: 'pay-1',
+      openedUnpaidDueDate: undefined,
       loadedOn: LOADED_ON,
     });
 
@@ -94,6 +99,7 @@ describe('useCommitmentDetailStore', () => {
       commitment: stopped,
       allPayments: second,
       cycleId: 'pay-2',
+      openedUnpaidDueDate: undefined,
       loadedOn: '2026-05-09',
     });
 
@@ -110,6 +116,7 @@ describe('useCommitmentDetailStore owner isolation', () => {
       commitment: makeCommitment(),
       allPayments: [makePayment({ id: 'pay-1' })],
       cycleId: 'pay-1',
+      openedUnpaidDueDate: undefined,
       loadedOn: LOADED_ON,
     });
     const before = entryOf('owner-a');
@@ -118,6 +125,7 @@ describe('useCommitmentDetailStore owner isolation', () => {
       commitment: makeCommitment({ id: 'commitment-2' }),
       allPayments: [makePayment({ id: 'pay-2', commitment_id: 'commitment-2' })],
       cycleId: 'pay-2',
+      openedUnpaidDueDate: undefined,
       loadedOn: LOADED_ON,
     });
 
@@ -133,6 +141,7 @@ describe('useCommitmentDetailStore release', () => {
       commitment: makeCommitment({ id: commitmentId }),
       allPayments: [makePayment({ commitment_id: commitmentId })],
       cycleId: 'pay-1',
+      openedUnpaidDueDate: undefined,
       loadedOn: LOADED_ON,
     });
   }
@@ -167,12 +176,13 @@ describe('useCommitmentDetailStore release', () => {
 });
 
 describe('INITIAL_DATA_ENTRY', () => {
-  it('reads not loaded: no commitment, no cycle, no load date', () => {
+  it('reads not loaded: no commitment, no cycle, no opened unpaid due date, no load date', () => {
     expect(INITIAL_DATA_ENTRY).toStrictEqual({
       commitmentId: undefined,
       commitment: undefined,
       allPayments: [],
       cycleId: undefined,
+      openedUnpaidDueDate: undefined,
       loadedOn: undefined,
     });
   });
