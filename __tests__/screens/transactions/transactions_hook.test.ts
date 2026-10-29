@@ -1597,6 +1597,20 @@ describe('useTransactions account chips', () => {
     expect(aggregateCallsCarrying('acc-9')).toBe(0);
   });
 
+  it('opens the filter sheet without an archived account and keeps the category, once accounts have loaded', async () => {
+    setupAccounts();
+    useTransactionsScreenStore
+      .getState()
+      .setAppliedFilters({ ...EMPTY_FILTERS, accountIds: ['acc-9'], categoryIds: ['c1'] });
+    const { result } = await renderHook(() => useTransactions());
+
+    await act(() => result.current.openFilter());
+
+    const { draft } = useFilterStore.getState();
+    expect(draft.accountIds).not.toContain('acc-9');
+    expect(draft.categoryIds).toEqual(['c1']);
+  });
+
   it('leaves the applied ids alone until the account store has loaded', async () => {
     setupAccounts({}, { hasLoaded: false });
     useTransactionsScreenStore

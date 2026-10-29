@@ -1,9 +1,10 @@
-import { AmountType, Currency } from '@/constants/enums';
+import { AmountType, CommitmentPaymentStatus, Currency } from '@/constants/enums';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import {
   formatCommitmentAmount,
   resolveDisplayAmount,
+  STATUS_COUNTER_ORDER,
 } from '@/modules/commitments/utils/commitment_status';
 import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
 
@@ -164,5 +165,17 @@ describe('formatCommitmentAmount', () => {
       mkCommitment({ currency: Currency.EGP }),
     );
     expect(text).toBe('0.40 EGP');
+  });
+});
+
+describe('STATUS_COUNTER_ORDER', () => {
+  it('lists the counters Paid, Overdue, Due, Upcoming, Skipped', () => {
+    expect(STATUS_COUNTER_ORDER).toEqual([
+      CommitmentPaymentStatus.Paid,
+      CommitmentPaymentStatus.Overdue,
+      CommitmentPaymentStatus.Due,
+      CommitmentPaymentStatus.Upcoming,
+      CommitmentPaymentStatus.Skipped,
+    ]);
   });
 });
