@@ -7,7 +7,7 @@ import { Strings } from '@/constants/strings';
 // Not `ZERO_AT_DISPLAY_PRECISION` minus a character: different layer, different population.
 const SIGNED_ZERO = /^-0(\.0+)?$/;
 
-// Rate precision; not interchangeable with `exchange_rate_row.tsx`'s amount-preview decimals.
+// Rate precision; not interchangeable with an amount's `CURRENCY_CONFIG` decimals.
 export const EXCHANGE_RATE_DECIMALS = 2;
 
 // ADR 2026-08-27 (money-colour vocabulary, decision 3): polarity is a composed sign, and the

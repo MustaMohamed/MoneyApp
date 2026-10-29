@@ -13,6 +13,8 @@ interface PaySheetEntry {
   saveError?: string;
   /** The local day the sheet opened on, the day a payment is dated by default. */
   openedOn?: string;
+  /** The no-accounts state's Add account hid the sheet; add account opens once the close settles. */
+  opensAddAccountOnClose: boolean;
 }
 
 type PaySheetStateShape = KeyedEntries<PaySheetEntry>;
@@ -24,6 +26,10 @@ type PaySheetState = PaySheetStateShape & {
   setSettled: (owner: string, v: boolean) => void;
   setRateOverride: (owner: string, v: boolean) => void;
   setSaveError: (owner: string, message?: string) => void;
+  /** Hides a visible, idle sheet for the add-account hand-off; `false` when it changed nothing. */
+  requestAccountCreation: (owner: string) => boolean;
+  /** Reads and clears the hand-off a settled close owes. */
+  completeClose: (owner: string) => 'addAccount' | undefined;
   release: (owner: string) => void;
   reset: () => void;
 };
@@ -35,12 +41,13 @@ export const INITIAL_PAY_SHEET_ENTRY: PaySheetEntry = Object.freeze({
   rateOverride: false,
   saveError: undefined,
   openedOn: undefined,
+  opensAddAccountOnClose: false,
 });
 
 const initialState = (): PaySheetStateShape => ({ entries: {} });
 
 export const usePaySheetState = createMoneyAppSelectors(
-  create<PaySheetState>((set) => {
+  create<PaySheetState>((set, get) => {
     // A released copy can still hold a callback, a save resolving late included; it must not write back.
     const updateEntry = (owner: string, patch: Partial<PaySheetEntry>) =>
       set((state) => {
@@ -65,6 +72,18 @@ export const usePaySheetState = createMoneyAppSelectors(
       setSettled: (owner, v) => updateEntry(owner, { settled: v }),
       setRateOverride: (owner, v) => updateEntry(owner, { rateOverride: v }),
       setSaveError: (owner, message) => updateEntry(owner, { saveError: message }),
+      requestAccountCreation: (owner) => {
+        const { entries } = get();
+        if (!(owner in entries) || !entries[owner].visible || entries[owner].saving) return false;
+        updateEntry(owner, { visible: false, opensAddAccountOnClose: true });
+        return true;
+      },
+      completeClose: (owner) => {
+        const { entries } = get();
+        if (!(owner in entries) || !entries[owner].opensAddAccountOnClose) return undefined;
+        updateEntry(owner, { opensAddAccountOnClose: false });
+        return 'addAccount';
+      },
       release: (owner) => set((state) => withoutEntry(state, owner)),
       reset: () => set(initialState()),
     };

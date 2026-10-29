@@ -900,9 +900,7 @@ export const Strings = {
   addTxRateSubGlobal: 'EGP per 1 USD · global rate',
   addTxRateSubCustom: 'EGP per 1 USD · custom rate',
   addTxRateOverrideLabel: 'Override',
-  addTxRateEditAccessibility: 'Use a custom exchange rate',
   addTxRateInputAccessibility: 'Exchange rate in EGP per 1 USD',
-  addTxRateResetAccessibility: 'Reset exchange rate to the global rate',
   addTxRatePlaceholder: '0.00',
   addTxSaveCta: 'Save',
   editTxSaveCta: 'Save changes',
@@ -1188,12 +1186,9 @@ export const Strings = {
   commitmentsPayCta: (amount: string) => `Pay ${amount}`,
   commitmentsPayCtaBare: 'Pay',
   commitmentsPayAmountA11y: 'Payment amount',
-  commitmentsPayConvertedTotal: (amount: string) => `= ${amount}`,
   commitmentsPayErrAmountRequired: 'Enter an amount',
   commitmentsPayErrAmountMin: 'Amount must be at least 0.01',
   commitmentsPayErrAccountRequired: 'Select an account',
-  // A rate is required even when no currency crosses; the ledger stores `egp_amount`.
-  commitmentsPayRatePurposeEgp: 'Used to record this payment in EGP',
   // For an account id the loaded non-archived list no longer holds, not an empty selection.
   commitmentsPayErrAccountUnavailable: 'This account is no longer available. Pick another.',
   // The shortfall is in the paying account's currency, which is not always USD.
@@ -1214,7 +1209,7 @@ export const Strings = {
   commitmentsDeactivateCancel: 'Cancel',
   commitmentsDeactivateConfirm: 'Deactivate',
   commitmentsDeactivateError: 'Could not deactivate this commitment. Please try again.',
-  commitmentsPayError: 'Could not save this payment. Please try again.',
+  commitmentsPayError: "Couldn't save this payment. Nothing was changed. Try again.",
 
   // Commitments: status badges
   commitmentsStatusOverdue: 'Overdue',
@@ -1417,18 +1412,15 @@ export const Strings = {
   detailLoadRetry: 'Try again',
 
   // §7: Add / Edit Transaction
-  addTxNoAccountsTitle: 'No Accounts Yet',
+  addTxNoAccountsTitle: 'No accounts yet',
   addTxNoAccountsBody: 'Add an account first to record transactions.',
-  addTxNoAccountsCta: 'Add Account',
+  addTxNoAccountsCta: 'Add account',
   addTxRateSourceStored: 'Using stored rate',
-  addTxRateSourceCustom: 'Custom rate',
   addTxRateSourceCustomPerUsd: 'Custom rate · EGP per 1 USD',
   addTxRateLastUpdated: (date: string) => `Last updated ${date}`,
-  addTxRateReset: 'Reset to global',
   addTxRateResetToStored: 'Reset to stored rate',
   addTxRateResetToStoredAccessibility: 'Reset exchange rate to the stored rate',
   addTxRateStale: 'Rate may be stale',
-  addTxEgpPreview: '≈ {amount} EGP',
   addTxConvertedAmount: (amountWithCode: string) => `≈ ${amountWithCode}`,
   addTxConvertedAmountNone: '≈ —',
   addTxBudgetOptionAccessibility: (name: string, amount: string) => `${name}, ${amount} EGP`,

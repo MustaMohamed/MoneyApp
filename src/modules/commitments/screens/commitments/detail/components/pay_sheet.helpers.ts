@@ -1,8 +1,14 @@
-import { AmountType, type Currency } from '@/constants/enums';
+import type { ConvertedAmount } from '@/components/ui/form_sheet.helpers';
+import { AmountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import {
+  resolveCommitmentPaymentAmounts,
+  TransactionAmountError,
+} from '@/modules/transactions/domain/transaction_amounts';
 import { formatDisplayAmount } from '@/utils/format_amount';
 import { formatShortWeekdayDate } from '@/utils/format_date';
-import { parsePositiveDecimal } from '@/utils/parse_decimal';
+import { MIN_MONEY_AMOUNT } from '@/utils/money';
+import { parsePositiveDecimal, parseRateText } from '@/utils/parse_decimal';
 
 /** What the write moves on the paying account, from `deriveResolution`'s figures. */
 export interface PayWritePreview {
@@ -53,8 +59,45 @@ export function resolvePayButtonLabel(amountText: string, currency: Currency): s
     : Strings.commitmentsPayCta(formatDisplayAmount(amount, currency));
 }
 
-/** The rate's line counts: it is a field marked above, in the rate card. */
-export function resolvePaySheetStatusMessage(errors: PaySheetFieldErrors): string | undefined {
+/** The rate's line counts: it is a field marked above, in the fact card; a failed write reads only with no fault marked. */
+export function resolvePaySheetStatusMessage(
+  errors: PaySheetFieldErrors,
+  saveError?: string,
+): string | undefined {
   const count = Object.values(errors).filter((message) => message !== undefined).length;
-  return count === 0 ? undefined : Strings.fixFieldsMarkedAbove(count);
+  return count === 0 ? saveError : Strings.fixFieldsMarkedAbove(count);
+}
+
+/** The line under the hero, the write's own leg: the EGP amount for a USD commitment, the USD amount for an EGP commitment from a USD account. */
+export function resolvePayConvertedAmount(input: {
+  commitmentCurrency: Currency;
+  accountCurrency: Currency | undefined;
+  amountText: string;
+  rateText: string | undefined;
+}): ConvertedAmount | undefined {
+  const { commitmentCurrency, accountCurrency, amountText, rateText } = input;
+  const usdCommitment = commitmentCurrency === Currency.USD;
+  if (!usdCommitment && accountCurrency !== Currency.USD) return undefined;
+  const amount = parsePositiveDecimal(amountText);
+  const exchangeRate = parseRateText(rateText ?? '');
+  if (amount === undefined || exchangeRate === undefined) return undefined;
+  try {
+    // With no account lit, a USD commitment's EGP leg reads the same from either account currency.
+    const resolved = resolveCommitmentPaymentAmounts({
+      amount,
+      commitmentCurrency,
+      accountCurrency: accountCurrency ?? Currency.USD,
+      exchangeRate,
+    });
+    const converted = usdCommitment
+      ? { amount: resolved.egpAmount, currency: Currency.EGP }
+      : { amount: resolved.accountNativeAmount, currency: Currency.USD };
+    if (resolved.accountNativeAmount < MIN_MONEY_AMOUNT || converted.amount < MIN_MONEY_AMOUNT) {
+      return undefined;
+    }
+    return converted;
+  } catch (error) {
+    if (error instanceof TransactionAmountError) return undefined;
+    throw error;
+  }
 }

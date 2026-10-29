@@ -3,7 +3,9 @@ import type { Insets, LayoutChangeEvent } from 'react-native';
 
 import { resolveSheetCloseHitSlop } from './sheet.helpers';
 import {
+  SHEET_CLOSE_RETRY_MS,
   createSheetCloseLifecycle,
+  isSheetClosePending,
   settleSheetCloseLifecycle,
   syncSheetCloseLifecycle,
   type SheetCloseLifecycle,
@@ -19,11 +21,12 @@ interface SheetCloseLifecycleHook {
 // The fields a render reads: a report that changes none of them, `openReported` alone, stays in the ref and schedules no render.
 const RENDERED_FIELDS = ['isOpen', 'hasOpened', 'completed', 'restsClosed'] as const;
 
-/** Holds the sheet's close lifecycle as state, so the render after a settled close reads it; `onCloseComplete` runs once per settled close, `onOpenComplete` once per settled open. */
+/** Holds the sheet's close lifecycle as state, so the render after a settled close reads it; `onCloseComplete` runs once per settled close, `onOpenComplete` once per settled open, and `retryClose` every `SHEET_CLOSE_RETRY_MS` while a close is pending. */
 export function useSheetCloseLifecycle(
   isOpen: boolean,
   onCloseComplete: (() => void) | undefined,
   onOpenComplete?: () => void,
+  retryClose?: () => void,
 ): SheetCloseLifecycleHook {
   const [storedLifecycle, setStoredLifecycle] = useState(() => createSheetCloseLifecycle(isOpen));
   const closeLifecycle =
@@ -67,6 +70,16 @@ export function useSheetCloseLifecycle(
   useEffect(() => {
     if (settlesOnDrop) handleSheetIndexChange(-1);
   }, [settlesOnDrop, handleSheetIndexChange]);
+
+  // gorhom reports nothing for a close that ends back at the open index, so the close is asked for again until a -1 settles it.
+  const closePending = isSheetClosePending(closeLifecycle);
+  useEffect(() => {
+    if (!closePending || retryClose === undefined) return undefined;
+    const timer = setInterval(() => {
+      if (isSheetClosePending(closeLifecycleRef.current)) retryClose();
+    }, SHEET_CLOSE_RETRY_MS);
+    return () => clearInterval(timer);
+  }, [closePending, retryClose]);
 
   return { closeLifecycle, handleSheetIndexChange, handleSheetClosed, handleSheetCloseRequest };
 }
