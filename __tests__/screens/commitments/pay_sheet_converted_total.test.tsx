@@ -1,7 +1,9 @@
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 
+import { formatConvertedAmount } from '@/components/ui/form_sheet.helpers';
 import { AmountType, Currency } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import type { Account } from '@/database/entities/account.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { PaySheet } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet';
@@ -10,9 +12,6 @@ import { useCommitmentStore } from '@/modules/commitments/store/commitment.store
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
-import { formatCurrencyAmount } from '@/utils/format_amount';
-
-jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: unknown) => sel }));
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => {
   const { View } = jest.requireActual<typeof import('react-native')>('react-native');
@@ -54,9 +53,6 @@ jest.mock('@/components/ui/date_row', () => {
   const { View } = jest.requireActual<typeof import('react-native')>('react-native');
   return { DateRow: () => <View testID="date-row" /> };
 });
-jest.mock('@/modules/transactions/components/exchange_rate_row', () => ({
-  ExchangeRateRow: () => null,
-}));
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
   useCommitmentStore: jest.fn(),
 }));
@@ -117,18 +113,31 @@ const paySheetState = {
   setSaving: jest.fn(),
   setRateOverride: jest.fn(),
   setSaveError: jest.fn(),
+  requestAccountCreation: jest.fn(),
+  completeClose: jest.fn(),
   open: jest.fn(),
   release: jest.fn(),
   reset: jest.fn(),
 };
 
+const usdPayAccount = {
+  ...payAccount,
+  id: 'acc-usd',
+  name: 'Dollars',
+  currency: Currency.USD,
+} as unknown as Account;
+let suiteAccounts: Account[] = [payAccount];
+
 beforeEach(() => {
+  suiteAccounts = [payAccount];
   attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
     markAsPaid: jest.fn().mockResolvedValue(undefined),
     loadPaymentsForMonth: jest.fn().mockResolvedValue(undefined),
   }));
   attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
-    accounts: [payAccount],
+    accounts: suiteAccounts,
+    hasLoaded: true,
+    loadError: false,
     loadAccounts: jest.fn().mockResolvedValue(undefined),
   }));
   attachMockSelectorStore(useCurrencyStore as unknown as jest.Mock, () => ({
@@ -139,64 +148,98 @@ beforeEach(() => {
   attachMockSelectorStore(usePaySheetState as unknown as jest.Mock, () => paySheetState);
 });
 
-// Matching the "= " prefix rather than a value is what makes a hidden row assertable.
-const CONVERTED_ROW = /^=\s/;
-
-async function renderOpenSheet() {
+async function renderOpenSheet(commitment = variableCommitment) {
   const utils = await render(
-    <PaySheet owner="owner-a" commitment={variableCommitment} payment={duePayment} today={TODAY} />,
+    <PaySheet owner="owner-a" commitment={commitment} payment={duePayment} today={TODAY} />,
   );
-  // The prefill seeds the exchange rate the preview multiplies by.
+  // The prefill seeds the exchange rate the line converts by.
   await waitFor(() => expect(utils.getByTestId('pay-sheet')).toBeTruthy());
   return utils;
 }
 
-describe('PaySheet converted-total preview', () => {
+const lineText = (amount: number, currency: Currency) =>
+  formatConvertedAmount({ amount, currency });
+
+// MA-219: the converted line sits under the hero, gated on the commitment or the account being USD.
+describe('PaySheet converted amount under the hero', () => {
   it.each([
     ['1', 55],
     ['1234', 67870],
     ['1234.5', 67897.5],
     ['1234.56', 67900.8],
-  ] as const)('shows the converted total for a readable amount "%s"', async (typed, expected) => {
-    const { getByTestId, getByText } = await renderOpenSheet();
-    await fireEvent.changeText(getByTestId('amount-hero-value'), typed);
-    expect(getByText(`= ${formatCurrencyAmount(expected, Currency.EGP)}`)).toBeTruthy();
-  });
-
-  it.each([['1.'], ['0'], ['']] as const)(
-    'hides the converted total while the amount reads "%s"',
-    async (typed) => {
-      const { getByTestId, queryByText } = await renderOpenSheet();
-      // Reach a state where the row shows, so the assertion below is a transition.
-      await fireEvent.changeText(getByTestId('amount-hero-value'), '1');
-      expect(queryByText(CONVERTED_ROW)).not.toBeNull();
-
+  ] as const)(
+    'reads the EGP amount of a USD commitment for a readable amount "%s"',
+    async (typed, expected) => {
+      const { getByTestId } = await renderOpenSheet();
       await fireEvent.changeText(getByTestId('amount-hero-value'), typed);
-      expect(queryByText(CONVERTED_ROW)).toBeNull();
+      expect(getByTestId('converted-amount-line')).toHaveTextContent(
+        lineText(expected, Currency.EGP),
+      );
     },
   );
 
-  // The mask refuses untypeable and ambiguous comma text wholesale, keeping field and preview.
-  it.each([['12abc'], ['1,234']] as const)(
-    'keeps the preview when a refused edit "%s" leaves the field unchanged',
+  it.each([['1.'], ['0'], ['']] as const)(
+    'reads the dash with no code while the amount reads "%s"',
     async (typed) => {
-      const { getByTestId, queryByText } = await renderOpenSheet();
+      const { getByTestId } = await renderOpenSheet();
+      // Reach a state where the line shows an amount, so the assertion below is a transition.
       await fireEvent.changeText(getByTestId('amount-hero-value'), '1');
-      expect(queryByText(CONVERTED_ROW)).not.toBeNull();
+      expect(getByTestId('converted-amount-line')).toHaveTextContent(lineText(55, Currency.EGP));
 
       await fireEvent.changeText(getByTestId('amount-hero-value'), typed);
-      expect(queryByText(CONVERTED_ROW)).not.toBeNull();
+      expect(getByTestId('converted-amount-line')).toHaveTextContent(
+        Strings.addTxConvertedAmountNone,
+      );
+    },
+  );
+
+  // The mask refuses untypeable and ambiguous comma text wholesale, keeping field and line.
+  it.each([['12abc'], ['1,234']] as const)(
+    'keeps the line when a refused edit "%s" leaves the field unchanged',
+    async (typed) => {
+      const { getByTestId } = await renderOpenSheet();
+      await fireEvent.changeText(getByTestId('amount-hero-value'), '1');
+
+      await fireEvent.changeText(getByTestId('amount-hero-value'), typed);
+      expect(getByTestId('converted-amount-line')).toHaveTextContent(lineText(55, Currency.EGP));
       expect(getByTestId('amount-hero-value').props.value).toBe('1');
     },
   );
 
-  // `parsePositiveDecimal` refuses 0, so the resolver throws and cannot be called from a render.
-  it('hides the converted total for a typed zero', async () => {
-    const { getByTestId, queryByText } = await renderOpenSheet();
-    await fireEvent.changeText(getByTestId('amount-hero-value'), '1');
-    expect(queryByText(CONVERTED_ROW)).not.toBeNull();
+  it('draws the Rate row for a USD commitment paid from an EGP account', async () => {
+    const { getByTestId } = await renderOpenSheet();
+    expect(getByTestId('exchange-rate-row')).toBeTruthy();
+  });
 
-    await fireEvent.changeText(getByTestId('amount-hero-value'), '0');
-    expect(queryByText(CONVERTED_ROW)).toBeNull();
+  it.each([
+    ['a USD commitment paid from a USD account', Currency.USD, '1', 55, Currency.EGP],
+    ['an EGP commitment paid from a USD account', Currency.EGP, '5500', 100, Currency.USD],
+  ] as const)(
+    'reads the converted line and draws the Rate row for %s',
+    async (_label, commitmentCurrency, typed, amount, currency) => {
+      suiteAccounts = [usdPayAccount];
+      const { getByTestId } = await renderOpenSheet({
+        ...variableCommitment,
+        currency: commitmentCurrency,
+        account_id: usdPayAccount.id,
+      });
+
+      await fireEvent.changeText(getByTestId('amount-hero-value'), typed);
+
+      expect(getByTestId('converted-amount-line')).toHaveTextContent(lineText(amount, currency));
+      expect(getByTestId('exchange-rate-row')).toBeTruthy();
+    },
+  );
+
+  it('draws neither the converted line nor the Rate row for an EGP commitment paid from an EGP account', async () => {
+    const { getByTestId, queryByTestId } = await renderOpenSheet({
+      ...variableCommitment,
+      currency: Currency.EGP,
+    });
+
+    await fireEvent.changeText(getByTestId('amount-hero-value'), '5500');
+
+    expect(queryByTestId('converted-amount-line')).toBeNull();
+    expect(queryByTestId('exchange-rate-row')).toBeNull();
   });
 });

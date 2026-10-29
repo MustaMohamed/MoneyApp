@@ -1106,12 +1106,12 @@ describe('usePaySheet', () => {
       );
     });
 
-    // The membership issue precedes the rate demand, and `requiresRate` stays false without one.
+    // The membership issue precedes the rate demand; a USD commitment demands the rate with no account lit.
     it('does not fall through to "no rate needed" when the account is missing from the list', async () => {
       mockAccounts = [egpAccount];
       const result = await submitWithAccountId(fixedCommitment, 'acc-gone');
 
-      expect(result.current.state.requiresRate).toBe(false);
+      expect(result.current.state.requiresRate).toBe(true);
       expect(mockMarkAsPaid).not.toHaveBeenCalled();
       expect(result.current.form.getFieldState('account_id').error?.message).toBe(
         Strings.commitmentsPayErrAccountUnavailable,

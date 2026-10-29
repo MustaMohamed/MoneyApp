@@ -6,13 +6,12 @@ import { Strings } from '@/constants/strings';
 import type { Account } from '@/database/entities/account.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { PaySheet } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet';
+import { resolvePayButtonLabel } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.helpers';
 import { usePaySheetState } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.state';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
-
-jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: unknown) => sel }));
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => {
   const { View } = jest.requireActual<typeof import('react-native')>('react-native');
@@ -66,18 +65,6 @@ jest.mock('@/components/ui/date_row', () => {
   const { View } = jest.requireActual<typeof import('react-native')>('react-native');
   return { DateRow: () => <View testID="date-row" /> };
 });
-jest.mock('@/modules/transactions/components/exchange_rate_row', () => ({
-  ExchangeRateRow: ({ onChange, error }: { onChange: (v: string) => void; error?: string }) => {
-    const { Text, TextInput, View } =
-      jest.requireActual<typeof import('react-native')>('react-native');
-    return (
-      <View>
-        <TextInput testID="rate-input" onChangeText={onChange} />
-        {error ? <Text testID="rate-error">{error}</Text> : null}
-      </View>
-    );
-  },
-}));
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
   useCommitmentStore: jest.fn(),
 }));
@@ -179,44 +166,23 @@ async function renderOpenSheet(commitment = variableCommitment) {
   return utils;
 }
 
-describe('PaySheet exchange-rate error', () => {
-  it('clears the rate error as soon as a valid rate is typed, with no second Save', async () => {
+// MA-219: an unreadable stored rate prefills no rate, so a press rings the Rate row and counts its fault.
+describe('PaySheet press with no readable rate', () => {
+  it('rings the Rate row and counts its fault on the track, with the amount filled and the account lit', async () => {
+    attachMockSelectorStore(useCurrencyStore as unknown as jest.Mock, () => ({
+      rate: Number.NaN,
+      isManualOverride: false,
+      rate_updated_at: null,
+    }));
     const { getByTestId, getByText, queryByTestId } = await renderOpenSheet();
+    await fireEvent.changeText(getByTestId('amount-hero-value'), '15');
+    expect(queryByTestId('rate-ring')).toBeNull();
 
-    await fireEvent.changeText(getByTestId('rate-input'), '');
-    await fireEvent.press(getByText(Strings.commitmentsPayCtaBare));
-    await waitFor(() =>
-      expect(getByTestId('rate-error')).toHaveTextContent(Strings.addTxErrRateRequired),
-    );
+    await fireEvent.press(getByText(resolvePayButtonLabel('15', Currency.USD)));
+
+    await waitFor(() => expect(getByTestId('rate-ring')).toBeTruthy());
+    expect(getByTestId('pay-sheet-status')).toHaveTextContent(Strings.fixFieldsMarkedAbove(1));
     expect(mockMarkAsPaid).not.toHaveBeenCalled();
-
-    await fireEvent.changeText(getByTestId('rate-input'), '48.6');
-    await waitFor(() => expect(queryByTestId('rate-error')).toBeNull());
-  });
-
-  it('revalidates rather than just clearing: an unreadable rate swaps the message', async () => {
-    const { getByTestId, getByText } = await renderOpenSheet();
-
-    await fireEvent.changeText(getByTestId('rate-input'), '');
-    await fireEvent.press(getByText(Strings.commitmentsPayCtaBare));
-    await waitFor(() =>
-      expect(getByTestId('rate-error')).toHaveTextContent(Strings.addTxErrRateRequired),
-    );
-
-    // "48x" is present but unreadable, so the required message must give way to the invalid one.
-    await fireEvent.changeText(getByTestId('rate-input'), '48x');
-    await waitFor(() =>
-      expect(getByTestId('rate-error')).toHaveTextContent(Strings.addTxErrRateInvalid),
-    );
-  });
-
-  it('raises no rate error while typing before the first Save', async () => {
-    const { getByTestId, queryByTestId } = await renderOpenSheet();
-
-    await fireEvent.changeText(getByTestId('rate-input'), '');
-    expect(queryByTestId('rate-error')).toBeNull();
-    await fireEvent.changeText(getByTestId('rate-input'), '4');
-    expect(queryByTestId('rate-error')).toBeNull();
   });
 });
 

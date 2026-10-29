@@ -1,7 +1,5 @@
 import { Strings } from '@/constants/strings';
 
-const PAY_SHEET_RATE_CARD =
-  'modules/transactions/components/exchange_rate_row.tsx, mounted by modules/commitments/screens/commitments/detail/components/pay_sheet.tsx';
 const COMMITMENT_FILTER = 'modules/commitments/screens/commitments/filter';
 const FILTER_SHEET_FRAME = 'components/ui/filter_sheet_frame.tsx, read by both filter sheets';
 const AMOUNT_RANGE_FILTER =
@@ -145,12 +143,10 @@ describe('strings the transactions module shares with other modules', () => {
     ],
     [
       'currencyRateLabel',
-      `modules/currency/screens/currency/index.tsx and ${PAY_SHEET_RATE_CARD}`,
+      'modules/currency/screens/currency/index.tsx',
       Strings.currencyRateLabel,
       'Exchange Rate',
     ],
-    ['addTxRateReset', PAY_SHEET_RATE_CARD, Strings.addTxRateReset, 'Reset to global'],
-    ['addTxRateSourceCustom', PAY_SHEET_RATE_CARD, Strings.addTxRateSourceCustom, 'Custom rate'],
     [
       'addTxPickCategoryTitle',
       'modules/commitments/screens/commitments/components/commitment_form_body.tsx',
