@@ -532,6 +532,28 @@ describe('MA-170 Rate row', () => {
     expect(row).toHaveProp('accessibilityLabel', 'Rate, 52.14');
   });
 
+  it('MA-272: shows Rate may be stale at the moment the rate turns stale, with the sheet open and no press', async () => {
+    const now = Date.parse('2026-09-30T12:00:00.000Z');
+    const staleAgeMs = 30 * 24 * 60 * 60 * 1000;
+    const rateUpdatedAt = new Date(now - staleAgeMs + 1000).toISOString();
+    jest.useFakeTimers({ now });
+    try {
+      await render(React.cloneElement(usdExpense, { rateUpdatedAt }));
+
+      expect(screen.queryByTestId('exchange-rate-row-stale')).toBeNull();
+
+      await act(() => {
+        jest.advanceTimersByTime(1001);
+      });
+
+      expect(screen.getByTestId('exchange-rate-row-stale')).toHaveTextContent(
+        Strings.addTxRateStale,
+      );
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it('mounts no Rate row when no USD account is involved', async () => {
     await render(React.cloneElement(usdExpense, { requiresRate: false }));
 
