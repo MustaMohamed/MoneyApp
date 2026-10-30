@@ -299,7 +299,7 @@ export const COMMITMENT_DETAIL_LOAD_ERROR_COPY: DetailLoadErrorCopy = {
   loadTitle: Strings.commitmentsDetailLoadErrorTitle,
   refreshTitle: Strings.commitmentsDetailRefreshErrorTitle,
   description: Strings.commitmentsDetailLoadErrorDescription,
-  retryLabel: Strings.commitmentsDetailLoadRetry,
+  retryLabel: Strings.commitmentsLoadRetry,
 };
 
 export const COMMITMENT_DETAIL_LOAD_ERROR_TEST_ID = 'commitment-detail-load-error';

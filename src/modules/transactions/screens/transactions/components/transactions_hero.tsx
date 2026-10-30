@@ -5,7 +5,11 @@ import { View } from 'react-native';
 import { withUniwind } from 'uniwind';
 
 import type { PolaritySignal } from '@/components/ui/flow_polarity';
-import { ListHero } from '@/components/ui/list_hero';
+import {
+  ListHero,
+  ListHeroCaptionFitLine,
+  ListHeroCaptionFixedLine,
+} from '@/components/ui/list_hero';
 import type { ListHeroGeometry } from '@/components/ui/list_text.geometry';
 import { lineHeightFor } from '@/constants/theme';
 import type { DeltaDirection } from '@/modules/transactions/utils/totals_presentation';
@@ -68,28 +72,10 @@ export function TransactionsHero({ model }: { model: TransactionsHeroModel }): R
       testID="transactions-hero"
       renderCaption={(geometry) => (
         <>
-          <Typography
-            allowFontScaling={false}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.75}
-            className="font-inter text-foreground/55"
-            style={{ flex: 1, fontSize: geometry.chip, lineHeight: lineHeightFor(geometry.chip) }}
-          >
+          <ListHeroCaptionFitLine geometry={geometry}>
             {model.shareCaption ?? ''}
-          </Typography>
-          <Typography
-            allowFontScaling={false}
-            numberOfLines={1}
-            className="font-inter text-foreground/55"
-            style={{
-              flexShrink: 0,
-              fontSize: geometry.chip,
-              lineHeight: lineHeightFor(geometry.chip),
-            }}
-          >
-            {model.caption}
-          </Typography>
+          </ListHeroCaptionFitLine>
+          <ListHeroCaptionFixedLine geometry={geometry}>{model.caption}</ListHeroCaptionFixedLine>
           {model.lastMonthChange !== undefined ? (
             <LastMonthChange change={model.lastMonthChange} geometry={geometry} />
           ) : null}

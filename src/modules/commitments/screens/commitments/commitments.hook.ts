@@ -14,7 +14,7 @@ import { resolveAccountName } from '@/utils/account_name';
 import { toLocalDateString } from '@/utils/format_date';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
 import { useDebouncedValue } from '@/utils/use_debounced_value.hook';
-import { shiftYearMonth } from '@/utils/year_month';
+import { fullMonthName, shiftYearMonth } from '@/utils/year_month';
 
 import { resolveCommitmentRowAccountId } from '../../domain/payment_state';
 import type { Commitment } from '../../entities/commitment.entity';
@@ -193,6 +193,7 @@ export function useCommitments() {
   ]);
 
   const isEmpty = activePayments.length === 0;
+  const emptyMonthName = useMemo(() => fullMonthName(selectedMonth), [selectedMonth]);
   const advancedFilterCount = useMemo(
     () => countActiveCommitmentFilters(effectiveFilters),
     [effectiveFilters],
@@ -343,6 +344,7 @@ export function useCommitments() {
       tally: searchTally,
       liveRate,
       selectedMonth,
+      emptyMonthName,
       today,
       hero,
       refreshing,

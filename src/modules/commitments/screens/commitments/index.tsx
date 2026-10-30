@@ -192,11 +192,11 @@ export default function CommitmentsScreen() {
       showRowsSkeleton ? (
         <CommitmentRowsSkeleton />
       ) : !state.hasListFilters ? (
-        <EmptyState variant="commitmentsMonth" />
+        <EmptyState variant="commitmentsMonth" monthName={state.emptyMonthName} />
       ) : (
         <EmptyState variant="filtered" onAction={resetFilters} />
       ),
-    [resetFilters, showRowsSkeleton, state.hasListFilters],
+    [resetFilters, showRowsSkeleton, state.emptyMonthName, state.hasListFilters],
   );
 
   const handleSelectedMonthChange = useCallback(

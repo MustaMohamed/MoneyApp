@@ -1,12 +1,7 @@
 import { SkeletonGroup } from 'heroui-native';
 import { View, useWindowDimensions } from 'react-native';
 
-import { DayCardRow } from '@/components/ui/day_card_row';
-import {
-  DAY_HEADER_NET_PLACEHOLDER_WIDTH,
-  DAY_HEADER_ROOT_STYLE,
-  resolveDayHeaderGeometry,
-} from '@/components/ui/day_header.geometry';
+import { DayCardsSkeleton } from '@/components/ui/day_cards_skeleton';
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { Strings } from '@/constants/strings';
 import { Radius, Size, lineHeightFor } from '@/constants/theme';
@@ -87,46 +82,23 @@ export function TransactionRowsSkeleton({
   dayCards,
   showTile = true,
 }: Props): React.ReactElement {
-  const { height: headerHeight, lineHeight: headerLineHeight } = resolveDayHeaderGeometry(
-    useWindowDimensions().fontScale,
-  );
   const rowIndexes = Array.from({ length: rows }, (_, index) => index);
-  const cardIndexes = Array.from({ length: dayCards ?? 0 }, (_, index) => index);
   return (
     <View testID="transaction-row-skeletons" accessibilityLabel={Strings.loadingTransactionsA11y}>
       <SkeletonGroup isLoading isSkeletonOnly>
-        {dayCards === undefined
-          ? rowIndexes.map((row) => (
-              <SkeletonRow key={row} row={row} showSeparator showTile={showTile} />
-            ))
-          : cardIndexes.map((card) => (
-              <View key={card}>
-                <View
-                  testID="transaction-day-skeleton-header"
-                  style={[
-                    DAY_HEADER_ROOT_STYLE,
-                    { height: headerHeight, justifyContent: 'space-between' },
-                  ]}
-                >
-                  <SkeletonGroup.Item
-                    className="w-24 rounded-md"
-                    style={{ height: headerLineHeight }}
-                  />
-                  <SkeletonGroup.Item
-                    className="rounded-md"
-                    style={{ width: DAY_HEADER_NET_PLACEHOLDER_WIDTH, height: headerLineHeight }}
-                  />
-                </View>
-                {rowIndexes.map((row) => {
-                  const isLast = row === rows - 1;
-                  return (
-                    <DayCardRow key={row} isFirst={row === 0} isLast={isLast}>
-                      <SkeletonRow row={row} showSeparator={!isLast} showTile={showTile} />
-                    </DayCardRow>
-                  );
-                })}
-              </View>
-            ))}
+        {dayCards === undefined ? (
+          rowIndexes.map((row) => (
+            <SkeletonRow key={row} row={row} showSeparator showTile={showTile} />
+          ))
+        ) : (
+          <DayCardsSkeleton
+            dayCards={dayCards}
+            rows={rows}
+            renderRow={(row, showSeparator) => (
+              <SkeletonRow row={row} showSeparator={showSeparator} showTile={showTile} />
+            )}
+          />
+        )}
       </SkeletonGroup>
     </View>
   );

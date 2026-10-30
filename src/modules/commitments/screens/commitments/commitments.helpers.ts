@@ -165,7 +165,7 @@ export function buildCommitmentsSearchTally(input: CommitmentsSearchTallyInput):
     return withTallyAccessibilityLabel(
       {
         mode: 'failed',
-        count: Strings.commitmentsHeroUnavailable,
+        count: Strings.listHeroUnavailable,
         label: Strings.commitmentsTallyPayments,
         sum: undefined,
       },

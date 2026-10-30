@@ -1,11 +1,14 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import type { ComponentProps } from 'react';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 import { withUniwind } from 'uniwind';
 
 import { Button } from '@/components/ui/button';
 import { Screen, type ScreenProps } from '@/components/ui/screen';
-import { resolveStateScreenLayout } from '@/components/ui/state_screen.geometry';
+import {
+  resolveStateScreenBottomReserve,
+  resolveStateScreenLayout,
+} from '@/components/ui/state_screen.geometry';
 import { Text } from '@/components/ui/text';
 
 // Without `withUniwind` the icon's `styleDefaults` win and its `className` colour is a no-op.
@@ -28,6 +31,8 @@ export interface ErrorStateProps {
   edges?: ScreenProps['edges'];
   /** Opt-in per redesigned screen; absent keeps the legacy gradient CTA. */
   flat?: boolean;
+  /** A tab screen's state: centres above the + button. */
+  clearsFab?: boolean;
   testID?: string;
 }
 
@@ -42,12 +47,17 @@ export function ErrorState({
   isActionDisabled = false,
   edges,
   flat,
+  clearsFab,
   testID,
 }: ErrorStateProps) {
+  const { fontScale } = useWindowDimensions();
+  const bottomReserve = resolveStateScreenBottomReserve(fontScale);
   // Scaled `ms()` numbers must go through `style`; `className` is build-time only.
   return (
     <Screen edges={edges} testID={testID}>
-      <View style={LAYOUT.root}>
+      <View
+        style={[LAYOUT.root, clearsFab === true ? { paddingBottom: bottomReserve } : undefined]}
+      >
         <View style={LAYOUT.iconCircle} className="bg-danger/10">
           <StateIcon name={iconName} size={LAYOUT.iconSize} className="text-danger" />
         </View>

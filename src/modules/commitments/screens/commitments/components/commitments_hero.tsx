@@ -1,7 +1,11 @@
 import { Typography } from 'heroui-native';
 import React from 'react';
 
-import { ListHero } from '@/components/ui/list_hero';
+import {
+  ListHero,
+  ListHeroCaptionFitLine,
+  ListHeroCaptionFixedLine,
+} from '@/components/ui/list_hero';
 import { lineHeightFor } from '@/constants/theme';
 
 import {
@@ -17,27 +21,9 @@ export function CommitmentsHero({ model }: { model: CommitmentsHeroModel }): Rea
       testID="commitments-hero"
       renderCaption={(geometry) => (
         <>
-          <Typography
-            allowFontScaling={false}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.75}
-            className="font-inter text-foreground/55"
-            style={{ flex: 1, fontSize: geometry.chip, lineHeight: lineHeightFor(geometry.chip) }}
-          >
-            {model.percent}
-          </Typography>
+          <ListHeroCaptionFitLine geometry={geometry}>{model.percent}</ListHeroCaptionFitLine>
           {hasRightLine ? (
-            <Typography
-              allowFontScaling={false}
-              numberOfLines={1}
-              className="font-inter text-foreground/55"
-              style={{
-                flexShrink: 0,
-                fontSize: geometry.chip,
-                lineHeight: lineHeightFor(geometry.chip),
-              }}
-            >
+            <ListHeroCaptionFixedLine geometry={geometry}>
               {model.carried !== undefined ? (
                 <Typography
                   allowFontScaling={false}
@@ -48,7 +34,7 @@ export function CommitmentsHero({ model }: { model: CommitmentsHeroModel }): Rea
                 </Typography>
               ) : null}
               {model.captionTrail}
-            </Typography>
+            </ListHeroCaptionFixedLine>
           ) : null}
         </>
       )}

@@ -166,7 +166,7 @@ function lastMonthOutCaption(yearMonth: string, previous: PeriodTotals | null): 
   const lastMonth = shiftYearMonth(yearMonth, -1);
   const amount =
     previous === null || (previous.incomeEgp === 0 && snapToZero(previous.expenseEgp) === 0)
-      ? Strings.transactionsHeroUnavailable
+      ? Strings.listHeroUnavailable
       : formatHeroAmount(previous.expenseEgp);
   return Strings.transactionsHeroLastMonthOut(
     MONTHS_SHORT[monthNumberFromYearMonth(lastMonth) - 1],
@@ -226,7 +226,7 @@ export function buildTransactionsHeroModel(input: TransactionsHeroInput): Transa
   const caption =
     daysLeft === undefined
       ? lastMonth
-      : `${Strings.transactionsHeroDaysLeft(daysLeft)} · ${lastMonth}`;
+      : `${Strings.listHeroDaysLeft(daysLeft)}${Strings.listHeroCaptionSeparator}${lastMonth}`;
   const base = {
     mode: input.mode,
     title,
@@ -239,13 +239,13 @@ export function buildTransactionsHeroModel(input: TransactionsHeroInput): Transa
   if (current === null) {
     return {
       ...base,
-      out: Strings.transactionsHeroUnavailable,
-      outAccessibilityLabel: Strings.transactionsHeroOutUnavailableA11y(base.currencyCode),
-      in: Strings.transactionsHeroUnavailable,
+      out: Strings.listHeroUnavailable,
+      outAccessibilityLabel: Strings.listHeroAmountUnavailableA11y(base.currencyCode),
+      in: Strings.listHeroUnavailable,
       inPolarity: 'neutral',
-      net: Strings.transactionsHeroUnavailable,
+      net: Strings.listHeroUnavailable,
       netPolarity: 'neutral',
-      leftOfIncome: Strings.transactionsHeroUnavailable,
+      leftOfIncome: Strings.listHeroUnavailable,
       railPct: 0,
       railDanger: false,
       railAccessibilityLabel:
@@ -271,7 +271,7 @@ export function buildTransactionsHeroModel(input: TransactionsHeroInput): Transa
     ...heroNet(current.netEgp),
     leftOfIncome:
       left === undefined
-        ? Strings.transactionsHeroUnavailable
+        ? Strings.listHeroUnavailable
         : signAmountText(`${Math.abs(left)}%`, left < 0 ? MINUS_SIGN : ''),
     railPct: share.railPct,
     railDanger: share.hasOverflow,
@@ -360,7 +360,7 @@ export function buildSearchTally(input: SearchTallyInput): SearchTallyModel {
     return withTallyAccessibilityLabel(
       {
         mode: 'failed',
-        count: Strings.transactionsHeroUnavailable,
+        count: Strings.listHeroUnavailable,
         label: Strings.transactionsTallyResults(month),
         filterSummary,
         sum: undefined,
@@ -461,7 +461,7 @@ function dayFigures(spoken: DayHeaderSpoken): DayHeaderFigures {
     case 'skeleton':
       return { mode: 'skeleton' };
     case 'failed':
-      return { mode: 'failed', net: Strings.transactionsHeroUnavailable };
+      return { mode: 'failed', net: Strings.listHeroUnavailable };
     case 'figures':
       return {
         mode: 'figures',

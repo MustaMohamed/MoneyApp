@@ -70,7 +70,7 @@ export interface CommitmentsHeroModel {
 const HERO_CURRENCY = Currency.EGP;
 
 const DASH_FIGURE: CommitmentsHeroFigure = {
-  value: Strings.commitmentsHeroUnavailable,
+  value: Strings.listHeroUnavailable,
   showTilde: false,
 };
 
@@ -105,7 +105,7 @@ function resolveCaptionTrail(
   daysLeft: string | undefined,
 ): string | undefined {
   if (carried !== undefined && daysLeft !== undefined) {
-    return Strings.commitmentsHeroCarried + Strings.commitmentsHeroCaptionSeparator + daysLeft;
+    return Strings.commitmentsHeroCarried + Strings.listHeroCaptionSeparator + daysLeft;
   }
   if (carried !== undefined) return Strings.commitmentsHeroCarried;
   return daysLeft;
@@ -125,7 +125,7 @@ function mapCounts(
 
 export function buildCommitmentsHeroModel(input: CommitmentsHeroInput): CommitmentsHeroModel {
   const days = daysLeftInMonth(input.yearMonth, input.today);
-  const daysLeft = days === undefined ? undefined : Strings.commitmentsHeroDays(days);
+  const daysLeft = days === undefined ? undefined : Strings.listHeroDaysLeft(days);
   const base = {
     title:
       input.accountLabel === undefined
@@ -140,7 +140,7 @@ export function buildCommitmentsHeroModel(input: CommitmentsHeroInput): Commitme
     return {
       ...base,
       mode: input.mode === 'figures' ? 'skeleton' : input.mode,
-      amountAccessibilityLabel: Strings.commitmentsHeroAmountUnavailableA11y(base.currencyCode),
+      amountAccessibilityLabel: Strings.listHeroAmountUnavailableA11y(base.currencyCode),
       leftToPay: DASH_FIGURE,
       committed: DASH_FIGURE,
       paid: DASH_FIGURE,
@@ -148,7 +148,7 @@ export function buildCommitmentsHeroModel(input: CommitmentsHeroInput): Commitme
       overdue: DASH_FIGURE,
       overduePolarity: 'neutral',
       counts: mapCounts((status) => ({
-        value: Strings.commitmentsHeroUnavailable,
+        value: Strings.listHeroUnavailable,
         accessibilityLabel: Strings.commitmentsHeroCounterUnavailableA11y(STATUS_LABELS[status]),
       })),
       paidPct: undefined,
