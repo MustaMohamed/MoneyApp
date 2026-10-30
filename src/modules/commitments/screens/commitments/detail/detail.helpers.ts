@@ -18,7 +18,7 @@ import {
   resolveHollowGraphiteTile,
 } from '@/modules/transactions/components/transaction_row.helpers';
 import { formatDisplayAmount } from '@/utils/format_amount';
-import { formatWeekdayDate } from '@/utils/format_date';
+import { formatShortWeekdayDate, formatWeekdayDate } from '@/utils/format_date';
 
 import { resolveCommitmentRowLegEgp } from '../../../domain/commitment_section_sums';
 import {
@@ -39,7 +39,11 @@ import type {
   CommitmentPayment,
 } from '../../../entities/commitment_payment.entity';
 import { buildCommitmentEndsLabel } from '../../../utils/commitment_ends_label';
-import { composeCommitmentAmount, resolveDisplayAmount } from '../../../utils/commitment_status';
+import {
+  STATUS_COLORS,
+  composeCommitmentAmount,
+  resolveDisplayAmount,
+} from '../../../utils/commitment_status';
 import {
   type DayIndicator,
   type DayIndicatorTone,
@@ -293,6 +297,79 @@ export function buildCommitmentCycleCard({
     amountAccessibilityLabel: amount.spoken,
     action: resolveCycleAction(payment),
   };
+}
+
+const PAYMENTS_CARD_ROW_LIMIT = 3;
+
+export interface CommitmentPaymentRowModel {
+  id: string;
+  dotColor: string;
+  day: string;
+  line: string;
+  lineTone: DayIndicatorTone;
+  amountText: string;
+  amountCode: string;
+  amountAccessibilityLabel: string;
+  dimmed: boolean;
+}
+
+export interface CommitmentPaymentRowsInput {
+  payments: readonly CommitmentPayment[];
+  commitment: Commitment;
+  /** The shown cycle. */
+  cycle: CommitmentPayment | undefined;
+  cycleCardShown: boolean;
+  lifecycle: CommitmentLifecycle;
+  /** The local calendar date, `YYYY-MM-DD`. */
+  today: string;
+}
+
+/** An ended commitment's settled cycle stays on its restated card and is listed too (Decision 2026-10-28 C). */
+function resolveLeftOutCycleId({
+  cycle,
+  cycleCardShown,
+  lifecycle,
+}: Pick<CommitmentPaymentRowsInput, 'cycle' | 'cycleCardShown' | 'lifecycle'>): string | undefined {
+  if (cycle === undefined || !cycleCardShown) return undefined;
+  if (lifecycle === 'ended' && !isUnpaidPayment(cycle)) return undefined;
+  return cycle.id;
+}
+
+function buildCommitmentPaymentRow(
+  row: CommitmentPayment,
+  commitment: Commitment,
+  today: string,
+): CommitmentPaymentRowModel {
+  const code: string = CURRENCY_CONFIG[row.currency].code;
+  const amount = composeCommitmentAmount(resolveDisplayAmount(row, commitment), row.currency, code);
+  const dayLine = resolveCycleDayLine(resolvePaymentDayDistance(row, today));
+  return {
+    id: row.id,
+    dotColor: STATUS_COLORS[resolvePaymentState(row, today)],
+    day: formatShortWeekdayDate(row.due_date, today),
+    line: dayLine.text,
+    lineTone: dayLine.tone,
+    amountText: amount.text,
+    amountCode: code,
+    amountAccessibilityLabel: amount.spoken,
+    dimmed: isPaidPayment(row),
+  };
+}
+
+export function buildCommitmentPaymentRows({
+  payments,
+  commitment,
+  cycle,
+  cycleCardShown,
+  lifecycle,
+  today,
+}: CommitmentPaymentRowsInput): CommitmentPaymentRowModel[] {
+  const leftOutId = resolveLeftOutCycleId({ cycle, cycleCardShown, lifecycle });
+  return payments
+    .filter((row) => row.id !== leftOutId && row.due_date < today)
+    .sort((a, b) => b.due_date.localeCompare(a.due_date))
+    .slice(0, PAYMENTS_CARD_ROW_LIMIT)
+    .map((row) => buildCommitmentPaymentRow(row, commitment, today));
 }
 
 export const COMMITMENT_DETAIL_LOAD_ERROR_COPY: DetailLoadErrorCopy = {

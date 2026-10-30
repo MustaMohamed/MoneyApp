@@ -1,44 +1,99 @@
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
 import { Text } from '@/components/ui/text';
-import { STATUS_COLORS, STATUS_LABELS } from '@/modules/commitments/utils/commitment_status';
-import { formatCurrencyAmount } from '@/utils/format_amount';
-import { formatMonthYear } from '@/utils/format_date';
+import { resolveFitAmountTextProps, scaledTextStyle } from '@/components/ui/text_scale.geometry';
+import { Spacing, Type } from '@/constants/theme';
+import { ms } from '@/utils/responsive';
 
-import { resolvePaymentState } from '../../../../domain/payment_state';
-import type { Commitment } from '../../../../entities/commitment.entity';
-import type { CommitmentPayment } from '../../../../entities/commitment_payment.entity';
+import { DAY_INDICATOR_CLASS } from '../../../../utils/day_indicator';
+import type { CommitmentPaymentRowModel } from '../detail.helpers';
+
+// Frame C1 `.prow`.
+const PAYMENT_ROW_MIN_HEIGHT = ms(48);
+const PAYMENT_ROW_DOT_SIZE = ms(8);
+const PAYMENT_ROW_GAP = Spacing.xs + Spacing.xxxs;
 
 interface Props {
-  payment: CommitmentPayment;
-  today: string;
-  commitment: Commitment;
-  showDivider?: boolean;
+  row: CommitmentPaymentRowModel;
+  showDivider: boolean;
 }
 
-export function PaymentRow({ payment, today, commitment, showDivider = true }: Props) {
-  const paymentState = resolvePaymentState(payment, today);
-  const statusColor = STATUS_COLORS[paymentState];
-  const statusLabel = STATUS_LABELS[paymentState];
-  const displayAmount = payment.amount_paid ?? payment.amount_due ?? commitment.amount;
-  const amountText =
-    displayAmount != null ? formatCurrencyAmount(displayAmount, payment.currency) : '—';
+export function PaymentRow({ row, showDivider }: Props): React.ReactElement {
+  const { fontScale } = useWindowDimensions();
+  const amountProps = resolveFitAmountTextProps(Type.meta, fontScale);
+  const inkClass = row.dimmed ? 'text-foreground/60' : 'text-foreground';
 
   return (
     <View
-      style={{ flexDirection: 'row', alignItems: 'center' }}
-      className={`gap-2 py-2 ${showDivider ? 'border-separator border-b' : ''}`}
+      className={showDivider ? 'border-separator border-b' : undefined}
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        minHeight: PAYMENT_ROW_MIN_HEIGHT,
+        paddingVertical: PAYMENT_ROW_GAP,
+        paddingHorizontal: Spacing.md,
+      }}
     >
-      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: statusColor }} />
-      <View style={{ flex: 1 }}>
-        <Text className="font-inter-medium text-foreground text-[15px]">
-          {formatMonthYear(payment.due_date)}
+      <View
+        style={{
+          width: PAYMENT_ROW_DOT_SIZE,
+          height: PAYMENT_ROW_DOT_SIZE,
+          borderRadius: PAYMENT_ROW_DOT_SIZE / 2,
+          backgroundColor: row.dotColor,
+          marginRight: Spacing.xs,
+        }}
+      />
+      <View
+        style={{
+          flex: 1,
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          columnGap: PAYMENT_ROW_GAP,
+        }}
+      >
+        <Text
+          allowFontScaling={false}
+          className={`font-inter ${inkClass}`}
+          style={{ ...scaledTextStyle(Type.meta, fontScale), flexGrow: 1 }}
+        >
+          {row.day}
         </Text>
-        <Text className="font-inter mt-0.5 text-[12px]" style={{ color: statusColor }}>
-          {statusLabel}
+        <Text
+          allowFontScaling={false}
+          className={DAY_INDICATOR_CLASS[row.lineTone]}
+          style={scaledTextStyle(Type.micro, fontScale)}
+        >
+          {row.line}
         </Text>
       </View>
-      <Text className="font-sora-semibold text-foreground text-[15px]">{amountText}</Text>
+      <View
+        accessible
+        accessibilityLabel={row.amountAccessibilityLabel}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'baseline',
+          gap: Spacing.xxs,
+          flexShrink: 1,
+          marginLeft: PAYMENT_ROW_GAP,
+        }}
+      >
+        <Text
+          {...amountProps}
+          className={`font-sora tabular-nums ${inkClass}`}
+          style={{ ...amountProps.style, flexShrink: 1 }}
+        >
+          {row.amountText}
+        </Text>
+        <Text
+          allowFontScaling={false}
+          numberOfLines={1}
+          className="font-inter text-content-secondary"
+          style={scaledTextStyle(Type.micro, fontScale)}
+        >
+          {row.amountCode}
+        </Text>
+      </View>
     </View>
   );
 }

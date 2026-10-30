@@ -28,7 +28,9 @@ import {
   buildCommitmentCycleCard,
   buildCommitmentDetailFacts,
   buildCommitmentDetailHero,
+  buildCommitmentPaymentRows,
   type CommitmentDetailFactKind,
+  type CommitmentPaymentRowModel,
   commitmentDetailShowsBody,
   commitmentDetailShowsCycleCard,
   commitmentDetailShowsEdit,
@@ -42,6 +44,7 @@ import { INITIAL_UI_ENTRY, useCommitmentDetailState } from './detail.state';
 import { INITIAL_DATA_ENTRY, useCommitmentDetailStore } from './detail.store';
 
 const NO_FACTS: readonly DetailFact<CommitmentDetailFactKind>[] = Object.freeze([]);
+const NO_PAYMENT_ROWS: readonly CommitmentPaymentRowModel[] = Object.freeze([]);
 
 function leaveStackedSubtree(
   originTxId: string | undefined,
@@ -234,6 +237,21 @@ export function useCommitmentDetail() {
     [payment, commitment, today, lifecycle, openedUnpaidDueDate],
   );
 
+  const paymentRows = useMemo(
+    () =>
+      commitment && today !== undefined && lifecycle !== undefined
+        ? buildCommitmentPaymentRows({
+            payments: historyRows,
+            commitment,
+            cycle: payment,
+            cycleCardShown: cycleCard !== undefined,
+            lifecycle,
+            today,
+          })
+        : NO_PAYMENT_ROWS,
+    [historyRows, commitment, payment, cycleCard, lifecycle, today],
+  );
+
   const openPaySheet = useCallback(() => {
     // The pay sheet dates by the day it opens, not the day the detail last read.
     usePaySheetState.getState().open(owner, toLocalDateString(new Date()));
@@ -300,6 +318,7 @@ export function useCommitmentDetail() {
       paySheetToday,
       hero,
       cycleCard,
+      paymentRows,
       showsBody,
       showsEdit,
       facts,

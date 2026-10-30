@@ -92,11 +92,7 @@ export default function CommitmentDetailScreen() {
           ) : null}
           <DetailsCard facts={state.facts} />
           <DetailNoteCard note={state.commitment.notes} testID="commitment-detail-note-card" />
-          <PaymentHistory
-            payments={state.allPayments}
-            today={state.today}
-            commitment={state.commitment}
-          />
+          <PaymentHistory rows={state.paymentRows} />
           {state.showsEdit ? <CommitmentDetailActions onEdit={goToEdit} /> : null}
         </ScreenScroll>
       ) : null}
