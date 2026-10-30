@@ -1,6 +1,8 @@
 import { useCallback, useState } from 'react';
+import { useFormState, type UseFormReturn } from 'react-hook-form';
 import type { LayoutChangeEvent } from 'react-native';
 
+import type { CommitmentFormValues } from '../commitment_form.shared';
 import { resolvePeriodRowTopRoom } from './commitment_form.geometry';
 
 interface MeasuredRows {
@@ -46,4 +48,12 @@ export function useRecurrencePeriodRoom(): RecurrencePeriodRoom {
     },
     onPeriodRowLayout: (event) => measure('periodRowTop', event.nativeEvent.layout.y),
   };
+}
+
+/** The `Every` fault, read through the picker's own subscription: a compiled body reuses the picker while `form` keeps its identity. */
+export function useRecurrenceEveryFault(
+  form: UseFormReturn<CommitmentFormValues>,
+): string | undefined {
+  const formState = useFormState({ control: form.control, name: 'recurrenceEvery' });
+  return form.getFieldState('recurrenceEvery', formState).error?.message;
 }

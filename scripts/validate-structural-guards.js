@@ -288,6 +288,20 @@ const NAMED_ROWS = [
     needs: 'the list rail draws `MonthFilter` over `SegmentFilter`',
   },
   {
+    files: [`${COMMITMENTS}/components/recurrence_picker.tsx`],
+    banned: [literal('formState.errors')],
+    rule: 'in a form child the compiled body reuses; read the fault through its own `useFormState`',
+    required: [holds(/\buseRecurrenceEveryFault\(/, 'no `useRecurrenceEveryFault` call')],
+    needs: 'the Repeats picker reads its fault through its own form-state subscription',
+  },
+  {
+    files: [`${COMMITMENTS}/components/duration_picker.tsx`],
+    banned: [literal('formState.errors')],
+    rule: 'in a form child the compiled body reuses; read the faults through its own `useFormState`',
+    required: [holds(/\buseDurationPickerFaults\(/, 'no `useDurationPickerFaults` call')],
+    needs: 'the Ends picker reads its faults through its own form-state subscription',
+  },
+  {
     files: [
       DASHBOARD_INDEX,
       BUDGET_INDEX,
