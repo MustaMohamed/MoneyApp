@@ -8,6 +8,7 @@ import { DayCardRow } from '@/components/ui/day_card_row';
 import { resolveDayCardSwipeCorners } from '@/components/ui/day_card_row.helpers';
 import { DayHeader } from '@/components/ui/day_header';
 import { EmptyState } from '@/components/ui/empty_state';
+import { ErrorState } from '@/components/ui/error_state';
 import { LIST_RAIL_ALL_OPTION, ListRail } from '@/components/ui/list_rail';
 import { LoadErrorAlert } from '@/components/ui/load_error_alert';
 import { Screen } from '@/components/ui/screen';
@@ -53,6 +54,7 @@ export default function CommitmentsScreen() {
     state,
     selectMonth,
     onRefresh,
+    retryLoad,
     retryAccountLookup,
     goToDetail,
     goToAdd,
@@ -184,19 +186,16 @@ export default function CommitmentsScreen() {
     ],
   );
 
-  const showRowsSkeleton = state.presentation === 'coldLoading';
-  const listSections = state.sections;
-
   const listEmptyComponent = useMemo(
     () =>
-      showRowsSkeleton ? (
+      state.presentation === 'coldLoading' ? (
         <CommitmentRowsSkeleton />
-      ) : !state.hasListFilters ? (
+      ) : state.emptyVariant === 'emptyMonth' ? (
         <EmptyState variant="commitmentsMonth" monthName={state.emptyMonthName} />
-      ) : (
+      ) : state.emptyVariant === 'noResults' ? (
         <EmptyState variant="filtered" onAction={resetFilters} />
-      ),
-    [resetFilters, showRowsSkeleton, state.emptyMonthName, state.hasListFilters],
+      ) : null,
+    [resetFilters, state.emptyMonthName, state.emptyVariant, state.presentation],
   );
 
   const handleSelectedMonthChange = useCallback(
@@ -204,7 +203,6 @@ export default function CommitmentsScreen() {
     [selectMonth],
   );
   const handleRefresh = useCallback(() => void onRefresh(), [onRefresh]);
-  const showCommitmentsEmptyState = state.hasLoaded && !state.hasCommitments;
 
   return (
     <Screen edges={['top']}>
@@ -230,10 +228,11 @@ export default function CommitmentsScreen() {
         <LoadErrorAlert
           mode="floating"
           floatingOffset="tabBar"
-          minHeight={Size.statusRailMinHeight}
-          title={Strings.commitmentsLoadError}
+          tinted
+          flatRetry
+          title={Strings.commitmentsRefreshError}
           retryLabel={Strings.commitmentsLoadRetry}
-          onRetry={() => void onRefresh()}
+          onRetry={() => void retryLoad()}
           testID="commitments-load-error"
         />
       ) : null}
@@ -252,20 +251,23 @@ export default function CommitmentsScreen() {
       ) : null}
 
       {state.presentation === 'coldError' ? (
-        <LoadErrorAlert
-          mode="fill"
-          fillPadding="wide"
-          title={Strings.commitmentsLoadError}
-          retryLabel={Strings.commitmentsLoadRetry}
-          onRetry={() => void onRefresh()}
-          testID="commitments-load-error"
+        <ErrorState
+          edges={[]}
+          flat
           clearsFab
+          iconName="alert-circle-outline"
+          title={Strings.commitmentsLoadError}
+          description={Strings.commitmentsLoadErrorDescription}
+          actionLabel={Strings.commitmentsLoadRetry}
+          actionAccessibilityLabel={Strings.commitmentsLoadRetry}
+          onAction={() => void retryLoad()}
+          testID="commitments-load-error"
         />
-      ) : showCommitmentsEmptyState ? (
+      ) : state.emptyVariant === 'noCommitments' ? (
         <CommitmentsEmptyState onAdd={goToAdd} />
       ) : (
         <SectionList
-          sections={listSections}
+          sections={state.sections}
           keyExtractor={(item) => item.id}
           stickySectionHeadersEnabled
           onScrollBeginDrag={closeAllRows}

@@ -22,6 +22,7 @@ import type { CommitmentMonthPayment } from '../../entities/commitment_payment.e
 import { monthAggregateKey, useCommitmentStore } from '../../store/commitment.store';
 import { useCommitmentFormHostState } from '../../store/commitment_form_host.state';
 import { buildCommitmentSections, buildCommitmentsSearchTally } from './commitments.helpers';
+import { buildCommitmentsPresentation } from './commitments.presentation';
 import { useCommitmentsScreenState } from './commitments.state';
 import {
   buildCommitmentsHeroModel,
@@ -36,32 +37,8 @@ import {
 import { useCommitmentFilterState } from './filter/filter.state';
 import { EMPTY_COMMITMENT_FILTERS, useCommitmentFilterStore } from './filter/filter.store';
 
-export type CommitmentsPresentation = 'coldLoading' | 'coldError' | 'content' | 'contentWithError';
-type CommitmentsFloatingAlert = 'list' | 'accounts';
-
 const EMPTY_COMMITMENTS: Commitment[] = [];
 const EMPTY_PAYMENTS: CommitmentMonthPayment[] = [];
-
-function resolveCommitmentsPresentation({
-  hasMatchingSnapshot,
-  loadError,
-}: {
-  hasMatchingSnapshot: boolean;
-  loadError: boolean;
-}): CommitmentsPresentation {
-  if (!hasMatchingSnapshot) return loadError ? 'coldError' : 'coldLoading';
-  return loadError ? 'contentWithError' : 'content';
-}
-
-/** The list's own load error takes the account alert's place. */
-function resolveCommitmentsFloatingAlert(
-  presentation: CommitmentsPresentation,
-  showAccountLookupError: boolean,
-): CommitmentsFloatingAlert | undefined {
-  if (presentation === 'contentWithError') return 'list';
-  if (presentation === 'content' && showAccountLookupError) return 'accounts';
-  return undefined;
-}
 
 export function useCommitments() {
   const {
@@ -199,7 +176,7 @@ export function useCommitments() {
     [effectiveFilters],
   );
   const activeFilterCount = countFunnelFilters(advancedFilterCount, effectiveFilters.accountIds);
-  const hasListFilters =
+  const filtersActive =
     statusFilter !== 'all' || debouncedSearch.trim().length > 0 || advancedFilterCount > 0;
 
   const heroAccountId = resolveCommitmentsHeroAccountId(effectiveFilters.accountIds);
@@ -300,6 +277,29 @@ export function useCommitments() {
     }
   }, [setRefreshing, reloadSelectedMonth, loadMonthAggregate, selectedMonth, heroAccountId]);
 
+  const retryLoad = useCallback(async () => {
+    // On a first-load failure the skeleton is the indicator.
+    const showsIndicator = hasMatchingSnapshot;
+    if (showsIndicator) setRefreshing(true);
+    try {
+      await Promise.all([
+        reloadSelectedMonth(selectedMonth),
+        loadMonthAggregate(selectedMonth, heroAccountId),
+      ]);
+    } catch {
+      // The store owns loadError; event boundaries contain the rejected operation.
+    } finally {
+      if (showsIndicator) setRefreshing(false);
+    }
+  }, [
+    hasMatchingSnapshot,
+    setRefreshing,
+    reloadSelectedMonth,
+    loadMonthAggregate,
+    selectedMonth,
+    heroAccountId,
+  ]);
+
   const retryAccountLookup = useCallback(async () => {
     try {
       await loadAccountLookup(rowAccountIds);
@@ -335,8 +335,16 @@ export function useCommitments() {
     setAppliedFilters(EMPTY_COMMITMENT_FILTERS);
   }, [clearSearch, setAppliedFilters, setStatusFilter]);
 
-  const presentation = resolveCommitmentsPresentation({ hasMatchingSnapshot, loadError });
   const showAccountLookupError = lookupLeavesUnresolved(accountRead, rowAccountIds);
+  const presentation = buildCommitmentsPresentation({
+    hasMatchingSnapshot,
+    loadError,
+    commitmentCount: activeCommitments.length,
+    rowCount: activePayments.length,
+    matchCount: sections.length,
+    filtersActive,
+    showAccountLookupError,
+  });
 
   return {
     state: {
@@ -353,15 +361,13 @@ export function useCommitments() {
       paymentsLoaded,
       loading,
       loadError,
-      presentation,
-      floatingAlert: resolveCommitmentsFloatingAlert(presentation, showAccountLookupError),
+      presentation: presentation.status,
+      emptyVariant: presentation.emptyVariant,
+      floatingAlert: presentation.floatingAlert,
       hasLoaded: hasMatchingSnapshot,
-      // Month-independent, unlike `isEmpty`: an empty month keeps the nav and filters mounted.
-      hasCommitments: activeCommitments.length > 0,
       statusFilter,
       searchQuery,
       activeFilterCount,
-      hasListFilters,
       accountChips,
       accountsById,
       categoriesById,
@@ -370,6 +376,7 @@ export function useCommitments() {
     navigateMonth,
     selectMonth,
     onRefresh,
+    retryLoad,
     retryAccountLookup,
     goToDetail,
     goToAdd,

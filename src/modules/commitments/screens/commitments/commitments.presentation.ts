@@ -1,8 +1,8 @@
-export type CommitmentsListStatus = 'coldLoading' | 'coldError' | 'content' | 'contentWithError';
+type CommitmentsListStatus = 'coldLoading' | 'coldError' | 'content' | 'contentWithError';
 
-export type CommitmentsEmptyVariant = 'none' | 'noCommitments' | 'emptyMonth' | 'noResults';
+type CommitmentsEmptyVariant = 'none' | 'noCommitments' | 'emptyMonth' | 'noResults';
 
-export type CommitmentsFloatingAlert = 'list' | 'accounts';
+type CommitmentsFloatingAlert = 'list' | 'accounts';
 
 export interface CommitmentsPresentationInput {
   hasMatchingSnapshot: boolean;
