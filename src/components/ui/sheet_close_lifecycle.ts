@@ -1,5 +1,7 @@
 export interface SheetCloseLifecycle {
   hasOpened: boolean;
+  /** Read `isOpen` true once, and stays true through every later close. */
+  hasEverOpened: boolean;
   isOpen: boolean;
   completed: boolean;
   /** An index of 0 or more has been reported since the sheet last opened, so a -1 that follows is this open's own. */
@@ -14,7 +16,14 @@ export interface SheetCloseSettlement {
 }
 
 export function createSheetCloseLifecycle(isOpen: boolean): SheetCloseLifecycle {
-  return { hasOpened: isOpen, isOpen, completed: false, openReported: false, restsClosed: false };
+  return {
+    hasOpened: isOpen,
+    hasEverOpened: isOpen,
+    isOpen,
+    completed: false,
+    openReported: false,
+    restsClosed: false,
+  };
 }
 
 export function syncSheetCloseLifecycle(
@@ -48,6 +57,7 @@ export function settleSheetCloseLifecycle(
     lifecycle: shouldComplete
       ? {
           hasOpened: false,
+          hasEverOpened: true,
           isOpen: false,
           completed: true,
           openReported: false,
