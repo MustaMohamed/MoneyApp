@@ -1158,6 +1158,10 @@ describe('useCommitmentDetail lifecycle (MA-266)', () => {
     return Object.values(useCommitmentDetailStore.getState().entries)[0]?.allPayments;
   }
 
+  function paymentRowIds(rows: readonly { id: string }[]): string[] {
+    return rows.map((row) => row.id);
+  }
+
   beforeEach(() => {
     jest.useFakeTimers().setSystemTime(new Date(2026, 4, 8, 10));
   });
@@ -1202,7 +1206,7 @@ describe('useCommitmentDetail lifecycle (MA-266)', () => {
     ['paid', paidRow, { kind: 'viewTransaction', transactionId: 'tx-9' }],
     ['skipped', skippedRow, { kind: 'none' }],
   ])(
-    'keeps an ended commitment’s card at an overdue cycle with Pay and Skip and no Edit, restates it %s on the open detail, and draws none opened again',
+    'keeps an ended commitment’s card at an overdue cycle with Pay and Skip and no Edit, restates it %s on the open detail with the row in Payments, and draws none opened again',
     async (_name, settledRow, action) => {
       seed(endedUntil, [payment]);
 
@@ -1212,6 +1216,7 @@ describe('useCommitmentDetail lifecycle (MA-266)', () => {
       expect(result.current.state.cycleCard?.action).toEqual({ kind: 'paySkip' });
       expect(result.current.state.showsEdit).toBe(false);
       expect(result.current.state.hero?.badgeLabel).toBe('Ended');
+      expect(result.current.state.paymentRows).toEqual([]);
 
       historyById = { [commitment.id]: [settledRow] };
       paymentsState = [settledRow];
@@ -1221,6 +1226,7 @@ describe('useCommitmentDetail lifecycle (MA-266)', () => {
       await waitFor(() => expect(heldRows()?.[0]).toBe(settledRow));
       expect(result.current.state.payment).toBe(settledRow);
       expect(result.current.state.cycleCard?.action).toEqual(action);
+      expect(paymentRowIds(result.current.state.paymentRows)).toEqual([payment.id]);
 
       await unmount();
       const again = await renderHook(() => useCommitmentDetail());
@@ -1228,8 +1234,41 @@ describe('useCommitmentDetail lifecycle (MA-266)', () => {
       await waitFor(() => expect(again.result.current.state.viewState).toBe('ready'));
       expect(again.result.current.state.payment?.id).toBe(payment.id);
       expect(again.result.current.state.cycleCard).toBeUndefined();
+      expect(paymentRowIds(again.result.current.state.paymentRows)).toEqual([payment.id]);
     },
   );
+
+  it('lists the shown row under Payments on a stopped commitment at a paid cycle', async () => {
+    const settled: CommitmentPayment = { ...payment, paid_date: '2026-05-01', amount_paid: 5000 };
+    seed({ ...commitment, is_active: 0 }, [settled]);
+
+    const { result } = await renderHook(() => useCommitmentDetail());
+
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+    expect(result.current.state.cycleCard).toBeUndefined();
+    expect(paymentRowIds(result.current.state.paymentRows)).toEqual([payment.id]);
+  });
+
+  it('leaves the shown unpaid cycle out of Payments on an active commitment', async () => {
+    const earlier: CommitmentPayment = { ...payment, id: 'pay-apr', due_date: '2026-04-01' };
+    seed(commitment, [earlier, payment]);
+
+    const { result } = await renderHook(() => useCommitmentDetail());
+
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+    expect(result.current.state.cycleCard).toBeDefined();
+    expect(paymentRowIds(result.current.state.paymentRows)).toEqual([earlier.id]);
+  });
+
+  it('reads no Payments rows while the detail loads', async () => {
+    const pending = deferred<Commitment | undefined>();
+    mockGetById.mockImplementation(() => pending.promise);
+
+    const { result } = await renderHook(() => useCommitmentDetail());
+
+    expect(result.current.state.viewState).toBe('loading');
+    expect(result.current.state.paymentRows).toEqual([]);
+  });
 
   it('keeps the card when a Pay settles an after-2 commitment whose first row was skipped, hiding Edit and reading Ended', async () => {
     const afterTwo: Commitment = {

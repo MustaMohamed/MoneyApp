@@ -89,3 +89,19 @@ describe('commitment detail lifecycle copy (MA-266)', () => {
     });
   });
 });
+
+describe('commitment detail Payments copy (MA-265)', () => {
+  it('ships the card title byte-exact', () => {
+    expect(Strings.commitmentsDetailPaymentHistory).toBe('Payments');
+  });
+
+  it('ships the pay sheet cycle line byte-exact', () => {
+    expect({
+      lead: Strings.commitmentsPayCycleLead('Thu 1 Oct 2026'),
+      line: Strings.commitmentsPayCycleLine('Thu 1 Oct 2026', '19 days late'),
+    }).toEqual({
+      lead: 'Thu 1 Oct 2026 · ',
+      line: 'Thu 1 Oct 2026 · 19 days late',
+    });
+  });
+});

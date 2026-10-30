@@ -1935,6 +1935,55 @@ describe('usePaySheet', () => {
     });
   });
 
+  describe('cycle line (MA-265)', () => {
+    it('reads the due day and its distance from the today passed in', async () => {
+      const { result } = await renderHook(() =>
+        usePaySheet(OWNER, egpCommitment, duePayment, TODAY),
+      );
+
+      expect(result.current.state.cycleLine).toMatchObject({
+        statusLabel: 'Overdue',
+        lead: 'Fri 1 May 2026 · ',
+        distance: '172 days late',
+      });
+    });
+
+    it.each([
+      ['no payment', undefined, TODAY],
+      ['no today', duePayment, undefined],
+    ])('reads no line with %s', async (_name, payment, today) => {
+      const { result } = await renderHook(() => usePaySheet(OWNER, egpCommitment, payment, today));
+
+      expect(result.current.state).toHaveProperty('cycleLine', undefined);
+    });
+
+    it('keeps the tag and the distance when a Pay sets the paid date on the open sheet', async () => {
+      const { result, rerender } = await renderHook(
+        ({ payment }: { payment: typeof duePayment }) =>
+          usePaySheet(OWNER, egpCommitment, payment, TODAY),
+        { initialProps: { payment: duePayment } },
+      );
+
+      await act(() => rerender({ payment: { ...duePayment, paid_date: TODAY, amount_paid: 15 } }));
+
+      expect(result.current.state.cycleLine).toMatchObject({
+        statusLabel: 'Overdue',
+        distance: '172 days late',
+      });
+    });
+
+    it('moves the distance when the next open passes a later today', async () => {
+      const { result, rerender } = await renderHook(
+        ({ today }: { today: string }) => usePaySheet(OWNER, egpCommitment, duePayment, today),
+        { initialProps: { today: TODAY } },
+      );
+
+      await act(() => rerender({ today: '2026-10-21' }));
+
+      expect(result.current.state.cycleLine?.distance).toBe('173 days late');
+    });
+  });
+
   describe('note', () => {
     async function typeNoteAndSubmit(note: string) {
       const { result, rerender } = await renderTrack(egpCommitment, cib, '8000');

@@ -1,12 +1,15 @@
-import { AmountType, Currency } from '@/constants/enums';
+import { AmountType, CommitmentPaymentStatus, Currency } from '@/constants/enums';
+import { COMMITMENT_STATUS_TAG_COLORS } from '@/modules/commitments/screens/commitments/components/commitment_row.helpers';
 import {
   type PaySheetFieldErrors,
   type PayWritePreview,
   resolvePayButtonLabel,
   resolvePayConvertedAmount,
+  resolvePayCycleLine,
   resolvePaySheetStatusMessage,
   resolvePayTrackFootnote,
 } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.helpers';
+import type { DayIndicatorTone } from '@/modules/commitments/utils/day_indicator';
 
 const TODAY = '2026-10-20';
 
@@ -275,5 +278,75 @@ describe('resolvePayConvertedAmount (MA-219)', () => {
         rateText: '40',
       }),
     ).toEqual({ amount: 0.02, currency: Currency.USD });
+  });
+});
+
+describe('resolvePayCycleLine (MA-265)', () => {
+  it('reads an overdue cycle: the tag and its icon, the due day with its year, the distance in danger', () => {
+    const colors = COMMITMENT_STATUS_TAG_COLORS[CommitmentPaymentStatus.Overdue];
+
+    expect(resolvePayCycleLine('2026-10-01', TODAY)).toEqual({
+      statusLabel: 'Overdue',
+      statusIcon: 'alert-circle',
+      statusFill: colors.fill,
+      statusForeground: colors.foreground,
+      lead: 'Thu 1 Oct 2026 · ',
+      distance: '19 days late',
+      distanceTone: 'danger',
+      line: 'Thu 1 Oct 2026 · 19 days late',
+    });
+  });
+
+  it.each<[string, string, string, string, string, string, DayIndicatorTone]>([
+    [
+      'due on the leap day it is read',
+      '2028-02-29',
+      '2028-02-29',
+      'Due',
+      'Tue 29 Feb 2028 · ',
+      'Due today',
+      'gold',
+    ],
+    [
+      'due later this month',
+      '2026-10-30',
+      '2026-10-20',
+      'Upcoming',
+      'Fri 30 Oct 2026 · ',
+      'in 10 days',
+      'caption',
+    ],
+    [
+      'due the day after a leap day',
+      '2028-03-01',
+      '2028-02-29',
+      'Upcoming',
+      'Wed 1 Mar 2028 · ',
+      'in 1 day',
+      'caption',
+    ],
+    [
+      'due on the leap day, read the day after',
+      '2028-02-29',
+      '2028-03-01',
+      'Overdue',
+      'Tue 29 Feb 2028 · ',
+      '1 day late',
+      'danger',
+    ],
+    [
+      'due on a 31st, read across a 28-day February',
+      '2026-01-31',
+      '2026-03-01',
+      'Overdue',
+      'Sat 31 Jan 2026 · ',
+      '29 days late',
+      'danger',
+    ],
+  ])('reads a cycle %s', (_name, dueDate, today, statusLabel, lead, distance, distanceTone) => {
+    const cycleLine = resolvePayCycleLine(dueDate, today);
+
+    expect(cycleLine).toMatchObject({ statusLabel, lead, distance, distanceTone });
+    expect(cycleLine.line).toBe(`${cycleLine.lead}${cycleLine.distance}`);
   });
 });
