@@ -231,6 +231,7 @@ type CommitmentsScreenState = CommitmentsScreenHook['state'];
 const baseCommitmentsState: CommitmentsScreenState = {
   sections: [],
   selectedMonth: '2026-08',
+  emptyMonthName: 'August',
   refreshing: false,
   isEmpty: true,
   commitmentsLoaded: true,

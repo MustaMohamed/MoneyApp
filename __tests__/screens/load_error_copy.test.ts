@@ -43,7 +43,7 @@ const derivedRetryKeys: StringsKey[] = [
 ].filter(isStringsKey);
 
 describe('load-error titles — derived from Strings by naming convention', () => {
-  it('derives exactly the 17 titles the load-error copy uses', () => {
+  it('derives exactly the 16 titles the load-error copy uses', () => {
     expect(derivedTitleKeys.slice().sort()).toEqual(
       [
         'accountActivityLoadError',
@@ -55,8 +55,7 @@ describe('load-error titles — derived from Strings by naming convention', () =
         'budgetLoadError',
         'addTxDataLoadError',
         'commitmentsLoadError',
-        'commitmentsDetailLoadErrorTitle',
-        'commitmentsDetailRefreshErrorTitle',
+        'commitmentsRefreshError',
         'transactionsLoadError',
         'transactionsRefreshError',
         'transactionsTotalsLoadError',
@@ -68,7 +67,7 @@ describe('load-error titles — derived from Strings by naming convention', () =
   });
 
   it('every derived title is present and non-empty', () => {
-    expect(derivedTitleKeys).toHaveLength(17);
+    expect(derivedTitleKeys).toHaveLength(16);
     for (const key of derivedTitleKeys) {
       const value = Strings[key];
       if (typeof value !== 'string') throw new Error(`expected ${key} to be a string`);
@@ -78,7 +77,7 @@ describe('load-error titles — derived from Strings by naming convention', () =
 });
 
 describe('load-error retry labels — derived from Strings by naming convention', () => {
-  it('derives exactly the 10 retry labels the load-error copy uses', () => {
+  it('derives exactly the 9 retry labels the load-error copy uses', () => {
     expect(derivedRetryKeys.slice().sort()).toEqual(
       [
         'accountActivityLoadRetry',
@@ -88,7 +87,6 @@ describe('load-error retry labels — derived from Strings by naming convention'
         'budgetLoadRetry',
         'addTxDataLoadRetry',
         'commitmentsLoadRetry',
-        'commitmentsDetailLoadRetry',
         'transactionsLoadRetry',
         'detailLoadRetry',
       ].sort(),
@@ -96,7 +94,7 @@ describe('load-error retry labels — derived from Strings by naming convention'
   });
 
   it('every derived retry label is present and non-empty', () => {
-    expect(derivedRetryKeys).toHaveLength(10);
+    expect(derivedRetryKeys).toHaveLength(9);
     for (const key of derivedRetryKeys) {
       const value = Strings[key];
       if (typeof value !== 'string') throw new Error(`expected ${key} to be a string`);
@@ -114,6 +112,11 @@ describe('load-error titles — initial and refresh stay distinct where a screen
     expect(Strings.dashboardRefreshError).not.toBe(Strings.dashboardLoadError);
   });
 
+  it('commitments', () => {
+    expect(Strings.commitmentsRefreshError).toEqual(expect.any(String));
+    expect(Strings.commitmentsRefreshError).not.toBe(Strings.commitmentsLoadError);
+  });
+
   it('transactions — initial, refresh, totals and pagination are four distinct titles', () => {
     const variants = [
       Strings.transactionsLoadError,
@@ -128,15 +131,23 @@ describe('load-error titles — initial and refresh stay distinct where a screen
     expect(Strings.detailRefreshErrorTitle).not.toBe(Strings.detailLoadErrorTitle);
   });
 
-  it('commitment detail — both titles derive with its retry and stay distinct', () => {
-    expect(derivedTitleKeys).toEqual(
-      expect.arrayContaining([
-        'commitmentsDetailLoadErrorTitle',
-        'commitmentsDetailRefreshErrorTitle',
-      ]),
-    );
+  it('commitment detail', () => {
     expect(Strings.commitmentsDetailRefreshErrorTitle).not.toBe(
       Strings.commitmentsDetailLoadErrorTitle,
     );
+  });
+});
+
+describe('commitments list failure copy (MA-214)', () => {
+  it('ships the first-load and refresh failures byte-exact', () => {
+    expect({
+      title: Strings.commitmentsLoadError,
+      description: Strings.commitmentsLoadErrorDescription,
+      refresh: Strings.commitmentsRefreshError,
+    }).toEqual({
+      title: "Couldn't load your commitments.",
+      description: 'Something went wrong reading your data. Your commitments are still there.',
+      refresh: "Couldn't refresh your commitments.",
+    });
   });
 });

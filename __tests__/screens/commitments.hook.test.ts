@@ -680,6 +680,14 @@ describe('useCommitments', () => {
     expect(setSelectedMonthMock).toHaveBeenCalledWith('2027-01');
   });
 
+  it('names the selected month in full for the empty month state', async () => {
+    setup({ selectedMonth: '2026-12' });
+
+    const { result } = await renderHook(() => useCommitments());
+
+    expect(result.current.state.emptyMonthName).toBe('December');
+  });
+
   it('sorts each row into its section and counter by its dates against today', async () => {
     setup({
       payments: [
@@ -1057,7 +1065,7 @@ describe('useCommitments', () => {
     const { result } = await renderHook(() => useCommitments());
 
     expect(result.current.state.hero.mode).toBe('skeleton');
-    expect(result.current.state.hero.committed.value).toBe(Strings.commitmentsHeroUnavailable);
+    expect(result.current.state.hero.committed.value).toBe(Strings.listHeroUnavailable);
   });
 
   it('prints dashes for an error on the key on screen while the rows still publish', async () => {
@@ -1069,7 +1077,7 @@ describe('useCommitments', () => {
     const { result } = await renderHook(() => useCommitments());
 
     expect(result.current.state.hero.mode).toBe('dashes');
-    expect(result.current.state.hero.committed.value).toBe(Strings.commitmentsHeroUnavailable);
+    expect(result.current.state.hero.committed.value).toBe(Strings.listHeroUnavailable);
     expect(result.current.state.presentation).toBe('content');
     expect(result.current.state.loadError).toBe(false);
     expect(result.current.state.sections[0]?.data[0]?.id).toBe('due');

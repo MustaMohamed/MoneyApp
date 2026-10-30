@@ -50,6 +50,26 @@ describe('resolveEmptyStateCopy', () => {
     });
   });
 
+  it('names the month on an empty commitments month, with no button and no link', () => {
+    expect(
+      resolveEmptyStateCopy({ variant: 'commitmentsMonth', monthName: 'December' }),
+    ).toStrictEqual({
+      headline: 'Nothing in December',
+      description: 'No payments fall in this month.',
+      ctaLabel: undefined,
+      clearLabel: undefined,
+    });
+  });
+
+  it('keeps the add button on the no-commitments block, with no link', () => {
+    expect(resolveEmptyStateCopy({ variant: 'commitments' })).toStrictEqual({
+      headline: 'No commitments yet',
+      description: 'Track rent, subscriptions and loan payments in one place.',
+      ctaLabel: 'Add commitment',
+      clearLabel: undefined,
+    });
+  });
+
   it.each([
     [1, 'Your 1 archived account is below. Unarchive it, or add a new account.'],
     [2, 'Your 2 archived accounts are below. Unarchive one, or add a new account.'],

@@ -27,7 +27,7 @@ describe('commitment detail state copy (MA-216)', () => {
     expect({
       title: Strings.commitmentsDetailLoadErrorTitle,
       description: Strings.commitmentsDetailLoadErrorDescription,
-      retry: Strings.commitmentsDetailLoadRetry,
+      retry: Strings.commitmentsLoadRetry,
     }).toEqual({
       title: "Couldn't load this commitment.",
       description: 'Something went wrong reading your data. Nothing was changed.',
