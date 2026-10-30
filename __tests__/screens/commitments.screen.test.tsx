@@ -63,9 +63,9 @@ jest.mock('@/components/ui/button', () => ({
   },
 }));
 jest.mock('@/components/ui/screen', () => ({
-  Screen: ({ children }: { children: ReactNode }) => {
+  Screen: ({ children, testID }: { children: ReactNode; testID?: string }) => {
     const { View } = jest.requireActual<typeof import('react-native')>('react-native');
-    return <View>{children}</View>;
+    return <View testID={testID}>{children}</View>;
   },
 }));
 jest.mock('@/components/ui/month_filter', () => {
@@ -130,11 +130,13 @@ jest.mock('@/components/ui/search_tally', () => {
   };
 });
 jest.mock('@/components/ui/empty_state', () => ({
-  EmptyState: ({ variant }: { variant: string }) => {
+  EmptyState: ({ variant, monthName }: { variant: string; monthName?: string }) => {
     const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
-    return <Text>{variant}</Text>;
+    return <Text>{monthName === undefined ? variant : `${variant}:${monthName}`}</Text>;
   },
 }));
+// `jest.config.js` leaves uniwind's TypeScript source untransformed.
+jest.mock('uniwind', () => ({ withUniwind: <T,>(component: T): T => component }));
 jest.mock('@/components/ui/swipeable_row', () => ({ closeAllRows: jest.fn() }));
 // The floating arm's toast hold calls `useFocusEffect`, which needs a navigator.
 jest.mock('@/components/ui/load_error_alert.hook', () => ({
@@ -242,11 +244,10 @@ const baseCommitmentsState: CommitmentsScreenState = {
   floatingAlert: undefined,
   hasLoaded: true,
   today: '2026-05-08',
-  hasCommitments: false,
+  emptyVariant: 'noCommitments',
   statusFilter: 'all',
   searchQuery: '',
   activeFilterCount: 0,
-  hasListFilters: false,
   categoriesById: new Map(),
   accountsById: new Map(),
   commitmentsById: new Map(),
@@ -317,6 +318,7 @@ const openFilterMock = jest.fn();
 const resetFiltersMock = jest.fn();
 const retryAccountLookupMock = jest.fn();
 const onRefreshMock = jest.fn();
+const retryLoadMock = jest.fn();
 
 function makePayment(overrides: Partial<CommitmentMonthPayment> = {}): CommitmentMonthPayment {
   return makeTestMonthPayment({
@@ -347,6 +349,7 @@ function mockUseCommitments(state: Partial<CommitmentsScreenState> = {}) {
     navigateMonth: jest.fn(),
     selectMonth: jest.fn(),
     onRefresh: onRefreshMock,
+    retryLoad: retryLoadMock,
     goToDetail: jest.fn(),
     goToAdd: jest.fn(),
     goToEdit: jest.fn(),
@@ -403,7 +406,7 @@ describe('CommitmentsScreen', () => {
       sum: { text: '1,500', polarity: 'neutral', currencyCode: 'EGP' },
       accessibilityLabel: '2 payments, 1,500 EGP',
     };
-    mockUseCommitments({ hasCommitments: true, accountChips: chips, tally });
+    mockUseCommitments({ emptyVariant: 'emptyMonth', accountChips: chips, tally });
 
     const { getByTestId, getByText } = await render(<CommitmentsScreen />);
 
@@ -444,7 +447,7 @@ describe('CommitmentsScreen', () => {
 
   it('renders the compact search row and advanced filter sheet when commitments exist', async () => {
     mockUseCommitments({
-      hasCommitments: true,
+      emptyVariant: 'noResults',
       isEmpty: true,
       searchQuery: 'rent',
       activeFilterCount: 2,
@@ -460,7 +463,7 @@ describe('CommitmentsScreen', () => {
 
   it('passes the skeleton hero model while payments load', async () => {
     mockUseCommitments({
-      hasCommitments: true,
+      emptyVariant: 'none',
       paymentsLoaded: false,
       presentation: 'coldLoading',
       hasLoaded: false,
@@ -474,7 +477,7 @@ describe('CommitmentsScreen', () => {
 
   it('shows row skeletons instead of the list spinner while payments load', async () => {
     mockUseCommitments({
-      hasCommitments: true,
+      emptyVariant: 'none',
       paymentsLoaded: false,
       presentation: 'coldLoading',
       hasLoaded: false,
@@ -487,9 +490,9 @@ describe('CommitmentsScreen', () => {
     expect(queryByText('spinner')).toBeNull();
   });
 
-  it('draws each row skeleton at the loaded row height with tile, name, a due-day bar per caption line, amount and day-indicator bars', async () => {
+  it('draws two day cards of three row skeletons, each row at the loaded row height with tile, name, a due-day bar per caption line, amount and day-indicator bars', async () => {
     mockUseCommitments({
-      hasCommitments: true,
+      emptyVariant: 'none',
       paymentsLoaded: false,
       presentation: 'coldLoading',
       hasLoaded: false,
@@ -500,7 +503,8 @@ describe('CommitmentsScreen', () => {
 
     const { fontScale } = Dimensions.get('window');
     const rows = getAllByTestId('commitment-row-skeleton');
-    expect(rows.length).toBeGreaterThan(0);
+    expect(rows).toHaveLength(6);
+    expect(getAllByTestId('transaction-day-skeleton-header')).toHaveLength(2);
     // MA-243: jest's font scale is 2, so the due-day bar takes a second line, as the loaded subline does.
     expect(fontScale).toBe(2);
     for (const row of rows) {
@@ -517,7 +521,7 @@ describe('CommitmentsScreen', () => {
       paymentsLoaded: false,
       presentation: 'coldLoading',
       hasLoaded: false,
-      hasCommitments: false,
+      emptyVariant: 'none',
       sections: [],
     });
 
@@ -534,7 +538,7 @@ describe('CommitmentsScreen', () => {
       commitmentsLoaded: true,
       paymentsLoaded: true,
       refreshing: true,
-      hasCommitments: true,
+      emptyVariant: 'none',
       sections: [dueSection()],
       hero: { ...baseCommitmentsState.hero, mode: 'figures' },
     });
@@ -551,9 +555,8 @@ describe('CommitmentsScreen', () => {
       commitmentsLoaded: true,
       paymentsLoaded: true,
       refreshing: true,
-      hasCommitments: true,
+      emptyVariant: 'noResults',
       isEmpty: true,
-      hasListFilters: true,
       statusFilter: CommitmentPaymentStatus.Paid,
       sections: [],
     });
@@ -565,7 +568,7 @@ describe('CommitmentsScreen', () => {
   });
 
   it('wires controlled search changes and open filter actions from the search row', async () => {
-    mockUseCommitments({ hasCommitments: true, isEmpty: true });
+    mockUseCommitments({ emptyVariant: 'emptyMonth', isEmpty: true });
 
     const { getByText } = await render(<CommitmentsScreen />);
 
@@ -581,19 +584,19 @@ describe('CommitmentsScreen', () => {
 
   it('does not re-render the hero on a search keystroke, only on a new hero model', async () => {
     const hero = baseCommitmentsState.hero;
-    mockUseCommitments({ hasCommitments: true, hero });
+    mockUseCommitments({ emptyVariant: 'emptyMonth', hero });
     const { getByText, rerender } = await render(<CommitmentsScreen />);
 
     expect(heroRenders.count).toBe(1);
 
-    mockUseCommitments({ hasCommitments: true, hero, searchQuery: 'rent' });
+    mockUseCommitments({ emptyVariant: 'noResults', hero, searchQuery: 'rent' });
     await rerender(<CommitmentsScreen />);
 
     expect(getByText('search:rent')).toBeTruthy();
     expect(heroRenders.count).toBe(1);
 
     mockUseCommitments({
-      hasCommitments: true,
+      emptyVariant: 'noResults',
       hero: { ...hero, mode: 'figures' },
       searchQuery: 'rent',
     });
@@ -605,10 +608,9 @@ describe('CommitmentsScreen', () => {
 
   it('shows filtered empty state when search or advanced filters are active', async () => {
     mockUseCommitments({
-      hasCommitments: true,
+      emptyVariant: 'noResults',
       isEmpty: true,
       statusFilter: 'all',
-      hasListFilters: true,
     });
 
     const { getByText } = await render(<CommitmentsScreen />);
@@ -616,9 +618,69 @@ describe('CommitmentsScreen', () => {
     expect(getByText('filtered')).toBeTruthy();
   });
 
+  it('MA-214: draws the no-commitments state when the hook reads noCommitments', async () => {
+    mockUseCommitments({ emptyVariant: 'noCommitments' });
+
+    const { getByText, queryByText } = await render(<CommitmentsScreen />);
+
+    expect(getByText('No commitments')).toBeTruthy();
+    expect(queryByText('filtered')).toBeNull();
+  });
+
+  it('MA-214: draws the empty month under the name the hook gives it', async () => {
+    mockUseCommitments({ emptyVariant: 'emptyMonth', emptyMonthName: 'December' });
+
+    const { getByText, queryByText } = await render(<CommitmentsScreen />);
+
+    expect(getByText('commitmentsMonth:December')).toBeTruthy();
+    expect(queryByText('No commitments')).toBeNull();
+  });
+
+  it('MA-214: a first-load failure draws the error state whose Try again runs retryLoad', async () => {
+    mockUseCommitments({
+      presentation: 'coldError',
+      emptyVariant: 'none',
+      loadError: true,
+      hasLoaded: false,
+    });
+
+    const { getByTestId, getByText, queryByTestId, queryByText } = await render(
+      <CommitmentsScreen />,
+    );
+
+    expect(getByTestId('commitments-load-error')).toBeTruthy();
+    expect(getByText(Strings.commitmentsLoadError)).toBeTruthy();
+    expect(getByText(Strings.commitmentsLoadErrorDescription)).toBeTruthy();
+    expect(queryByTestId('commitment-row-skeletons')).toBeNull();
+    expect(queryByText(Strings.commitmentsRefreshError)).toBeNull();
+    await fireEvent.press(getByText(Strings.commitmentsLoadRetry));
+    expect(retryLoadMock).toHaveBeenCalledTimes(1);
+    expect(onRefreshMock).not.toHaveBeenCalled();
+  });
+
+  it('MA-214: a refresh failure floats the alert over the rows and its Try again runs retryLoad', async () => {
+    mockUseCommitments({
+      presentation: 'contentWithError',
+      emptyVariant: 'none',
+      loadError: true,
+      isEmpty: false,
+      sections: [dueSection()],
+      floatingAlert: 'list',
+    });
+
+    const { getByText, queryByText } = await render(<CommitmentsScreen />);
+
+    expect(getByText(Strings.commitmentsRefreshError)).toBeTruthy();
+    expect(getByText('Commitment row')).toBeTruthy();
+    expect(queryByText(Strings.commitmentsLoadErrorDescription)).toBeNull();
+    await fireEvent.press(getByText(Strings.commitmentsLoadRetry));
+    expect(retryLoadMock).toHaveBeenCalledTimes(1);
+    expect(onRefreshMock).not.toHaveBeenCalled();
+  });
+
   it('MA-234: floats the account names alert whose Try again reads the accounts again', async () => {
     mockUseCommitments({
-      hasCommitments: true,
+      emptyVariant: 'none',
       isEmpty: false,
       sections: [dueSection()],
       floatingAlert: 'accounts',
