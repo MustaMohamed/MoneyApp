@@ -11,7 +11,7 @@ import type { CommitmentPaymentRowModel } from '../detail.helpers';
 // Frame C1 `.prow`.
 const PAYMENT_ROW_MIN_HEIGHT = ms(48);
 const PAYMENT_ROW_DOT_SIZE = ms(8);
-const PAYMENT_ROW_GAP = Spacing.xs + Spacing.xxxs;
+const PAYMENT_ROW_SPACE = Spacing.xs + Spacing.xxxs;
 
 interface Props {
   row: CommitmentPaymentRowModel;
@@ -30,7 +30,7 @@ export function PaymentRow({ row, showDivider }: Props): React.ReactElement {
         flexDirection: 'row',
         alignItems: 'center',
         minHeight: PAYMENT_ROW_MIN_HEIGHT,
-        paddingVertical: PAYMENT_ROW_GAP,
+        paddingVertical: PAYMENT_ROW_SPACE,
         paddingHorizontal: Spacing.md,
       }}
     >
@@ -49,7 +49,7 @@ export function PaymentRow({ row, showDivider }: Props): React.ReactElement {
           flexDirection: 'row',
           flexWrap: 'wrap',
           alignItems: 'center',
-          columnGap: PAYMENT_ROW_GAP,
+          columnGap: PAYMENT_ROW_SPACE,
         }}
       >
         <Text
@@ -75,7 +75,7 @@ export function PaymentRow({ row, showDivider }: Props): React.ReactElement {
           alignItems: 'baseline',
           gap: Spacing.xxs,
           flexShrink: 1,
-          marginLeft: PAYMENT_ROW_GAP,
+          marginLeft: PAYMENT_ROW_SPACE,
         }}
       >
         <Text
