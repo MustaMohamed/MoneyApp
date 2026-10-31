@@ -1,11 +1,20 @@
 import type { ButtonSize } from 'heroui-native';
 
 import { resolveSmallButtonHeight } from '@/components/ui/button.geometry';
+import type { LoadErrorAlertProps } from '@/components/ui/load_error_alert';
 import { Spacing, type TouchFloorHitSlop, touchFloorHitSlop } from '@/constants/theme';
 
 type LoadErrorAlertMode = 'fill' | 'inline' | 'floating' | 'bare';
 
 export type LoadErrorAlertTone = 'plain' | 'tint' | 'tintOverSurface';
+
+// `satisfies`, since the JSX spread these reach the alert through runs no excess-key check.
+export const TAB_FLOATING_ALERT_PROPS = {
+  mode: 'floating',
+  floatingOffset: 'tabBar',
+  tinted: true,
+  flatRetry: true,
+} satisfies Partial<Extract<LoadErrorAlertProps, { mode: 'floating' }>>;
 
 /** A floating alert lies over a screen's rows, so its tint needs the surface under it. */
 export function resolveLoadErrorAlertTone(

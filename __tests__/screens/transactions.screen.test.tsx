@@ -355,7 +355,7 @@ describe('TransactionsScreen', () => {
     const { getByTestId, getAllByTestId, queryByText } = await render(<TransactionsScreen />);
 
     expect(getByTestId('transaction-row-skeletons')).toBeTruthy();
-    expect(getAllByTestId('transaction-day-skeleton-header')).toHaveLength(2);
+    expect(getAllByTestId('day-card-skeleton-header')).toHaveLength(2);
     expect(getAllByTestId('transaction-row-skeleton')).toHaveLength(6);
     expect(queryByText('spinner')).toBeNull();
   });

@@ -501,7 +501,6 @@ describe('useCommitments', () => {
 
     const { result } = await renderHook(() => useCommitments());
 
-    expect(result.current.state.hasLoaded).toBe(false);
     expect(result.current.state.presentation).toBe('coldLoading');
     expect(result.current.state.sections).toEqual([]);
     expect(result.current.state.emptyVariant).toBe('none');
@@ -517,7 +516,6 @@ describe('useCommitments', () => {
 
       const { result } = await renderHook(() => useCommitments());
 
-      expect(result.current.state.hasLoaded).toBe(false);
       expect(result.current.state.presentation).toBe('coldLoading');
     },
   );
@@ -546,7 +544,6 @@ describe('useCommitments', () => {
 
     const { result } = await renderHook(() => useCommitments());
 
-    expect(result.current.state.hasLoaded).toBe(true);
     expect(result.current.state.presentation).toBe('contentWithError');
     expect(result.current.state.sections[0]?.data[0]?.id).toBe('payment');
   });
@@ -944,7 +941,7 @@ describe('useCommitments', () => {
     const { result: withoutToday } = await renderHook(() => useCommitments());
 
     expect(withoutToday.current.state.today).toBeUndefined();
-    expect(withoutToday.current.state.hasLoaded).toBe(false);
+    expect(withoutToday.current.state.presentation).toBe('coldLoading');
     expect(withoutToday.current.state.sections).toEqual([]);
   });
 

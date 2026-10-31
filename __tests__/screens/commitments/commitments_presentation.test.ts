@@ -1,12 +1,15 @@
-import { buildCommitmentsPresentation } from '@/modules/commitments/screens/commitments/commitments.presentation';
-
-type PresentationInput = Parameters<typeof buildCommitmentsPresentation>[0];
-type Presentation = ReturnType<typeof buildCommitmentsPresentation>;
+import {
+  buildCommitmentsPresentation,
+  type CommitmentsPresentation,
+  type CommitmentsPresentationInput,
+} from '@/modules/commitments/screens/commitments/commitments.presentation';
 
 const NOTHING_IN_MONTH = { commitmentCount: 0, rowCount: 0, matchCount: 0 };
 const EMPTY_MONTH = { commitmentCount: 1, rowCount: 0, matchCount: 0 };
 
-function input(overrides: Partial<PresentationInput> = {}): PresentationInput {
+function input(
+  overrides: Partial<CommitmentsPresentationInput> = {},
+): CommitmentsPresentationInput {
   return {
     hasMatchingSnapshot: true,
     loadError: false,
@@ -20,7 +23,7 @@ function input(overrides: Partial<PresentationInput> = {}): PresentationInput {
 }
 
 describe('buildCommitmentsPresentation', () => {
-  it.each<[string, Partial<PresentationInput>, Presentation]>([
+  it.each<[string, Partial<CommitmentsPresentationInput>, CommitmentsPresentation]>([
     [
       'the first load of a month',
       { hasMatchingSnapshot: false, ...NOTHING_IN_MONTH },

@@ -79,7 +79,7 @@ describe('TransactionRowsSkeleton', () => {
     );
 
     expect(getByTestId('transaction-row-skeletons')).toBeTruthy();
-    const headers = getAllByTestId('transaction-day-skeleton-header');
+    const headers = getAllByTestId('day-card-skeleton-header');
     expect(headers).toHaveLength(2);
     for (const header of headers) {
       expect(header).toHaveStyle({
@@ -112,7 +112,7 @@ describe('TransactionRowsSkeleton', () => {
   it('draws bare rows with no header and no card without day cards', async () => {
     const { queryAllByTestId, getAllByTestId } = await render(<TransactionRowsSkeleton />);
 
-    expect(queryAllByTestId('transaction-day-skeleton-header')).toHaveLength(0);
+    expect(queryAllByTestId('day-card-skeleton-header')).toHaveLength(0);
     expect(queryAllByTestId('day-card-row')).toHaveLength(0);
     const rowBars = getAllByTestId('transaction-row-skeleton').flatMap((row) =>
       within(row).getAllByTestId(BAR),

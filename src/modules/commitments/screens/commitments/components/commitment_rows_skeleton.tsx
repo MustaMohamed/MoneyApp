@@ -1,7 +1,11 @@
 import { SkeletonGroup } from 'heroui-native';
 import { View, useWindowDimensions } from 'react-native';
 
-import { DayCardsSkeleton } from '@/components/ui/day_cards_skeleton';
+import {
+  DayCardsSkeleton,
+  SKELETON_DAY_CARDS,
+  SKELETON_ROWS_PER_CARD,
+} from '@/components/ui/day_cards_skeleton';
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { Strings } from '@/constants/strings';
 import { Radius, Size, lineHeightFor } from '@/constants/theme';
@@ -14,9 +18,6 @@ import {
   COMMITMENT_ROW_TITLE_FONT_SIZE,
   resolveCommitmentRowHeight,
 } from './commitment_row.helpers';
-
-const SKELETON_DAY_CARDS = 2;
-const SKELETON_ROWS_PER_CARD = 3;
 
 function SkeletonRow({
   row,

@@ -8,6 +8,9 @@ import {
   resolveDayHeaderGeometry,
 } from '@/components/ui/day_header.geometry';
 
+export const SKELETON_DAY_CARDS = 2;
+export const SKELETON_ROWS_PER_CARD = 3;
+
 interface DayCardsSkeletonProps {
   dayCards: number;
   rows: number;
@@ -28,7 +31,7 @@ export function DayCardsSkeleton({
       {cardIndexes.map((card) => (
         <View key={card}>
           <View
-            testID="transaction-day-skeleton-header"
+            testID="day-card-skeleton-header"
             style={[DAY_HEADER_ROOT_STYLE, { height, justifyContent: 'space-between' }]}
           >
             <SkeletonGroup.Item className="w-24 rounded-md" style={{ height: lineHeight }} />

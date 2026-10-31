@@ -263,42 +263,28 @@ export function useCommitments() {
     }, [loadMonthAggregate, selectedMonth, heroAccountId]),
   );
 
+  const readSelectedMonth = useCallback(async () => {
+    try {
+      await Promise.all([
+        reloadSelectedMonth(selectedMonth),
+        loadMonthAggregate(selectedMonth, heroAccountId),
+      ]);
+    } catch {
+      // The store owns loadError; event boundaries contain the rejected operation.
+    }
+  }, [reloadSelectedMonth, loadMonthAggregate, selectedMonth, heroAccountId]);
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    try {
-      await Promise.all([
-        reloadSelectedMonth(selectedMonth),
-        loadMonthAggregate(selectedMonth, heroAccountId),
-      ]);
-    } catch {
-      // The store owns loadError; event boundaries contain the rejected operation.
-    } finally {
-      setRefreshing(false);
-    }
-  }, [setRefreshing, reloadSelectedMonth, loadMonthAggregate, selectedMonth, heroAccountId]);
+    await readSelectedMonth();
+    setRefreshing(false);
+  }, [setRefreshing, readSelectedMonth]);
 
-  const retryLoad = useCallback(async () => {
-    // On a first-load failure the skeleton is the indicator.
-    const showsIndicator = hasMatchingSnapshot;
-    if (showsIndicator) setRefreshing(true);
-    try {
-      await Promise.all([
-        reloadSelectedMonth(selectedMonth),
-        loadMonthAggregate(selectedMonth, heroAccountId),
-      ]);
-    } catch {
-      // The store owns loadError; event boundaries contain the rejected operation.
-    } finally {
-      if (showsIndicator) setRefreshing(false);
-    }
-  }, [
-    hasMatchingSnapshot,
-    setRefreshing,
-    reloadSelectedMonth,
-    loadMonthAggregate,
-    selectedMonth,
-    heroAccountId,
-  ]);
+  // On a first-load failure the skeleton is the indicator.
+  const retryLoad = useCallback(
+    () => (hasMatchingSnapshot ? onRefresh() : readSelectedMonth()),
+    [hasMatchingSnapshot, onRefresh, readSelectedMonth],
+  );
 
   const retryAccountLookup = useCallback(async () => {
     try {
@@ -364,7 +350,6 @@ export function useCommitments() {
       presentation: presentation.status,
       emptyVariant: presentation.emptyVariant,
       floatingAlert: presentation.floatingAlert,
-      hasLoaded: hasMatchingSnapshot,
       statusFilter,
       searchQuery,
       activeFilterCount,

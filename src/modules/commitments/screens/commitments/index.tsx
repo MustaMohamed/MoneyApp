@@ -11,6 +11,7 @@ import { EmptyState } from '@/components/ui/empty_state';
 import { ErrorState } from '@/components/ui/error_state';
 import { LIST_RAIL_ALL_OPTION, ListRail } from '@/components/ui/list_rail';
 import { LoadErrorAlert } from '@/components/ui/load_error_alert';
+import { TAB_FLOATING_ALERT_PROPS } from '@/components/ui/load_error_alert.geometry';
 import { Screen } from '@/components/ui/screen';
 import { SearchTally } from '@/components/ui/search_tally';
 import type { SegmentFilterOption } from '@/components/ui/segment_filter';
@@ -226,10 +227,7 @@ export default function CommitmentsScreen() {
 
       {state.floatingAlert === 'list' ? (
         <LoadErrorAlert
-          mode="floating"
-          floatingOffset="tabBar"
-          tinted
-          flatRetry
+          {...TAB_FLOATING_ALERT_PROPS}
           title={Strings.commitmentsRefreshError}
           retryLabel={Strings.commitmentsLoadRetry}
           onRetry={() => void retryLoad()}
@@ -239,10 +237,7 @@ export default function CommitmentsScreen() {
 
       {state.floatingAlert === 'accounts' ? (
         <LoadErrorAlert
-          mode="floating"
-          floatingOffset="tabBar"
-          tinted
-          flatRetry
+          {...TAB_FLOATING_ALERT_PROPS}
           title={Strings.transactionsAccountLookupError}
           retryLabel={Strings.transactionsLoadRetry}
           onRetry={() => void retryAccountLookup()}

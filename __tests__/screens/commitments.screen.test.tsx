@@ -242,7 +242,6 @@ const baseCommitmentsState: CommitmentsScreenState = {
   loadError: false,
   presentation: 'content',
   floatingAlert: undefined,
-  hasLoaded: true,
   today: '2026-05-08',
   emptyVariant: 'noCommitments',
   statusFilter: 'all',
@@ -466,7 +465,6 @@ describe('CommitmentsScreen', () => {
       emptyVariant: 'none',
       paymentsLoaded: false,
       presentation: 'coldLoading',
-      hasLoaded: false,
       sections: [dueSection()],
     });
 
@@ -480,7 +478,6 @@ describe('CommitmentsScreen', () => {
       emptyVariant: 'none',
       paymentsLoaded: false,
       presentation: 'coldLoading',
-      hasLoaded: false,
       sections: [],
     });
 
@@ -495,7 +492,6 @@ describe('CommitmentsScreen', () => {
       emptyVariant: 'none',
       paymentsLoaded: false,
       presentation: 'coldLoading',
-      hasLoaded: false,
       sections: [],
     });
 
@@ -504,7 +500,7 @@ describe('CommitmentsScreen', () => {
     const { fontScale } = Dimensions.get('window');
     const rows = getAllByTestId('commitment-row-skeleton');
     expect(rows).toHaveLength(6);
-    expect(getAllByTestId('transaction-day-skeleton-header')).toHaveLength(2);
+    expect(getAllByTestId('day-card-skeleton-header')).toHaveLength(2);
     // MA-243: jest's font scale is 2, so the due-day bar takes a second line, as the loaded subline does.
     expect(fontScale).toBe(2);
     for (const row of rows) {
@@ -520,7 +516,6 @@ describe('CommitmentsScreen', () => {
       commitmentsLoaded: false,
       paymentsLoaded: false,
       presentation: 'coldLoading',
-      hasLoaded: false,
       emptyVariant: 'none',
       sections: [],
     });
@@ -641,7 +636,6 @@ describe('CommitmentsScreen', () => {
       presentation: 'coldError',
       emptyVariant: 'none',
       loadError: true,
-      hasLoaded: false,
     });
 
     const { getByTestId, getByText, queryByTestId, queryByText } = await render(
