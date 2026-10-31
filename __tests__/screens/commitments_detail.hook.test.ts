@@ -2,7 +2,13 @@ import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { router } from 'expo-router';
 import { createContext, createElement, useContext, type PropsWithChildren } from 'react';
 
-import { AccountType, AmountType, Currency, DurationType } from '@/constants/enums';
+import {
+  AccountType,
+  AmountType,
+  CommitmentPaymentStatus,
+  Currency,
+  DurationType,
+} from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { AcctTokens } from '@/constants/theme_tokens';
 import type { Account } from '@/modules/accounts/entities/account.entity';
@@ -10,10 +16,12 @@ import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
+import { useCommitmentsScreenState } from '@/modules/commitments/screens/commitments/commitments.state';
 import { usePaySheetState } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.state';
 import { useCommitmentDetail } from '@/modules/commitments/screens/commitments/detail/detail.hook';
 import { useCommitmentDetailState } from '@/modules/commitments/screens/commitments/detail/detail.state';
 import { useCommitmentDetailStore } from '@/modules/commitments/screens/commitments/detail/detail.store';
+import { EMPTY_COMMITMENT_FILTERS } from '@/modules/commitments/screens/commitments/filter/filter.store';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { useCommitmentFormHostState } from '@/modules/commitments/store/commitment_form_host.state';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
@@ -33,6 +41,7 @@ const mockGetById = jest.fn();
 const mockGetPaymentsByCommitment = jest.fn();
 const mockSkipPayment = jest.fn();
 const mockLoadAccountLookup = jest.fn<Promise<void>, [string[]]>();
+const mockNavigationDispatch = jest.fn();
 const mockPathname = { current: '/commitments/commitment-1' };
 const TAB_STACK = { routes: [{ name: 'index' }, { name: '[id]/index' }] };
 const APP_STACK = { routes: [{ name: '(tabs)' }, { name: 'stacked/commitments/[id]/index' }] };
@@ -55,7 +64,10 @@ let accountLookupError = false;
 jest.mock('expo-router', () => ({
   useLocalSearchParams: () => mockUseParams(),
   usePathname: () => mockPathname.current,
-  useNavigation: () => ({ getState: () => mockNavigatorState.current }),
+  useNavigation: () => ({
+    getState: () => mockNavigatorState.current,
+    dispatch: (...args: unknown[]) => mockNavigationDispatch(...args),
+  }),
   router: { push: jest.fn(), back: jest.fn(), dismissTo: jest.fn(), dismissAll: jest.fn() },
 }));
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
@@ -1410,5 +1422,119 @@ describe('useCommitmentDetail skeleton cycle hint (MA-267)', () => {
 
     expect(result.current.state.viewState).toBe('loading');
     expect(result.current.state.loadingCycleHint).toBe(payment);
+  });
+});
+
+describe('useCommitmentDetail goToAllPayments (MA-213)', () => {
+  const COMMITMENTS_TAB = '/(app)/(tabs)/commitments';
+  const stopped: Commitment = { ...commitment, is_active: 0 };
+  const TRANSACTIONS_TAB_INDEX = 1;
+  const PUSHED_TAB_STACK = {
+    key: 'commitments-tab-stack',
+    routes: [{ name: 'index' }, { name: '[id]/index' }],
+  };
+
+  function appStackOver(focusedTab: number, commitmentsStack?: typeof PUSHED_TAB_STACK) {
+    return {
+      routes: [
+        {
+          name: '(tabs)',
+          state: {
+            index: focusedTab,
+            routes: [
+              { name: 'dashboard' },
+              { name: 'transactions' },
+              { name: 'commitments', state: commitmentsStack },
+            ],
+          },
+        },
+        { name: 'stacked/commitments/[id]/index' },
+      ],
+    };
+  }
+
+  function dirtyTheList(): void {
+    const state = useCommitmentsScreenState.getState();
+    state.setSearchQuery('gym');
+    state.setStatusFilter(CommitmentPaymentStatus.Paid);
+    state.setAppliedFilters({
+      ...EMPTY_COMMITMENT_FILTERS,
+      accountIds: ['account-1'],
+      categoryIds: ['category-1'],
+    });
+  }
+
+  function expectTheFilteredTab(commitmentId: string): void {
+    expect(router.dismissTo).toHaveBeenCalledTimes(2);
+    expect(router.dismissTo).toHaveBeenNthCalledWith(1, COMMITMENTS_TAB);
+    expect(router.dismissTo).toHaveBeenNthCalledWith(2, COMMITMENTS_TAB);
+    expect(router.push).not.toHaveBeenCalled();
+    const list = useCommitmentsScreenState.getState();
+    expect(list.searchQuery).toBe('');
+    expect(list.statusFilter).toBe('all');
+    expect(list.appliedFilters).toEqual({ ...EMPTY_COMMITMENT_FILTERS, commitmentId });
+  }
+
+  beforeEach(() => {
+    useCommitmentsScreenState.getState().reset();
+  });
+
+  it.each([
+    ['tabbed', TAB_STACK, '/commitments/commitment-1'],
+    ['stacked', APP_STACK, '/stacked/commitments/commitment-1'],
+  ])('closes the %s detail to the filtered tab', async (_name, stack, pathname) => {
+    mockNavigatorState.current = stack;
+    mockPathname.current = pathname;
+    seedRent();
+    dirtyTheList();
+    const { result } = await renderHook(() => useCommitmentDetail());
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+
+    await act(async () => result.current.goToAllPayments());
+
+    expectTheFilteredTab(commitment.id);
+    expect(mockNavigationDispatch).not.toHaveBeenCalled();
+  });
+
+  it('pops the background tab Stack to its root before the two dismissals', async () => {
+    mockNavigatorState.current = appStackOver(TRANSACTIONS_TAB_INDEX, PUSHED_TAB_STACK);
+    mockPathname.current = '/stacked/commitments/commitment-1';
+    seedRent();
+    dirtyTheList();
+    const { result } = await renderHook(() => useCommitmentDetail());
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+
+    await act(async () => result.current.goToAllPayments());
+
+    expect(mockNavigationDispatch).toHaveBeenCalledTimes(1);
+    expect(mockNavigationDispatch).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'POP_TO_TOP', target: PUSHED_TAB_STACK.key }),
+    );
+    expect(mockNavigationDispatch.mock.invocationCallOrder[0]).toBeLessThan(
+      jest.mocked(router.dismissTo).mock.invocationCallOrder[0],
+    );
+    expectTheFilteredTab(commitment.id);
+  });
+
+  it('closes a stopped commitment’s detail to the filtered tab', async () => {
+    commitmentsById = { [stopped.id]: stopped };
+    historyById = { [stopped.id]: rentHistory };
+    dirtyTheList();
+    const { result } = await renderHook(() => useCommitmentDetail());
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+
+    await act(async () => result.current.goToAllPayments());
+
+    expectTheFilteredTab(stopped.id);
+  });
+
+  it('does nothing without a route id', async () => {
+    mockParams = { id: '' };
+    const { result } = await renderHook(() => useCommitmentDetail());
+
+    await act(async () => result.current.goToAllPayments());
+
+    expectNoNavigation();
+    expect(useCommitmentsScreenState.getState().appliedFilters).toEqual(EMPTY_COMMITMENT_FILTERS);
   });
 });

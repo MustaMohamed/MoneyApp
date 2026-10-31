@@ -9,8 +9,14 @@ import { resolveAmountRangeDraft } from '@/modules/transactions/utils/amount_ran
 import { formatSelectionSummary } from '@/modules/transactions/utils/filter_selection';
 import { resolveAccountName } from '@/utils/account_name';
 
+import { useCommitmentStore } from '../../../store/commitment.store';
 import { useCommitmentsScreenState } from '../commitments.state';
-import { commitmentFiltersEqual, countActiveCommitmentFilters } from './filter.helpers';
+import { useCommitmentsScreenStore } from '../commitments.store';
+import {
+  commitmentFiltersEqual,
+  countActiveCommitmentFilters,
+  withHeldCommitment,
+} from './filter.helpers';
 import { useCommitmentFilterState } from './filter.state';
 import { useCommitmentFilterStore } from './filter.store';
 import { COMMITMENT_AMOUNT_TYPE_OPTIONS, COMMITMENT_RECURRENCE_OPTIONS } from './filter_options';
@@ -37,6 +43,7 @@ export function useCommitmentFilterSheet() {
   const toggleCategoryId = useCommitmentFilterStore.getState().toggleCategoryId;
   const toggleAmountType = useCommitmentFilterStore.getState().toggleAmountType;
   const toggleRecurrencePreset = useCommitmentFilterStore.getState().toggleRecurrencePreset;
+  const toggleCommitmentId = useCommitmentFilterStore.getState().toggleCommitmentId;
   const setAmountMin = useCommitmentFilterStore.getState().setAmountMin;
   const setAmountMax = useCommitmentFilterStore.getState().setAmountMax;
   const setAmountMinText = useCommitmentFilterStore.getState().setAmountMinText;
@@ -44,6 +51,8 @@ export function useCommitmentFilterSheet() {
   const setAmountCurrency = useCommitmentFilterStore.getState().setAmountCurrency;
   const accounts = useAccountStore((state) => state.accounts);
   const categories = useCategoryStore.useState.categories();
+  const commitments = useCommitmentStore((state) => state.commitments);
+  const rowsRead = useCommitmentsScreenStore.useState.rowsRead();
   const appliedFilters = useCommitmentsScreenState.useState.appliedFilters();
   const setAppliedFilters = useCommitmentsScreenState.getState().setAppliedFilters;
 
@@ -88,6 +97,13 @@ export function useCommitmentFilterSheet() {
     ).map((option) => option.label),
     Strings.filterAllRepeats,
   );
+  const commitmentOptions = withHeldCommitment(
+    commitments.filter((commitment) => commitment.is_active === 1),
+    rowsRead?.commitmentId === appliedFilters.commitmentId ? rowsRead?.commitment : undefined,
+  );
+  const commitmentSummary =
+    commitmentOptions.find((option) => option.id === draft.commitmentId)?.name ??
+    Strings.filterAllCommitments;
 
   return {
     state: {
@@ -109,6 +125,8 @@ export function useCommitmentFilterSheet() {
       amountRangeError: amountRange.rangeError,
       amountTypeSummary,
       recurrenceSummary,
+      commitmentOptions,
+      commitmentSummary,
       canReset,
     },
     close,
@@ -118,6 +136,7 @@ export function useCommitmentFilterSheet() {
     toggleCategoryId,
     toggleAmountType: (type: AmountType) => toggleAmountType(type),
     toggleRecurrencePreset: (preset: RecurrencePreset) => toggleRecurrencePreset(preset),
+    toggleCommitmentId,
     setAmountMin,
     setAmountMax,
     setAmountMinText,

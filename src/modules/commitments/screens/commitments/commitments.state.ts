@@ -22,6 +22,7 @@ type CommitmentsScreenState = CommitmentsScreenStateShape & {
   setSearchQuery: (query: string) => void;
   clearSearch: () => void;
   setAppliedFilters: (filters: CommitmentAdvancedFilters) => void;
+  seedCommitmentFilter: (commitmentId: string) => void;
   reset: () => void;
 };
 
@@ -40,6 +41,12 @@ export const useCommitmentsScreenState = createMoneyAppSelectors(
     setSearchQuery: (query) => set({ searchQuery: query }),
     clearSearch: () => set({ searchQuery: '' }),
     setAppliedFilters: (filters) => set({ appliedFilters: filters }),
+    seedCommitmentFilter: (commitmentId) =>
+      set({
+        searchQuery: '',
+        statusFilter: 'all',
+        appliedFilters: { ...EMPTY_COMMITMENT_FILTERS, commitmentId },
+      }),
     reset: () => set(INITIAL_STATE),
   })),
 );

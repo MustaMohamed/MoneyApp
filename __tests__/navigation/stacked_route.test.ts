@@ -1,5 +1,6 @@
 import {
   STACKED_PREFIX,
+  backgroundTabPushedStackKey,
   resolveDetailScreenEdges,
   stackedPrefixOf,
   stackedPrefixOfNavigator,
@@ -73,5 +74,49 @@ describe('stackedPrefixOfNavigator', () => {
 describe('stackedTransactionDetailRoute', () => {
   it('addresses the stacked twin of the transaction detail route', () => {
     expect(stackedTransactionDetailRoute('tx-9')).toBe('/stacked/transactions/detail/tx-9');
+  });
+});
+
+describe('backgroundTabPushedStackKey', () => {
+  const TRANSACTIONS_TAB_INDEX = 1;
+  const COMMITMENTS_TAB_INDEX = 2;
+  const PUSHED_TAB_STACK = {
+    key: 'commitments-tab-stack',
+    routes: [{ name: 'index' }, { name: '[id]/index' }],
+  };
+  const ROOT_TAB_STACK = { key: 'commitments-tab-stack', routes: [{ name: 'index' }] };
+
+  function appStackOver(focusedTab: number, commitmentsStack?: typeof PUSHED_TAB_STACK) {
+    return {
+      routes: [
+        {
+          name: '(tabs)',
+          state: {
+            index: focusedTab,
+            routes: [
+              { name: 'dashboard' },
+              { name: 'transactions' },
+              { name: 'commitments', state: commitmentsStack },
+            ],
+          },
+        },
+        { name: 'stacked/commitments/[id]/index' },
+      ],
+    };
+  }
+
+  it.each([
+    [
+      'another tab focused and a screen pushed',
+      appStackOver(TRANSACTIONS_TAB_INDEX, PUSHED_TAB_STACK),
+      PUSHED_TAB_STACK.key,
+    ],
+    ['the tab itself focused', appStackOver(COMMITMENTS_TAB_INDEX, PUSHED_TAB_STACK), undefined],
+    ['only the tab root', appStackOver(TRANSACTIONS_TAB_INDEX, ROOT_TAB_STACK), undefined],
+    ['a tab with no state', appStackOver(TRANSACTIONS_TAB_INDEX), undefined],
+    ['a navigator with no (tabs) route', { routes: [{ name: 'index' }] }, undefined],
+    ['no navigator state', undefined, undefined],
+  ])('reads %s', (_name, appStack, expected) => {
+    expect(backgroundTabPushedStackKey(appStack, 'commitments')).toBe(expected);
   });
 });

@@ -6,6 +6,7 @@ import {
   commitmentMatchesAdvancedFilters,
   commitmentMatchesSearch,
   countActiveCommitmentFilters,
+  withHeldCommitment,
 } from '@/modules/commitments/screens/commitments/filter/filter.helpers';
 import type { CommitmentAdvancedFilters } from '@/modules/commitments/screens/commitments/filter/filter.store';
 import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
@@ -226,5 +227,55 @@ describe('commitment filter helpers', () => {
         makeFilters({ recurrencePresets: [RecurrencePreset.Custom] }),
       ),
     ).toBe(true);
+  });
+});
+
+describe('the commitment dimension (MA-213)', () => {
+  it('counts one section while a commitment is set', () => {
+    expect(countActiveCommitmentFilters(makeFilters({ commitmentId: 'commitment-1' }))).toBe(1);
+    expect(
+      countActiveCommitmentFilters(
+        makeFilters({ accountIds: ['a1'], commitmentId: 'commitment-1' }),
+      ),
+    ).toBe(2);
+  });
+
+  it('compares the two commitment ids', () => {
+    const rent = makeFilters({ commitmentId: 'commitment-1' });
+
+    expect(commitmentFiltersEqual(rent, makeFilters({ commitmentId: 'commitment-2' }))).toBe(false);
+    expect(commitmentFiltersEqual(rent, makeFilters())).toBe(false);
+    expect(commitmentFiltersEqual(makeFilters(), rent)).toBe(false);
+    expect(commitmentFiltersEqual(rent, makeFilters({ commitmentId: 'commitment-1' }))).toBe(true);
+  });
+
+  it('refuses a row of another commitment and takes a row of this one', () => {
+    const candidate = { payment: makePayment({ commitment_id: 'commitment-1' }) };
+
+    expect(
+      commitmentMatchesAdvancedFilters(candidate, makeFilters({ commitmentId: 'commitment-1' })),
+    ).toBe(true);
+    expect(
+      commitmentMatchesAdvancedFilters(candidate, makeFilters({ commitmentId: 'commitment-2' })),
+    ).toBe(false);
+  });
+});
+
+describe('withHeldCommitment (MA-213)', () => {
+  const rent = makeCommitment({ id: 'rent', name: 'Rent' });
+  const gym = makeCommitment({ id: 'gym', name: 'Gym' });
+  const stopped = makeCommitment({ id: 'old', name: 'Old gym', is_active: 0 });
+
+  it('returns the snapshot in its order with nothing held', () => {
+    expect(withHeldCommitment([rent, gym], undefined)).toEqual([rent, gym]);
+  });
+
+  it('appends a held commitment the snapshot lacks', () => {
+    expect(withHeldCommitment([rent, gym], stopped)).toEqual([rent, gym, stopped]);
+    expect(withHeldCommitment([], stopped)).toEqual([stopped]);
+  });
+
+  it('lists a held commitment the snapshot holds once, in its place', () => {
+    expect(withHeldCommitment([rent, gym], rent)).toEqual([rent, gym]);
   });
 });

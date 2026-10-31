@@ -99,3 +99,27 @@ describe('commitment detail Payments copy (MA-265)', () => {
     expect(Strings.commitmentsPayCycleLead('Thu 1 Oct 2026')).toBe('Thu 1 Oct 2026 · ');
   });
 });
+
+describe('commitment See all copy (MA-213)', () => {
+  it('ships the detail link byte-exact', () => {
+    expect(Strings.commitmentsDetailSeeAll).toBe('See all');
+  });
+
+  it('ships the named tally count byte-exact', () => {
+    expect(Strings.commitmentsTallyNamedCount('4', 'payments')).toBe('· 4 payments');
+    expect(Strings.commitmentsTallyNamedCount('1', 'payment')).toBe('· 1 payment');
+    expect(Strings.commitmentsTallyNamedCount('—', 'payments')).toBe('· — payments');
+  });
+
+  it('ships the sheet section title, its All summary and the option label byte-exact', () => {
+    expect({
+      title: Strings.filterSectionCommitments,
+      summary: Strings.filterAllCommitments,
+      option: Strings.commitmentFilterCommitmentAccessibility('Rent'),
+    }).toEqual({
+      title: 'Commitments',
+      summary: 'All commitments',
+      option: 'Rent, commitment filter',
+    });
+  });
+});

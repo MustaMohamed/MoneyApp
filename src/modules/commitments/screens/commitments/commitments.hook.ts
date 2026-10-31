@@ -1,5 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef } from 'react';
+import type { SectionList } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
 import { countFunnelFilters } from '@/components/ui/account_chips.helpers';
@@ -21,9 +22,15 @@ import type { Commitment } from '../../entities/commitment.entity';
 import type { CommitmentMonthPayment } from '../../entities/commitment_payment.entity';
 import { monthAggregateKey, useCommitmentStore } from '../../store/commitment.store';
 import { useCommitmentFormHostState } from '../../store/commitment_form_host.state';
-import { buildCommitmentSections, buildCommitmentsSearchTally } from './commitments.helpers';
+import {
+  buildCommitmentSections,
+  buildCommitmentsSearchTally,
+  resolveCommitmentListSource,
+  type CommitmentsSection,
+} from './commitments.helpers';
 import { buildCommitmentsPresentation } from './commitments.presentation';
 import { useCommitmentsScreenState } from './commitments.state';
+import { useCommitmentsScreenStore } from './commitments.store';
 import {
   buildCommitmentsHeroModel,
   resolveCommitmentsHeroAccountId,
@@ -96,36 +103,85 @@ export function useCommitments() {
   const clearSearch = useCommitmentsScreenState.getState().clearSearch;
   const setAppliedFilters = useCommitmentsScreenState.getState().setAppliedFilters;
   const deferredStatusFilter = useDeferredValue(statusFilter);
-  const debouncedSearch = useDebouncedValue(searchQuery, 300);
+  const settledSearch = useDebouncedValue(searchQuery, 300);
+  // An emptied query applies at once, so a seeded filter never reads the search it cleared.
+  const debouncedSearch = searchQuery.length === 0 ? '' : settledSearch;
   const openFilter = useCommitmentFilterState.getState().open;
   const setFilterDraft = useCommitmentFilterStore.getState().setDraft;
+
+  const { rowsRead, rowsLoadErrorId } = useCommitmentsScreenStore(
+    useShallow((s) => ({ rowsRead: s.rowsRead, rowsLoadErrorId: s.rowsLoadErrorId })),
+  );
+  const loadCommitmentRows = useCommitmentsScreenStore.getState().loadCommitmentRows;
+  const resetCommitmentRows = useCommitmentsScreenStore.getState().reset;
+  const listRef = useRef<SectionList<CommitmentMonthPayment, CommitmentsSection>>(null);
 
   const { effectiveFilters, accountChips, toggleAccountChip } = useAccountChipFilter(
     appliedFilters,
     useCommitmentsScreenState,
   );
+  const { commitmentId } = effectiveFilters;
 
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const hasMatchingSnapshot =
     commitmentsLoaded && paymentsLoaded && loadedMonth === selectedMonth && today !== undefined;
   const activeCommitments = hasMatchingSnapshot ? commitments : EMPTY_COMMITMENTS;
   const activePayments = hasMatchingSnapshot ? payments : EMPTY_PAYMENTS;
+  const source = useMemo(
+    () =>
+      resolveCommitmentListSource({
+        commitmentId,
+        month: {
+          yearMonth: selectedMonth,
+          ready: hasMatchingSnapshot,
+          today,
+          commitments: activeCommitments,
+          payments: activePayments,
+          loadError,
+        },
+        rowsRead,
+        rowsLoadErrorId,
+      }),
+    [
+      commitmentId,
+      selectedMonth,
+      hasMatchingSnapshot,
+      today,
+      activeCommitments,
+      activePayments,
+      loadError,
+      rowsRead,
+      rowsLoadErrorId,
+    ],
+  );
+
+  // `payments` is the refresh trigger: every store publish re-reads the commitment's rows in place.
+  useEffect(() => {
+    if (commitmentId === undefined) resetCommitmentRows();
+    else void loadCommitmentRows(commitmentId);
+  }, [commitmentId, payments, loadCommitmentRows, resetCommitmentRows]);
+
+  // A seed writes a fresh filter, so a See all on the held commitment opens at the top as well.
+  const listTopTrigger = commitmentId === undefined ? undefined : appliedFilters;
+  useEffect(() => {
+    listRef.current?.getScrollResponder()?.scrollTo({ y: 0, animated: false });
+  }, [listTopTrigger]);
 
   const commitmentsById = useMemo(
-    () => new Map(activeCommitments.map((c: Commitment) => [c.id, c])),
-    [activeCommitments],
+    () => new Map(source.commitments.map((c: Commitment) => [c.id, c])),
+    [source.commitments],
   );
 
   const rowAccountIds = useMemo(
     () =>
-      activePayments.flatMap((payment) => {
+      source.payments.flatMap((payment) => {
         const id = resolveCommitmentRowAccountId(
           payment,
           commitmentsById.get(payment.commitment_id),
         );
         return id === undefined ? [] : [id];
       }),
-    [activePayments, commitmentsById],
+    [source.payments, commitmentsById],
   );
 
   useEffect(() => {
@@ -133,8 +189,8 @@ export function useCommitments() {
   }, [loadAccountLookup, rowAccountIds]);
 
   const { sections, tally } = useMemo((): ReturnType<typeof buildCommitmentSections> => {
-    if (today === undefined) return { sections: [], tally: undefined };
-    const filteredPayments = activePayments.filter((payment) => {
+    if (source.today === undefined) return { sections: [], tally: undefined };
+    const filteredPayments = source.payments.filter((payment) => {
       const commitment = commitmentsById.get(payment.commitment_id);
       const accountId = resolveCommitmentRowAccountId(payment, commitment);
       const candidate = {
@@ -152,8 +208,8 @@ export function useCommitments() {
       rows: filteredPayments,
       statusFilter: deferredStatusFilter,
       commitmentsById,
-      yearMonth: selectedMonth,
-      today,
+      yearMonth: source.yearMonth,
+      today: source.today,
       liveRate,
     });
   }, [
@@ -163,13 +219,13 @@ export function useCommitments() {
     commitmentsById,
     debouncedSearch,
     deferredStatusFilter,
-    activePayments,
+    source.payments,
+    source.today,
+    source.yearMonth,
     liveRate,
-    selectedMonth,
-    today,
   ]);
 
-  const isEmpty = activePayments.length === 0;
+  const isEmpty = source.payments.length === 0;
   const emptyMonthName = useMemo(() => fullMonthName(selectedMonth), [selectedMonth]);
   const advancedFilterCount = useMemo(
     () => countActiveCommitmentFilters(effectiveFilters),
@@ -203,10 +259,17 @@ export function useCommitments() {
     [heroMode, monthAggregate, rate, selectedMonth, heroToday, heroAccountLabel],
   );
   const tallyIsOn = debouncedSearch.trim().length > 0 || advancedFilterCount > 0;
-  const tallyTotal = hasMatchingSnapshot ? tally : undefined;
+  const tallyTotal = source.ready ? tally : undefined;
+  const { commitmentName } = source;
   const searchTally = useMemo(
-    () => buildCommitmentsSearchTally({ isOn: tallyIsOn, heroMode, total: tallyTotal }),
-    [tallyIsOn, heroMode, tallyTotal],
+    () =>
+      buildCommitmentsSearchTally({
+        isOn: tallyIsOn,
+        heroMode,
+        total: tallyTotal,
+        commitmentName,
+      }),
+    [tallyIsOn, heroMode, tallyTotal, commitmentName],
   );
 
   const selectedMonthRef = useRef(selectedMonth);
@@ -268,11 +331,19 @@ export function useCommitments() {
       await Promise.all([
         reloadSelectedMonth(selectedMonth),
         loadMonthAggregate(selectedMonth, heroAccountId),
+        commitmentId === undefined ? undefined : loadCommitmentRows(commitmentId),
       ]);
     } catch {
       // The store owns loadError; event boundaries contain the rejected operation.
     }
-  }, [reloadSelectedMonth, loadMonthAggregate, selectedMonth, heroAccountId]);
+  }, [
+    reloadSelectedMonth,
+    loadMonthAggregate,
+    loadCommitmentRows,
+    selectedMonth,
+    heroAccountId,
+    commitmentId,
+  ]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -282,8 +353,8 @@ export function useCommitments() {
 
   // On a first-load failure the skeleton is the indicator.
   const retryLoad = useCallback(
-    () => (hasMatchingSnapshot ? onRefresh() : readSelectedMonth()),
-    [hasMatchingSnapshot, onRefresh, readSelectedMonth],
+    () => (source.ready ? onRefresh() : readSelectedMonth()),
+    [source.ready, onRefresh, readSelectedMonth],
   );
 
   const retryAccountLookup = useCallback(async () => {
@@ -323,10 +394,10 @@ export function useCommitments() {
 
   const showAccountLookupError = lookupLeavesUnresolved(accountRead, rowAccountIds);
   const presentation = buildCommitmentsPresentation({
-    hasMatchingSnapshot,
-    loadError,
-    commitmentCount: activeCommitments.length,
-    rowCount: activePayments.length,
+    listReady: source.ready,
+    loadError: source.loadError,
+    commitmentCount: source.commitments.length,
+    rowCount: source.payments.length,
     matchCount: sections.length,
     filtersActive,
     showAccountLookupError,
@@ -334,12 +405,14 @@ export function useCommitments() {
 
   return {
     state: {
+      listRef,
+      listKey: commitmentId,
       sections,
       tally: searchTally,
       liveRate,
       selectedMonth,
       emptyMonthName,
-      today,
+      today: source.today,
       hero,
       refreshing,
       isEmpty,

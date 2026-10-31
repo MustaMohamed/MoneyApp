@@ -3,13 +3,17 @@ import { act, renderHook } from '@testing-library/react-native';
 import { AmountType, Currency, RecurrencePreset } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
+import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import { useCommitmentsScreenState } from '@/modules/commitments/screens/commitments/commitments.state';
+import { useCommitmentsScreenStore } from '@/modules/commitments/screens/commitments/commitments.store';
 import { useCommitmentFilterSheet } from '@/modules/commitments/screens/commitments/filter/filter.hook';
 import { useCommitmentFilterState } from '@/modules/commitments/screens/commitments/filter/filter.state';
 import {
   EMPTY_COMMITMENT_FILTERS,
   useCommitmentFilterStore,
 } from '@/modules/commitments/screens/commitments/filter/filter.store';
+import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
+import { makeTestCommitment } from '@/test_helpers/commitment';
 import { makeTestAccount } from '@/test_helpers/transaction';
 
 beforeEach(() => {
@@ -199,5 +203,142 @@ describe('useCommitmentFilterSheet takes the transactions sheet amount and reset
     expect(result.current.state.amountMinText).toBe('');
     expect(result.current.state.amountMaxText).toBe('');
     expect(result.current.state.canReset).toBe(false);
+  });
+});
+
+describe('the commitment draft (MA-213)', () => {
+  function draftCommitmentId(): string | undefined {
+    return useCommitmentFilterStore.getState().draft.commitmentId;
+  }
+
+  it('lights one commitment, moves the light on another and clears on the lit one', () => {
+    useCommitmentFilterStore.getState().toggleCommitmentId('rent');
+    expect(draftCommitmentId()).toBe('rent');
+
+    useCommitmentFilterStore.getState().toggleCommitmentId('gym');
+    expect(draftCommitmentId()).toBe('gym');
+
+    useCommitmentFilterStore.getState().toggleCommitmentId('gym');
+    expect(draftCommitmentId()).toBeUndefined();
+  });
+
+  it('turns Reset on for a lit commitment, and Reset clears it', async () => {
+    const { result } = await renderHook(() => useCommitmentFilterSheet());
+
+    await act(() => useCommitmentFilterStore.getState().toggleCommitmentId('rent'));
+    expect(result.current.state.canReset).toBe(true);
+
+    await act(() => result.current.resetDraft());
+
+    expect(draftCommitmentId()).toBeUndefined();
+    expect(result.current.state.canReset).toBe(false);
+  });
+});
+
+describe('useCommitmentFilterSheet commitment section (MA-213)', () => {
+  const rent = makeTestCommitment({ id: 'rent', name: 'Rent' });
+  const gym = makeTestCommitment({ id: 'gym', name: 'Gym' });
+  const stopped = makeTestCommitment({ id: 'old', name: 'Old gym', is_active: 0 });
+
+  function holdRead(commitment: Commitment): void {
+    useCommitmentsScreenStore.setState({
+      rowsRead: { commitmentId: commitment.id, commitment, rows: [], today: '2026-10-22' },
+    });
+  }
+
+  function applyCommitment(commitmentId: string): void {
+    useCommitmentsScreenState
+      .getState()
+      .setAppliedFilters({ ...EMPTY_COMMITMENT_FILTERS, commitmentId });
+    useCommitmentFilterState.getState().open();
+  }
+
+  function optionIds(state: { commitmentOptions: readonly Commitment[] }): string[] {
+    return state.commitmentOptions.map((option) => option.id);
+  }
+
+  beforeEach(() => {
+    useCommitmentStore.getState().reset();
+    useCommitmentsScreenStore.getState().reset();
+  });
+
+  it('reads the lit option in the summary, and All commitments with none lit', async () => {
+    useCommitmentStore.setState({ commitments: [rent, gym] });
+    const { result } = await renderHook(() => useCommitmentFilterSheet());
+    expect(result.current.state.commitmentSummary).toBe('All commitments');
+
+    await act(() => result.current.toggleCommitmentId('rent'));
+    expect(result.current.state.commitmentSummary).toBe('Rent');
+
+    await act(() => result.current.toggleCommitmentId('gym'));
+    expect(result.current.state.commitmentSummary).toBe('Gym');
+
+    await act(() => result.current.toggleCommitmentId('gym'));
+    expect(result.current.state.commitmentSummary).toBe('All commitments');
+  });
+
+  it('lists a stopped commitment the applied dimension holds, lit', async () => {
+    useCommitmentStore.setState({ commitments: [rent] });
+    holdRead(stopped);
+    applyCommitment('old');
+
+    const { result } = await renderHook(() => useCommitmentFilterSheet());
+
+    expect(optionIds(result.current.state)).toEqual(['rent', 'old']);
+    expect(result.current.state.draft.commitmentId).toBe('old');
+    expect(result.current.state.commitmentSummary).toBe('Old gym');
+  });
+
+  it('leaves out an unlit stopped commitment with a month row', async () => {
+    useCommitmentStore.setState({ commitments: [rent, stopped] });
+
+    const { result } = await renderHook(() => useCommitmentFilterSheet());
+
+    expect(optionIds(result.current.state)).toEqual(['rent']);
+  });
+
+  it('drops the held commitment once the applied dimension clears', async () => {
+    useCommitmentStore.setState({ commitments: [rent] });
+    holdRead(stopped);
+    applyCommitment('old');
+    const { result } = await renderHook(() => useCommitmentFilterSheet());
+    expect(optionIds(result.current.state)).toEqual(['rent', 'old']);
+
+    await act(() =>
+      useCommitmentsScreenState.getState().setAppliedFilters(EMPTY_COMMITMENT_FILTERS),
+    );
+
+    expect(optionIds(result.current.state)).toEqual(['rent']);
+  });
+
+  it('keeps a lit stopped commitment listed after a tap clears it in the draft', async () => {
+    useCommitmentStore.setState({ commitments: [rent, stopped] });
+    holdRead(stopped);
+    applyCommitment('old');
+    const { result } = await renderHook(() => useCommitmentFilterSheet());
+
+    await act(() => result.current.toggleCommitmentId('old'));
+
+    expect(result.current.state.draft.commitmentId).toBeUndefined();
+    expect(optionIds(result.current.state)).toEqual(['rent', 'old']);
+    expect(result.current.state.commitmentSummary).toBe('All commitments');
+  });
+
+  it('counts the commitment on Apply and writes it to the applied filters', async () => {
+    useCommitmentStore.setState({ commitments: [rent] });
+    useCommitmentFilterState.getState().open();
+    const { result } = await renderHook(() => useCommitmentFilterSheet());
+
+    await act(() => result.current.toggleCommitmentId('rent'));
+    expect(result.current.state.draftCount).toBe(1);
+    expect(result.current.state.canApply).toBe(true);
+
+    await act(() => result.current.applyDraft());
+
+    expect(useCommitmentsScreenState.getState().appliedFilters).toEqual({
+      ...EMPTY_COMMITMENT_FILTERS,
+      commitmentId: 'rent',
+    });
+    expect(useCommitmentFilterState.getState().visible).toBe(false);
   });
 });

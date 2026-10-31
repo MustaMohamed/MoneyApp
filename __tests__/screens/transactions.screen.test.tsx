@@ -1,10 +1,11 @@
 import { fireEvent, render, within } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
-import { StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
+import { StyleSheet, type StyleProp, type TextProps, type ViewStyle } from 'react-native';
 
 import { DAY_CARD_INNER_RADIUS } from '@/components/ui/day_card_row.helpers';
 import { LIST_RAIL_ALL_OPTION } from '@/components/ui/list_rail';
 import { LIST_RAIL } from '@/components/ui/list_rail.geometry';
+import { SEARCH_TALLY_LEAD_STYLE, SEARCH_TALLY_WHOLE_STYLE } from '@/components/ui/search_tally';
 import { Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Radius } from '@/constants/theme';
@@ -21,9 +22,9 @@ jest.mock('expo-router', () => ({
 }));
 jest.mock('heroui-native', () => {
   const { Text, View } = jest.requireActual<typeof import('react-native')>('react-native');
-  const Typography = {
+  const Typography = Object.assign((props: TextProps) => <Text {...props} />, {
     Heading: ({ children }: { children?: ReactNode }) => <Text>{children}</Text>,
-  };
+  });
   const SkeletonGroupRoot = ({ children }: { children?: ReactNode }) => (
     <View testID="skeleton-group">{children}</View>
   );
@@ -421,6 +422,49 @@ describe('TransactionsScreen', () => {
     expect(slot).toHaveProp('accessibilityLabel', '');
     expect(slot).toHaveProp('accessible', false);
     expect(within(slot).getByTestId('skeleton')).toBeTruthy();
+  });
+
+  it('MA-213: a lead model draws the name at the lead style, the count at the whole style and the whole spoken label', async () => {
+    mockUseTransactions({
+      tally: {
+        mode: 'figures',
+        lead: 'Rent',
+        count: undefined,
+        label: '· 4 payments',
+        filterSummary: undefined,
+        sum: { text: '32,000', polarity: 'neutral', currencyCode: 'EGP' },
+        accessibilityLabel: 'Rent · 4 payments 32,000 EGP',
+      },
+    });
+    const { getByTestId } = await render(<TransactionsScreen />);
+
+    const slot = getByTestId('transactions-search-tally');
+    expect(slot).toHaveProp('accessibilityLabel', 'Rent · 4 payments 32,000 EGP');
+    expect(slot).toHaveProp('accessible', true);
+    expect(within(slot).getByText('Rent')).toHaveStyle(SEARCH_TALLY_LEAD_STYLE);
+    expect(within(slot).getByText('· 4 payments').parent).toHaveStyle(SEARCH_TALLY_WHOLE_STYLE);
+  });
+
+  it('MA-213: a model with no lead draws neither the lead style nor the whole style', async () => {
+    mockUseTransactions({
+      tally: {
+        mode: 'figures',
+        count: '4',
+        label: 'results',
+        filterSummary: undefined,
+        sum: { text: '32,000', polarity: 'neutral', currencyCode: 'EGP' },
+        accessibilityLabel: '4 results 32,000 EGP',
+      },
+    });
+    const { getByTestId } = await render(<TransactionsScreen />);
+
+    const slot = getByTestId('transactions-search-tally');
+    expect(slot).toHaveProp('accessibilityLabel', '4 results 32,000 EGP');
+    const label = within(slot).getByText('results');
+    expect(label).not.toHaveStyle(SEARCH_TALLY_LEAD_STYLE);
+    expect(label).not.toHaveStyle(SEARCH_TALLY_WHOLE_STYLE);
+    expect(label.parent).not.toHaveStyle(SEARCH_TALLY_LEAD_STYLE);
+    expect(label.parent).not.toHaveStyle(SEARCH_TALLY_WHOLE_STYLE);
   });
 
   it('does not re-render the hero on a search keystroke, only on a new hero model (M25)', async () => {

@@ -1,4 +1,5 @@
 import { router, useLocalSearchParams, useNavigation, usePathname } from 'expo-router';
+import { StackActions } from 'expo-router/react-navigation';
 import { useCallback, useEffect, useId, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -11,6 +12,7 @@ import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import {
   STACKED_PREFIX,
   TABBED_ORIGIN,
+  backgroundTabPushedStackKey,
   resolveDetailScreenEdges,
   stackedPrefixOf,
   stackedPrefixOfNavigator,
@@ -25,6 +27,7 @@ import {
   type CommitmentEditLanding,
   useCommitmentFormHostState,
 } from '../../../store/commitment_form_host.state';
+import { useCommitmentsScreenState } from '../commitments.state';
 import { usePaySheetState } from './components/pay_sheet.state';
 import {
   buildCommitmentCycleCard,
@@ -44,6 +47,9 @@ import {
 } from './detail.helpers';
 import { INITIAL_UI_ENTRY, useCommitmentDetailState } from './detail.state';
 import { INITIAL_DATA_ENTRY, useCommitmentDetailStore } from './detail.store';
+
+const COMMITMENTS_TAB_NAME = 'commitments';
+const COMMITMENTS_TAB = `/(app)/(tabs)/${COMMITMENTS_TAB_NAME}` as const;
 
 const NO_FACTS: readonly DetailFact<CommitmentDetailFactKind>[] = Object.freeze([]);
 const NO_PAYMENT_ROWS: readonly CommitmentPaymentRowModel[] = Object.freeze([]);
@@ -309,6 +315,19 @@ export function useCommitmentDetail() {
     router.push(stackedTransactionDetailRoute(transactionId));
   }, [transactionId]);
 
+  // The second `dismissTo` pops the landed tab's own Stack, where the href only diverges once the first has run.
+  const goToAllPayments = useCallback(() => {
+    if (!commitmentId) return;
+    useCommitmentsScreenState.getState().seedCommitmentFilter(commitmentId);
+    // From another tab the landing pushes a second list over the tab's own detail, so that Stack pops first.
+    const tabStack = backgroundTabPushedStackKey(navigation.getState(), COMMITMENTS_TAB_NAME);
+    if (tabStack !== undefined) {
+      navigation.dispatch({ ...StackActions.popToTop(), target: tabStack });
+    }
+    router.dismissTo(COMMITMENTS_TAB);
+    router.dismissTo(COMMITMENTS_TAB);
+  }, [commitmentId, navigation]);
+
   return {
     state: {
       owner,
@@ -340,5 +359,6 @@ export function useCommitmentDetail() {
     goToEdit,
     goBack,
     viewTransaction,
+    goToAllPayments,
   };
 }

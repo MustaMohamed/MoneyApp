@@ -22,6 +22,24 @@ export function stackedPrefixOfNavigator(
   return isStacked === true ? STACKED_PREFIX : '';
 }
 
+interface RouteStateLike {
+  key?: string;
+  index?: number;
+  routes: readonly { name: string; state?: RouteStateLike }[];
+}
+
+/** Read on the `(app)` Stack: the key of `tabName`'s own Stack while it holds a pushed screen and `(tabs)` sits on another tab. */
+export function backgroundTabPushedStackKey(
+  appStack: RouteStateLike | undefined,
+  tabName: string,
+): string | undefined {
+  const tabs = appStack?.routes.find((route) => route.name === '(tabs)')?.state;
+  if (tabs === undefined) return undefined;
+  const tab = tabs.routes.find((route) => route.name === tabName);
+  if (tab === undefined || tab === tabs.routes[tabs.index ?? 0]) return undefined;
+  return (tab.state?.routes.length ?? 0) > 1 ? tab.state?.key : undefined;
+}
+
 const TABBED_SCREEN_EDGES: Edge[] = ['top'];
 const STACKED_SCREEN_EDGES: Edge[] = ['top', 'bottom'];
 

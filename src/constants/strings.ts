@@ -1009,11 +1009,13 @@ export const Strings = {
   filterSectionAmount: 'Amount',
   filterSectionAmountType: 'Amount type',
   filterSectionRepeats: 'Repeats',
+  filterSectionCommitments: 'Commitments',
 
   filterAllAccounts: 'All accounts',
   filterAllCategories: 'All categories',
   filterAllAmountTypes: 'All types',
   filterAllRepeats: 'All',
+  filterAllCommitments: 'All commitments',
 
   datePresetToday: 'Today',
   datePresetThisWeek: 'This week',
@@ -1056,6 +1058,7 @@ export const Strings = {
   commitmentsSectionSumEstimate: (sum: string) => `~ ${sum}`,
   commitmentsTallyOnePayment: 'payment',
   commitmentsTallyPayments: 'payments',
+  commitmentsTallyNamedCount: (count: string, unit: string) => `· ${count} ${unit}`,
   commitmentsSectionA11y: (section: string, sum: string, count: string) =>
     `${section}, ${sum}, ${count} payments`,
   commitmentsSectionOneA11y: (section: string, sum: string) => `${section}, ${sum}, 1 payment`,
@@ -1137,6 +1140,7 @@ export const Strings = {
   commitmentsDetailEnds: 'Ends',
   commitmentsDetailCurrency: 'Currency',
   commitmentsDetailPaymentHistory: 'Payments',
+  commitmentsDetailSeeAll: 'See all',
   commitmentsDetailCurrentCycle: 'This cycle',
   commitmentsDetailHeader: 'Commitment',
   commitmentsCadenceVaries: (recurrence: string) => `${recurrence} · varies`,
@@ -1388,6 +1392,7 @@ export const Strings = {
     `${label}, commitment amount type filter`,
   commitmentFilterRecurrenceAccessibility: (label: string) =>
     `${label}, commitment recurrence filter`,
+  commitmentFilterCommitmentAccessibility: (name: string) => `${name}, commitment filter`,
   commitmentFilterAmountCurrencyAccessibility: 'Commitment amount currency',
   transactionTypeFilterAccessibility: 'Transaction type filter',
   commitmentStatusFilterAccessibility: 'Commitment status filter',

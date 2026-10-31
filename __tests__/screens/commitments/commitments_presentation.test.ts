@@ -11,7 +11,7 @@ function input(
   overrides: Partial<CommitmentsPresentationInput> = {},
 ): CommitmentsPresentationInput {
   return {
-    hasMatchingSnapshot: true,
+    listReady: true,
     loadError: false,
     commitmentCount: 1,
     rowCount: 2,
@@ -26,12 +26,12 @@ describe('buildCommitmentsPresentation', () => {
   it.each<[string, Partial<CommitmentsPresentationInput>, CommitmentsPresentation]>([
     [
       'the first load of a month',
-      { hasMatchingSnapshot: false, ...NOTHING_IN_MONTH },
+      { listReady: false, ...NOTHING_IN_MONTH },
       { status: 'coldLoading', emptyVariant: 'none', floatingAlert: undefined },
     ],
     [
       'a first-load failure',
-      { hasMatchingSnapshot: false, loadError: true, ...NOTHING_IN_MONTH },
+      { listReady: false, loadError: true, ...NOTHING_IN_MONTH },
       { status: 'coldError', emptyVariant: 'none', floatingAlert: undefined },
     ],
     [
@@ -106,13 +106,13 @@ describe('buildCommitmentsPresentation', () => {
     ],
     [
       'an unresolved account name during the first load',
-      { hasMatchingSnapshot: false, showAccountLookupError: true, ...NOTHING_IN_MONTH },
+      { listReady: false, showAccountLookupError: true, ...NOTHING_IN_MONTH },
       { status: 'coldLoading', emptyVariant: 'none', floatingAlert: undefined },
     ],
     [
       'an unresolved account name under a first-load failure',
       {
-        hasMatchingSnapshot: false,
+        listReady: false,
         loadError: true,
         showAccountLookupError: true,
         ...NOTHING_IN_MONTH,

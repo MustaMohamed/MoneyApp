@@ -12,6 +12,7 @@ export interface CommitmentAdvancedFilters extends AmountRangeBounds {
   categoryIds: string[];
   amountTypes: AmountType[];
   recurrencePresets: RecurrencePreset[];
+  commitmentId?: string;
 }
 
 export const EMPTY_COMMITMENT_FILTERS: CommitmentAdvancedFilters = {
@@ -35,6 +36,7 @@ type CommitmentFilterStore = DraftShape & {
   toggleCategoryId: (id: string) => void;
   toggleAmountType: (type: AmountType) => void;
   toggleRecurrencePreset: (preset: RecurrencePreset) => void;
+  toggleCommitmentId: (id: string) => void;
   setAmountMin: (value?: number) => void;
   setAmountMax: (value?: number) => void;
   setAmountMinText: (value: string) => void;
@@ -83,6 +85,13 @@ export const useCommitmentFilterStore = createMoneyAppSelectors(
         draft: {
           ...state.draft,
           recurrencePresets: toggleValue(state.draft.recurrencePresets, preset),
+        },
+      })),
+    toggleCommitmentId: (id) =>
+      set((state) => ({
+        draft: {
+          ...state.draft,
+          commitmentId: state.draft.commitmentId === id ? undefined : id,
         },
       })),
     setAmountMin: (value) =>

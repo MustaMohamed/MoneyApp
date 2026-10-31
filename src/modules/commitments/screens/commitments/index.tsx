@@ -261,7 +261,10 @@ export default function CommitmentsScreen() {
       ) : state.emptyVariant === 'noCommitments' ? (
         <CommitmentsEmptyState onAdd={goToAdd} />
       ) : (
+        // A kept list holds the sticky offsets of the rows it left, so each commitment mounts its own.
         <SectionList
+          key={state.listKey}
+          ref={state.listRef}
           sections={state.sections}
           keyExtractor={(item) => item.id}
           stickySectionHeadersEnabled
