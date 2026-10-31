@@ -137,6 +137,15 @@ jest.mock(
     },
   }),
 );
+jest.mock(
+  '@/modules/commitments/screens/commitments/filter/components/commitment_accordion',
+  () => ({
+    CommitmentAccordion: () => {
+      const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
+      return <Text>Commitments section</Text>;
+    },
+  }),
+);
 
 describe('CommitmentFilterSheet', () => {
   beforeEach(() => {
