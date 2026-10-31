@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import { withEntry, withoutEntry, type KeyedEntries } from '@/utils/keyed_entries';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
-export type PaySheetPostCloseAction = 'addAccount';
+export type PaySheetPostCloseAction = 'addAccount' | { paidToast: string };
 
 interface PaySheetEntry {
   visible: boolean;
@@ -15,7 +15,7 @@ interface PaySheetEntry {
   saveError?: string;
   /** The local day the sheet opened on, the day a payment is dated by default. */
   openedOn?: string;
-  /** What a settled close carries out: the no-accounts state's Add account opens add account. */
+  /** What a settled close carries out: the no-accounts state's Add account opens add account, a Pay shows its toast. */
   postCloseAction: PaySheetPostCloseAction | undefined;
 }
 
@@ -30,6 +30,8 @@ type PaySheetState = PaySheetStateShape & {
   setSaveError: (owner: string, message?: string) => void;
   /** Hides a visible, idle sheet for the add-account hand-off; `false` when it changed nothing. */
   requestAccountCreation: (owner: string) => boolean;
+  /** Hides a visible sheet and leaves its paid toast for the close; `false` when it changed nothing. */
+  closeWithToast: (owner: string, label: string) => boolean;
   /** Reads and clears the hand-off a settled close owes. */
   completeClose: (owner: string) => PaySheetPostCloseAction | undefined;
   release: (owner: string) => void;
@@ -78,6 +80,12 @@ export const usePaySheetState = createMoneyAppSelectors(
         const { entries } = get();
         if (!(owner in entries) || !entries[owner].visible || entries[owner].saving) return false;
         updateEntry(owner, { visible: false, postCloseAction: 'addAccount' });
+        return true;
+      },
+      closeWithToast: (owner, label) => {
+        const { entries } = get();
+        if (!(owner in entries) || !entries[owner].visible) return false;
+        updateEntry(owner, { visible: false, postCloseAction: { paidToast: label } });
         return true;
       },
       completeClose: (owner) => {
