@@ -21,6 +21,8 @@ interface DashboardStoreActions {
   refresh: (input: DashboardLoadInput) => Promise<void>;
   retry: (input: DashboardLoadInput) => Promise<void>;
   revalidateAfterMutation: (input: DashboardLoadInput) => Promise<void>;
+  /** Holds what is on screen until the read settles, a new month too; never rejects. */
+  revalidateAtDayChange: (input: DashboardLoadInput) => Promise<void>;
   invalidate: () => void;
   reset: () => void;
 }
@@ -47,6 +49,48 @@ export function createDashboardStore(repository: IDashboardRepository) {
 
   return createMoneyAppSelectors(
     create<DashboardStore>((set, get) => {
+      const readSnapshot = (
+        input: DashboardLoadInput,
+        ownerGeneration: number,
+        failureStatus: DashboardSnapshotStatus,
+      ): Promise<void> => {
+        let repositoryRequest: Promise<DashboardSnapshot>;
+        try {
+          repositoryRequest = Promise.resolve(repository.getSnapshot(input));
+        } catch (error) {
+          repositoryRequest = Promise.reject(error);
+        }
+
+        const request = repositoryRequest
+          .then(
+            (snapshot) => {
+              if (ownerGeneration !== generation) return;
+              freshKey = input.yearMonth;
+              set({
+                snapshot,
+                status: 'ready',
+                requestedKey: input.yearMonth,
+                requestGeneration: ownerGeneration,
+              });
+            },
+            (error: unknown) => {
+              if (ownerGeneration !== generation) return;
+              console.error('[dashboardStore] snapshot request failed:', error);
+              set({ status: failureStatus, requestGeneration: ownerGeneration });
+            },
+          )
+          .finally(() => {
+            if (inFlight?.generation === ownerGeneration) inFlight = undefined;
+          });
+
+        inFlight = {
+          key: input.yearMonth,
+          generation: ownerGeneration,
+          promise: request,
+        };
+        return request;
+      };
+
       const startRequest = (input: DashboardLoadInput, force: boolean): Promise<void> => {
         if (inFlight?.key === input.yearMonth) return inFlight.promise;
 
@@ -74,44 +118,11 @@ export function createDashboardStore(repository: IDashboardRepository) {
           });
         }
 
-        let repositoryRequest: Promise<DashboardSnapshot>;
-        try {
-          repositoryRequest = Promise.resolve(repository.getSnapshot(input));
-        } catch (error) {
-          repositoryRequest = Promise.reject(error);
-        }
-
-        const request = repositoryRequest
-          .then(
-            (snapshot) => {
-              if (ownerGeneration !== generation) return;
-              freshKey = input.yearMonth;
-              set({
-                snapshot,
-                status: 'ready',
-                requestedKey: input.yearMonth,
-                requestGeneration: ownerGeneration,
-              });
-            },
-            (error: unknown) => {
-              if (ownerGeneration !== generation) return;
-              console.error('[dashboardStore] snapshot request failed:', error);
-              set({
-                status: sameKeySnapshot ? 'refreshErrorWithData' : 'initialError',
-                requestGeneration: ownerGeneration,
-              });
-            },
-          )
-          .finally(() => {
-            if (inFlight?.generation === ownerGeneration) inFlight = undefined;
-          });
-
-        inFlight = {
-          key: input.yearMonth,
-          generation: ownerGeneration,
-          promise: request,
-        };
-        return request;
+        return readSnapshot(
+          input,
+          ownerGeneration,
+          sameKeySnapshot ? 'refreshErrorWithData' : 'initialError',
+        );
       };
 
       return {
@@ -124,6 +135,16 @@ export function createDashboardStore(repository: IDashboardRepository) {
           freshKey = undefined;
           inFlight = undefined;
           return startRequest(input, true);
+        },
+        revalidateAtDayChange: (input) => {
+          const ownerGeneration = ++generation;
+          freshKey = undefined;
+          inFlight = undefined;
+          return readSnapshot(
+            input,
+            ownerGeneration,
+            get().snapshot ? 'refreshErrorWithData' : 'initialError',
+          );
         },
         invalidate: () => {
           generation += 1;

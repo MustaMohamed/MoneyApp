@@ -15,6 +15,7 @@ import { resolveAccountName } from '@/utils/account_name';
 import { toLocalDateString } from '@/utils/format_date';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
 import { useDebouncedValue } from '@/utils/use_debounced_value.hook';
+import { useLocalDayChange } from '@/utils/use_local_day_change.hook';
 import { fullMonthName, shiftYearMonth } from '@/utils/year_month';
 
 import { resolveCommitmentRowAccountId } from '../../domain/payment_state';
@@ -56,7 +57,6 @@ export function useCommitments() {
     paymentsLoaded,
     loadedMonth,
     today,
-    loading,
     loadError,
     monthAggregate,
     monthAggregateErrorKey,
@@ -69,7 +69,6 @@ export function useCommitments() {
       paymentsLoaded: s.paymentsLoaded,
       loadedMonth: s.loadedMonth,
       today: s.today,
-      loading: s.loading,
       loadError: s.loadError,
       monthAggregate: s.monthAggregate,
       monthAggregateErrorKey: s.monthAggregateErrorKey,
@@ -78,6 +77,8 @@ export function useCommitments() {
   const setSelectedMonth = useCommitmentStore.getState().setSelectedMonth;
   const loadMonthSnapshot = useCommitmentStore.getState().loadMonthSnapshot;
   const loadMonthAggregate = useCommitmentStore.getState().loadMonthAggregate;
+  const ensureMonthSnapshot = useCommitmentStore.getState().ensureMonthSnapshot;
+  const ensureMonthAggregate = useCommitmentStore.getState().ensureMonthAggregate;
   const skipPayment = useCommitmentStore.getState().skipPayment;
   const deactivateCommitment = useCommitmentStore.getState().deactivateCommitment;
 
@@ -306,7 +307,7 @@ export function useCommitments() {
     useCallback(() => {
       const task = runAfterInteractions(
         () => {
-          return reloadSelectedMonth(selectedMonthRef.current);
+          return ensureMonthSnapshot(selectedMonthRef.current);
         },
         {
           onError: (error) => {
@@ -315,15 +316,32 @@ export function useCommitments() {
         },
       );
       return () => task.cancel();
-    }, [reloadSelectedMonth]),
+    }, [ensureMonthSnapshot]),
   );
 
   // Expo-router reruns this on focus and on a month or hero-account change while focused.
   useFocusEffect(
     useCallback(() => {
-      const task = runAfterInteractions(() => loadMonthAggregate(selectedMonth, heroAccountId));
+      const task = runAfterInteractions(() => ensureMonthAggregate(selectedMonth, heroAccountId));
       return () => task.cancel();
-    }, [loadMonthAggregate, selectedMonth, heroAccountId]),
+    }, [ensureMonthAggregate, selectedMonth, heroAccountId]),
+  );
+
+  const readDayChange = useCallback(async () => {
+    try {
+      await Promise.all([
+        ensureMonthSnapshot(selectedMonthRef.current),
+        ensureMonthAggregate(selectedMonth, heroAccountId),
+      ]);
+    } catch {
+      // The store owns loadError; event boundaries contain the rejected operation.
+    }
+  }, [ensureMonthSnapshot, ensureMonthAggregate, selectedMonth, heroAccountId]);
+
+  useLocalDayChange(
+    useCallback(() => {
+      void readDayChange();
+    }, [readDayChange]),
   );
 
   const readSelectedMonth = useCallback(async () => {
@@ -418,7 +436,6 @@ export function useCommitments() {
       isEmpty,
       commitmentsLoaded,
       paymentsLoaded,
-      loading,
       loadError,
       presentation: presentation.status,
       emptyVariant: presentation.emptyVariant,

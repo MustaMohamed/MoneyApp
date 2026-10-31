@@ -18,6 +18,7 @@ import { useDashboardStore } from '@/modules/dashboard/store/dashboard.store';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import { formatMonthYear } from '@/utils/format_date';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
+import { useLocalDayChange } from '@/utils/use_local_day_change.hook';
 import { currentYearMonth, shiftYearMonth } from '@/utils/year_month';
 
 import {
@@ -130,6 +131,12 @@ export function useDashboard() {
   const retry = useCallback(
     () => useDashboardStore.getState().retry(createDashboardLoadInput()),
     [],
+  );
+
+  useLocalDayChange(
+    useCallback(() => {
+      void useDashboardStore.getState().revalidateAtDayChange(createDashboardLoadInput());
+    }, []),
   );
 
   const presentation = useMemo(

@@ -1,13 +1,11 @@
 import { create } from 'zustand';
 
-import { CommitmentPaymentStatus } from '@/constants/enums';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import { toLocalDateString } from '@/utils/format_date';
 import { currentYearMonth } from '@/utils/year_month';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 import type { CommitmentMonthAggregate } from '../domain/commitment_month_totals';
-import { isPaidPayment, isSkippedPayment, resolvePaymentState } from '../domain/payment_state';
 import type { Commitment } from '../entities/commitment.entity';
 import type {
   CommitmentMonthPayment,
@@ -39,7 +37,6 @@ interface CommitmentStoreState {
   paymentsLoaded: boolean;
   loadedMonth: string | undefined;
   today: string | undefined;
-  loading: boolean;
   loadError: boolean;
   generation: number;
   monthAggregate: { key: string; aggregate: CommitmentMonthAggregate } | undefined;
@@ -52,7 +49,13 @@ type CommitmentStore = CommitmentStoreState & {
   loadMonthSnapshot(yearMonth: string, now?: Date): Promise<void>;
   /** Never rejects: a failure sets `monthAggregateErrorKey` and keeps the held slot. */
   loadMonthAggregate(yearMonth: string, accountId: string | undefined, now?: Date): Promise<void>;
+  /** Reads only when the store holds no landed read of `yearMonth` for `now`'s local day and the data as it stands. */
+  ensureMonthSnapshot(yearMonth: string, now?: Date): Promise<void>;
+  /** The gate of `ensureMonthSnapshot` on the figures; never rejects, as `loadMonthAggregate`. */
+  ensureMonthAggregate(yearMonth: string, accountId: string | undefined, now?: Date): Promise<void>;
   setSelectedMonth(yearMonth: string): Promise<void>;
+  /** Opens the gates after a write this store did not make; starts no read. */
+  announceExternalWrite(): void;
 
   addCommitment(data: NewCommitmentInput): Promise<void>;
   updateCommitment(id: string, data: UpdateCommitmentInput): Promise<void>;
@@ -60,12 +63,6 @@ type CommitmentStore = CommitmentStoreState & {
   markAsPaid(paymentId: string, details: PaymentDetails): Promise<void>;
   skipPayment(paymentId: string, now?: Date): Promise<void>;
   undoSkip(paymentId: string, now?: Date): Promise<void>;
-
-  getOverdue(): CommitmentPayment[];
-  getDueToday(): CommitmentPayment[];
-  getUpcoming(): CommitmentPayment[];
-  getPaid(): CommitmentPayment[];
-  getSkipped(): CommitmentPayment[];
 
   reset(): void;
 };
@@ -98,7 +95,6 @@ function initialState(generation = 0): CommitmentStoreState {
     paymentsLoaded: false,
     loadedMonth: undefined,
     today: undefined,
-    loading: false,
     loadError: false,
     generation,
     monthAggregate: undefined,
@@ -119,6 +115,9 @@ export function createCommitmentStore(
   let latestRequestedMonth: string | undefined;
   let latestAggregateRequest = 0;
   let latestAggregateScope: { accountId: string | undefined } | undefined;
+  // Each holds its in-flight map's key for the last read landed, cleared as a load starts.
+  let freshSnapshotKey: string | undefined;
+  let freshAggregateKey: string | undefined;
   const inFlightHousekeeping = new Map<string, Promise<void>>();
   const inFlightSnapshots = new Map<string, Promise<CommitmentMonthSnapshot>>();
   const inFlightAggregates = new Map<string, Promise<CommitmentMonthAggregate>>();
@@ -126,8 +125,18 @@ export function createCommitmentStore(
   const getHousekeepingRequest = (key: string, now: Date) =>
     shareInFlight(inFlightHousekeeping, key, () => repo.runHousekeeping(now));
 
+  const snapshotRequestKey = (month: string, today: string, generation: number) =>
+    `${month}:${today}:${generation}`;
+
+  const aggregateRequestKey = (
+    yearMonth: string,
+    accountId: string | undefined,
+    today: string,
+    generation: number,
+  ) => `${monthAggregateKey(yearMonth, accountId)}:${today}:${generation}`;
+
   const getSnapshotRequest = (month: string, today: string, generation: number) =>
-    shareInFlight(inFlightSnapshots, `${month}:${today}:${generation}`, () =>
+    shareInFlight(inFlightSnapshots, snapshotRequestKey(month, today, generation), () =>
       repo.getMonthSnapshot(month, today),
     );
 
@@ -139,7 +148,7 @@ export function createCommitmentStore(
   ) =>
     shareInFlight(
       inFlightAggregates,
-      `${monthAggregateKey(yearMonth, accountId)}:${today}:${generation}`,
+      aggregateRequestKey(yearMonth, accountId, today, generation),
       () => repo.getMonthAggregate(yearMonth, today, accountId),
     );
 
@@ -174,12 +183,6 @@ export function createCommitmentStore(
         }));
       };
 
-      const paymentsInState = (status: CommitmentPaymentStatus) => {
-        const { payments, today } = get();
-        if (today === undefined) return [];
-        return payments.filter((payment) => resolvePaymentState(payment, today) === status);
-      };
-
       const endPaymentTransition = (paymentId: string) => {
         set((state) => ({
           transitioningPaymentIds: state.transitioningPaymentIds.filter(
@@ -193,7 +196,7 @@ export function createCommitmentStore(
 
         ensureHousekeepingCurrent: async (now = new Date()) => {
           const generation = dataGeneration;
-          const key = `${now.toISOString().slice(0, 10)}:${generation}`;
+          const key = `${toLocalDateString(now)}:${generation}`;
           if (lastSuccessfulHousekeepingKey === key) return;
 
           const requestId = ++latestHousekeepingRequest;
@@ -213,7 +216,8 @@ export function createCommitmentStore(
           latestRequestedMonth = yearMonth;
           const generation = dataGeneration;
           const today = toLocalDateString(now);
-          set({ loading: true, loadError: false });
+          freshSnapshotKey = undefined;
+          if (get().loadError) set({ loadError: false });
 
           try {
             await get().ensureHousekeepingCurrent(now);
@@ -233,11 +237,11 @@ export function createCommitmentStore(
             ) {
               return;
             }
+            freshSnapshotKey = snapshotRequestKey(yearMonth, today, generation);
             set({
               ...snapshot,
               commitmentsLoaded: true,
               paymentsLoaded: true,
-              loading: false,
               loadError: false,
             });
           } catch (error) {
@@ -246,7 +250,7 @@ export function createCommitmentStore(
               yearMonth === latestRequestedMonth &&
               generation === dataGeneration
             ) {
-              set({ loading: false, loadError: true });
+              set({ loadError: true });
             }
             throw error;
           }
@@ -258,6 +262,7 @@ export function createCommitmentStore(
           const key = monthAggregateKey(yearMonth, accountId);
           const generation = dataGeneration;
           const today = toLocalDateString(now);
+          freshAggregateKey = undefined;
 
           try {
             await get().ensureHousekeepingCurrent(now);
@@ -265,6 +270,7 @@ export function createCommitmentStore(
 
             const aggregate = await getAggregateRequest(yearMonth, accountId, today, generation);
             if (requestId !== latestAggregateRequest || generation !== dataGeneration) return;
+            freshAggregateKey = aggregateRequestKey(yearMonth, accountId, today, generation);
             set((state) => ({
               monthAggregate: { key, aggregate },
               monthAggregateErrorKey:
@@ -278,10 +284,25 @@ export function createCommitmentStore(
           }
         },
 
+        ensureMonthSnapshot: async (yearMonth, now = new Date()) => {
+          const key = snapshotRequestKey(yearMonth, toLocalDateString(now), dataGeneration);
+          if (freshSnapshotKey === key) return;
+          await get().loadMonthSnapshot(yearMonth, now);
+        },
+
+        ensureMonthAggregate: async (yearMonth, accountId, now = new Date()) => {
+          const today = toLocalDateString(now);
+          const key = aggregateRequestKey(yearMonth, accountId, today, dataGeneration);
+          if (freshAggregateKey === key) return;
+          await get().loadMonthAggregate(yearMonth, accountId, now);
+        },
+
         setSelectedMonth: async (yearMonth) => {
           set({ selectedMonth: yearMonth });
           await get().loadMonthSnapshot(yearMonth);
         },
+
+        announceExternalWrite: invalidateData,
 
         addCommitment: async (data) => {
           try {
@@ -400,16 +421,6 @@ export function createCommitmentStore(
           }
         },
 
-        getOverdue: () => paymentsInState(CommitmentPaymentStatus.Overdue),
-
-        getDueToday: () => paymentsInState(CommitmentPaymentStatus.Due),
-
-        getUpcoming: () => paymentsInState(CommitmentPaymentStatus.Upcoming),
-
-        getPaid: () => get().payments.filter(isPaidPayment),
-
-        getSkipped: () => get().payments.filter(isSkippedPayment),
-
         reset: () => {
           dataGeneration += 1;
           lastSuccessfulHousekeepingKey = undefined;
@@ -419,6 +430,8 @@ export function createCommitmentStore(
           latestRequestedMonth = undefined;
           latestAggregateRequest += 1;
           latestAggregateScope = undefined;
+          freshSnapshotKey = undefined;
+          freshAggregateKey = undefined;
           inFlightHousekeeping.clear();
           inFlightSnapshots.clear();
           inFlightAggregates.clear();
