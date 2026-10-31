@@ -22,6 +22,10 @@ import type {
 import { useCommitments } from '@/modules/commitments/screens/commitments/commitments.hook';
 import type { CommitmentStatusFilter } from '@/modules/commitments/screens/commitments/commitments.state';
 import { useCommitmentsScreenState } from '@/modules/commitments/screens/commitments/commitments.state';
+import {
+  type CommitmentRowsRead,
+  useCommitmentsScreenStore,
+} from '@/modules/commitments/screens/commitments/commitments.store';
 import { useCommitmentFilterState } from '@/modules/commitments/screens/commitments/filter/filter.state';
 import {
   EMPTY_COMMITMENT_FILTERS,
@@ -89,7 +93,11 @@ jest.mock('@/modules/categories/store/category.store', () => ({ useCategoryStore
 jest.mock('@/modules/commitments/screens/commitments/commitments.state', () => ({
   useCommitmentsScreenState: jest.fn(),
 }));
+jest.mock('@/modules/commitments/screens/commitments/commitments.store', () => ({
+  useCommitmentsScreenStore: jest.fn(),
+}));
 
+const loadCommitmentRowsMock = jest.fn<Promise<void>, [string]>().mockResolvedValue(undefined);
 const loadMonthSnapshotMock = jest.fn().mockResolvedValue(undefined);
 const loadMonthAggregateMock = jest.fn().mockResolvedValue(undefined);
 const loadAccountLookupMock = jest.fn<Promise<void>, [string[]]>().mockResolvedValue(undefined);
@@ -253,6 +261,8 @@ function setup({
   withoutToday = false,
   monthAggregate = undefined,
   monthAggregateErrorKey = undefined,
+  rowsRead = undefined,
+  rowsLoadErrorId = undefined,
 }: {
   selectedMonth?: string;
   commitments?: Commitment[];
@@ -274,7 +284,14 @@ function setup({
   withoutToday?: boolean;
   monthAggregate?: { key: string; aggregate: CommitmentMonthAggregate };
   monthAggregateErrorKey?: string;
+  rowsRead?: CommitmentRowsRead;
+  rowsLoadErrorId?: string;
 } = {}) {
+  attachMockSelectorStore(useCommitmentsScreenStore as unknown as jest.Mock, () => ({
+    rowsRead,
+    rowsLoadErrorId,
+    loadCommitmentRows: loadCommitmentRowsMock,
+  }));
   attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
     commitments,
     payments,
@@ -1731,5 +1748,295 @@ describe('useCommitments account chips, account prune and tally (MA-241)', () =>
 
     expect(result.current.state.hero.mode).toBe('figures');
     expect(result.current.state.tally).toEqual({ mode: 'skeleton', ...NO_TALLY_TEXT });
+  });
+});
+
+describe('useCommitments commitment dimension (MA-213)', () => {
+  const READ_TODAY = '2026-05-09';
+  const NO_TALLY_TEXT = {
+    count: undefined,
+    label: '',
+    filterSummary: undefined,
+    sum: undefined,
+    accessibilityLabel: undefined,
+  };
+  const rent = makeCommitment('rent', { name: 'Rent' });
+  const gym = makeCommitment('gym', { name: 'Gym' });
+  const stopped = makeCommitment('old-gym', { name: 'Old gym', is_active: 0 });
+  const FILTERED = { ...EMPTY_COMMITMENT_FILTERS, commitmentId: 'rent' };
+
+  function rentRow(id: string, overrides: Partial<CommitmentMonthPayment>): CommitmentMonthPayment {
+    return makeTestMonthPayment({
+      id,
+      commitment_id: 'rent',
+      amount_due: 8000,
+      ...overrides,
+    });
+  }
+
+  const READ_ROWS = [
+    rentRow('rent-aug', { due_date: '2026-08-01' }),
+    rentRow('rent-read-today', { due_date: READ_TODAY }),
+    rentRow('rent-mar', {
+      due_date: '2026-03-01',
+      paid_date: '2026-03-02',
+      amount_paid: 8000,
+      paid_egp_amount: 8000,
+    }),
+  ];
+  const READ_SECTIONS = [
+    ['Due today', ['rent-read-today']],
+    ['Upcoming', ['rent-aug']],
+    ['Paid', ['rent-mar']],
+  ];
+  const READ: CommitmentRowsRead = {
+    commitmentId: 'rent',
+    commitment: rent,
+    rows: READ_ROWS,
+    today: READ_TODAY,
+  };
+  const MONTH_ROWS = [
+    makePayment('rent-month', CommitmentPaymentStatus.Upcoming, { commitment_id: 'rent' }),
+    makePayment('gym-month', CommitmentPaymentStatus.Due, { commitment_id: 'gym' }),
+  ];
+  const MONTH_SECTIONS = [
+    ['Due today', ['gym-month']],
+    ['Upcoming', ['rent-month']],
+  ];
+
+  function aggregateOf(yearMonth: string) {
+    return { key: monthAggregateKey(yearMonth, undefined), aggregate: usdDueAggregate() };
+  }
+
+  function month() {
+    return {
+      commitments: [rent, gym],
+      payments: MONTH_ROWS,
+      monthAggregate: aggregateOf('2026-05'),
+    };
+  }
+
+  beforeEach(() => {
+    capturedFocusCallbacks.length = 0;
+    mockInteractionTasks.length = 0;
+    loadCommitmentRowsMock.mockReset().mockResolvedValue(undefined);
+    loadMonthSnapshotMock.mockReset().mockResolvedValue(undefined);
+    loadMonthAggregateMock.mockReset().mockResolvedValue(undefined);
+    loadAccountLookupMock.mockReset().mockResolvedValue(undefined);
+    setRefreshingMock.mockClear();
+    currencyRate = 50;
+    currencyRateLoaded = true;
+    mockUseDeferredValue.mockReset().mockImplementation((value: unknown) => value);
+  });
+
+  it('sections the rows of every month against the read’s day and names the tally', async () => {
+    setup({ ...month(), appliedFilters: FILTERED, rowsRead: READ });
+
+    const { result } = await renderHook(() => useCommitments());
+
+    expect(sectionIds(result.current.state.sections)).toEqual(READ_SECTIONS);
+    expect(result.current.state.today).toBe(READ_TODAY);
+    expect(result.current.state.tally).toEqual({
+      mode: 'figures',
+      lead: 'Rent',
+      count: undefined,
+      label: '· 3 payments',
+      filterSummary: undefined,
+      sum: { text: '24,000', polarity: 'neutral', currencyCode: 'EGP' },
+      accessibilityLabel: 'Rent · 3 payments 24,000 EGP',
+    });
+  });
+
+  it('lists a stopped commitment the month lacks and names it', async () => {
+    const oldRow = { commitment_id: 'old-gym', amount_due: 400 };
+    setup({
+      ...month(),
+      appliedFilters: { ...EMPTY_COMMITMENT_FILTERS, commitmentId: 'old-gym' },
+      rowsRead: {
+        commitmentId: 'old-gym',
+        commitment: stopped,
+        rows: [
+          makeTestMonthPayment({
+            ...oldRow,
+            id: 'old-paid',
+            due_date: '2026-02-01',
+            paid_date: '2026-02-01',
+            amount_paid: 400,
+            paid_egp_amount: 400,
+          }),
+          makeTestMonthPayment({
+            ...oldRow,
+            id: 'old-skipped',
+            due_date: '2026-03-01',
+            skipped_date: '2026-03-01',
+          }),
+        ],
+        today: READ_TODAY,
+      },
+    });
+
+    const { result } = await renderHook(() => useCommitments());
+
+    expect(sectionIds(result.current.state.sections)).toEqual([
+      ['Paid', ['old-paid']],
+      ['Skipped', ['old-skipped']],
+    ]);
+    expect(result.current.state.commitmentsById.get('old-gym')).toEqual(stopped);
+    expect(result.current.state.tally).toMatchObject({
+      lead: 'Old gym',
+      label: '· 2 payments',
+      accessibilityLabel: 'Old gym · 2 payments 800 EGP',
+    });
+  });
+
+  it('narrows the read under a status tab and tallies what is left', async () => {
+    setup({
+      ...month(),
+      appliedFilters: FILTERED,
+      rowsRead: READ,
+      statusFilter: CommitmentPaymentStatus.Paid,
+    });
+
+    const { result } = await renderHook(() => useCommitments());
+
+    expect(sectionIds(result.current.state.sections)).toEqual([['Paid', ['rent-mar']]]);
+    expect(result.current.state.tally).toMatchObject({
+      lead: 'Rent',
+      label: '· 1 payment',
+      sum: { text: '8,000' },
+    });
+  });
+
+  it('looks up the account of a read row the month’s rows do not name', async () => {
+    setup({
+      ...month(),
+      appliedFilters: FILTERED,
+      rowsRead: {
+        ...READ,
+        rows: [
+          rentRow('rent-paid-elsewhere', {
+            due_date: '2026-02-01',
+            paid_date: '2026-02-02',
+            account_id: 'account-old',
+            amount_paid: 8000,
+            paid_egp_amount: 8000,
+          }),
+        ],
+      },
+    });
+
+    await renderHook(() => useCommitments());
+
+    expect(loadAccountLookupMock).toHaveBeenLastCalledWith(['account-old']);
+  });
+
+  it('keeps the hero and its key on the selected month across a month change', async () => {
+    setup({ ...month(), appliedFilters: FILTERED, rowsRead: READ });
+    const hook = await renderHook(() => useCommitments());
+    expect(hook.result.current.state.hero.monthLabel).toBe('May');
+    expect(sectionIds(hook.result.current.state.sections)).toEqual(READ_SECTIONS);
+
+    setup({
+      ...month(),
+      selectedMonth: '2026-06',
+      monthAggregate: aggregateOf('2026-06'),
+      appliedFilters: FILTERED,
+      rowsRead: READ,
+    });
+    await hook.rerender({});
+    await act(() => {
+      runAggregateFocusLoad();
+    });
+
+    expect(hook.result.current.state.selectedMonth).toBe('2026-06');
+    expect(hook.result.current.state.hero.monthLabel).toBe('June');
+    expect(hook.result.current.state.hero.mode).toBe('figures');
+    expect(loadMonthAggregateMock).toHaveBeenLastCalledWith('2026-06', undefined);
+    expect(sectionIds(hook.result.current.state.sections)).toEqual(READ_SECTIONS);
+  });
+
+  it('draws the row skeletons and the tally bar before the read lands', async () => {
+    setup({ ...month(), appliedFilters: FILTERED });
+
+    const { result } = await renderHook(() => useCommitments());
+
+    expect(result.current.state.presentation).toBe('coldLoading');
+    expect(result.current.state.sections).toEqual([]);
+    expect(result.current.state.tally).toEqual({ mode: 'skeleton', ...NO_TALLY_TEXT });
+  });
+
+  it('draws the first-load error on a failed first read, and Try again re-reads with a failed month', async () => {
+    setup({ ...month(), appliedFilters: FILTERED, rowsLoadErrorId: 'rent' });
+    const { result } = await renderHook(() => useCommitments());
+    expect(result.current.state.presentation).toBe('coldError');
+    loadCommitmentRowsMock.mockClear();
+    loadMonthSnapshotMock.mockRejectedValue(new Error('month read failed'));
+
+    await act(async () => {
+      await result.current.retryLoad();
+    });
+
+    expect(loadCommitmentRowsMock).toHaveBeenCalledTimes(1);
+    expect(loadCommitmentRowsMock).toHaveBeenCalledWith('rent');
+    expect(setRefreshingMock).not.toHaveBeenCalled();
+  });
+
+  it('keeps the rows and floats the list alert on a failed reload', async () => {
+    setup({ ...month(), appliedFilters: FILTERED, rowsRead: READ, rowsLoadErrorId: 'rent' });
+
+    const { result } = await renderHook(() => useCommitments());
+
+    expect(sectionIds(result.current.state.sections)).toEqual(READ_SECTIONS);
+    expect(result.current.state.presentation).toBe('contentWithError');
+    expect(result.current.state.floatingAlert).toBe('list');
+  });
+
+  it('reads the rows once per payments publish', async () => {
+    setup({ ...month(), appliedFilters: FILTERED, rowsRead: READ });
+    const hook = await renderHook(() => useCommitments());
+    expect(loadCommitmentRowsMock).toHaveBeenCalledTimes(1);
+    expect(loadCommitmentRowsMock).toHaveBeenCalledWith('rent');
+
+    await hook.rerender({});
+    expect(loadCommitmentRowsMock).toHaveBeenCalledTimes(1);
+
+    setup({ ...month(), payments: [...MONTH_ROWS], appliedFilters: FILTERED, rowsRead: READ });
+    await hook.rerender({});
+    expect(loadCommitmentRowsMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('returns to the month’s rows when the dimension clears', async () => {
+    setup({ ...month(), appliedFilters: FILTERED, rowsRead: READ });
+    const hook = await renderHook(() => useCommitments());
+    expect(sectionIds(hook.result.current.state.sections)).toEqual(READ_SECTIONS);
+    expect(loadCommitmentRowsMock).toHaveBeenCalledTimes(1);
+
+    setup({ ...month(), rowsRead: READ });
+    await hook.rerender({});
+
+    expect(sectionIds(hook.result.current.state.sections)).toEqual(MONTH_SECTIONS);
+    expect(hook.result.current.state.today).toBe(TODAY);
+    expect(hook.result.current.state.tally).toEqual({ mode: 'empty', ...NO_TALLY_TEXT });
+    expect(loadCommitmentRowsMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('draws the filtered empty state and "0 payments" for a read with no commitment', async () => {
+    setup({
+      ...month(),
+      appliedFilters: { ...EMPTY_COMMITMENT_FILTERS, commitmentId: 'gone' },
+      rowsRead: { commitmentId: 'gone', commitment: undefined, rows: [], today: READ_TODAY },
+    });
+
+    const { result } = await renderHook(() => useCommitments());
+
+    expect(result.current.state.emptyVariant).toBe('noResults');
+    expect(result.current.state.tally).toEqual({
+      mode: 'figures',
+      count: '0',
+      label: 'payments',
+      filterSummary: undefined,
+      sum: undefined,
+      accessibilityLabel: '0 payments',
+    });
   });
 });

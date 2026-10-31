@@ -1,5 +1,6 @@
-import { AmountType, CommitmentPaymentStatus, Currency } from '@/constants/enums';
+import { AmountType, CommitmentPaymentStatus, Currency, RecurrencePreset } from '@/constants/enums';
 import { useCommitmentsScreenState } from '@/modules/commitments/screens/commitments/commitments.state';
+import { EMPTY_COMMITMENT_FILTERS } from '@/modules/commitments/screens/commitments/filter/filter.store';
 
 beforeEach(() => useCommitmentsScreenState.getState().reset());
 
@@ -62,5 +63,35 @@ describe('useCommitmentsScreenState', () => {
     expect(useCommitmentsScreenState.getState().refreshing).toBe(false);
     expect(useCommitmentsScreenState.getState().searchQuery).toBe('');
     expect(useCommitmentsScreenState.getState().appliedFilters.accountIds).toEqual([]);
+  });
+
+  it('seedCommitmentFilter clears the search, the rail, every other filter and a lit chip in one notification', () => {
+    const state = useCommitmentsScreenState.getState();
+    state.setSearchQuery('rent');
+    state.setStatusFilter(CommitmentPaymentStatus.Paid);
+    state.setAppliedFilters({
+      accountIds: ['account-1'],
+      categoryIds: ['category-1'],
+      amountCurrency: Currency.USD,
+      amountTypes: [AmountType.Variable],
+      recurrencePresets: [RecurrencePreset.Monthly],
+      amountMin: 25,
+      amountMax: 50,
+      commitmentId: 'commitment-old',
+    });
+    const listener = jest.fn();
+    const unsubscribe = useCommitmentsScreenState.subscribe(listener);
+
+    useCommitmentsScreenState.getState().seedCommitmentFilter('commitment-1');
+    unsubscribe();
+
+    expect(listener).toHaveBeenCalledTimes(1);
+    const seeded = useCommitmentsScreenState.getState();
+    expect(seeded.searchQuery).toBe('');
+    expect(seeded.statusFilter).toBe('all');
+    expect(seeded.appliedFilters).toEqual({
+      ...EMPTY_COMMITMENT_FILTERS,
+      commitmentId: 'commitment-1',
+    });
   });
 });

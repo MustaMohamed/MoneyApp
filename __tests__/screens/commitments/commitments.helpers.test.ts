@@ -5,8 +5,10 @@ import {
   buildCommitmentSections,
   buildCommitmentsSearchTally,
   type CommitmentsSection,
+  resolveCommitmentListSource,
 } from '@/modules/commitments/screens/commitments/commitments.helpers';
 import type { CommitmentStatusFilter } from '@/modules/commitments/screens/commitments/commitments.state';
+import type { CommitmentRowsRead } from '@/modules/commitments/screens/commitments/commitments.store';
 import { makeTestCommitment, makeTestMonthPayment } from '@/test_helpers/commitment';
 
 const TODAY = '2026-10-22';
@@ -50,7 +52,7 @@ function pay(
 function build(
   rows: CommitmentMonthPayment[],
   options: {
-    yearMonth?: string;
+    yearMonth?: string | undefined;
     today?: string;
     liveRate?: number | undefined;
     statusFilter?: CommitmentStatusFilter;
@@ -59,7 +61,7 @@ function build(
   return buildCommitmentSections({
     rows,
     commitmentsById: new Map(COMMITMENTS.map((commitment) => [commitment.id, commitment])),
-    yearMonth: options.yearMonth ?? MONTH,
+    yearMonth: 'yearMonth' in options ? options.yearMonth : MONTH,
     today: options.today ?? TODAY,
     liveRate: 'liveRate' in options ? options.liveRate : RATE,
     statusFilter: options.statusFilter ?? 'all',
@@ -638,5 +640,293 @@ describe('buildCommitmentsSearchTally', () => {
     expect(tally.count).toBe('5');
     expect(tally.sum?.text).toBe('10,817');
     expect(tally.accessibilityLabel).toBe('5 payments 10,817 EGP');
+  });
+});
+
+describe('buildCommitmentSections — every month (MA-213)', () => {
+  const EVERY_MONTH = { yearMonth: undefined };
+  const ROWS = [
+    pay('rent-leap', 'rent', { due_date: '2028-02-29' }),
+    pay('rent-three-ahead', 'rent', { due_date: '2027-01-22' }),
+    pay('rent-today', 'rent', { due_date: TODAY }),
+    pay('rent-jun-skipped', 'rent', { due_date: '2026-06-01', skipped_date: '2026-06-02' }),
+    pay('rent-apr-paid', 'rent', {
+      due_date: '2026-04-01',
+      paid_date: '2026-04-03',
+      amount_paid: 8000,
+      paid_egp_amount: 8000,
+    }),
+    pay('rent-jul', 'rent', { due_date: '2026-07-01' }),
+  ];
+  const IDS_BY_STATE: [CommitmentPaymentStatus, string[]][] = [
+    [CommitmentPaymentStatus.Overdue, ['rent-jul']],
+    [CommitmentPaymentStatus.Due, ['rent-today']],
+    [CommitmentPaymentStatus.Upcoming, ['rent-three-ahead', 'rent-leap']],
+    [CommitmentPaymentStatus.Paid, ['rent-apr-paid']],
+    [CommitmentPaymentStatus.Skipped, ['rent-jun-skipped']],
+  ];
+
+  it('puts every row in its state’s section, an earlier month’s and a later month’s alike', () => {
+    expect(ids(build(ROWS, EVERY_MONTH).sections)).toEqual(IDS_BY_STATE);
+  });
+
+  it.each(IDS_BY_STATE)('holds the %s rows alone under that status tab', (state, rowIds) => {
+    const { sections } = build(ROWS, { ...EVERY_MONTH, statusFilter: state });
+
+    expect(ids(sections)).toEqual([[state, rowIds]]);
+  });
+
+  it('moves a leap-day row through Upcoming, Due today and Overdue with no month test', () => {
+    const leapDay = [pay('rent-leap', 'rent', { due_date: '2028-02-29' })];
+
+    expect(ids(build(leapDay, { ...EVERY_MONTH, today: '2028-02-28' }).sections)).toEqual([
+      [CommitmentPaymentStatus.Upcoming, ['rent-leap']],
+    ]);
+    expect(ids(build(leapDay, { ...EVERY_MONTH, today: '2028-02-29' }).sections)).toEqual([
+      [CommitmentPaymentStatus.Due, ['rent-leap']],
+    ]);
+    expect(ids(build(leapDay, { ...EVERY_MONTH, today: '2028-03-05' }).sections)).toEqual([
+      [CommitmentPaymentStatus.Overdue, ['rent-leap']],
+    ]);
+  });
+});
+
+describe('buildCommitmentsSearchTally — the named tally (MA-213)', () => {
+  const ON = { isOn: true, heroMode: 'figures', commitmentName: 'Rent' } as const;
+
+  it('prints the name, then "· 4 payments", with the sum', () => {
+    expect(
+      buildCommitmentsSearchTally({ ...ON, total: { egp: 32_000, count: 4, showTilde: false } }),
+    ).toEqual({
+      mode: 'figures',
+      lead: 'Rent',
+      count: undefined,
+      label: '· 4 payments',
+      filterSummary: undefined,
+      sum: { text: '32,000', polarity: 'neutral', currencyCode: 'EGP' },
+      accessibilityLabel: 'Rent · 4 payments 32,000 EGP',
+    });
+  });
+
+  it('says "· 1 payment" at one row', () => {
+    expect(
+      buildCommitmentsSearchTally({ ...ON, total: { egp: 8000, count: 1, showTilde: false } }),
+    ).toEqual({
+      mode: 'figures',
+      lead: 'Rent',
+      count: undefined,
+      label: '· 1 payment',
+      filterSummary: undefined,
+      sum: { text: '8,000', polarity: 'neutral', currencyCode: 'EGP' },
+      accessibilityLabel: 'Rent · 1 payment 8,000 EGP',
+    });
+  });
+
+  it('prints "· 0 payments" with no sum at no rows', () => {
+    expect(
+      buildCommitmentsSearchTally({ ...ON, total: { egp: 0, count: 0, showTilde: false } }),
+    ).toEqual({
+      mode: 'figures',
+      lead: 'Rent',
+      count: undefined,
+      label: '· 0 payments',
+      filterSummary: undefined,
+      sum: undefined,
+      accessibilityLabel: 'Rent · 0 payments',
+    });
+  });
+
+  it('prints "· — payments" with no sum while the hero prints dashes', () => {
+    expect(
+      buildCommitmentsSearchTally({
+        ...ON,
+        heroMode: 'dashes',
+        total: { egp: 1240, count: 3, showTilde: false },
+      }),
+    ).toEqual({
+      mode: 'failed',
+      lead: 'Rent',
+      count: undefined,
+      label: '· — payments',
+      filterSummary: undefined,
+      sum: undefined,
+      accessibilityLabel: 'Rent · — payments',
+    });
+  });
+
+  it('sums all four paid currency pairs, an unpaid USD row at the live rate and a variable estimate, across months', () => {
+    const rows = [
+      pay('gym-paid-egp', 'gym', {
+        due_date: '2026-03-01',
+        paid_date: '2026-03-01',
+        amount_paid: 500,
+        account_id: 'acc-egp',
+        paid_egp_amount: 500,
+      }),
+      pay('rent-paid-usd', 'rent', {
+        due_date: '2026-05-02',
+        paid_date: '2026-05-02',
+        amount_paid: 8000,
+        account_id: 'acc-usd',
+        paid_egp_amount: 8000,
+      }),
+      pay('netflix-paid-egp', 'netflix', {
+        due_date: '2026-07-03',
+        paid_date: '2026-07-03',
+        amount_paid: 15.5,
+        account_id: 'acc-egp',
+        paid_egp_amount: 775,
+      }),
+      pay('netflix-paid-usd', 'netflix', {
+        due_date: '2026-09-04',
+        paid_date: '2026-09-04',
+        amount_paid: 15.5,
+        account_id: 'acc-usd',
+        paid_egp_amount: 759.5,
+      }),
+      pay('netflix-unpaid', 'netflix', { due_date: '2026-12-28' }),
+      pay('bill-estimate', 'bill', { due_date: '2027-01-25', amount_due: 600 }),
+    ];
+
+    const { tally: total } = build(rows, { yearMonth: undefined });
+    const tally = buildCommitmentsSearchTally({ ...ON, total });
+
+    expect(total).toEqual({ egp: 11_417.25, count: 6, showTilde: true });
+    expect(tally.lead).toBe('Rent');
+    expect(tally.label).toBe('· 6 payments');
+    expect(tally.sum?.text).toBe('~ 11,417');
+    expect(tally.accessibilityLabel).toBe('Rent · 6 payments ~ 11,417 EGP');
+  });
+});
+
+describe('resolveCommitmentListSource (MA-213)', () => {
+  const RENT = makeTestCommitment({ id: 'rent', name: 'Rent' });
+  const GYM = makeTestCommitment({ id: 'gym', name: 'Gym' });
+  const STOPPED = makeTestCommitment({ id: 'old', name: 'Old gym', is_active: 0 });
+  const MONTH_ROW = pay('gym-oct', 'gym', { due_date: '2026-10-05' });
+  const READ_ROW = pay('rent-mar', 'rent', { due_date: '2026-03-01' });
+  const READ_TODAY = '2026-10-23';
+
+  type SourceInput = Parameters<typeof resolveCommitmentListSource>[0];
+
+  function month(overrides: Partial<SourceInput['month']> = {}): SourceInput['month'] {
+    return {
+      yearMonth: MONTH,
+      ready: true,
+      today: TODAY,
+      commitments: [RENT, GYM],
+      payments: [MONTH_ROW],
+      loadError: false,
+      ...overrides,
+    };
+  }
+
+  function read(overrides: Partial<CommitmentRowsRead> = {}): CommitmentRowsRead {
+    return {
+      commitmentId: 'rent',
+      commitment: RENT,
+      rows: [READ_ROW],
+      today: READ_TODAY,
+      ...overrides,
+    };
+  }
+
+  function source(overrides: Partial<SourceInput> = {}) {
+    return resolveCommitmentListSource({
+      commitmentId: 'rent',
+      month: month(),
+      rowsRead: read(),
+      rowsLoadErrorId: undefined,
+      ...overrides,
+    });
+  }
+
+  it('passes the month through with no commitment, whatever the read holds', () => {
+    expect(source({ commitmentId: undefined, rowsLoadErrorId: 'rent' })).toEqual({
+      ready: true,
+      loadError: false,
+      today: TODAY,
+      yearMonth: MONTH,
+      commitments: [RENT, GYM],
+      payments: [MONTH_ROW],
+      commitmentName: undefined,
+    });
+  });
+
+  it('passes a month that has not loaded through with no commitment', () => {
+    expect(
+      source({
+        commitmentId: undefined,
+        month: month({ ready: false, today: undefined, loadError: true }),
+      }),
+    ).toMatchObject({ ready: false, loadError: true, yearMonth: MONTH });
+  });
+
+  it('takes the rows, today and the name from a held read and spans every month', () => {
+    expect(source()).toEqual({
+      ready: true,
+      loadError: false,
+      today: READ_TODAY,
+      yearMonth: undefined,
+      commitments: [RENT, GYM],
+      payments: [READ_ROW],
+      commitmentName: 'Rent',
+    });
+  });
+
+  it('adds a held commitment the month lacks', () => {
+    const result = source({
+      commitmentId: 'old',
+      rowsRead: read({ commitmentId: 'old', commitment: STOPPED }),
+    });
+
+    expect(result.commitments).toEqual([RENT, GYM, STOPPED]);
+    expect(result.commitmentName).toBe('Old gym');
+  });
+
+  it('holds the read while the month has not loaded', () => {
+    const result = source({
+      month: month({ ready: false, today: undefined, commitments: [], payments: [] }),
+    });
+
+    expect(result.ready).toBe(true);
+    expect(result.today).toBe(READ_TODAY);
+    expect(result.commitments).toEqual([RENT]);
+    expect(result.payments).toEqual([READ_ROW]);
+  });
+
+  it('holds a read with no commitment behind it, with no name and no rows', () => {
+    const result = source({ rowsRead: read({ commitment: undefined, rows: [] }) });
+
+    expect(result.ready).toBe(true);
+    expect(result.commitmentName).toBeUndefined();
+    expect(result.commitments).toEqual([RENT, GYM]);
+    expect(result.payments).toEqual([]);
+  });
+
+  it('fails a held read on its own failed reload or on a failed month read', () => {
+    expect(source({ rowsLoadErrorId: 'rent' }).loadError).toBe(true);
+    expect(source({ month: month({ loadError: true }) }).loadError).toBe(true);
+    expect(source({ rowsLoadErrorId: 'gym' }).loadError).toBe(false);
+  });
+
+  it.each([
+    ['no read', undefined],
+    ['a read of another id', read({ commitmentId: 'gym', commitment: GYM })],
+  ])('holds nothing on %s, keeping the month’s commitments', (_name, rowsRead) => {
+    const result = source({ rowsRead });
+
+    expect(result.ready).toBe(false);
+    expect(result.today).toBeUndefined();
+    expect(result.payments).toEqual([]);
+    expect(result.commitments).toEqual([RENT, GYM]);
+  });
+
+  it('fails an unheld read on its own failure alone, so a failed month keeps the skeletons up', () => {
+    expect(source({ rowsRead: undefined, month: month({ loadError: true }) }).loadError).toBe(
+      false,
+    );
+    expect(source({ rowsRead: undefined, rowsLoadErrorId: 'rent' }).loadError).toBe(true);
+    expect(source({ rowsRead: undefined, rowsLoadErrorId: 'gym' }).loadError).toBe(false);
   });
 });
