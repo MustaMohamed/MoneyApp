@@ -34,6 +34,9 @@ const mockGetPaymentsByCommitment = jest.fn();
 const mockSkipPayment = jest.fn();
 const mockLoadAccountLookup = jest.fn<Promise<void>, [string[]]>();
 const mockPathname = { current: '/commitments/commitment-1' };
+const TAB_STACK = { routes: [{ name: 'index' }, { name: '[id]/index' }] };
+const APP_STACK = { routes: [{ name: '(tabs)' }, { name: 'stacked/commitments/[id]/index' }] };
+const mockNavigatorState = { current: TAB_STACK };
 const mockParamsContext = createContext<DetailParams | null>(null);
 let mockParams: DetailParams = { id: 'commitment-1', cycle: 'pay-1' };
 // Each copy reads the params its own wrapper supplies, so two can mount on different commitments.
@@ -52,6 +55,7 @@ let accountLookupError = false;
 jest.mock('expo-router', () => ({
   useLocalSearchParams: () => mockUseParams(),
   usePathname: () => mockPathname.current,
+  useNavigation: () => ({ getState: () => mockNavigatorState.current }),
   router: { push: jest.fn(), back: jest.fn(), dismissTo: jest.fn(), dismissAll: jest.fn() },
 }));
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
@@ -140,6 +144,7 @@ function seedRentAndGym(): void {
 beforeEach(() => {
   jest.clearAllMocks();
   mockPathname.current = '/commitments/commitment-1';
+  mockNavigatorState.current = TAB_STACK;
   mockParams = { id: 'commitment-1', cycle: 'pay-1' };
   paymentsState = [];
   commitmentsById = {};
@@ -532,6 +537,36 @@ describe('useCommitmentDetail', () => {
     expect(router.dismissTo).not.toHaveBeenCalled();
     expect(router.dismissAll).not.toHaveBeenCalled();
     expect(router.push).not.toHaveBeenCalled();
+  });
+
+  it('holds the tabbed edges while a stacked screen sits focused above it', async () => {
+    const { result, rerender } = await renderHook(() => useCommitmentDetail());
+    expect(result.current.state.screenEdges).toEqual(['top']);
+
+    mockPathname.current = '/stacked/transactions/detail/tx-1';
+    await rerender({});
+
+    expect(result.current.state.screenEdges).toEqual(['top']);
+  });
+
+  it('holds the stacked edges while a bare route sits focused above it', async () => {
+    mockPathname.current = '/stacked/commitments/commitment-1';
+    mockNavigatorState.current = APP_STACK;
+    const { result, rerender } = await renderHook(() => useCommitmentDetail());
+    expect(result.current.state.screenEdges).toEqual(['top', 'bottom']);
+
+    mockPathname.current = '/accounts/account-1';
+    await rerender({});
+
+    expect(result.current.state.screenEdges).toEqual(['top', 'bottom']);
+  });
+
+  it('reads the edges from its own navigator, not the pathname, at mount', async () => {
+    mockNavigatorState.current = APP_STACK;
+
+    const { result } = await renderHook(() => useCommitmentDetail());
+
+    expect(result.current.state.screenEdges).toEqual(['top', 'bottom']);
   });
 
   it('completes a committed skip before an effect-driven history refresh failure', async () => {

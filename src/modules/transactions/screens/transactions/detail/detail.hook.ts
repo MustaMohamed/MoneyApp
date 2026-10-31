@@ -18,6 +18,7 @@ import { commitmentRepository } from '@/modules/commitments/repositories/commitm
 import {
   resolveDetailScreenEdges,
   stackedPrefixOf,
+  stackedPrefixOfNavigator,
 } from '@/modules/navigation/domain/stacked_route';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import { useTransactionFormState } from '@/modules/transactions/store/transaction_form_host.state';
@@ -298,7 +299,7 @@ export function useTransactionDetail(id: string) {
   return {
     state: {
       viewState,
-      screenEdges: resolveDetailScreenEdges(stackedPrefix),
+      screenEdges: resolveDetailScreenEdges(stackedPrefixOfNavigator(navigation.getState())),
       loadingTransactionHint,
       tx: currentTx,
       derived,

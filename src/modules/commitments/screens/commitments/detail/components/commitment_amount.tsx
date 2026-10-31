@@ -2,11 +2,7 @@ import { type StyleProp, View, type ViewStyle, useWindowDimensions } from 'react
 
 import { Text } from '@/components/ui/text';
 import { resolveFitAmountTextProps, scaledTextStyle } from '@/components/ui/text_scale.geometry';
-
-import {
-  CURRENT_CYCLE_AMOUNT_GAP,
-  CURRENT_CYCLE_CODE_FONT_SIZE,
-} from './current_cycle_card.geometry';
+import { Spacing, Type } from '@/constants/theme';
 
 interface Props {
   amountText: string;
@@ -36,7 +32,7 @@ export function CommitmentAmount({
         {
           flexDirection: 'row',
           alignItems: 'baseline',
-          gap: CURRENT_CYCLE_AMOUNT_GAP,
+          gap: Spacing.xxs,
           flexShrink: 1,
         },
         style,
@@ -53,7 +49,7 @@ export function CommitmentAmount({
         allowFontScaling={false}
         numberOfLines={1}
         className="font-inter text-content-secondary"
-        style={scaledTextStyle(CURRENT_CYCLE_CODE_FONT_SIZE, fontScale)}
+        style={scaledTextStyle(Type.micro, fontScale)}
       >
         {amountCode}
       </Text>

@@ -1,4 +1,4 @@
-import { router, useLocalSearchParams, usePathname } from 'expo-router';
+import { router, useLocalSearchParams, useNavigation, usePathname } from 'expo-router';
 import { useCallback, useEffect, useId, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -13,6 +13,7 @@ import {
   TABBED_ORIGIN,
   resolveDetailScreenEdges,
   stackedPrefixOf,
+  stackedPrefixOfNavigator,
   stackedTransactionDetailRoute,
 } from '@/modules/navigation/domain/stacked_route';
 import { toLocalDateString } from '@/utils/format_date';
@@ -74,6 +75,7 @@ export function useCommitmentDetail() {
   // expo-router hands a repeated query param over as an array.
   const cycle = Array.isArray(cycleParam) ? cycleParam[0] : cycleParam;
   const stackedPrefix = stackedPrefixOf(usePathname());
+  const navigation = useNavigation();
 
   const payments = useCommitmentStore((s) => s.payments);
   const storeSkipPayment = useCommitmentStore.getState().skipPayment;
@@ -311,7 +313,7 @@ export function useCommitmentDetail() {
     state: {
       owner,
       viewState,
-      screenEdges: resolveDetailScreenEdges(stackedPrefix),
+      screenEdges: resolveDetailScreenEdges(stackedPrefixOfNavigator(navigation.getState())),
       payment,
       commitment,
       allPayments: historyRows,

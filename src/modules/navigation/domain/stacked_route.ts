@@ -12,6 +12,16 @@ export function stackedPrefixOf(pathname: string): StackedPrefix {
   return firstSegment === STACKED_PREFIX.slice(1) ? STACKED_PREFIX : '';
 }
 
+const STACKED_ROUTE_NAME_START = `${STACKED_PREFIX.slice(1)}/`;
+
+/** Only the `(app)` Stack holds a `stacked/` route, and a screen keeps its navigator while `usePathname()` follows focus. */
+export function stackedPrefixOfNavigator(
+  state: { routes: readonly { name: string }[] } | undefined,
+): StackedPrefix {
+  const isStacked = state?.routes.some((route) => route.name.startsWith(STACKED_ROUTE_NAME_START));
+  return isStacked === true ? STACKED_PREFIX : '';
+}
+
 const TABBED_SCREEN_EDGES: Edge[] = ['top'];
 const STACKED_SCREEN_EDGES: Edge[] = ['top', 'bottom'];
 
