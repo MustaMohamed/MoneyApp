@@ -17,6 +17,7 @@ import { isDueInMonth, resolvePaymentState } from '../../domain/payment_state';
 import type { Commitment } from '../../entities/commitment.entity';
 import type { CommitmentMonthPayment } from '../../entities/commitment_payment.entity';
 import type { CommitmentStatusFilter } from './commitments.state';
+import type { CommitmentRowsRead } from './commitments.store';
 import type { CommitmentsHeroMode } from './components/commitments_hero.helpers';
 
 export interface CommitmentsSection extends DayHeaderSection {
@@ -29,7 +30,8 @@ interface CommitmentSectionsInput {
   rows: readonly CommitmentMonthPayment[];
   statusFilter: CommitmentStatusFilter;
   commitmentsById: ReadonlyMap<string, Commitment>;
-  yearMonth: string;
+  /** `undefined` spans every month. */
+  yearMonth: string | undefined;
   today: string;
   liveRate: number | undefined;
 }
@@ -74,11 +76,12 @@ function byPaidDateDescending(a: CommitmentMonthPayment, b: CommitmentMonthPayme
 function sectionKeyOf(
   payment: CommitmentMonthPayment,
   statusFilter: CommitmentStatusFilter,
-  yearMonth: string,
+  yearMonth: string | undefined,
   today: string,
 ): CommitmentPaymentStatus | undefined {
   const state = resolvePaymentState(payment, today);
   if (statusFilter !== 'all' && state !== statusFilter) return undefined;
+  if (yearMonth === undefined) return state;
   if (state === CommitmentPaymentStatus.Overdue) {
     return payment.due_date.slice(0, 7) <= yearMonth ? state : undefined;
   }
@@ -147,16 +150,100 @@ export function buildCommitmentSections(input: CommitmentSectionsInput): Commitm
   return { sections, tally: sumCommitmentRowsEgp(heldSumRows, liveRate) };
 }
 
+interface CommitmentListSourceInput {
+  commitmentId: string | undefined;
+  month: {
+    yearMonth: string;
+    ready: boolean;
+    today: string | undefined;
+    commitments: readonly Commitment[];
+    payments: readonly CommitmentMonthPayment[];
+    loadError: boolean;
+  };
+  rowsRead: CommitmentRowsRead | undefined;
+  rowsLoadErrorId: string | undefined;
+}
+
+interface CommitmentListSource {
+  ready: boolean;
+  loadError: boolean;
+  today: string | undefined;
+  /** `undefined` spans every month. */
+  yearMonth: string | undefined;
+  commitments: readonly Commitment[];
+  payments: readonly CommitmentMonthPayment[];
+  commitmentName: string | undefined;
+}
+
+const NO_PAYMENTS: readonly CommitmentMonthPayment[] = [];
+
+/** The list's rows: the month's, or the commitment's read while one is set, where a failed month alone leaves the skeletons up. */
+export function resolveCommitmentListSource(
+  input: CommitmentListSourceInput,
+): CommitmentListSource {
+  const { commitmentId, month, rowsRead, rowsLoadErrorId } = input;
+  if (commitmentId === undefined) {
+    return {
+      ready: month.ready,
+      loadError: month.loadError,
+      today: month.today,
+      yearMonth: month.yearMonth,
+      commitments: month.commitments,
+      payments: month.payments,
+      commitmentName: undefined,
+    };
+  }
+  const rowsFailed = rowsLoadErrorId === commitmentId;
+  if (rowsRead?.commitmentId !== commitmentId) {
+    return {
+      ready: false,
+      loadError: rowsFailed,
+      today: undefined,
+      yearMonth: undefined,
+      commitments: month.commitments,
+      payments: NO_PAYMENTS,
+      commitmentName: undefined,
+    };
+  }
+  const { commitment } = rowsRead;
+  const monthLacksIt =
+    commitment !== undefined && !month.commitments.some((c) => c.id === commitment.id);
+  return {
+    ready: true,
+    loadError: rowsFailed || month.loadError,
+    today: rowsRead.today,
+    yearMonth: undefined,
+    commitments: monthLacksIt ? [...month.commitments, commitment] : month.commitments,
+    payments: rowsRead.rows,
+    commitmentName: commitment?.name,
+  };
+}
+
 interface CommitmentsSearchTallyInput {
   isOn: boolean;
   heroMode: CommitmentsHeroMode;
   /** `undefined` while the rows are not summed. */
   total: CommitmentRowsTotal | undefined;
+  /** The commitment the list is filtered to, printed as the lead. */
+  commitmentName?: string;
+}
+
+function tallyWords(
+  countText: string,
+  unit: string,
+  commitmentName: string | undefined,
+): Pick<SearchTallyModel, 'lead' | 'count' | 'label'> {
+  if (commitmentName === undefined) return { count: countText, label: unit };
+  return {
+    lead: commitmentName,
+    count: undefined,
+    label: Strings.commitmentsTallyNamedCount(countText, unit),
+  };
 }
 
 /** Follows the hero: its skeleton draws one bar, its dashes print `— payments`. */
 export function buildCommitmentsSearchTally(input: CommitmentsSearchTallyInput): SearchTallyModel {
-  const { isOn, heroMode, total } = input;
+  const { isOn, heroMode, total, commitmentName } = input;
   if (!isOn) return { mode: 'empty', ...NO_TALLY_TEXT };
   if (heroMode === 'skeleton' || (heroMode === 'figures' && total === undefined)) {
     return { mode: 'skeleton', ...NO_TALLY_TEXT };
@@ -165,8 +252,11 @@ export function buildCommitmentsSearchTally(input: CommitmentsSearchTallyInput):
     return withTallyAccessibilityLabel(
       {
         mode: 'failed',
-        count: Strings.listHeroUnavailable,
-        label: Strings.commitmentsTallyPayments,
+        ...tallyWords(
+          Strings.listHeroUnavailable,
+          Strings.commitmentsTallyPayments,
+          commitmentName,
+        ),
         sum: undefined,
       },
       undefined,
@@ -176,8 +266,7 @@ export function buildCommitmentsSearchTally(input: CommitmentsSearchTallyInput):
     return withTallyAccessibilityLabel(
       {
         mode: 'figures',
-        count: formatAmount(0),
-        label: Strings.commitmentsTallyPayments,
+        ...tallyWords(formatAmount(0), Strings.commitmentsTallyPayments, commitmentName),
         sum: undefined,
       },
       undefined,
@@ -189,9 +278,11 @@ export function buildCommitmentsSearchTally(input: CommitmentsSearchTallyInput):
   return withTallyAccessibilityLabel(
     {
       mode: 'figures',
-      count: formatAmount(total.count),
-      label:
+      ...tallyWords(
+        formatAmount(total.count),
         total.count === 1 ? Strings.commitmentsTallyOnePayment : Strings.commitmentsTallyPayments,
+        commitmentName,
+      ),
       sum: {
         text: estimate(amount.text),
         polarity: 'neutral',

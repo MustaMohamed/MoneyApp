@@ -171,6 +171,7 @@ const INLINE_FILTER_COPY = [
   ', commitment category filter',
   ', commitment amount type filter',
   ', commitment recurrence filter',
+  ', commitment filter',
   'placeholder="0"',
   'placeholder="∞"',
 ];
@@ -241,6 +242,7 @@ const NAMED_ROWS = [
       `${COMMITMENTS}/components/search_row.tsx`,
       `${COMMITMENTS}/filter/components/amount_type_accordion.tsx`,
       `${COMMITMENTS}/filter/components/recurrence_accordion.tsx`,
+      `${COMMITMENTS}/filter/components/commitment_accordion.tsx`,
     ],
     banned: [
       ...['useCallback', 'useEffect', 'useMemo', 'useReducer'].map(identifier),

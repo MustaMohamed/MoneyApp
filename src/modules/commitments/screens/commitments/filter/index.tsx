@@ -7,6 +7,7 @@ import { FilterSheetFrame } from '@/components/ui/filter_sheet_frame';
 import { Strings } from '@/constants/strings';
 
 import { CommitmentAmountTypeAccordion } from './components/amount_type_accordion';
+import { CommitmentAccordion } from './components/commitment_accordion';
 import { CommitmentRecurrenceAccordion } from './components/recurrence_accordion';
 import { useCommitmentFilterSheet } from './filter.hook';
 
@@ -75,6 +76,14 @@ export function CommitmentFilterSheet(): React.ReactElement {
         expanded={filter.state.openSection === 'recurrence'}
         onToggleSection={() => filter.toggleSection('recurrence')}
         onTogglePreset={filter.toggleRecurrencePreset}
+      />
+      <CommitmentAccordion
+        options={filter.state.commitmentOptions}
+        selectedId={filter.state.draft.commitmentId}
+        summary={filter.state.commitmentSummary}
+        expanded={filter.state.openSection === 'commitments'}
+        onToggleSection={() => filter.toggleSection('commitments')}
+        onToggle={filter.toggleCommitmentId}
       />
     </FilterSheetFrame>
   );

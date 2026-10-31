@@ -32,6 +32,7 @@ export default function CommitmentDetailScreen() {
     goToEdit,
     goBack,
     viewTransaction,
+    goToAllPayments,
   } = useCommitmentDetail();
 
   return (
@@ -89,7 +90,7 @@ export default function CommitmentDetailScreen() {
           ) : null}
           <DetailsCard facts={state.facts} />
           <DetailNoteCard note={state.commitment.notes} testID="commitment-detail-note-card" />
-          <PaymentHistory rows={state.paymentRows} />
+          <PaymentHistory rows={state.paymentRows} onSeeAll={goToAllPayments} />
           {state.showsEdit ? <CommitmentDetailActions onEdit={goToEdit} /> : null}
         </ScreenScroll>
       ) : null}

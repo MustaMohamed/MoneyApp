@@ -8,6 +8,7 @@ type CommitmentFilterSection =
   | 'amount'
   | 'amountType'
   | 'recurrence'
+  | 'commitments'
   | null;
 
 interface CommitmentFilterStateShape {

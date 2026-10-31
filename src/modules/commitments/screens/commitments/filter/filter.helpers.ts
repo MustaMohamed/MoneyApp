@@ -20,6 +20,7 @@ export function countActiveCommitmentFilters(filters: CommitmentAdvancedFilters)
   if (hasAmountFilter(filters)) count++;
   if (filters.amountTypes.length > 0) count++;
   if (filters.recurrencePresets.length > 0) count++;
+  if (filters.commitmentId !== undefined) count++;
   return count;
 }
 
@@ -35,6 +36,7 @@ export function commitmentFiltersEqual(
     sameStringSet(a.recurrencePresets, b.recurrencePresets) &&
     a.amountMin === b.amountMin &&
     a.amountMax === b.amountMax &&
+    a.commitmentId === b.commitmentId &&
     (!amountActive || a.amountCurrency === b.amountCurrency)
   );
 }
@@ -49,6 +51,10 @@ export function commitmentMatchesAdvancedFilters(
   filters: CommitmentAdvancedFilters,
 ): boolean {
   const { payment, commitment } = candidate;
+
+  if (filters.commitmentId !== undefined && payment.commitment_id !== filters.commitmentId) {
+    return false;
+  }
 
   if (filters.accountIds.length > 0) {
     const accountId = resolveCommitmentRowAccountId(payment, commitment);
@@ -78,6 +84,17 @@ export function commitmentMatchesAdvancedFilters(
   }
 
   return true;
+}
+
+/** The sheet's options: `held`, the commitment the applied filter holds, joins them when they lack it. */
+export function resolveCommitmentFilterOptions(
+  commitments: readonly Commitment[],
+  held: Commitment | undefined,
+): readonly Commitment[] {
+  if (held === undefined || commitments.some((commitment) => commitment.id === held.id)) {
+    return commitments;
+  }
+  return [...commitments, held];
 }
 
 export function commitmentMatchesSearch(

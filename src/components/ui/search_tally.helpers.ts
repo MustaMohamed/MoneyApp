@@ -18,7 +18,7 @@ export function withTallyAccessibilityLabel(
   spokenSum: string | undefined,
 ): SearchTallyModel {
   const { filterSummary } = line;
-  const parts = [line.count, line.label, filterSummary, spokenSum];
+  const parts = [line.lead, line.count, line.label, filterSummary, spokenSum];
   return {
     ...line,
     filterSummary,
