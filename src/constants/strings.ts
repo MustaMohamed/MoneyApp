@@ -1163,7 +1163,11 @@ export const Strings = {
     'This payment will be marked as skipped and excluded from your totals.',
   commitmentsSkipConfirmCancel: 'Cancel',
   commitmentsSkipConfirmConfirm: 'Skip Payment',
-  commitmentsSkipError: 'Could not skip this payment. Please try again.',
+  commitmentsSkipError: "Couldn't skip this payment. Nothing was changed.",
+  commitmentsPaidToast: (name: string, amount: string) => `${name} paid · ${amount}`,
+  commitmentsSkippedToast: (name: string) => `${name} skipped`,
+  commitmentsUndoAction: 'Undo',
+  commitmentsUndoSkipError: "Couldn't undo this skip. Nothing was changed.",
   commitmentsLoadError: "Couldn't load your commitments.",
   commitmentsLoadErrorDescription:
     'Something went wrong reading your data. Your commitments are still there.',
@@ -1430,6 +1434,7 @@ export const Strings = {
   swipeEdit: 'Edit',
   swipeDelete: 'Delete',
   swipeSkip: 'Skip',
+  swipePay: 'Pay',
 
   // Budget: swipe delete confirm
   budgetDeleteConfirmTitle: 'Remove budget?',

@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 
 import { applyRateCommit, type ConvertedAmount } from '@/components/ui/form_sheet.helpers';
+import { useToast } from '@/components/ui/toast';
 import { AmountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/database/entities/account.entity';
@@ -19,6 +20,7 @@ import {
   TransactionAmountError,
 } from '@/modules/transactions/domain/transaction_amounts';
 import { resolveAccountName } from '@/utils/account_name';
+import { formatDisplayAmount } from '@/utils/format_amount';
 import { MIN_MONEY_AMOUNT } from '@/utils/money';
 import { formatStoredMoneyText, parseRequiredMoneyText } from '@/utils/money_text';
 import { parseDecimalText, parsePositiveDecimal, parseRateText } from '@/utils/parse_decimal';
@@ -148,6 +150,7 @@ export function usePaySheet(
   const setRateOverride = usePaySheetState.getState().setRateOverride;
   const setSaveError = usePaySheetState.getState().setSaveError;
   const setSettled = usePaySheetState.getState().setSettled;
+  const { toast } = useToast();
 
   const accounts = useAccountStore((s) => s.accounts);
   const hasLoaded = useAccountStore((s) => s.hasLoaded);
@@ -162,6 +165,8 @@ export function usePaySheet(
 
   // Counts the prefill's resets, one per open, so a write that outlives its open leaves the next one alone.
   const openGenerationRef = useRef(0);
+  // The payment this open shows: the list can reopen the sheet on another row while a write runs.
+  const openedPaymentIdRef = useRef<string | undefined>(undefined);
   const form = useZodForm(schema, {
     mode: 'onSubmit',
     reValidateMode: 'onChange',
@@ -241,6 +246,7 @@ export function usePaySheet(
         : (resolveStripSelectedId(accounts, commitment.account_id) ?? '');
 
     openGenerationRef.current += 1;
+    openedPaymentIdRef.current = payment?.id;
     form.reset({
       // `amount_due` can be sub-cent or exponential, so format it to text that re-parses.
       amountText: prefillAmount > 0 ? formatStoredMoneyText(prefillAmount) : '',
@@ -261,12 +267,12 @@ export function usePaySheet(
   }, [visible, commitment?.id, payment?.id, today]);
 
   async function onValid(data: PaySheetFormValues) {
-    if (!payment || settled) return;
+    if (!payment || !commitment || settled) return;
     const startedOpen = openGenerationRef.current;
     setSaving(owner, true);
     setSaveError(owner, undefined);
     try {
-      await markAsPaid(payment.id, {
+      const amounts = await markAsPaid(payment.id, {
         amount_paid: parseRequiredMoneyText(data.amountText, 'amountText'),
         account_id: data.account_id,
         paid_date: data.paid_date,
@@ -277,9 +283,19 @@ export function usePaySheet(
         // oxlint-disable-next-line typescript/prefer-nullish-coalescing -- || is intentional: empty string maps to undefined
         notes: data.notes?.trim() || undefined,
       });
-      // Pay stays off and the day stays put until the next open, so the closing sheet cannot pay twice.
-      setSettled(owner, true);
-      setVisible(owner, false);
+      const paidToast = Strings.commitmentsPaidToast(
+        commitment.name,
+        formatDisplayAmount(amounts.paymentAmount, commitment.currency),
+      );
+      if (openedPaymentIdRef.current === payment.id) {
+        // Pay stays off and the day stays put until the next open, so the closing sheet cannot pay twice.
+        setSettled(owner, true);
+        if (!usePaySheetState.getState().closeWithToast(owner, paidToast)) {
+          toast.show({ label: paidToast, variant: 'success' });
+        }
+      } else {
+        toast.show({ label: paidToast, variant: 'success' });
+      }
       void loadAccounts().catch((error: unknown) =>
         console.error('[paySheet] account revalidation failed:', error),
       );
@@ -343,8 +359,11 @@ export function usePaySheet(
 
   // `/accounts/*` is on the `(app)` Stack, so the href stays bare.
   function handleCloseComplete() {
-    if (usePaySheetState.getState().completeClose(owner) === 'addAccount') {
+    const action = usePaySheetState.getState().completeClose(owner);
+    if (action === 'addAccount') {
       router.push('/accounts/add_account');
+    } else if (action !== undefined) {
+      toast.show({ label: action.paidToast, variant: 'success' });
     }
   }
 
