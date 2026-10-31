@@ -69,6 +69,9 @@ const SUCCESS_ICON = (
   </View>
 );
 
+/** HeroUI lays a padding-high placeholder over the root's top and bottom after its children; above them the action's slop takes the tap. */
+const TOAST_ACTION_Z_INDEX = 1;
+
 /** One body line, in place of `size="sm"`'s 40 dp track, which grows the toast past G5ToastSkipped and cuts the label at 2.0. */
 export function resolveToastActionHeight(fontScale: number): number {
   return scaledLineHeight(Type.body, fontScale);
@@ -106,6 +109,7 @@ function SuccessActionToast({
           alignSelf: 'center',
           height,
           paddingHorizontal: Spacing.xxs,
+          zIndex: TOAST_ACTION_Z_INDEX,
           ...HIT_SLOP_UNCLIPPED_STYLE,
         }}
         onPress={onPress}
