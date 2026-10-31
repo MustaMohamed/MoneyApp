@@ -460,24 +460,27 @@ describe('commitment store mutation invalidation', () => {
     {
       name: 'deactivate',
       persist: 'deactivate',
+      resolved: undefined,
       run: (store: ReturnType<typeof createCommitmentStore>) =>
         store.getState().deactivateCommitment('commitment'),
     },
     {
       name: 'pay',
       persist: 'markAsPaid',
+      resolved: paymentAmounts(),
       run: (store: ReturnType<typeof createCommitmentStore>) =>
         store.getState().markAsPaid('payment', paymentDetails),
     },
     {
       name: 'skip',
       persist: 'markAsSkipped',
+      resolved: undefined,
       run: (store: ReturnType<typeof createCommitmentStore>) =>
         store.getState().skipPayment('payment'),
     },
   ] as const)(
     'resolves committed $name persistence while failed revalidation stays nonblocking',
-    async ({ persist, run }) => {
+    async ({ persist, resolved, run }) => {
       const repository = makeRepository();
       const store = createCommitmentStore(repository);
       await store.getState().loadMonthSnapshot(MAY);
@@ -486,7 +489,7 @@ describe('commitment store mutation invalidation', () => {
       (repository.getMonthSnapshot as jest.Mock).mockClear();
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-      await expect(run(store)).resolves.toBeUndefined();
+      await expect(run(store)).resolves.toEqual(resolved);
       await flushMicrotasks();
 
       expect(repository[persist]).toHaveBeenCalledTimes(1);
