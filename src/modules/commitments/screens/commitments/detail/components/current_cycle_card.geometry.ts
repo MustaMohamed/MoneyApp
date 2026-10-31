@@ -24,7 +24,6 @@ export const CURRENT_CYCLE_CARD_FRAME_STYLE: Readonly<ViewStyle> = Object.freeze
 export const CURRENT_CYCLE_ROW_GAP = Spacing.xs;
 export const CURRENT_CYCLE_COLUMN_GAP = Spacing.xs;
 export const CURRENT_CYCLE_LINE_GAP = Spacing.xxxs;
-export const CURRENT_CYCLE_AMOUNT_GAP = Spacing.xxs;
 export const CURRENT_CYCLE_ACTIONS_GAP = Spacing.sm;
 export const CURRENT_CYCLE_ACTION_GAP = Spacing.xs;
 
@@ -32,7 +31,6 @@ export const CURRENT_CYCLE_OVERLINE_FONT_SIZE = Type.overline;
 export const CURRENT_CYCLE_DUE_DAY_FONT_SIZE = Type.body;
 export const CURRENT_CYCLE_DAY_LINE_FONT_SIZE = Type.micro;
 export const CURRENT_CYCLE_AMOUNT_FONT_SIZE = Type.title;
-export const CURRENT_CYCLE_CODE_FONT_SIZE = Type.micro;
 
 interface CurrentCycleCardGeometry {
   headerHeight: number;

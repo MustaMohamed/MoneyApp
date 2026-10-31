@@ -7,9 +7,7 @@ import {
   CURRENT_CYCLE_ACTIONS_GAP,
   CURRENT_CYCLE_ACTION_GAP,
   CURRENT_CYCLE_AMOUNT_FONT_SIZE,
-  CURRENT_CYCLE_AMOUNT_GAP,
   CURRENT_CYCLE_CARD_FRAME_STYLE,
-  CURRENT_CYCLE_CODE_FONT_SIZE,
   CURRENT_CYCLE_DAY_LINE_FONT_SIZE,
   CURRENT_CYCLE_DUE_DAY_FONT_SIZE,
   CURRENT_CYCLE_LINE_GAP,
@@ -100,14 +98,12 @@ describe('resolveCurrentCycleCardGeometry (MA-267)', () => {
       frame: CURRENT_CYCLE_CARD_FRAME_STYLE,
       rowGap: CURRENT_CYCLE_ROW_GAP,
       lineGap: CURRENT_CYCLE_LINE_GAP,
-      amountGap: CURRENT_CYCLE_AMOUNT_GAP,
       actionsGap: CURRENT_CYCLE_ACTIONS_GAP,
       actionGap: CURRENT_CYCLE_ACTION_GAP,
       overline: CURRENT_CYCLE_OVERLINE_FONT_SIZE,
       dueDay: CURRENT_CYCLE_DUE_DAY_FONT_SIZE,
       dayLine: CURRENT_CYCLE_DAY_LINE_FONT_SIZE,
       amount: CURRENT_CYCLE_AMOUNT_FONT_SIZE,
-      code: CURRENT_CYCLE_CODE_FONT_SIZE,
     }).toEqual({
       frame: {
         borderRadius: Radius.detailCard,
@@ -119,14 +115,12 @@ describe('resolveCurrentCycleCardGeometry (MA-267)', () => {
       },
       rowGap: Spacing.xs,
       lineGap: Spacing.xxxs,
-      amountGap: Spacing.xxs,
       actionsGap: Spacing.sm,
       actionGap: Spacing.xs,
       overline: Type.overline,
       dueDay: Type.body,
       dayLine: Type.micro,
       amount: Type.title,
-      code: Type.micro,
     });
   });
 
