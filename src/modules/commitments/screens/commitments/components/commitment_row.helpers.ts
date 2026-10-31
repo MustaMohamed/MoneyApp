@@ -5,6 +5,7 @@ import {
   STATUS_BADGE_XS_LABEL_FONT_SIZE,
   STATUS_BADGE_XS_PADDING_VERTICAL,
 } from '@/components/ui/status_badge';
+import type { SwipeAction } from '@/components/ui/swipeable_row';
 import { scaledLineHeight } from '@/components/ui/text_scale.geometry';
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { CommitmentPaymentStatus, Currency } from '@/constants/enums';
@@ -47,15 +48,12 @@ import {
   type PaymentDaySettlement,
 } from '../../../domain/payment_day_distance';
 import {
-  isPaidPayment,
+  isUnpaidPayment,
   resolveCommitmentRowAccountId,
   resolvePaymentState,
 } from '../../../domain/payment_state';
 import type { Commitment } from '../../../entities/commitment.entity';
-import type {
-  CommitmentMonthPayment,
-  CommitmentPayment,
-} from '../../../entities/commitment_payment.entity';
+import type { CommitmentMonthPayment } from '../../../entities/commitment_payment.entity';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -221,4 +219,37 @@ export function buildCommitmentRowPresentation({
       .filter((part): part is string => part !== undefined)
       .join(LABEL_SEPARATOR),
   };
+}
+
+interface CommitmentRowActionsInput {
+  payment: CommitmentMonthPayment;
+  commitment: Commitment | undefined;
+  onPay: (payment: CommitmentMonthPayment, commitment: Commitment) => void;
+  onSkip: (payment: CommitmentMonthPayment, commitment: Commitment) => void;
+}
+
+/** An unpaid row's swipe tiles, Pay then Skip; a settled row and a row with no commitment get none. */
+export function buildCommitmentRowActions({
+  payment,
+  commitment,
+  onPay,
+  onSkip,
+}: CommitmentRowActionsInput): SwipeAction[] {
+  if (commitment === undefined || !isUnpaidPayment(payment)) return [];
+  return [
+    {
+      key: 'pay',
+      label: Strings.swipePay,
+      icon: 'check',
+      variant: 'success',
+      onPress: () => onPay(payment, commitment),
+    },
+    {
+      key: 'skip',
+      label: Strings.swipeSkip,
+      icon: 'minus-circle-outline',
+      variant: 'info',
+      onPress: () => onSkip(payment, commitment),
+    },
+  ];
 }

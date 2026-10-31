@@ -1,5 +1,5 @@
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useDeferredValue, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useDeferredValue, useEffect, useId, useMemo, useRef } from 'react';
 import type { SectionList } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -21,7 +21,11 @@ import { fullMonthName, shiftYearMonth } from '@/utils/year_month';
 import { resolveCommitmentRowAccountId } from '../../domain/payment_state';
 import type { Commitment } from '../../entities/commitment.entity';
 import type { CommitmentMonthPayment } from '../../entities/commitment_payment.entity';
-import { monthAggregateKey, useCommitmentStore } from '../../store/commitment.store';
+import {
+  isPaymentInTransition,
+  monthAggregateKey,
+  useCommitmentStore,
+} from '../../store/commitment.store';
 import { useCommitmentFormHostState } from '../../store/commitment_form_host.state';
 import {
   buildCommitmentSections,
@@ -37,6 +41,7 @@ import {
   resolveCommitmentsHeroAccountId,
   resolveCommitmentsHeroMode,
 } from './components/commitments_hero.helpers';
+import { usePaySheetState } from './detail/components/pay_sheet.state';
 import {
   commitmentMatchesAdvancedFilters,
   commitmentMatchesSearch,
@@ -44,6 +49,7 @@ import {
 } from './filter/filter.helpers';
 import { useCommitmentFilterState } from './filter/filter.state';
 import { EMPTY_COMMITMENT_FILTERS, useCommitmentFilterStore } from './filter/filter.store';
+import { useSkipWithUndo } from './skip_with_undo.hook';
 
 const EMPTY_COMMITMENTS: Commitment[] = [];
 const EMPTY_PAYMENTS: CommitmentMonthPayment[] = [];
@@ -79,8 +85,6 @@ export function useCommitments() {
   const loadMonthAggregate = useCommitmentStore.getState().loadMonthAggregate;
   const ensureMonthSnapshot = useCommitmentStore.getState().ensureMonthSnapshot;
   const ensureMonthAggregate = useCommitmentStore.getState().ensureMonthAggregate;
-  const skipPayment = useCommitmentStore.getState().skipPayment;
-  const deactivateCommitment = useCommitmentStore.getState().deactivateCommitment;
 
   const accountRead = useAccountsById();
   const { accountsById } = accountRead;
@@ -90,25 +94,32 @@ export function useCommitments() {
     useShallow((s) => ({ rate: s.rate, hasLoaded: s.hasLoaded })),
   );
   const liveRate = rateLoaded ? rate : undefined;
-  const { refreshing, statusFilter, searchQuery, appliedFilters } = useCommitmentsScreenState(
-    useShallow((s) => ({
-      refreshing: s.refreshing,
-      statusFilter: s.statusFilter,
-      searchQuery: s.searchQuery,
-      appliedFilters: s.appliedFilters,
-    })),
-  );
+  const { refreshing, statusFilter, searchQuery, appliedFilters, payTarget } =
+    useCommitmentsScreenState(
+      useShallow((s) => ({
+        refreshing: s.refreshing,
+        statusFilter: s.statusFilter,
+        searchQuery: s.searchQuery,
+        appliedFilters: s.appliedFilters,
+        payTarget: s.payTarget,
+      })),
+    );
   const setRefreshing = useCommitmentsScreenState.getState().setRefreshing;
   const setStatusFilter = useCommitmentsScreenState.getState().setStatusFilter;
   const setSearchQuery = useCommitmentsScreenState.getState().setSearchQuery;
   const clearSearch = useCommitmentsScreenState.getState().clearSearch;
   const setAppliedFilters = useCommitmentsScreenState.getState().setAppliedFilters;
+  const setPayTarget = useCommitmentsScreenState.getState().setPayTarget;
   const deferredStatusFilter = useDeferredValue(statusFilter);
   const settledSearch = useDebouncedValue(searchQuery, 300);
   // An emptied query applies at once, so a seeded filter never reads the search it cleared.
   const debouncedSearch = searchQuery.length === 0 ? '' : settledSearch;
   const openFilter = useCommitmentFilterState.getState().open;
   const setFilterDraft = useCommitmentFilterStore.getState().setDraft;
+  const payOwner = useId();
+  const payToday = usePaySheetState((s) => s.entries[payOwner]?.openedOn);
+  const releasePaySheet = usePaySheetState.getState().release;
+  const { skip } = useSkipWithUndo();
 
   const { rowsRead, rowsLoadErrorId } = useCommitmentsScreenStore(
     useShallow((s) => ({ rowsRead: s.rowsRead, rowsLoadErrorId: s.rowsLoadErrorId })),
@@ -372,21 +383,44 @@ export function useCommitments() {
     }
   }, [loadAccountLookup, rowAccountIds]);
 
-  const goToDetail = useCallback((commitmentId: string, paymentId: string) => {
-    router.push(commitmentDetailRoute('', commitmentId, paymentId));
-  }, []);
+  // A set `postCloseAction` is a close still owed its toast, which a second open would reset.
+  const paySheetIsOpen = useCallback(() => {
+    const { entries } = usePaySheetState.getState();
+    return entries[payOwner]?.visible === true || entries[payOwner]?.postCloseAction !== undefined;
+  }, [payOwner]);
+
+  const goToDetail = useCallback(
+    (commitmentId: string, paymentId: string) => {
+      if (paySheetIsOpen()) return;
+      router.push(commitmentDetailRoute('', commitmentId, paymentId));
+    },
+    [paySheetIsOpen],
+  );
 
   const goToAdd = useCallback(() => {
     useCommitmentFormHostState.getState().openAdd();
   }, []);
 
-  const goToEdit = useCallback((commitmentId: string | undefined) => {
-    if (!commitmentId) {
-      console.warn('[goToEdit] commitment id is undefined — skipping the edit sheet');
-      return;
-    }
-    useCommitmentFormHostState.getState().openEdit(commitmentId);
-  }, []);
+  useEffect(() => () => releasePaySheet(payOwner), [payOwner, releasePaySheet]);
+
+  const payRow = useCallback(
+    (payment: CommitmentMonthPayment, commitment: Commitment) => {
+      if (paySheetIsOpen()) return;
+      if (isPaymentInTransition(payment.id)) return;
+      setPayTarget({ payment, commitment });
+      // The pay sheet dates by the day it opens, not the day the list last read.
+      usePaySheetState.getState().open(payOwner, toLocalDateString(new Date()));
+    },
+    [payOwner, paySheetIsOpen, setPayTarget],
+  );
+
+  const skipRow = useCallback(
+    (payment: CommitmentMonthPayment, commitment: Commitment) => {
+      if (paySheetIsOpen()) return;
+      void skip(payment.id, commitment.name);
+    },
+    [paySheetIsOpen, skip],
+  );
 
   const handleOpenFilter = useCallback(() => {
     setFilterDraft(effectiveFilters);
@@ -436,6 +470,9 @@ export function useCommitments() {
       accountsById,
       categoriesById,
       commitmentsById,
+      payOwner,
+      payTarget,
+      payToday,
     },
     navigateMonth,
     selectMonth,
@@ -444,9 +481,8 @@ export function useCommitments() {
     retryAccountLookup,
     goToDetail,
     goToAdd,
-    goToEdit,
-    skipPayment,
-    deactivateCommitment,
+    payRow,
+    skipRow,
     setStatusFilter,
     setSearchQuery,
     clearSearch,

@@ -5,11 +5,10 @@ import { type StyleProp, View, type ViewStyle, useWindowDimensions } from 'react
 
 import { AccountColorTile } from '@/components/ui/account_color_tile';
 import { StatusBadge, resolveStatusBadgeXsMinWidth } from '@/components/ui/status_badge';
-import { SwipeableRow, type SwipeAction } from '@/components/ui/swipeable_row';
+import { SwipeableRow } from '@/components/ui/swipeable_row';
 import { Text } from '@/components/ui/text';
 import { resolveFitAmountTextProps, scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { YieldingSlot } from '@/components/ui/yielding_slot';
-import { Strings } from '@/constants/strings';
 import { Size } from '@/constants/theme';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
@@ -32,6 +31,7 @@ import {
   COMMITMENT_ROW_CODE_FONT_SIZE,
   COMMITMENT_ROW_LINE_GAP,
   COMMITMENT_ROW_TITLE_FONT_SIZE,
+  buildCommitmentRowActions,
   buildCommitmentRowPresentation,
   resolveCommitmentRowHeight,
 } from './commitment_row.helpers';
@@ -56,9 +56,8 @@ interface CommitmentRowProps {
   category: Category | undefined;
   account: Account | undefined;
   onPress: (commitmentId: string, paymentId: string) => void;
-  onSkip: (paymentId: string) => void;
-  onEdit: (commitmentId: string | undefined) => void;
-  onDelete: (commitmentId: string | undefined) => void;
+  onPay: (payment: CommitmentMonthPayment, commitment: Commitment) => void;
+  onSkip: (payment: CommitmentMonthPayment, commitment: Commitment) => void;
   showSeparator?: boolean;
   swipeContainerStyle?: StyleProp<ViewStyle>;
 }
@@ -71,9 +70,8 @@ function CommitmentRowComponent({
   category,
   account,
   onPress,
+  onPay,
   onSkip,
-  onEdit,
-  onDelete,
   showSeparator = true,
   swipeContainerStyle,
 }: CommitmentRowProps) {
@@ -98,34 +96,9 @@ function CommitmentRowComponent({
     () => onPress(payment.commitment_id, payment.id),
     [onPress, payment.commitment_id, payment.id],
   );
-  const handleSkip = useCallback(() => onSkip(payment.id), [onSkip, payment.id]);
-  const handleEdit = useCallback(() => onEdit(commitment?.id), [commitment?.id, onEdit]);
-  const handleDelete = useCallback(() => onDelete(commitment?.id), [commitment?.id, onDelete]);
-  const actions: SwipeAction[] = useMemo(
-    () => [
-      {
-        key: 'skip',
-        label: Strings.swipeSkip,
-        icon: 'skip-next-outline',
-        variant: 'info',
-        onPress: handleSkip,
-      },
-      {
-        key: 'edit',
-        label: Strings.swipeEdit,
-        icon: 'pencil-outline',
-        variant: 'neutral',
-        onPress: handleEdit,
-      },
-      {
-        key: 'delete',
-        label: Strings.swipeDelete,
-        icon: 'trash-can-outline',
-        variant: 'destructive',
-        onPress: handleDelete,
-      },
-    ],
-    [handleDelete, handleEdit, handleSkip],
+  const actions = useMemo(
+    () => buildCommitmentRowActions({ payment, commitment, onPay, onSkip }),
+    [commitment, onPay, onSkip, payment],
   );
   const press = useDragCancelledPress(handlePress);
 
@@ -133,7 +106,7 @@ function CommitmentRowComponent({
     <SwipeableRow
       rowId={payment.id}
       actions={actions}
-      disabled={commitment === undefined}
+      disabled={actions.length === 0}
       accessibilityLabel={row.accessibilityLabel}
       containerStyle={swipeContainerStyle}
     >

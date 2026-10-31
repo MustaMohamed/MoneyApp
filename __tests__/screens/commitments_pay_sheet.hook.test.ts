@@ -16,11 +16,20 @@ import {
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { TransactionAmountError } from '@/modules/transactions/domain/transaction_amounts';
-import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
+import {
+  makeTestCommitment,
+  makeTestPayment,
+  makeTestPaymentAmounts,
+} from '@/test_helpers/commitment';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 import { makeTestAccount } from '@/test_helpers/transaction';
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
+const mockToast = { show: jest.fn() };
+// The wrapper, not HeroUI, so `show` sees exactly what the call site passed.
+jest.mock('@/components/ui/toast', () => ({
+  useToast: () => ({ toast: mockToast, isToastVisible: false }),
+}));
 const mockRouterPush = jest.fn();
 jest.mock('expo-router', () => ({
   router: { push: (...args: unknown[]) => mockRouterPush(...args) },
@@ -79,6 +88,15 @@ const mockPaySheetState = {
     paySheetStateInner = { ...paySheetStateInner, visible: false, postCloseAction: 'addAccount' };
     return true;
   }),
+  closeWithToast: jest.fn((_owner: string, label: string): boolean => {
+    if (!paySheetStateInner.visible) return false;
+    paySheetStateInner = {
+      ...paySheetStateInner,
+      visible: false,
+      postCloseAction: { paidToast: label },
+    };
+    return true;
+  }),
   completeClose: jest.fn((_owner: string): PaySheetPostCloseAction | undefined => {
     const action = paySheetStateInner.postCloseAction;
     if (action !== undefined)
@@ -121,7 +139,7 @@ const duePayment = makeTestPayment({
   updated_at: '2026-01-01T00:00:00.000Z',
 });
 
-const mockMarkAsPaid = jest.fn().mockResolvedValue(undefined);
+const mockMarkAsPaid = jest.fn().mockResolvedValue(makeTestPaymentAmounts());
 const mockLoadPaymentsForMonth = jest.fn().mockResolvedValue(undefined);
 const mockLoadAccounts = jest.fn().mockResolvedValue(undefined);
 let mockAccounts: Account[] = [];
@@ -178,7 +196,7 @@ describe('usePaySheet', () => {
     mockHasLoaded = false;
     mockLoadError = false;
     mockMarkAsPaid.mockClear();
-    mockMarkAsPaid.mockResolvedValue(undefined);
+    mockMarkAsPaid.mockResolvedValue(makeTestPaymentAmounts());
     mockLoadPaymentsForMonth.mockClear();
     mockLoadPaymentsForMonth.mockResolvedValue(undefined);
     mockLoadAccounts.mockClear();
@@ -424,6 +442,7 @@ describe('usePaySheet', () => {
     mockLoadAccounts.mockRejectedValueOnce(refreshError);
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     mockAccounts = [egpAccount];
+    paySheetStateInner = { ...paySheetStateInner, visible: true };
     const { result } = await renderHook(() => usePaySheet(OWNER, egpCommitment, duePayment, TODAY));
     await act(() => {
       result.current.form.setValue('account_id', egpAccount.id);
@@ -438,7 +457,7 @@ describe('usePaySheet', () => {
 
     expect(mockMarkAsPaid).toHaveBeenCalledTimes(1);
     expect(mockLoadAccounts).toHaveBeenCalledTimes(1);
-    expect(mockPaySheetState.setVisible).toHaveBeenCalledWith(OWNER, false);
+    expect(mockPaySheetState.closeWithToast).toHaveBeenCalledTimes(1);
     expect(mockPaySheetState.setSettled).toHaveBeenCalledWith(OWNER, true);
     expect(consoleSpy).toHaveBeenCalledWith(
       '[paySheet] account revalidation failed:',
@@ -450,6 +469,7 @@ describe('usePaySheet', () => {
   // EGP commitment paid from a loaded EGP account, so a failure here is the typed amount only.
   async function submitAmount(typed: string) {
     mockAccounts = [egpAccount];
+    paySheetStateInner = { ...paySheetStateInner, visible: true };
     const { result, rerender } = await renderHook(() =>
       usePaySheet(OWNER, egpCommitment, duePayment, TODAY),
     );
@@ -1225,6 +1245,7 @@ describe('usePaySheet', () => {
     // A huge finite amount clears the refine, so the resolver throws at `markAsPaid`, not here.
     it('an oversized amount clears field validation; a markAsPaid rejection surfaces the unstorable copy with no write', async () => {
       mockAccounts = [egpAccount];
+      paySheetStateInner = { ...paySheetStateInner, visible: true };
       mockMarkAsPaid.mockRejectedValueOnce(
         new TransactionAmountError('Computed amount exceeds the storable range', 'unstorable'),
       );
@@ -1640,6 +1661,7 @@ describe('usePaySheet', () => {
 
     it('writes once when Pay is pressed again while the sheet closes, and again after a re-open', async () => {
       // On the commitment's own account, so the re-open's prefill lights it.
+      paySheetStateInner = { ...paySheetStateInner, visible: true };
       const { result, rerender } = await renderTrack(
         { ...egpCommitment, account_id: cib.id },
         cib,
@@ -1674,6 +1696,7 @@ describe('usePaySheet', () => {
     });
 
     it('keeps the write preview on the closing render after a successful save', async () => {
+      paySheetStateInner = { ...paySheetStateInner, visible: true };
       const { result, rerender } = await renderTrack(egpCommitment, cib, '8000');
       const before = result.current.state.trackFootnote;
       expect(before).toBe('Writes an expense of 8,000 EGP on CIB, dated today.');
@@ -1730,6 +1753,7 @@ describe('usePaySheet', () => {
     });
 
     it('a failed write whose account reload also fails reloads once and still reads the failed-write copy', async () => {
+      paySheetStateInner = { ...paySheetStateInner, visible: true };
       mockMarkAsPaid.mockRejectedValueOnce(new Error('write failed'));
       mockLoadAccounts.mockImplementationOnce(async () => {
         mockLoadError = true;
@@ -1748,6 +1772,7 @@ describe('usePaySheet', () => {
     });
 
     it('a failed write whose reload drops the lit account rings the strip with the unavailable copy, counts it, and sets no save error', async () => {
+      paySheetStateInner = { ...paySheetStateInner, visible: true };
       mockMarkAsPaid.mockRejectedValueOnce(new Error('account archived'));
       mockLoadAccounts.mockImplementationOnce(async () => {
         mockAccounts = [walletAccount];
@@ -1981,6 +2006,89 @@ describe('usePaySheet', () => {
       await act(() => rerender({ today: '2026-10-21' }));
 
       expect(result.current.state.cycleLine?.distance).toBe('173 days late');
+    });
+  });
+
+  describe('MA-215 toast after Pay', () => {
+    async function pay(result: PayHook['result']) {
+      await act(async () => {
+        await result.current.onSubmit();
+      });
+    }
+
+    beforeEach(() => {
+      mockToast.show.mockClear();
+      paySheetStateInner = { ...paySheetStateInner, visible: true };
+    });
+
+    it('shows nothing until the close completes, then the toast once', async () => {
+      mockMarkAsPaid.mockResolvedValueOnce(makeTestPaymentAmounts({ paymentAmount: 8000 }));
+      const { result, rerender } = await renderTrack(egpCommitment, cib, '8000');
+
+      await pay(result);
+      await act(() => rerender(undefined));
+
+      expect(mockPaySheetState.setSettled).toHaveBeenCalledWith(OWNER, true);
+      expect(result.current.state.visible).toBe(false);
+      expect(mockToast.show).not.toHaveBeenCalled();
+
+      await act(() => result.current.handleCloseComplete());
+
+      expect(mockToast.show).toHaveBeenCalledTimes(1);
+      expect(mockToast.show).toHaveBeenCalledWith({
+        label: 'Netflix paid · 8,000 EGP',
+        variant: 'success',
+      });
+
+      await act(() => result.current.handleCloseComplete());
+      expect(mockToast.show).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([
+      [
+        'an EGP commitment, the resolved figure over the typed one',
+        egpCommitment,
+        cib,
+        '8000',
+        undefined,
+        makeTestPaymentAmounts({ paymentAmount: 7500 }),
+        'Netflix paid · 7,500 EGP',
+      ],
+      [
+        'a USD commitment from an EGP account, in the commitment currency',
+        fixedCommitment,
+        cib,
+        '15',
+        '50',
+        makeTestPaymentAmounts({ paymentAmount: 15.5, accountNativeAmount: 775, egpAmount: 775 }),
+        'Netflix paid · 15.50 USD',
+      ],
+    ])('reads %s', async (_name, commitment, account, amount, rate, amounts, label) => {
+      mockMarkAsPaid.mockResolvedValueOnce(amounts);
+      const { result } = await renderTrack(commitment, account, amount, rate);
+
+      await pay(result);
+      await act(() => result.current.handleCloseComplete());
+
+      expect(mockToast.show).toHaveBeenCalledTimes(1);
+      expect(mockToast.show).toHaveBeenCalledWith({ label, variant: 'success' });
+    });
+
+    it('a failed Pay shows none and keeps the status line; the retry that lands shows one', async () => {
+      mockMarkAsPaid.mockRejectedValueOnce(new Error('write failed'));
+      const { result, rerender } = await renderTrack(egpCommitment, cib, '8000');
+
+      await pay(result);
+      await act(() => rerender(undefined));
+      await act(() => result.current.handleCloseComplete());
+
+      expect(result.current.state.statusMessage).toBe(Strings.commitmentsPayError);
+      expect(mockToast.show).not.toHaveBeenCalled();
+
+      await pay(result);
+      await act(() => result.current.handleCloseComplete());
+
+      expect(mockToast.show).toHaveBeenCalledTimes(1);
     });
   });
 

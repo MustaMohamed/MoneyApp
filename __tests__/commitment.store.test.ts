@@ -21,6 +21,7 @@ import {
   makeTestHeldBucket,
   makeTestMonthAggregate,
   makeTestMonthPayment,
+  makeTestPaymentAmounts,
 } from '@/test_helpers/commitment';
 import { deferred } from '@/test_helpers/deferred';
 
@@ -70,14 +71,12 @@ function snapshot(
 function paymentAmounts(
   overrides: Partial<CommitmentPaymentAmounts> = {},
 ): CommitmentPaymentAmounts {
-  return {
+  return makeTestPaymentAmounts({
     paymentAmount: 250,
     accountNativeAmount: 250,
-    accountCurrency: Currency.EGP,
     egpAmount: 250,
-    exchangeRate: null,
     ...overrides,
-  };
+  });
 }
 
 function markAsPaidResult(overrides: Partial<CommitmentPaymentAmounts> = {}): MarkAsPaidResult {
@@ -466,24 +465,27 @@ describe('commitment store mutation invalidation', () => {
     {
       name: 'deactivate',
       persist: 'deactivate',
+      resolved: undefined,
       run: (store: ReturnType<typeof createCommitmentStore>) =>
         store.getState().deactivateCommitment('commitment'),
     },
     {
       name: 'pay',
       persist: 'markAsPaid',
+      resolved: paymentAmounts(),
       run: (store: ReturnType<typeof createCommitmentStore>) =>
         store.getState().markAsPaid('payment', paymentDetails),
     },
     {
       name: 'skip',
       persist: 'markAsSkipped',
+      resolved: undefined,
       run: (store: ReturnType<typeof createCommitmentStore>) =>
         store.getState().skipPayment('payment'),
     },
   ] as const)(
     'resolves committed $name persistence while failed revalidation stays nonblocking',
-    async ({ persist, run }) => {
+    async ({ persist, resolved, run }) => {
       const repository = makeRepository();
       const store = createCommitmentStore(repository);
       await store.getState().loadMonthSnapshot(MAY);
@@ -492,7 +494,7 @@ describe('commitment store mutation invalidation', () => {
       (repository.getMonthSnapshot as jest.Mock).mockClear();
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-      await expect(run(store)).resolves.toBeUndefined();
+      await expect(run(store)).resolves.toEqual(resolved);
       await flushMicrotasks();
 
       expect(repository[persist]).toHaveBeenCalledTimes(1);
@@ -574,10 +576,28 @@ describe('commitment store mutation invalidation', () => {
     const store = createCommitmentStore(repository);
     await store.getState().loadMonthSnapshot(MAY);
 
-    await expect(store.getState().markAsPaid('payment', paymentDetails)).resolves.toBeUndefined();
+    await expect(store.getState().markAsPaid('payment', paymentDetails)).resolves.toEqual(
+      paymentAmounts(),
+    );
 
     expect(repository.markAsPaid).toHaveBeenCalledWith('payment', paymentDetails);
     expect(store.getState().payments).toEqual([]);
+  });
+
+  it('resolves the amounts the repository resolved, the commitment figure with them', async () => {
+    const amounts = {
+      paymentAmount: 15.5,
+      accountNativeAmount: 775,
+      accountCurrency: Currency.EGP,
+      egpAmount: 775,
+      exchangeRate: 50,
+    };
+    const repository = makeRepository({
+      markAsPaid: jest.fn().mockResolvedValue(markAsPaidResult(amounts)),
+    });
+    const store = createCommitmentStore(repository);
+
+    await expect(store.getState().markAsPaid('payment', paymentDetails)).resolves.toEqual(amounts);
   });
 
   it('locks a payment against a stale Skip while Pay persistence is in flight', async () => {
@@ -1077,7 +1097,7 @@ describe('commitment store month aggregate', () => {
     });
   });
 
-  const writes: [string, (store: Store) => Promise<void>][] = [
+  const writes: [string, (store: Store) => Promise<unknown>][] = [
     ['markAsPaid', (store) => store.getState().markAsPaid('payment', paymentDetails)],
     ['skipPayment', (store) => store.getState().skipPayment('payment', MAY_8_LOCAL)],
     ['undoSkip', (store) => store.getState().undoSkip('payment', MAY_8_LOCAL)],
@@ -1290,7 +1310,7 @@ describe('commitment store focus gate', () => {
     expect(repository.getMonthAggregate).toHaveBeenCalledWith(MAY, today, undefined);
   });
 
-  const writes: [string, (store: Store) => Promise<void>][] = [
+  const writes: [string, (store: Store) => Promise<unknown>][] = [
     ['Add', (store) => store.getState().addCommitment(newInput)],
     ['Edit', (store) => store.getState().updateCommitment('commitment', updateInput)],
     ['Stop', (store) => store.getState().deactivateCommitment('commitment')],

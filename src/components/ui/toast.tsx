@@ -1,17 +1,33 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import {
+  Button as HButton,
+  Toast,
   ToastProvider,
   useToast as useHeroToast,
+  type ToastComponentProps,
   type ToastInsets,
   type ToastProviderProps,
+  type ToastShowConfig,
   type ToastShowOptions,
 } from 'heroui-native';
-import { useMemo, type ReactNode } from 'react';
-import { View } from 'react-native';
+import { useLayoutEffect, useMemo, useRef, type ReactNode } from 'react';
+import { useWindowDimensions, View } from 'react-native';
 
+import { resolveButtonLabelStyle } from '@/components/ui/button.geometry';
+import {
+  HEROUI_TEXT_TYPE,
+  resolveOneLineTextProps,
+  scaledLineHeight,
+} from '@/components/ui/text_scale.geometry';
 import { TOAST_ANIMATION } from '@/components/ui/toast.anim';
 import { useToastClearanceState } from '@/components/ui/toast_clearance.state';
-import { Colors, Size } from '@/constants/theme';
+import {
+  Colors,
+  HIT_SLOP_UNCLIPPED_STYLE,
+  Size,
+  Spacing,
+  touchFloorHitSlop,
+} from '@/constants/theme';
 
 /** One toast at a time, at the bottom — the app's only toast configuration. */
 export const TOAST_PROVIDER_PROPS = {
@@ -56,22 +72,104 @@ const SUCCESS_ICON = (
   </View>
 );
 
-// Rewrites `variant` to `default`, for a foreground label, and sets `icon`; a success toast with an action would lose the success action background.
+/** HeroUI lays a padding-high placeholder over the root's top and bottom after its children; above them the action's slop takes the tap. */
+export const TOAST_ACTION_Z_INDEX = 1;
+
+/** One line of the `sm` label, in place of `size="sm"`'s 40 dp track, which grows the toast past G5ToastSkipped and cuts the label at 2.0. */
+export function resolveToastActionHeight(fontScale: number): number {
+  return scaledLineHeight(HEROUI_TEXT_TYPE.sm, fontScale);
+}
+
+interface SuccessActionToastProps extends ToastComponentProps {
+  label: string | undefined;
+  actionLabel: string;
+  onActionPress: ToastShowConfig['onActionPress'];
+}
+
+function SuccessActionToast({
+  label,
+  actionLabel,
+  onActionPress,
+  ...toastProps
+}: SuccessActionToastProps) {
+  const { fontScale } = useWindowDimensions();
+  const { id, show, hide } = toastProps;
+  const height = resolveToastActionHeight(fontScale);
+  const onPress = () => {
+    hide(id);
+    onActionPress?.({ show, hide });
+  };
+  return (
+    <Toast {...toastProps} className="gap-3" style={{ flexDirection: 'row' }}>
+      <View>{SUCCESS_ICON}</View>
+      <View style={{ flex: 1 }}>
+        <Toast.Title>{label}</Toast.Title>
+      </View>
+      <Toast.Action
+        variant="ghost"
+        hitSlop={touchFloorHitSlop(height)}
+        style={{
+          alignSelf: 'center',
+          height,
+          paddingHorizontal: Spacing.xxs,
+          zIndex: TOAST_ACTION_Z_INDEX,
+          ...HIT_SLOP_UNCLIPPED_STYLE,
+        }}
+        onPress={onPress}
+      >
+        <HButton.Label
+          {...resolveOneLineTextProps(resolveButtonLabelStyle('sm', fontScale))}
+          className="text-accent font-inter-semibold"
+        >
+          {actionLabel}
+        </HButton.Label>
+      </Toast.Action>
+    </Toast>
+  );
+}
+
+// `DefaultToast` tints a success action and greys a ghost label, so the gold action draws through its own component.
+function asSuccessActionToast(config: ToastShowConfig, actionLabel: string): ToastShowOptions {
+  const { id, duration, onShow, onHide, label, onActionPress } = config;
+  return {
+    id,
+    duration,
+    onShow,
+    onHide,
+    component: (props) => (
+      <SuccessActionToast
+        {...props}
+        label={label}
+        actionLabel={actionLabel}
+        onActionPress={onActionPress}
+      />
+    ),
+  };
+}
+
+// Rewrites `variant` to `default`, for a foreground label, and sets `icon`.
 function asSuccessToast(options: string | ToastShowOptions): string | ToastShowOptions {
   if (typeof options === 'string' || options.component !== undefined) return options;
   if (options.variant !== 'success') return options;
+  if (options.actionLabel !== undefined) return asSuccessActionToast(options, options.actionLabel);
   return { ...options, variant: 'default', icon: options.icon ?? SUCCESS_ICON };
 }
 
 // HeroUI takes `icon` and `variant` per call only, so every success toast is rewritten here and no screen reaches past this.
 export function useToast(): ReturnType<typeof useHeroToast> {
   const { toast: heroToast, isToastVisible } = useHeroToast();
+  // HeroUI's toast changes at each show and hide, which would re-render every memoised reader.
+  const heroToastRef = useRef(heroToast);
+  useLayoutEffect(() => {
+    heroToastRef.current = heroToast;
+  });
   const toast = useMemo(
     () => ({
-      show: (options: string | ToastShowOptions) => heroToast.show(asSuccessToast(options)),
-      hide: heroToast.hide,
+      show: (options: string | ToastShowOptions) =>
+        heroToastRef.current.show(asSuccessToast(options)),
+      hide: (ids?: string | string[] | 'all') => heroToastRef.current.hide(ids),
     }),
-    [heroToast],
+    [],
   );
   return { toast, isToastVisible };
 }

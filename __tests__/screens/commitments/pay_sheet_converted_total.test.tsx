@@ -10,7 +10,11 @@ import { PaySheet } from '@/modules/commitments/screens/commitments/detail/compo
 import { usePaySheetState } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.state';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
-import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
+import {
+  makeTestCommitment,
+  makeTestPayment,
+  makeTestPaymentAmounts,
+} from '@/test_helpers/commitment';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => {
@@ -23,6 +27,11 @@ jest.mock('@gorhom/bottom-sheet', () => {
     BottomSheetScrollView: ({ children }: { children?: ReactNode }) => <View>{children}</View>,
   };
 });
+const mockToast = { show: jest.fn() };
+// The real wrapper's `toast.anim.ts` pulls reanimated, which does not load here.
+jest.mock('@/components/ui/toast', () => ({
+  useToast: () => ({ toast: mockToast, isToastVisible: false }),
+}));
 jest.mock('@/components/ui/sheet', () => ({
   useBottomSheetAwareHandlers: () => ({ onFocus: jest.fn(), onBlur: jest.fn() }),
   Sheet: ({
@@ -120,6 +129,12 @@ const paySheetState = {
   reset: jest.fn(),
 };
 
+const PAID_AMOUNTS = makeTestPaymentAmounts({
+  paymentAmount: 1,
+  accountNativeAmount: 1,
+  egpAmount: 1,
+});
+
 const usdPayAccount = {
   ...payAccount,
   id: 'acc-usd',
@@ -131,7 +146,7 @@ let suiteAccounts: Account[] = [payAccount];
 beforeEach(() => {
   suiteAccounts = [payAccount];
   attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
-    markAsPaid: jest.fn().mockResolvedValue(undefined),
+    markAsPaid: jest.fn().mockResolvedValue(PAID_AMOUNTS),
     loadPaymentsForMonth: jest.fn().mockResolvedValue(undefined),
   }));
   attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({

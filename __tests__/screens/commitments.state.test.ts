@@ -1,6 +1,7 @@
 import { AmountType, CommitmentPaymentStatus, Currency, RecurrencePreset } from '@/constants/enums';
 import { useCommitmentsScreenState } from '@/modules/commitments/screens/commitments/commitments.state';
 import { EMPTY_COMMITMENT_FILTERS } from '@/modules/commitments/screens/commitments/filter/filter.store';
+import { makeTestCommitment, makeTestMonthPayment } from '@/test_helpers/commitment';
 
 beforeEach(() => useCommitmentsScreenState.getState().reset());
 
@@ -54,6 +55,17 @@ describe('useCommitmentsScreenState', () => {
       amountTypes: [AmountType.Variable],
       amountMin: 25,
     });
+  });
+
+  it('holds the pay target, which starts empty, and reset clears it', () => {
+    expect(useCommitmentsScreenState.getState().payTarget).toBeUndefined();
+    const target = { payment: makeTestMonthPayment(), commitment: makeTestCommitment() };
+
+    useCommitmentsScreenState.getState().setPayTarget(target);
+    expect(useCommitmentsScreenState.getState().payTarget).toBe(target);
+
+    useCommitmentsScreenState.getState().reset();
+    expect(useCommitmentsScreenState.getState().payTarget).toBeUndefined();
   });
 
   it('reset returns to initial state', () => {

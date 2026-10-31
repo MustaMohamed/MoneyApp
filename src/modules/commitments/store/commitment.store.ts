@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 
+import type { CommitmentPaymentAmounts } from '@/modules/transactions/domain/transaction_amounts';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import { toLocalDateString } from '@/utils/format_date';
 import { currentYearMonth } from '@/utils/year_month';
@@ -60,7 +61,7 @@ type CommitmentStore = CommitmentStoreState & {
   addCommitment(data: NewCommitmentInput): Promise<void>;
   updateCommitment(id: string, data: UpdateCommitmentInput): Promise<void>;
   deactivateCommitment(id: string): Promise<void>;
-  markAsPaid(paymentId: string, details: PaymentDetails): Promise<void>;
+  markAsPaid(paymentId: string, details: PaymentDetails): Promise<CommitmentPaymentAmounts>;
   skipPayment(paymentId: string, now?: Date): Promise<void>;
   undoSkip(paymentId: string, now?: Date): Promise<void>;
 
@@ -364,6 +365,7 @@ export function createCommitmentStore(
             }));
             invalidateData();
             revalidateAfterMutation();
+            return amounts;
           } catch (error) {
             console.error('[commitmentStore] markAsPaid failed:', error);
             throw error;
@@ -443,3 +445,8 @@ export function createCommitmentStore(
 }
 
 export const useCommitmentStore = createCommitmentStore(new CommitmentRepository());
+
+// Read at call time: the store throws on an id already in transition, and that throw is no failure to show.
+export function isPaymentInTransition(paymentId: string): boolean {
+  return useCommitmentStore.getState().transitioningPaymentIds.includes(paymentId);
+}
