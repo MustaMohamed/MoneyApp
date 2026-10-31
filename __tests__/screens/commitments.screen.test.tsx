@@ -240,7 +240,6 @@ const baseCommitmentsState: CommitmentsScreenState = {
   isEmpty: true,
   commitmentsLoaded: true,
   paymentsLoaded: true,
-  loading: false,
   loadError: false,
   presentation: 'content',
   floatingAlert: undefined,

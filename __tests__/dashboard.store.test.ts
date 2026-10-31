@@ -4,6 +4,7 @@ import type {
   DashboardSnapshotStatus,
   IDashboardRepository,
 } from '@/modules/dashboard/repositories/dashboard.repository';
+import { selectDashboardPresentation } from '@/modules/dashboard/screens/dashboard/dashboard.presentation';
 import { createDashboardStore } from '@/modules/dashboard/store/dashboard.store';
 import { deferred } from '@/test_helpers/deferred';
 
@@ -314,6 +315,128 @@ describe('createDashboardStore', () => {
 
     august.resolve(snapshot('2026-08'));
     await augustRequest;
+    errorSpy.mockRestore();
+  });
+});
+
+describe('createDashboardStore.revalidateAtDayChange', () => {
+  const SAME_MONTH = {
+    turn: 'a same-month day',
+    heldKey: '2026-10',
+    next: { yearMonth: '2026-10', now: new Date(2026, 9, 16, 0, 0) },
+  };
+  const MONTH_TURN = {
+    turn: '2026-10-31 to 11-01',
+    heldKey: '2026-10',
+    next: { yearMonth: '2026-11', now: new Date(2026, 10, 1, 0, 0) },
+  };
+  const LEAP_DAY = {
+    turn: '2028-02-28 to 02-29',
+    heldKey: '2028-02',
+    next: { yearMonth: '2028-02', now: new Date(2028, 1, 29, 0, 0) },
+  };
+
+  it.each([SAME_MONTH, MONTH_TURN, LEAP_DAY])(
+    'at $turn publishes nothing before the read settles and once after, with no loading status',
+    async ({ heldKey, next }) => {
+      const load = deferred<DashboardSnapshot>();
+      const repo = repository(() => load.promise);
+      const store = createDashboardStore(repo);
+      const held = snapshot(heldKey);
+      store.setState({ snapshot: held, status: 'ready', requestedKey: heldKey });
+      const statuses: DashboardSnapshotStatus[] = [];
+      const unsubscribe = store.subscribe((state) => {
+        statuses.push(state.status);
+      });
+
+      const request = store.getState().revalidateAtDayChange(next);
+      await Promise.resolve();
+
+      expect(repo.getSnapshot).toHaveBeenCalledWith(next);
+      expect(statuses).toEqual([]);
+      expect(store.getState().snapshot).toBe(held);
+
+      const landed = snapshot(next.yearMonth);
+      load.resolve(landed);
+      await request;
+      unsubscribe();
+
+      expect(statuses).toEqual(['ready']);
+      expect(store.getState()).toMatchObject({
+        snapshot: landed,
+        status: 'ready',
+        requestedKey: next.yearMonth,
+      });
+    },
+  );
+
+  it('drops a same-key read started before it, which publishes nothing', async () => {
+    const beforeTurn = deferred<DashboardSnapshot>();
+    const atTurn = deferred<DashboardSnapshot>();
+    const repo = repository(() =>
+      repo.getSnapshot.mock.calls.length === 1 ? beforeTurn.promise : atTurn.promise,
+    );
+    const store = createDashboardStore(repo);
+    store.setState({ snapshot: snapshot('2026-07'), status: 'ready', requestedKey: '2026-07' });
+
+    const staleRequest = store.getState().refresh(input('2026-07'));
+    const published = jest.fn();
+    const unsubscribe = store.subscribe(published);
+    const turn = store.getState().revalidateAtDayChange(input('2026-07'));
+
+    expect(repo.getSnapshot).toHaveBeenCalledTimes(2);
+    beforeTurn.resolve(snapshot('2026-07'));
+    await staleRequest;
+    expect(published).not.toHaveBeenCalled();
+
+    const landed = snapshot('2026-07');
+    atTurn.resolve(landed);
+    await turn;
+    unsubscribe();
+
+    expect(published).toHaveBeenCalledTimes(1);
+    expect(store.getState().snapshot).toBe(landed);
+  });
+
+  it.each([SAME_MONTH, MONTH_TURN])(
+    'on a failure at $turn holds the snapshot with its refresh error, and the next ensure reads',
+    async ({ heldKey, next }) => {
+      const repo = repository(({ yearMonth }) =>
+        repo.getSnapshot.mock.calls.length === 2
+          ? Promise.reject(new Error('db unavailable'))
+          : Promise.resolve(snapshot(yearMonth)),
+      );
+      const store = createDashboardStore(repo);
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+      await store.getState().ensureSnapshot(input(heldKey));
+      const held = store.getState().snapshot;
+
+      await expect(store.getState().revalidateAtDayChange(next)).resolves.toBeUndefined();
+
+      const { status, snapshot: afterFailure, requestedKey } = store.getState();
+      expect(status).toBe('refreshErrorWithData');
+      expect(afterFailure).toBe(held);
+      expect(requestedKey).toBe(heldKey);
+      expect(
+        selectDashboardPresentation({ status, snapshot: afterFailure, requestedKey })
+          .showRefreshError,
+      ).toBe(true);
+
+      await store.getState().ensureSnapshot(next);
+
+      expect(repo.getSnapshot).toHaveBeenCalledTimes(3);
+      errorSpy.mockRestore();
+    },
+  );
+
+  it('settles at initialError on a failure with no snapshot held', async () => {
+    const repo = repository(() => Promise.reject(new Error('db unavailable')));
+    const store = createDashboardStore(repo);
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+    await expect(store.getState().revalidateAtDayChange(input('2026-07'))).resolves.toBeUndefined();
+
+    expect(store.getState()).toMatchObject({ status: 'initialError', snapshot: undefined });
     errorSpy.mockRestore();
   });
 });

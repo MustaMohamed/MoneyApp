@@ -327,6 +327,22 @@ describe('CommitmentRepository.runHousekeeping', () => {
     );
   });
 
+  it('dates expiry by the local calendar day, not the UTC date', async () => {
+    insertCommitments([
+      commitment('until-yesterday', {
+        duration_type: DurationType.UntilDate,
+        end_date: '2026-05-08',
+        end_after_count: null,
+      }),
+    ]);
+    const pastLocalMidnight = new Date(2026, 4, 9, 0, 30);
+    jest.spyOn(pastLocalMidnight, 'toISOString').mockReturnValue('2026-05-08T21:30:00.000Z');
+
+    await new CommitmentRepository().runHousekeeping(pastLocalMidnight);
+
+    expect(realDb.prepare('SELECT is_active FROM commitments').all()).toEqual([{ is_active: 0 }]);
+  });
+
   it('rolls back earlier chunks when a later insert chunk fails', async () => {
     insertCommitments(Array.from({ length: 61 }, (_, index) => commitment(`rollback-${index}`)));
     injectedInsertFailure = 1;

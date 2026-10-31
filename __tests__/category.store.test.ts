@@ -3,6 +3,7 @@ import type { Category } from '@/modules/categories/entities/category.entity';
 import { CategoryReloadError } from '@/modules/categories/repositories/category.errors';
 import type { ICategoryRepository } from '@/modules/categories/repositories/category.repository';
 import { createCategoryStore } from '@/modules/categories/store/category.store';
+import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import { deferred } from '@/test_helpers/deferred';
 
@@ -312,6 +313,83 @@ describe('categoryStore — transaction write announcement', () => {
     await useStore.getState().reassignAndDelete('cat-1', 'cat_other_expense');
 
     expect(useTransactionStore.getState().mutationVersion).toBe(beforeVersion + 1);
+  });
+});
+
+describe('categoryStore — commitment write announcement', () => {
+  let consoleSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleSpy.mockRestore();
+  });
+
+  it('announces once after the reassign writes, before the reload', async () => {
+    const announce = jest.fn();
+    const repo = makeRepo();
+    const useStore = createCategoryStore(repo, jest.fn(), announce);
+
+    await useStore.getState().reassignAndDelete('cat-1', 'cat_other_expense');
+
+    expect(announce).toHaveBeenCalledTimes(1);
+    expect(announce.mock.invocationCallOrder[0]).toBeLessThan(
+      jest.mocked(repo.getAll).mock.invocationCallOrder[0],
+    );
+  });
+
+  it('announces nothing for a rejected reassign, and once for the reassign that lands', async () => {
+    const announce = jest.fn();
+    const repo = makeRepo({
+      reassignAndDelete: jest
+        .fn()
+        .mockRejectedValueOnce(new Error('reassign fail'))
+        .mockResolvedValue(undefined),
+    });
+    const useStore = createCategoryStore(repo, jest.fn(), announce);
+
+    await expect(
+      useStore.getState().reassignAndDelete('cat-1', 'cat_other_expense'),
+    ).rejects.toThrow('reassign fail');
+    expect(announce).not.toHaveBeenCalled();
+
+    await useStore.getState().reassignAndDelete('cat-1', 'cat_other_expense');
+    expect(announce).toHaveBeenCalledTimes(1);
+  });
+
+  it('announces once when only the reload after the reassign fails', async () => {
+    const announce = jest.fn();
+    const repo = makeRepo({ getAll: jest.fn().mockRejectedValue(new Error('reload fail')) });
+    const useStore = createCategoryStore(repo, jest.fn(), announce);
+
+    await expect(
+      useStore.getState().reassignAndDelete('cat-1', 'cat_other_expense'),
+    ).rejects.toBeInstanceOf(CategoryReloadError);
+
+    expect(announce).toHaveBeenCalledTimes(1);
+  });
+
+  it('stays silent on a plain deleteCategory, which writes no commitment', async () => {
+    const announce = jest.fn();
+    const useStore = createCategoryStore(makeRepo(), jest.fn(), announce);
+
+    await useStore.getState().deleteCategory('cat-1');
+    expect(announce).not.toHaveBeenCalled();
+
+    await useStore.getState().reassignAndDelete('cat-1', 'cat_other_expense');
+    expect(announce).toHaveBeenCalledTimes(1);
+  });
+
+  it('raises the commitment store generation by default', async () => {
+    const before = useCommitmentStore.getState().generation;
+
+    await createCategoryStore(makeRepo())
+      .getState()
+      .reassignAndDelete('cat-1', 'cat_other_expense');
+
+    expect(useCommitmentStore.getState().generation).toBe(before + 1);
   });
 });
 

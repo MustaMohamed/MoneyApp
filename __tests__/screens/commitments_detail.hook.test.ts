@@ -60,6 +60,7 @@ let accountLookupById: Record<string, Account> = {};
 let currencyRate = 48;
 let currencyRateLoaded = true;
 let accountLookupError = false;
+let mockOnDayChange: (() => void) | undefined;
 
 jest.mock('expo-router', () => ({
   useLocalSearchParams: () => mockUseParams(),
@@ -83,6 +84,12 @@ jest.mock('@/modules/commitments/repositories/commitment.repository', () => ({
   commitmentRepository: {
     getById: (...args: unknown[]) => mockGetById(...args),
     getPaymentsByCommitment: (...args: unknown[]) => mockGetPaymentsByCommitment(...args),
+  },
+}));
+
+jest.mock('@/utils/use_local_day_change.hook', () => ({
+  useLocalDayChange: (onDayChange: () => void) => {
+    mockOnDayChange = onDayChange;
   },
 }));
 
@@ -155,6 +162,7 @@ function seedRentAndGym(): void {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockOnDayChange = undefined;
   mockPathname.current = '/commitments/commitment-1';
   mockNavigatorState.current = TAB_STACK;
   mockParams = { id: 'commitment-1', cycle: 'pay-1' };
@@ -278,6 +286,48 @@ describe('useCommitmentDetail', () => {
     } finally {
       jest.useRealTimers();
     }
+  });
+
+  it('MA-274: the day change re-reads with no skeleton and moves today to the new day', async () => {
+    jest.useFakeTimers().setSystemTime(new Date(2026, 9, 31, 23, 50));
+    try {
+      seedRent();
+      const seen: string[] = [];
+      const { result } = await renderRecording(seen);
+      await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+      const loadedOn = () =>
+        useCommitmentDetailStore.getState().entries[result.current.state.owner].loadedOn;
+      expect(loadedOn()).toBe('2026-10-31');
+      seen.length = 0;
+      mockGetById.mockClear();
+
+      jest.setSystemTime(new Date(2026, 10, 1, 0, 0));
+      await act(async () => mockOnDayChange?.());
+      await waitFor(() => expect(loadedOn()).toBe('2026-11-01'));
+
+      expect(mockGetById).toHaveBeenCalledTimes(1);
+      expect(seen).not.toContain('loading');
+      expect(result.current.state.viewState).toBe('ready');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('MA-274: a failed read at the day change draws the refresh error over the held commitment', async () => {
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    seedRent();
+    const seen: string[] = [];
+    const { result } = await renderRecording(seen);
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+    seen.length = 0;
+    mockGetById.mockRejectedValueOnce(new Error('refresh failed'));
+
+    await act(async () => mockOnDayChange?.());
+    await waitFor(() => expect(result.current.state.viewState).toBe('refreshErrorWithData'));
+
+    expect(seen).not.toContain('loading');
+    expect(result.current.state.commitment).toEqual(commitment);
+    errorSpy.mockRestore();
   });
 
   it('heroes a variable commitment starting tomorrow with the varies badge and the starts caption, leaving the Repeats fact bare', async () => {
