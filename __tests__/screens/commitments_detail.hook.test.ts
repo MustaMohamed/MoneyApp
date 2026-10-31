@@ -214,7 +214,7 @@ async function openEditFromReadyDetail(): Promise<void> {
   expect(useCommitmentFormHostState.getState()).toMatchObject({
     phase: 'open',
     mode: 'edit',
-    editingCommitmentId: 'commitment-1',
+    editingCommitment: commitment,
   });
 }
 
@@ -537,29 +537,66 @@ describe('useCommitmentDetail', () => {
     expect(result.current.state.viewState).toBe('ready');
   });
 
-  it.each<LandingKey>(['onSaved', 'onDeactivated'])(
-    'opens the edit sheet from the tabbed copy, whose %s lands on the list',
-    async (key) => {
-      await openEditFromReadyDetail();
-      expectNoNavigation();
+  it('opens the edit sheet from the tabbed copy, whose deactivate lands on the list', async () => {
+    await openEditFromReadyDetail();
+    expectNoNavigation();
 
-      runHostLanding(key);
+    runHostLanding('onDeactivated');
 
-      expect(router.dismissTo).toHaveBeenCalledTimes(1);
-      expect(router.dismissTo).toHaveBeenCalledWith('/commitments');
-      expect(router.push).not.toHaveBeenCalled();
-    },
-  );
+    expect(router.dismissTo).toHaveBeenCalledTimes(1);
+    expect(router.dismissTo).toHaveBeenCalledWith('/commitments');
+    expect(router.push).not.toHaveBeenCalled();
+  });
 
-  it('opens the edit sheet from the stacked copy, whose save stays on the stacked detail', async () => {
+  it('a save from the tabbed copy stays, and re-reads onto the regenerated row of the held due date', async () => {
+    const oldMay: CommitmentPayment = { ...payment, id: 'old-may', due_date: '2026-05-01' };
+    const oldJune: CommitmentPayment = { ...payment, id: 'old-jun', due_date: '2026-06-01' };
+    const newMay: CommitmentPayment = { ...payment, id: 'new-may', due_date: '2026-05-01' };
+    const newJune: CommitmentPayment = { ...payment, id: 'new-jun', due_date: '2026-06-01' };
+    commitmentsById = { [commitment.id]: commitment };
+    historyById = { [commitment.id]: [oldMay, oldJune] };
+    paymentsState = [oldMay];
+    mockParams = { id: commitment.id, cycle: 'old-jun' };
+    const { result } = await renderHook(() => useCommitmentDetail());
+    await waitFor(() => expect(result.current.state.payment?.id).toBe('old-jun'));
+    await act(async () => result.current.goToEdit());
+    mockGetPaymentsByCommitment.mockClear();
+
+    historyById = { [commitment.id]: [newMay, newJune] };
+    await act(async () => runHostLanding('onSaved'));
+
+    expectNoNavigation();
+    await waitFor(() => expect(mockGetPaymentsByCommitment).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(result.current.state.payment?.id).toBe('new-jun'));
+    expect(result.current.state.viewState).toBe('ready');
+  });
+
+  it('a save from the stacked copy stays on the stacked detail and re-reads it', async () => {
     mockPathname.current = '/stacked/commitments/commitment-1';
     mockParams.originTxId = 'tx-1';
     await openEditFromReadyDetail();
+    mockGetPaymentsByCommitment.mockClear();
 
-    runHostLanding('onSaved');
+    await act(async () => runHostLanding('onSaved'));
 
     expectNoNavigation();
+    await waitFor(() => expect(mockGetPaymentsByCommitment).toHaveBeenCalledTimes(1));
   });
+
+  it.each([
+    ['tabbed', '/commitments/commitment-1'],
+    ['stacked', '/stacked/commitments/commitment-1'],
+  ])(
+    'hands the %s edit sheet the commitment it read by id, with the month store empty',
+    async (_copy, pathname) => {
+      storeCommitments = [];
+      mockPathname.current = pathname;
+
+      await openEditFromReadyDetail();
+
+      expect(useCommitmentFormHostState.getState().editingCommitment).toBe(commitment);
+    },
+  );
 
   it('a deactivate from the stacked copy pops back to the stacked transaction it came from', async () => {
     mockPathname.current = '/stacked/commitments/commitment-1';

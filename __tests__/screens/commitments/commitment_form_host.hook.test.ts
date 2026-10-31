@@ -6,8 +6,19 @@ import { useCommitmentFormHost } from '@/modules/commitments/screens/commitments
 import { useEditCommitmentState } from '@/modules/commitments/screens/commitments/commitment_form/edit_commitment.state';
 import { useCommitmentFormHostState } from '@/modules/commitments/store/commitment_form_host.state';
 import { type BackHandlerSpy, installBackHandlerSpy, pressBack } from '@/test_helpers/back_handler';
+import { makeTestCommitment } from '@/test_helpers/commitment';
 import { deferred } from '@/test_helpers/deferred';
 import type { FormSessionSubmit } from '@/utils/use_form_session.hook';
+
+const mockToast = { show: jest.fn() };
+
+// The wrapper, not HeroUI, so `show` sees exactly what the hook passed.
+jest.mock('@/components/ui/toast', () => ({
+  useToast: () => ({ toast: mockToast, isToastVisible: false }),
+}));
+
+const rent = makeTestCommitment({ id: 'c-1' });
+const gym = makeTestCommitment({ id: 'c-2' });
 
 type HostResult = { current: ReturnType<typeof useCommitmentFormHost> };
 
@@ -31,6 +42,7 @@ async function closeUnsaved(result: HostResult): Promise<void> {
 
 describe('useCommitmentFormHost', () => {
   beforeEach(() => {
+    mockToast.show.mockClear();
     host().reset();
     useAddCommitmentState.getState().reset();
     useEditCommitmentState.getState().reset();
@@ -136,7 +148,7 @@ describe('useCommitmentFormHost', () => {
 
   it('calls nothing on a Save while an edit entry saves and the footer has not caught up', async () => {
     const { result } = await renderHook(() => useCommitmentFormHost());
-    await act(() => host().openEdit('c-1'));
+    await act(() => host().openEdit(rent));
     const submit = makeSubmit();
     await register(result, host().sessionId, submit);
     await act(() => {
@@ -216,21 +228,22 @@ describe('useCommitmentFormHost', () => {
   it('titles an edit session with the edit title and holds the commitment it was opened for', async () => {
     const { result } = await renderHook(() => useCommitmentFormHost());
 
-    await act(() => host().openEdit('c-1'));
+    await act(() => host().openEdit(rent));
 
     expect(result.current.state.isOpen).toBe(true);
     expect(result.current.state.hasSession).toBe(true);
     expect(result.current.state.mode).toBe('edit');
-    expect(result.current.state.editingCommitmentId).toBe('c-1');
+    expect(result.current.state.editingCommitment).toBe(rent);
     expect(result.current.state.title).toBe('Edit commitment');
   });
 
-  it('reads saving and the save error from the footer the session publishes', async () => {
+  it('reads saving, the track error line and its footnote from the footer the session publishes', async () => {
     const { result } = await renderHook(() => useCommitmentFormHost());
     await act(() => host().openAdd());
     const sessionId = host().sessionId;
     expect(result.current.state.saving).toBe(false);
-    expect(result.current.state.saveError).toBeUndefined();
+    expect(result.current.state.statusMessage).toBeUndefined();
+    expect(result.current.state.statusFootnote).toBeUndefined();
 
     await act(() => host().publishFooter(sessionId, { saving: true }));
 
@@ -241,11 +254,13 @@ describe('useCommitmentFormHost', () => {
       host().publishFooter(sessionId, {
         saving: false,
         errorMessage: Strings.commitmentsSaveError,
+        footnote: 'First payment due Sun 1 Nov.',
       }),
     );
 
     expect(result.current.state.saving).toBe(false);
-    expect(result.current.state.saveError).toBe(Strings.commitmentsSaveError);
+    expect(result.current.state.statusMessage).toBe(Strings.commitmentsSaveError);
+    expect(result.current.state.statusFootnote).toBe('First payment due Sun 1 Nov.');
     expect(result.current.state.isDismissable).toBe(true);
   });
 
@@ -265,8 +280,6 @@ describe('useCommitmentFormHost', () => {
     expect(host().phase).toBe('open');
     await act(() => result.current.handleOpenChange(false));
     expect(host().phase).toBe('open');
-    await act(() => result.current.handleClose());
-    expect(host().phase).toBe('open');
 
     await act(() => useAddCommitmentState.getState().setSaving(false));
     await act(() => result.current.handleSaved(sessionId));
@@ -274,9 +287,9 @@ describe('useCommitmentFormHost', () => {
     expect(host().phase).toBe('closing');
   });
 
-  it('follows the edit state for dismissal, back and the close button in edit mode', async () => {
+  it('follows the edit state for dismissal, back and a close request in edit mode', async () => {
     const { result } = await renderHook(() => useCommitmentFormHost());
-    await act(() => host().openEdit('c-1'));
+    await act(() => host().openEdit(rent));
     expect(result.current.state.isDismissable).toBe(true);
 
     await act(() => {
@@ -289,13 +302,13 @@ describe('useCommitmentFormHost', () => {
       pressBack(addListenerSpy);
     });
     expect(host().phase).toBe('open');
-    await act(() => result.current.handleClose());
+    await act(() => result.current.handleOpenChange(false));
     expect(host().phase).toBe('open');
 
     await act(() => useEditCommitmentState.getState().setSaving('owner-1', false));
 
     expect(result.current.state.isDismissable).toBe(true);
-    await act(() => result.current.handleClose());
+    await act(() => result.current.handleOpenChange(false));
     expect(host().phase).toBe('closing');
   });
 
@@ -310,7 +323,7 @@ describe('useCommitmentFormHost', () => {
 
     it('closes on a save and runs only the onSaved of its landing', async () => {
       const { result } = await renderHook(() => useCommitmentFormHost());
-      await act(() => host().openEdit('c-1', { onSaved, onDeactivated }));
+      await act(() => host().openEdit(rent, { onSaved, onDeactivated }));
 
       await act(() => result.current.handleSaved(host().sessionId));
 
@@ -321,7 +334,7 @@ describe('useCommitmentFormHost', () => {
 
     it('closes on a deactivate and runs only the onDeactivated of its landing', async () => {
       const { result } = await renderHook(() => useCommitmentFormHost());
-      await act(() => host().openEdit('c-1', { onSaved, onDeactivated }));
+      await act(() => host().openEdit(rent, { onSaved, onDeactivated }));
 
       await act(() => result.current.handleDeactivated(host().sessionId));
 
@@ -332,7 +345,7 @@ describe('useCommitmentFormHost', () => {
 
     it('closes on a save from a session opened with no landing', async () => {
       const { result } = await renderHook(() => useCommitmentFormHost());
-      await act(() => host().openEdit('c-1'));
+      await act(() => host().openEdit(rent));
 
       await act(() => result.current.handleSaved(host().sessionId));
 
@@ -344,20 +357,66 @@ describe('useCommitmentFormHost', () => {
       async (handler) => {
         const olderLanding = { onSaved: jest.fn(), onDeactivated: jest.fn() };
         const { result } = await renderHook(() => useCommitmentFormHost());
-        await act(() => host().openEdit('c-1', olderLanding));
+        await act(() => host().openEdit(rent, olderLanding));
         const olderSession = host().sessionId;
         await closeUnsaved(result);
-        await act(() => host().openEdit('c-2', { onSaved, onDeactivated }));
+        await act(() => host().openEdit(gym, { onSaved, onDeactivated }));
 
         await act(() => result.current[handler](olderSession));
 
         expect(host().phase).toBe('open');
-        expect(host().editingCommitmentId).toBe('c-2');
+        expect(host().editingCommitment).toBe(gym);
         expect(onSaved).not.toHaveBeenCalled();
         expect(onDeactivated).not.toHaveBeenCalled();
         expect(olderLanding.onSaved).not.toHaveBeenCalled();
         expect(olderLanding.onDeactivated).not.toHaveBeenCalled();
       },
     );
+  });
+
+  describe('the saved toast (MA-256)', () => {
+    it.each([
+      ['Commitment added', () => host().openAdd()],
+      ['Commitment updated', () => host().openEdit(rent)],
+    ])('shows %s once, after the sheet has closed', async (label, open) => {
+      const { result } = await renderHook(() => useCommitmentFormHost());
+      await act(open);
+
+      await act(() => result.current.handleSaved(host().sessionId));
+
+      expect(host().phase).toBe('closing');
+      expect(mockToast.show).not.toHaveBeenCalled();
+
+      await act(() => result.current.handleCloseComplete());
+
+      expect(host().phase).toBe('closed');
+      expect(mockToast.show).toHaveBeenCalledTimes(1);
+      expect(mockToast.show).toHaveBeenCalledWith({ label, variant: 'success' });
+    });
+
+    it('shows nothing after a Stop or an unsaved close, and one after the next saved edit', async () => {
+      const { result } = await renderHook(() => useCommitmentFormHost());
+      await act(() => host().openEdit(rent));
+      await act(() => result.current.handleDeactivated(host().sessionId));
+      await act(() => result.current.handleCloseComplete());
+
+      expect(host().phase).toBe('closed');
+      expect(mockToast.show).not.toHaveBeenCalled();
+
+      await act(() => host().openEdit(rent));
+      await closeUnsaved(result);
+
+      expect(mockToast.show).not.toHaveBeenCalled();
+
+      await act(() => host().openEdit(rent));
+      await act(() => result.current.handleSaved(host().sessionId));
+      await act(() => result.current.handleCloseComplete());
+
+      expect(mockToast.show).toHaveBeenCalledTimes(1);
+      expect(mockToast.show).toHaveBeenCalledWith({
+        label: 'Commitment updated',
+        variant: 'success',
+      });
+    });
   });
 });

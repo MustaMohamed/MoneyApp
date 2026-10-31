@@ -47,3 +47,39 @@ describe('commitment form copy (MA-255)', () => {
     });
   });
 });
+
+describe('commitment form footer copy (MA-256)', () => {
+  it('ships the Save button and its failure byte-exact', () => {
+    expect({
+      save: Strings.commitmentsSave,
+      failed: Strings.commitmentsSaveError,
+    }).toEqual({
+      save: 'Save',
+      failed: "Couldn't save this commitment. Nothing was changed. Try again.",
+    });
+  });
+
+  it('ships the status track lines byte-exact', () => {
+    expect({
+      add: Strings.commitmentsFirstPaymentDue('Sun 1 Nov'),
+      edit: Strings.commitmentsEditScheduleFootnote,
+    }).toEqual({
+      add: 'First payment due Sun 1 Nov.',
+      edit: 'Upcoming payments follow the new schedule. Paid ones stay.',
+    });
+  });
+
+  it('ships the Ends earlier than Starts message byte-exact', () => {
+    expect(Strings.commitmentsErrEndsBeforeStarts).toBe('End date must be on or after start date');
+  });
+
+  it('ships the toasts byte-exact', () => {
+    expect({
+      added: Strings.commitmentsAddedToast,
+      updated: Strings.commitmentsUpdatedToast,
+    }).toEqual({
+      added: 'Commitment added',
+      updated: 'Commitment updated',
+    });
+  });
+});

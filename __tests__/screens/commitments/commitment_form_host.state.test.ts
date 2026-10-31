@@ -1,8 +1,12 @@
 import { useAddCommitmentState } from '@/modules/commitments/screens/commitments/commitment_form/add_commitment.state';
 import { useEditCommitmentState } from '@/modules/commitments/screens/commitments/commitment_form/edit_commitment.state';
 import { useCommitmentFormHostState } from '@/modules/commitments/store/commitment_form_host.state';
+import { makeTestCommitment } from '@/test_helpers/commitment';
 
 const host = () => useCommitmentFormHostState.getState();
+
+const rent = makeTestCommitment({ id: 'c-1' });
+const gym = makeTestCommitment({ id: 'c-2' });
 
 describe('useCommitmentFormHostState', () => {
   beforeEach(() => {
@@ -103,44 +107,44 @@ describe('useCommitmentFormHostState', () => {
       host().completeClose(host().sessionId);
     }
 
-    it('opens an edit from closed as the next session, in edit mode with the id and the landing', () => {
+    it('opens an edit from closed as the next session, in edit mode with the commitment and the landing', () => {
       host().openAdd();
       closeCurrent();
 
-      host().openEdit('c-1', landing);
+      host().openEdit(rent, landing);
 
       expect(host()).toMatchObject({
         phase: 'open',
         sessionId: 2,
         mode: 'edit',
-        editingCommitmentId: 'c-1',
+        editingCommitment: rent,
       });
       expect(host().landing).toBe(landing);
       expect(host().footer).toEqual({ saving: false });
     });
 
     it('opens an edit with no landing', () => {
-      host().openEdit('c-1');
+      host().openEdit(rent);
 
       expect(host()).toMatchObject({
         phase: 'open',
         sessionId: 1,
         mode: 'edit',
-        editingCommitmentId: 'c-1',
+        editingCommitment: rent,
       });
       expect(host().landing).toBeUndefined();
     });
 
     it('changes nothing on openEdit while an edit is open', () => {
-      host().openEdit('c-1', landing);
+      host().openEdit(rent, landing);
 
-      host().openEdit('c-2');
+      host().openEdit(gym);
 
       expect(host()).toMatchObject({
         phase: 'open',
         sessionId: 1,
         mode: 'edit',
-        editingCommitmentId: 'c-1',
+        editingCommitment: rent,
       });
       expect(host().landing).toBe(landing);
     });
@@ -148,42 +152,42 @@ describe('useCommitmentFormHostState', () => {
     it('changes nothing on openEdit while an add is open', () => {
       host().openAdd();
 
-      host().openEdit('c-1', landing);
+      host().openEdit(rent, landing);
 
       expect(host()).toMatchObject({ phase: 'open', sessionId: 1, mode: 'add' });
-      expect(host().editingCommitmentId).toBeUndefined();
+      expect(host().editingCommitment).toBeUndefined();
       expect(host().landing).toBeUndefined();
     });
 
     it('changes nothing on openEdit while closing', () => {
-      host().openEdit('c-1', landing);
+      host().openEdit(rent, landing);
       host().requestClose();
 
-      host().openEdit('c-2');
+      host().openEdit(gym);
 
       expect(host()).toMatchObject({
         phase: 'closing',
         sessionId: 1,
         mode: 'edit',
-        editingCommitmentId: 'c-1',
+        editingCommitment: rent,
       });
       expect(host().landing).toBe(landing);
     });
 
-    it('opens an add after an edit with the edit id and landing cleared', () => {
-      host().openEdit('c-1', landing);
+    it('opens an add after an edit with the edit commitment and landing cleared', () => {
+      host().openEdit(rent, landing);
       closeCurrent();
 
       host().openAdd();
 
       expect(host()).toMatchObject({ phase: 'open', sessionId: 2, mode: 'add' });
-      expect(host().editingCommitmentId).toBeUndefined();
+      expect(host().editingCommitment).toBeUndefined();
       expect(host().landing).toBeUndefined();
       expect(host().footer).toEqual({ saving: false });
     });
 
     it('refuses a close while an edit entry saves, and closes once it lands', () => {
-      host().openEdit('c-1');
+      host().openEdit(rent);
       useEditCommitmentState.getState().claim('owner-1');
       useEditCommitmentState.getState().setSaving('owner-1', true);
 
@@ -197,7 +201,7 @@ describe('useCommitmentFormHostState', () => {
     });
 
     it('refuses a close while the published footer saves', () => {
-      host().openEdit('c-1');
+      host().openEdit(rent);
       host().publishFooter(1, { saving: true });
 
       expect(host().requestClose()).toBe(false);
@@ -210,9 +214,9 @@ describe('useCommitmentFormHostState', () => {
     });
 
     it('writes a published footer for the current session only', () => {
-      host().openEdit('c-1');
+      host().openEdit(rent);
       closeCurrent();
-      host().openEdit('c-2');
+      host().openEdit(gym);
 
       host().publishFooter(1, { saving: true, errorMessage: 'stale' });
       expect(host().footer).toEqual({ saving: false });
@@ -222,7 +226,7 @@ describe('useCommitmentFormHostState', () => {
     });
 
     it('writes no published footer while closed', () => {
-      host().openEdit('c-1');
+      host().openEdit(rent);
       closeCurrent();
 
       host().publishFooter(1, { saving: true, errorMessage: 'late' });
@@ -232,7 +236,7 @@ describe('useCommitmentFormHostState', () => {
     });
 
     it('keeps the landing through a completed save', () => {
-      host().openEdit('c-1', landing);
+      host().openEdit(rent, landing);
 
       expect(host().completeSave(1)).toBe(true);
 
@@ -240,8 +244,8 @@ describe('useCommitmentFormHostState', () => {
       expect(host().landing).toBe(landing);
     });
 
-    it('clears the mode, the id, the landing and the footer on close, keeping the session id', () => {
-      host().openEdit('c-1', landing);
+    it('clears the mode, the commitment, the landing and the footer on close, keeping the session id', () => {
+      host().openEdit(rent, landing);
       host().publishFooter(1, { saving: false, errorMessage: 'Save failed' });
       host().requestClose();
 
@@ -250,9 +254,37 @@ describe('useCommitmentFormHostState', () => {
       expect(host().phase).toBe('closed');
       expect(host().sessionId).toBe(1);
       expect(host().mode).toBeUndefined();
-      expect(host().editingCommitmentId).toBeUndefined();
+      expect(host().editingCommitment).toBeUndefined();
       expect(host().landing).toBeUndefined();
       expect(host().footer).toEqual({ saving: false });
+    });
+  });
+
+  describe('the post-close toast mark (MA-256)', () => {
+    it.each(['added', 'updated'] as const)(
+      'returns the %s mark once, and none after a plain close',
+      (mark) => {
+        host().openAdd();
+        host().requestClose();
+        expect(host().completeClose(1)).toBeUndefined();
+
+        host().openEdit(rent);
+        expect(host().completeSave(2, mark)).toBe(true);
+
+        expect(host().completeClose(2)).toBe(mark);
+        expect(host().completeClose(2)).toBeUndefined();
+      },
+    );
+
+    it('takes no mark from a refused save, answers a stale session with none, and keeps it for its own', () => {
+      host().openAdd();
+      expect(host().completeSave(0, 'updated')).toBe(false);
+      expect(host().completeSave(1, 'added')).toBe(true);
+
+      expect(host().completeClose(0)).toBeUndefined();
+      expect(host().phase).toBe('closing');
+
+      expect(host().completeClose(1)).toBe('added');
     });
   });
 });

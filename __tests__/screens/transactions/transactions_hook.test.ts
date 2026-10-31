@@ -25,6 +25,7 @@ import { useTransactionsScreenStore } from '@/modules/transactions/store/transac
 import { deferred } from '@/test_helpers/deferred';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 import { makeTestAccount, makeTestCategory } from '@/test_helpers/transaction';
+import { useDebouncedValue } from '@/utils/use_debounced_value.hook';
 
 let mockFocusEffectCallback: (() => void | (() => void)) | undefined;
 const mockPush = jest.fn();
@@ -64,7 +65,7 @@ jest.mock('@/utils/run_after_interactions', () => ({
 }));
 
 jest.mock('@/utils/use_debounced_value.hook', () => ({
-  useDebouncedValue: (value: unknown) => value,
+  useDebouncedValue: jest.fn((value: unknown) => value),
 }));
 
 jest.mock('@/database/client', () => ({
@@ -3107,5 +3108,59 @@ describe('useTransactions delete dialog (MA-093)', () => {
     expect(result.current.state.pendingDeleteId).toBeNull();
     expect(result.current.state.deleteBody).toBe('');
     warnSpy.mockRestore();
+  });
+});
+
+describe('useTransactions search debounce (MA-256)', () => {
+  const realDebounce = jest.requireActual<{ useDebouncedValue: typeof useDebouncedValue }>(
+    '@/utils/use_debounced_value.hook',
+  ).useDebouncedValue;
+
+  beforeEach(() => {
+    mockGetMonthAggregate.mockReturnValue(new Promise(() => {}));
+    jest.mocked(useDebouncedValue).mockImplementation(realDebounce);
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+    jest.mocked(useDebouncedValue).mockImplementation(<T>(value: T) => value);
+  });
+
+  async function typeSearch(text: string) {
+    await act(() => {
+      useTransactionsScreenStore.getState().setSearchQuery(text);
+    });
+  }
+
+  async function advance(ms: number) {
+    await act(async () => {
+      jest.advanceTimersByTime(ms);
+    });
+  }
+
+  it('applies an emptied query before any timer, where a typed one waits 300 ms', async () => {
+    useTransactionsScreenStore.getState().setSearchQuery('rent');
+    await renderHook(() => useTransactions());
+    expect(setQuery).toHaveBeenLastCalledWith({ ...JULY_QUERY, search: 'rent' });
+    setQuery.mockClear();
+
+    await typeSearch('');
+
+    expect(setQuery).toHaveBeenCalledTimes(1);
+    expect(setQuery).toHaveBeenCalledWith(JULY_QUERY);
+
+    await advance(300);
+    setQuery.mockClear();
+
+    await typeSearch('gas');
+    await advance(299);
+
+    expect(setQuery).not.toHaveBeenCalled();
+
+    await advance(1);
+
+    expect(setQuery).toHaveBeenCalledTimes(1);
+    expect(setQuery).toHaveBeenCalledWith({ ...JULY_QUERY, search: 'gas' });
   });
 });
