@@ -26,18 +26,16 @@ import {
   STATUS_ICONS,
   STATUS_LABELS,
 } from '@/modules/commitments/utils/commitment_status';
-import { useConfirmAction } from '@/utils/use_confirm_action.hook';
 
 import { SECTION_ORDER, type CommitmentsSection } from './commitments.helpers';
 import { useCommitments } from './commitments.hook';
 import type { CommitmentStatusFilter } from './commitments.state';
-import { CommitmentDeleteConfirmSheet } from './components/commitment_delete_confirm_sheet';
 import { CommitmentRow } from './components/commitment_row';
 import { CommitmentRowsSkeleton } from './components/commitment_rows_skeleton';
 import { CommitmentsHero } from './components/commitments_hero';
 import { CommitmentsEmptyState } from './components/empty_state';
 import { CommitmentSearchRow } from './components/search_row';
-import { SkipConfirmSheet } from './detail/components/skip_confirm_sheet';
+import { PaySheet } from './detail/components/pay_sheet';
 import { CommitmentFilterSheet } from './filter';
 
 const COMMITMENT_FILTERS: ReadonlyArray<SegmentFilterOption<CommitmentStatusFilter>> = [
@@ -59,40 +57,14 @@ export default function CommitmentsScreen() {
     retryAccountLookup,
     goToDetail,
     goToAdd,
-    goToEdit,
-    skipPayment,
-    deactivateCommitment,
+    payRow,
+    skipRow,
     setStatusFilter,
     setSearchQuery,
     openFilter,
     toggleAccountChip,
     resetFilters,
   } = t;
-
-  const {
-    pendingPayload: pendingDeleteId,
-    busy: deleteBusy,
-    error: deleteError,
-    request: requestDelete,
-    confirm: confirmDelete,
-    cancel: cancelDelete,
-  } = useConfirmAction<string>((id) => deactivateCommitment(id));
-
-  const {
-    pendingPayload: pendingSkipId,
-    busy: skipBusy,
-    error: skipError,
-    request: requestSkip,
-    confirm: confirmSkip,
-    cancel: cancelSkip,
-  } = useConfirmAction<string>((id) => skipPayment(id));
-
-  const requestCommitmentDelete = useCallback(
-    (commitmentId: string | undefined) => {
-      if (commitmentId) requestDelete(commitmentId);
-    },
-    [requestDelete],
-  );
 
   const renderSectionHeader = useCallback(
     ({ section }: { section: SectionListData<CommitmentMonthPayment, CommitmentsSection> }) => (
@@ -123,9 +95,8 @@ export default function CommitmentsScreen() {
             category={category}
             account={accountId === undefined ? undefined : state.accountsById.get(accountId)}
             onPress={goToDetail}
-            onSkip={requestSkip}
-            onEdit={goToEdit}
-            onDelete={requestCommitmentDelete}
+            onPay={payRow}
+            onSkip={skipRow}
             showSeparator={!isLast}
             swipeContainerStyle={resolveDayCardSwipeCorners(isFirst, isLast)}
           />
@@ -134,9 +105,8 @@ export default function CommitmentsScreen() {
     },
     [
       goToDetail,
-      goToEdit,
-      requestCommitmentDelete,
-      requestSkip,
+      payRow,
+      skipRow,
       state.accountsById,
       state.categoriesById,
       state.commitmentsById,
@@ -284,24 +254,11 @@ export default function CommitmentsScreen() {
         />
       )}
 
-      <CommitmentDeleteConfirmSheet
-        isOpen={pendingDeleteId !== null}
-        busy={deleteBusy}
-        errorMessage={deleteError ? Strings.commitmentsDeactivateError : undefined}
-        onCancel={cancelDelete}
-        onConfirm={() => {
-          void confirmDelete();
-        }}
-      />
-
-      <SkipConfirmSheet
-        isOpen={pendingSkipId !== null}
-        busy={skipBusy}
-        errorMessage={skipError ? Strings.commitmentsSkipError : undefined}
-        onCancel={cancelSkip}
-        onConfirm={() => {
-          void confirmSkip();
-        }}
+      <PaySheet
+        owner={state.payOwner}
+        commitment={state.payTarget?.commitment}
+        payment={state.payTarget?.payment}
+        today={state.payToday}
       />
       <CommitmentFilterSheet />
     </Screen>

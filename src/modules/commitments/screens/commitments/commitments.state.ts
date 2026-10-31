@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 
 import { CommitmentPaymentStatus } from '@/constants/enums';
+import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
+import type { CommitmentMonthPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import {
   EMPTY_COMMITMENT_FILTERS,
   type CommitmentAdvancedFilters,
@@ -9,11 +11,18 @@ import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 export type CommitmentStatusFilter = 'all' | CommitmentPaymentStatus;
 
+export interface CommitmentPayTarget {
+  payment: CommitmentMonthPayment;
+  commitment: Commitment;
+}
+
 interface CommitmentsScreenStateShape {
   refreshing: boolean;
   statusFilter: CommitmentStatusFilter;
   searchQuery: string;
   appliedFilters: CommitmentAdvancedFilters;
+  /** The row the list's pay sheet draws; no close clears it, so a reload that drops a paid row leaves the closing sheet drawn. */
+  payTarget: CommitmentPayTarget | undefined;
 }
 
 type CommitmentsScreenState = CommitmentsScreenStateShape & {
@@ -23,6 +32,7 @@ type CommitmentsScreenState = CommitmentsScreenStateShape & {
   clearSearch: () => void;
   setAppliedFilters: (filters: CommitmentAdvancedFilters) => void;
   seedCommitmentFilter: (commitmentId: string) => void;
+  setPayTarget: (target: CommitmentPayTarget) => void;
   reset: () => void;
 };
 
@@ -31,6 +41,7 @@ const INITIAL_STATE: CommitmentsScreenStateShape = {
   statusFilter: 'all',
   searchQuery: '',
   appliedFilters: EMPTY_COMMITMENT_FILTERS,
+  payTarget: undefined,
 };
 
 export const useCommitmentsScreenState = createMoneyAppSelectors(
@@ -47,6 +58,7 @@ export const useCommitmentsScreenState = createMoneyAppSelectors(
         statusFilter: 'all',
         appliedFilters: { ...EMPTY_COMMITMENT_FILTERS, commitmentId },
       }),
+    setPayTarget: (target) => set({ payTarget: target }),
     reset: () => set(INITIAL_STATE),
   })),
 );

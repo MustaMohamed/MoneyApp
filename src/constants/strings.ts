@@ -1215,7 +1215,6 @@ export const Strings = {
     'It will be removed from your list. Past payment records are preserved.',
   commitmentsDeactivateCancel: 'Cancel',
   commitmentsDeactivateConfirm: 'Deactivate',
-  commitmentsDeactivateError: 'Could not deactivate this commitment. Please try again.',
   commitmentsPayError: "Couldn't save this payment. Nothing was changed. Try again.",
 
   // Commitments: status badges
