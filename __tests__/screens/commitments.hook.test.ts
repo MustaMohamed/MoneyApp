@@ -2000,7 +2000,7 @@ describe('useCommitments commitment dimension (MA-213)', () => {
     expect(hook.result.current.state.selectedMonth).toBe('2026-06');
     expect(hook.result.current.state.hero.monthLabel).toBe('June');
     expect(hook.result.current.state.hero.mode).toBe('figures');
-    expect(loadMonthAggregateMock).toHaveBeenLastCalledWith('2026-06', undefined);
+    expect(ensureMonthAggregateMock).toHaveBeenLastCalledWith('2026-06', undefined);
     expect(sectionIds(hook.result.current.state.sections)).toEqual(READ_SECTIONS);
   });
 
