@@ -34,6 +34,7 @@ import {
   deriveResolution,
   resolvePayButtonLabel,
   resolvePayConvertedAmount,
+  resolvePayCycleLine,
   resolvePaySheetStatusMessage,
   resolvePayTrackFootnote,
 } from './pay_sheet.helpers';
@@ -391,6 +392,15 @@ export function usePaySheet(
           paidDate,
           today,
         });
+  // `today` is the sheet's `openedOn`, so a Pay moves neither the tag nor the distance until the next open.
+  const dueDate = payment?.due_date;
+  const cycleLine = useMemo(
+    () =>
+      dueDate === undefined || today === undefined
+        ? undefined
+        : resolvePayCycleLine(dueDate, today),
+    [dueDate, today],
+  );
 
   return {
     form,
@@ -411,6 +421,7 @@ export function usePaySheet(
       stripChips,
       errors,
       trackFootnote,
+      cycleLine,
       // A fault counts only once a press marked it, so the live converted line counts nothing.
       statusMessage: resolvePaySheetStatusMessage(pressErrors, saveError),
       ctaLabel: commitment

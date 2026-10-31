@@ -258,6 +258,7 @@ export const Size = {
   /** Accounts list B4 `.lg-acc` header and B5 `.ar-row` minimum. */
   archivedCardHeaderHeight: ms(52),
   archivedRowMinHeight: ms(56),
+  paymentRowMinHeight: ms(48),
   reorderGripSlot: ms(16),
   /** Accounts list B6: the lifted row sits 6 in from the card's sides. */
   liftedRowInset: ms(6),
@@ -267,6 +268,7 @@ export const Size = {
   progressTrack: ms(8),
   progressThin: ms(3),
   progressDot: ms(4),
+  paymentRowDot: ms(8),
   checkCircle: ms(20),
   sheetHandle: { width: ms(36), height: ms(4) },
   dialogButton: ms(44),

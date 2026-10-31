@@ -35,7 +35,7 @@ export default function CommitmentDetailScreen() {
   } = useCommitmentDetail();
 
   return (
-    <Screen edges={['top', 'bottom']}>
+    <Screen edges={state.screenEdges}>
       <StackHeader
         title={Strings.commitmentsDetailHeader}
         onBack={goBack}
@@ -73,10 +73,7 @@ export default function CommitmentDetailScreen() {
         />
       ) : null}
 
-      {state.showsBody &&
-      state.commitment &&
-      state.today !== undefined &&
-      state.hero !== undefined ? (
+      {state.showsBody && state.commitment && state.hero !== undefined ? (
         <ScreenScroll
           contentContainerStyle={{ paddingBottom: 40 }}
           showsVerticalScrollIndicator={false}
@@ -92,11 +89,7 @@ export default function CommitmentDetailScreen() {
           ) : null}
           <DetailsCard facts={state.facts} />
           <DetailNoteCard note={state.commitment.notes} testID="commitment-detail-note-card" />
-          <PaymentHistory
-            payments={state.allPayments}
-            today={state.today}
-            commitment={state.commitment}
-          />
+          <PaymentHistory rows={state.paymentRows} />
           {state.showsEdit ? <CommitmentDetailActions onEdit={goToEdit} /> : null}
         </ScreenScroll>
       ) : null}

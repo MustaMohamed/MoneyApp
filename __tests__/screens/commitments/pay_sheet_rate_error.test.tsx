@@ -237,4 +237,30 @@ describe('PaySheet with no active accounts', () => {
     expect(mockRouterPush).toHaveBeenCalledTimes(1);
     expect(mockRouterPush).toHaveBeenCalledWith('/accounts/add_account');
   });
+
+  it('draws no cycle line, where the same sheet with an account draws one', async () => {
+    const withAccount = await renderOpenSheet();
+    expect(withAccount.getByTestId('pay-sheet-cycle-line')).toBeTruthy();
+    await withAccount.unmount();
+
+    suiteAccounts = [];
+    const { getByText, queryByTestId } = await renderOpenSheet({
+      ...variableCommitment,
+      account_id: null,
+    });
+
+    expect(getByText(Strings.addTxNoAccountsTitle)).toBeTruthy();
+    expect(queryByTestId('pay-sheet-cycle-line')).toBeNull();
+  });
+});
+
+// MA-265: the tag, its icon and the nested distance reach the sheet only through a render.
+describe('PaySheet cycle line', () => {
+  it('draws the status tag with its icon, then the due day and its distance', async () => {
+    const { getByTestId, getByText } = await renderOpenSheet();
+
+    expect(getByText(Strings.commitmentsStatusOverdue)).toBeTruthy();
+    expect(getByTestId('icon-alert-circle')).toBeTruthy();
+    expect(getByTestId('pay-sheet-cycle-line')).toHaveTextContent('Fri 1 May 2026 · 172 days late');
+  });
 });

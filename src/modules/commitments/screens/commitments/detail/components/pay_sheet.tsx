@@ -13,7 +13,7 @@ import {
   FORM_SHEET_STATUS_GAP,
   resolveFormSupportLineTextProps,
 } from '@/components/ui/form_sheet.geometry';
-import { FormStripRow, FormSupportLineSlot } from '@/components/ui/form_type_tabs';
+import { FormStripRow, FormSupportLineSlot, FormTypeTabsRow } from '@/components/ui/form_type_tabs';
 import { ListCard } from '@/components/ui/list_card';
 import { NoAccountsEmpty } from '@/components/ui/no_accounts_empty';
 import { NoteFactRow } from '@/components/ui/note_fact_row';
@@ -21,15 +21,19 @@ import { useNoteReveal } from '@/components/ui/note_reveal.hook';
 import { RateEditor } from '@/components/ui/rate_editor_sheet';
 import { RateRow } from '@/components/ui/rate_row';
 import { Sheet } from '@/components/ui/sheet';
+import { StatusBadge } from '@/components/ui/status_badge';
 import { StatusTrack } from '@/components/ui/status_track';
 import { Text } from '@/components/ui/text';
+import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { ValidationSlot } from '@/components/ui/validation_slot';
 import { TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { Spacing, Type } from '@/constants/theme';
 import { AMOUNT_HERO_TONE } from '@/modules/transactions/constants/amount_hero_tone';
 
 import type { Commitment } from '../../../../entities/commitment.entity';
 import type { CommitmentPayment } from '../../../../entities/commitment_payment.entity';
+import { DAY_INDICATOR_CLASS } from '../../../../utils/day_indicator';
 import { usePaySheet } from './pay_sheet.hook';
 
 interface Props {
@@ -99,6 +103,36 @@ export function PaySheet({ owner, commitment, payment, today }: Props) {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
+          {state.cycleLine === undefined ? null : (
+            <FormTypeTabsRow>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs }}>
+                <StatusBadge
+                  size="tagMd"
+                  fontScale={fontScale}
+                  label={state.cycleLine.statusLabel}
+                  icon={state.cycleLine.statusIcon}
+                  fill={state.cycleLine.statusFill}
+                  foreground={state.cycleLine.statusForeground}
+                />
+                <Text
+                  testID="pay-sheet-cycle-line"
+                  allowFontScaling={false}
+                  accessibilityLabel={state.cycleLine.line}
+                  className={DAY_INDICATOR_CLASS.caption}
+                  style={{ ...scaledTextStyle(Type.caption, fontScale), flex: 1 }}
+                >
+                  {state.cycleLine.lead}
+                  <Text
+                    allowFontScaling={false}
+                    className={DAY_INDICATOR_CLASS[state.cycleLine.distanceTone]}
+                    style={scaledTextStyle(Type.caption, fontScale)}
+                  >
+                    {state.cycleLine.distance}
+                  </Text>
+                </Text>
+              </View>
+            </FormTypeTabsRow>
+          )}
           <FormSupportLineSlot>
             <Text
               testID="pay-sheet-strip-caption"

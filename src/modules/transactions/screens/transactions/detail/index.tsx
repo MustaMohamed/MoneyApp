@@ -38,7 +38,7 @@ export default function TransactionDetailScreen(): React.ReactElement {
   const hasDetailContent = transaction !== null && detail !== null;
 
   return (
-    <Screen edges={['top', 'bottom']}>
+    <Screen edges={state.screenEdges}>
       <DetailHeader
         editable={hasDetailContent && state.isEditable}
         refreshing={state.viewState === 'refreshing'}

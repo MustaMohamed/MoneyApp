@@ -481,6 +481,17 @@ describe('useTransactionDetail route actions', () => {
 
     expect(openEdit).not.toHaveBeenCalled();
   });
+
+  it('holds the tabbed edges while a stacked screen sits focused above it', async () => {
+    const { result, rerender } = await renderHook(() => useTransactionDetail(linkedTransaction.id));
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+    expect(result.current.state.screenEdges).toEqual(['top']);
+
+    mockPathname.current = '/stacked/commitments/commitment-1';
+    await rerender({});
+
+    expect(result.current.state.screenEdges).toEqual(['top']);
+  });
 });
 
 const otherTransaction: Transaction = {

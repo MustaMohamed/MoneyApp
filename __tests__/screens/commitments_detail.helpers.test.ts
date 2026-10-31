@@ -21,6 +21,7 @@ import {
   buildCommitmentCycleCard,
   buildCommitmentDetailFacts,
   buildCommitmentDetailHero,
+  buildCommitmentPaymentRows,
   commitmentCycleShowsActions,
   commitmentDetailShowsBody,
   commitmentDetailShowsCycleCard,
@@ -37,8 +38,10 @@ import {
   type CommitmentDetailFactsInput,
   type CommitmentDetailViewState,
   type CommitmentDetailViewStateInput,
+  type CommitmentPaymentRowsInput,
 } from '@/modules/commitments/screens/commitments/detail/detail.helpers';
 import { buildCommitmentEndsLabel } from '@/modules/commitments/utils/commitment_ends_label';
+import { STATUS_COLORS } from '@/modules/commitments/utils/commitment_status';
 import {
   makeTestCommitment,
   makeTestMonthPayment,
@@ -803,6 +806,241 @@ describe('buildCommitmentCycleCard (MA-262)', () => {
       dueDay: 'Tue 29 Feb 2028',
       dayLine: 'paid · 1 day late',
       dayLineTone: 'success',
+    });
+  });
+});
+
+describe('buildCommitmentPaymentRows (MA-265)', () => {
+  const ROWS_TODAY = '2026-10-20';
+  const row = (
+    id: string,
+    dueDate: string,
+    overrides: Partial<CommitmentPayment> = {},
+  ): CommitmentPayment => makeTestPayment({ id, due_date: dueDate, ...overrides });
+  const paidRow = (id: string, dueDate: string): CommitmentPayment =>
+    row(id, dueDate, { paid_date: dueDate, amount_paid: 8000 });
+  const skippedRow = (id: string, dueDate: string): CommitmentPayment =>
+    row(id, dueDate, { skipped_date: dueDate });
+  const build = (overrides: Partial<CommitmentPaymentRowsInput>) =>
+    buildCommitmentPaymentRows({
+      payments: [],
+      commitment: makeTestCommitment(),
+      cycle: undefined,
+      cycleCardShown: false,
+      lifecycle: 'active',
+      today: ROWS_TODAY,
+      ...overrides,
+    });
+  const ids = (overrides: Partial<CommitmentPaymentRowsInput>): string[] =>
+    build(overrides).map((payment) => payment.id);
+
+  const jun = row('jun', '2026-06-01');
+  const jul = row('jul', '2026-07-01');
+  const aug = row('aug', '2026-08-01');
+  const sep = row('sep', '2026-09-01');
+  const oct = row('oct', '2026-10-01');
+
+  describe('the cut', () => {
+    it('lists the next three, newest first, when the shown cycle is the newest of five rows', () => {
+      expect(
+        ids({ payments: [jun, jul, aug, sep, oct], cycle: oct, cycleCardShown: true }),
+      ).toEqual(['sep', 'aug', 'jul']);
+    });
+
+    it('still lists three, newest first, when the shown cycle sits in the middle', () => {
+      expect(
+        ids({ payments: [sep, jun, oct, aug, jul], cycle: aug, cycleCardShown: true }),
+      ).toEqual(['oct', 'sep', 'jul']);
+    });
+
+    it('leaves out the rows due today and later', () => {
+      expect(
+        ids({
+          payments: [sep, row('due-today', ROWS_TODAY), row('due-later', '2026-10-21')],
+        }),
+      ).toEqual(['sep']);
+    });
+
+    it.each<CommitmentLifecycle>(['stopped', 'ended'])(
+      'leaves no row out when the card is hidden on a commitment that reads %s',
+      (lifecycle) => {
+        expect(ids({ payments: [sep, oct], cycle: oct, cycleCardShown: false, lifecycle })).toEqual(
+          ['oct', 'sep'],
+        );
+      },
+    );
+
+    it('leaves a paid shown cycle out on an active commitment', () => {
+      const paid = paidRow('oct', '2026-10-01');
+
+      expect(ids({ payments: [sep, paid], cycle: paid, cycleCardShown: true })).toEqual(['sep']);
+    });
+
+    it('leaves an unpaid shown cycle out on an ended commitment', () => {
+      expect(
+        ids({ payments: [sep, oct], cycle: oct, cycleCardShown: true, lifecycle: 'ended' }),
+      ).toEqual(['sep']);
+    });
+
+    it.each([
+      ['paid', paidRow('oct', '2026-10-01')],
+      ['skipped', skippedRow('oct', '2026-10-01')],
+    ])('lists a %s shown cycle on an ended commitment', (_name, settled) => {
+      expect(
+        ids({ payments: [sep, settled], cycle: settled, cycleCardShown: true, lifecycle: 'ended' }),
+      ).toEqual(['oct', 'sep']);
+    });
+
+    it('keeps an ended commitment’s settled shown cycle absent while it is due today', () => {
+      const dueToday = paidRow('due-today', ROWS_TODAY);
+
+      expect(
+        ids({
+          payments: [sep, dueToday],
+          cycle: dueToday,
+          cycleCardShown: true,
+          lifecycle: 'ended',
+        }),
+      ).toEqual(['sep']);
+    });
+
+    it.each([true, false])(
+      'lists the rest with no shown cycle, the card flag %s',
+      (cycleCardShown) => {
+        expect(ids({ payments: [jun, sep], cycle: undefined, cycleCardShown })).toEqual([
+          'sep',
+          'jun',
+        ]);
+      },
+    );
+
+    it('returns an empty list with no rows', () => {
+      expect(build({ payments: [] })).toEqual([]);
+    });
+  });
+
+  describe('dates', () => {
+    it('lists a leap-day row the day after it as Tue 29 Feb, 1 day late', () => {
+      expect(build({ payments: [row('leap', '2028-02-29')], today: '2028-03-01' })).toEqual([
+        expect.objectContaining({ day: 'Tue 29 Feb', line: '1 day late' }),
+      ]);
+    });
+
+    it('omits a leap-day row on the leap day', () => {
+      expect(build({ payments: [row('leap', '2028-02-29')], today: '2028-02-29' })).toEqual([]);
+    });
+
+    it('reads a 31st row across a 30-day month as Mon 31 Aug, 30 days late', () => {
+      expect(build({ payments: [row('aug-31', '2026-08-31')], today: '2026-09-30' })).toEqual([
+        expect.objectContaining({ day: 'Mon 31 Aug', line: '30 days late' }),
+      ]);
+    });
+
+    it('carries the year on a row from another year', () => {
+      expect(build({ payments: [row('last-year', '2025-10-01')] })).toEqual([
+        expect.objectContaining({ day: 'Wed 1 Oct 2025' }),
+      ]);
+    });
+
+    it.each([
+      ['2028-02-29', '2028-03-01'],
+      ['2026-08-31', '2026-09-01'],
+    ])(
+      'keeps an ended commitment’s paid shown cycle due %s absent that day and lists it on %s',
+      (dueDate, dayAfter) => {
+        const paid = paidRow('shown', dueDate);
+        const input: Partial<CommitmentPaymentRowsInput> = {
+          payments: [paid],
+          cycle: paid,
+          cycleCardShown: true,
+          lifecycle: 'ended',
+        };
+
+        expect(ids({ ...input, today: dueDate })).toEqual([]);
+        expect(ids({ ...input, today: dayAfter })).toEqual(['shown']);
+      },
+    );
+  });
+
+  describe('the row model', () => {
+    const only = (payment: CommitmentPayment, commitment = makeTestCommitment()) =>
+      build({ payments: [payment], commitment })[0];
+
+    it('reads an overdue row: the danger dot and line, undimmed', () => {
+      expect(only(row('sep', '2026-09-01'))).toEqual({
+        id: 'sep',
+        dotColor: STATUS_COLORS[CommitmentPaymentStatus.Overdue],
+        day: 'Tue 1 Sep',
+        line: '49 days late',
+        lineTone: 'danger',
+        amountText: '8,000',
+        amountCode: 'EGP',
+        amountAccessibilityLabel: '8,000 EGP',
+        dimmed: false,
+      });
+    });
+
+    it('reads a paid row in success, the amount paid, dimmed', () => {
+      expect(
+        only(row('sep', '2026-09-01', { paid_date: '2026-09-03', amount_paid: 7500 })),
+      ).toEqual({
+        id: 'sep',
+        dotColor: STATUS_COLORS[CommitmentPaymentStatus.Paid],
+        day: 'Tue 1 Sep',
+        line: 'paid · 2 days late',
+        lineTone: 'success',
+        amountText: '7,500',
+        amountCode: 'EGP',
+        amountAccessibilityLabel: '7,500 EGP',
+        dimmed: true,
+      });
+    });
+
+    it('reads a skipped row as a caption, undimmed', () => {
+      expect(only(skippedRow('sep', '2026-09-01'))).toEqual({
+        id: 'sep',
+        dotColor: STATUS_COLORS[CommitmentPaymentStatus.Skipped],
+        day: 'Tue 1 Sep',
+        line: 'skipped · on the day',
+        lineTone: 'caption',
+        amountText: '8,000',
+        amountCode: 'EGP',
+        amountAccessibilityLabel: '8,000 EGP',
+        dimmed: false,
+      });
+    });
+
+    it.each<[string, Partial<CommitmentPayment>, Partial<Commitment>, string, string]>([
+      ['unpaid with an estimate', { amount_due: 600 }, {}, '~ 600', '~ 600 EGP'],
+      ['unpaid with no estimate', { amount_due: null }, { amount: null }, '~', '~ EGP'],
+      ['skipped', { amount_due: 600, skipped_date: '2026-09-01' }, {}, '~ 600', '~ 600 EGP'],
+      [
+        'paid',
+        { amount_due: 600, paid_date: '2026-09-01', amount_paid: 640 },
+        {},
+        '640',
+        '640 EGP',
+      ],
+    ])(
+      'reads a variable row %s',
+      (_name, payment, commitment, amountText, amountAccessibilityLabel) => {
+        expect(
+          only(row('sep', '2026-09-01', payment), variableCommitment(commitment)),
+        ).toMatchObject({ amountText, amountCode: 'EGP', amountAccessibilityLabel });
+      },
+    );
+
+    it('carries the USD code and the code in its label on a USD row', () => {
+      expect(
+        only(
+          row('sep', '2026-09-01', { currency: Currency.USD, amount_due: 12.5 }),
+          makeTestCommitment({ currency: Currency.USD, amount: 12.5 }),
+        ),
+      ).toMatchObject({
+        amountText: '12.50',
+        amountCode: 'USD',
+        amountAccessibilityLabel: '12.50 USD',
+      });
     });
   });
 });

@@ -8,9 +8,41 @@ import {
   TransactionAmountError,
 } from '@/modules/transactions/domain/transaction_amounts';
 import { formatDisplayAmount } from '@/utils/format_amount';
-import { formatShortWeekdayDate } from '@/utils/format_date';
+import { formatShortWeekdayDate, formatWeekdayDate } from '@/utils/format_date';
 import { MIN_MONEY_AMOUNT } from '@/utils/money';
 import { parsePositiveDecimal, parseRateText } from '@/utils/parse_decimal';
+
+import { resolvePaymentDayDistance } from '../../../../domain/payment_day_distance';
+import { resolvePaymentState } from '../../../../domain/payment_state';
+import { type DayIndicatorTone, resolveDayIndicator } from '../../../../utils/day_indicator';
+import {
+  type CommitmentStatusTag,
+  resolveCommitmentStatusTag,
+} from '../../components/commitment_row.helpers';
+
+interface PayCycleLine extends CommitmentStatusTag {
+  lead: string;
+  distance: string;
+  distanceTone: DayIndicatorTone;
+  line: string;
+}
+
+/** The sheet opens only on an unpaid cycle, so it reads the due day alone; `today` is the local calendar date, `YYYY-MM-DD`. */
+export function resolvePayCycleLine(dueDate: string, today: string): PayCycleLine {
+  const unpaid = { due_date: dueDate, paid_date: null, skipped_date: null };
+  const { text: distance, tone: distanceTone } = resolveDayIndicator(
+    resolvePaymentDayDistance(unpaid, today),
+  );
+  const day = formatWeekdayDate(dueDate);
+  const lead = Strings.commitmentsPayCycleLead(day);
+  return {
+    ...resolveCommitmentStatusTag(resolvePaymentState(unpaid, today)),
+    lead,
+    distance,
+    distanceTone,
+    line: `${lead}${distance}`,
+  };
+}
 
 /** What the write moves on the paying account, from `deriveResolution`'s figures. */
 export interface PayWritePreview {

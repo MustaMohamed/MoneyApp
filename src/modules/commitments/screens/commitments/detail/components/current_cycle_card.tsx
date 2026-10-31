@@ -5,20 +5,19 @@ import Animated from 'react-native-reanimated';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/status_badge';
 import { Text } from '@/components/ui/text';
-import { resolveFitAmountTextProps, scaledTextStyle } from '@/components/ui/text_scale.geometry';
+import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Strings } from '@/constants/strings';
 import { LetterSpacing } from '@/constants/theme';
 
 import { DAY_INDICATOR_CLASS } from '../../../../utils/day_indicator';
 import { cardEntering } from '../detail.anim';
 import { type CommitmentCycleCardModel, cycleActionDrawsRow } from '../detail.helpers';
+import { CommitmentAmount } from './commitment_amount';
 import {
   CURRENT_CYCLE_ACTIONS_GAP,
   CURRENT_CYCLE_ACTION_GAP,
   CURRENT_CYCLE_AMOUNT_FONT_SIZE,
-  CURRENT_CYCLE_AMOUNT_GAP,
   CURRENT_CYCLE_CARD_FRAME_STYLE,
-  CURRENT_CYCLE_CODE_FONT_SIZE,
   CURRENT_CYCLE_COLUMN_GAP,
   CURRENT_CYCLE_DAY_LINE_FONT_SIZE,
   CURRENT_CYCLE_DUE_DAY_FONT_SIZE,
@@ -92,7 +91,6 @@ function CycleActions({
 export function CurrentCycleCard(props: Props): React.ReactElement {
   const { model } = props;
   const { fontScale } = useWindowDimensions();
-  const amountProps = resolveFitAmountTextProps(CURRENT_CYCLE_AMOUNT_FONT_SIZE, fontScale);
   const { height } = resolveCurrentCycleCardGeometry(fontScale, cycleActionDrawsRow(model.action));
 
   return (
@@ -162,32 +160,13 @@ export function CurrentCycleCard(props: Props): React.ReactElement {
               {model.dayLine}
             </Text>
           </View>
-          <View
-            accessible
+          <CommitmentAmount
+            amountText={model.amountText}
+            amountCode={model.amountCode}
             accessibilityLabel={model.amountAccessibilityLabel}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'baseline',
-              gap: CURRENT_CYCLE_AMOUNT_GAP,
-              flexShrink: 1,
-            }}
-          >
-            <Text
-              {...amountProps}
-              className="font-sora-semibold text-foreground tabular-nums"
-              style={{ ...amountProps.style, flexShrink: 1 }}
-            >
-              {model.amountText}
-            </Text>
-            <Text
-              allowFontScaling={false}
-              numberOfLines={1}
-              className="font-inter text-content-secondary"
-              style={scaledTextStyle(CURRENT_CYCLE_CODE_FONT_SIZE, fontScale)}
-            >
-              {model.amountCode}
-            </Text>
-          </View>
+            amountFontSize={CURRENT_CYCLE_AMOUNT_FONT_SIZE}
+            amountClassName="font-sora-semibold text-foreground tabular-nums"
+          />
         </View>
 
         <CycleActions {...props} />

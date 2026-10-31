@@ -34,6 +34,9 @@ const mockGetPaymentsByCommitment = jest.fn();
 const mockSkipPayment = jest.fn();
 const mockLoadAccountLookup = jest.fn<Promise<void>, [string[]]>();
 const mockPathname = { current: '/commitments/commitment-1' };
+const TAB_STACK = { routes: [{ name: 'index' }, { name: '[id]/index' }] };
+const APP_STACK = { routes: [{ name: '(tabs)' }, { name: 'stacked/commitments/[id]/index' }] };
+const mockNavigatorState = { current: TAB_STACK };
 const mockParamsContext = createContext<DetailParams | null>(null);
 let mockParams: DetailParams = { id: 'commitment-1', cycle: 'pay-1' };
 // Each copy reads the params its own wrapper supplies, so two can mount on different commitments.
@@ -52,6 +55,7 @@ let accountLookupError = false;
 jest.mock('expo-router', () => ({
   useLocalSearchParams: () => mockUseParams(),
   usePathname: () => mockPathname.current,
+  useNavigation: () => ({ getState: () => mockNavigatorState.current }),
   router: { push: jest.fn(), back: jest.fn(), dismissTo: jest.fn(), dismissAll: jest.fn() },
 }));
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
@@ -140,6 +144,7 @@ function seedRentAndGym(): void {
 beforeEach(() => {
   jest.clearAllMocks();
   mockPathname.current = '/commitments/commitment-1';
+  mockNavigatorState.current = TAB_STACK;
   mockParams = { id: 'commitment-1', cycle: 'pay-1' };
   paymentsState = [];
   commitmentsById = {};
@@ -236,7 +241,9 @@ describe('useCommitmentDetail', () => {
       expect(result.current.state.commitment).toEqual(commitment);
       expect(result.current.state.payment?.id).toBe(payment.id);
       expect(result.current.state.allPayments).toEqual(rentHistory);
-      expect(result.current.state.today).toBe('2026-01-31');
+      expect(useCommitmentDetailStore.getState().entries[result.current.state.owner].loadedOn).toBe(
+        '2026-01-31',
+      );
     } finally {
       jest.useRealTimers();
     }
@@ -252,7 +259,9 @@ describe('useCommitmentDetail', () => {
       jest.setSystemTime(new Date(2026, 0, 31, 0, 5));
       await act(async () => result.current.openPaySheet());
 
-      expect(result.current.state.today).toBe('2026-01-30');
+      expect(useCommitmentDetailStore.getState().entries[result.current.state.owner].loadedOn).toBe(
+        '2026-01-30',
+      );
       expect(result.current.state.paySheetToday).toBe('2026-01-31');
     } finally {
       jest.useRealTimers();
@@ -276,7 +285,9 @@ describe('useCommitmentDetail', () => {
       const { result } = await renderHook(() => useCommitmentDetail());
 
       await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
-      expect(result.current.state.today).toBe('2026-01-30');
+      expect(useCommitmentDetailStore.getState().entries[result.current.state.owner].loadedOn).toBe(
+        '2026-01-30',
+      );
       expect(result.current.state.hero?.badgeLabel).toBe('Every month · varies');
       expect(result.current.state.hero?.caption).toBe('Bills · starts Sat 31 Jan 2026');
       expect(result.current.state.facts.find((fact) => fact.kind === 'repeats')?.value).toBe(
@@ -526,6 +537,36 @@ describe('useCommitmentDetail', () => {
     expect(router.dismissTo).not.toHaveBeenCalled();
     expect(router.dismissAll).not.toHaveBeenCalled();
     expect(router.push).not.toHaveBeenCalled();
+  });
+
+  it('holds the tabbed edges while a stacked screen sits focused above it', async () => {
+    const { result, rerender } = await renderHook(() => useCommitmentDetail());
+    expect(result.current.state.screenEdges).toEqual(['top']);
+
+    mockPathname.current = '/stacked/transactions/detail/tx-1';
+    await rerender({});
+
+    expect(result.current.state.screenEdges).toEqual(['top']);
+  });
+
+  it('holds the stacked edges while a bare route sits focused above it', async () => {
+    mockPathname.current = '/stacked/commitments/commitment-1';
+    mockNavigatorState.current = APP_STACK;
+    const { result, rerender } = await renderHook(() => useCommitmentDetail());
+    expect(result.current.state.screenEdges).toEqual(['top', 'bottom']);
+
+    mockPathname.current = '/accounts/account-1';
+    await rerender({});
+
+    expect(result.current.state.screenEdges).toEqual(['top', 'bottom']);
+  });
+
+  it('reads the edges from its own navigator, not the pathname, at mount', async () => {
+    mockNavigatorState.current = APP_STACK;
+
+    const { result } = await renderHook(() => useCommitmentDetail());
+
+    expect(result.current.state.screenEdges).toEqual(['top', 'bottom']);
   });
 
   it('completes a committed skip before an effect-driven history refresh failure', async () => {
@@ -1158,6 +1199,10 @@ describe('useCommitmentDetail lifecycle (MA-266)', () => {
     return Object.values(useCommitmentDetailStore.getState().entries)[0]?.allPayments;
   }
 
+  function paymentRowIds(rows: readonly { id: string }[]): string[] {
+    return rows.map((row) => row.id);
+  }
+
   beforeEach(() => {
     jest.useFakeTimers().setSystemTime(new Date(2026, 4, 8, 10));
   });
@@ -1202,7 +1247,7 @@ describe('useCommitmentDetail lifecycle (MA-266)', () => {
     ['paid', paidRow, { kind: 'viewTransaction', transactionId: 'tx-9' }],
     ['skipped', skippedRow, { kind: 'none' }],
   ])(
-    'keeps an ended commitment’s card at an overdue cycle with Pay and Skip and no Edit, restates it %s on the open detail, and draws none opened again',
+    'keeps an ended commitment’s card at an overdue cycle with Pay and Skip and no Edit, restates it %s on the open detail with the row in Payments, and draws none opened again',
     async (_name, settledRow, action) => {
       seed(endedUntil, [payment]);
 
@@ -1212,6 +1257,7 @@ describe('useCommitmentDetail lifecycle (MA-266)', () => {
       expect(result.current.state.cycleCard?.action).toEqual({ kind: 'paySkip' });
       expect(result.current.state.showsEdit).toBe(false);
       expect(result.current.state.hero?.badgeLabel).toBe('Ended');
+      expect(result.current.state.paymentRows).toEqual([]);
 
       historyById = { [commitment.id]: [settledRow] };
       paymentsState = [settledRow];
@@ -1221,6 +1267,7 @@ describe('useCommitmentDetail lifecycle (MA-266)', () => {
       await waitFor(() => expect(heldRows()?.[0]).toBe(settledRow));
       expect(result.current.state.payment).toBe(settledRow);
       expect(result.current.state.cycleCard?.action).toEqual(action);
+      expect(paymentRowIds(result.current.state.paymentRows)).toEqual([payment.id]);
 
       await unmount();
       const again = await renderHook(() => useCommitmentDetail());
@@ -1228,8 +1275,41 @@ describe('useCommitmentDetail lifecycle (MA-266)', () => {
       await waitFor(() => expect(again.result.current.state.viewState).toBe('ready'));
       expect(again.result.current.state.payment?.id).toBe(payment.id);
       expect(again.result.current.state.cycleCard).toBeUndefined();
+      expect(paymentRowIds(again.result.current.state.paymentRows)).toEqual([payment.id]);
     },
   );
+
+  it('lists the shown row under Payments on a stopped commitment at a paid cycle', async () => {
+    const settled: CommitmentPayment = { ...payment, paid_date: '2026-05-01', amount_paid: 5000 };
+    seed({ ...commitment, is_active: 0 }, [settled]);
+
+    const { result } = await renderHook(() => useCommitmentDetail());
+
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+    expect(result.current.state.cycleCard).toBeUndefined();
+    expect(paymentRowIds(result.current.state.paymentRows)).toEqual([payment.id]);
+  });
+
+  it('leaves the shown unpaid cycle out of Payments on an active commitment', async () => {
+    const earlier: CommitmentPayment = { ...payment, id: 'pay-apr', due_date: '2026-04-01' };
+    seed(commitment, [earlier, payment]);
+
+    const { result } = await renderHook(() => useCommitmentDetail());
+
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+    expect(result.current.state.cycleCard).toBeDefined();
+    expect(paymentRowIds(result.current.state.paymentRows)).toEqual([earlier.id]);
+  });
+
+  it('reads no Payments rows while the detail loads', async () => {
+    const pending = deferred<Commitment | undefined>();
+    mockGetById.mockImplementation(() => pending.promise);
+
+    const { result } = await renderHook(() => useCommitmentDetail());
+
+    expect(result.current.state.viewState).toBe('loading');
+    expect(result.current.state.paymentRows).toEqual([]);
+  });
 
   it('keeps the card when a Pay settles an after-2 commitment whose first row was skipped, hiding Edit and reading Ended', async () => {
     const afterTwo: Commitment = {

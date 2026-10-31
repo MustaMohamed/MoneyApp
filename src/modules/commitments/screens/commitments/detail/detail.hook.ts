@@ -1,4 +1,4 @@
-import { router, useLocalSearchParams, usePathname } from 'expo-router';
+import { router, useLocalSearchParams, useNavigation, usePathname } from 'expo-router';
 import { useCallback, useEffect, useId, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -11,7 +11,9 @@ import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import {
   STACKED_PREFIX,
   TABBED_ORIGIN,
+  resolveDetailScreenEdges,
   stackedPrefixOf,
+  stackedPrefixOfNavigator,
   stackedTransactionDetailRoute,
 } from '@/modules/navigation/domain/stacked_route';
 import { toLocalDateString } from '@/utils/format_date';
@@ -28,7 +30,9 @@ import {
   buildCommitmentCycleCard,
   buildCommitmentDetailFacts,
   buildCommitmentDetailHero,
+  buildCommitmentPaymentRows,
   type CommitmentDetailFactKind,
+  type CommitmentPaymentRowModel,
   commitmentDetailShowsBody,
   commitmentDetailShowsCycleCard,
   commitmentDetailShowsEdit,
@@ -42,6 +46,7 @@ import { INITIAL_UI_ENTRY, useCommitmentDetailState } from './detail.state';
 import { INITIAL_DATA_ENTRY, useCommitmentDetailStore } from './detail.store';
 
 const NO_FACTS: readonly DetailFact<CommitmentDetailFactKind>[] = Object.freeze([]);
+const NO_PAYMENT_ROWS: readonly CommitmentPaymentRowModel[] = Object.freeze([]);
 
 function leaveStackedSubtree(
   originTxId: string | undefined,
@@ -70,6 +75,7 @@ export function useCommitmentDetail() {
   // expo-router hands a repeated query param over as an array.
   const cycle = Array.isArray(cycleParam) ? cycleParam[0] : cycleParam;
   const stackedPrefix = stackedPrefixOf(usePathname());
+  const navigation = useNavigation();
 
   const payments = useCommitmentStore((s) => s.payments);
   const storeSkipPayment = useCommitmentStore.getState().skipPayment;
@@ -234,6 +240,21 @@ export function useCommitmentDetail() {
     [payment, commitment, today, lifecycle, openedUnpaidDueDate],
   );
 
+  const paymentRows = useMemo(
+    () =>
+      commitment && today !== undefined && lifecycle !== undefined
+        ? buildCommitmentPaymentRows({
+            payments: historyRows,
+            commitment,
+            cycle: payment,
+            cycleCardShown: cycleCard !== undefined,
+            lifecycle,
+            today,
+          })
+        : NO_PAYMENT_ROWS,
+    [historyRows, commitment, payment, cycleCard, lifecycle, today],
+  );
+
   const openPaySheet = useCallback(() => {
     // The pay sheet dates by the day it opens, not the day the detail last read.
     usePaySheetState.getState().open(owner, toLocalDateString(new Date()));
@@ -292,14 +313,15 @@ export function useCommitmentDetail() {
     state: {
       owner,
       viewState,
+      screenEdges: resolveDetailScreenEdges(stackedPrefixOfNavigator(navigation.getState())),
       payment,
       commitment,
       allPayments: historyRows,
       category,
-      today,
       paySheetToday,
       hero,
       cycleCard,
+      paymentRows,
       showsBody,
       showsEdit,
       facts,
