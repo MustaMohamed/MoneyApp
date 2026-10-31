@@ -11,6 +11,7 @@ import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import {
   STACKED_PREFIX,
   TABBED_ORIGIN,
+  resolveDetailScreenEdges,
   stackedPrefixOf,
   stackedTransactionDetailRoute,
 } from '@/modules/navigation/domain/stacked_route';
@@ -310,11 +311,11 @@ export function useCommitmentDetail() {
     state: {
       owner,
       viewState,
+      screenEdges: resolveDetailScreenEdges(stackedPrefix),
       payment,
       commitment,
       allPayments: historyRows,
       category,
-      today,
       paySheetToday,
       hero,
       cycleCard,

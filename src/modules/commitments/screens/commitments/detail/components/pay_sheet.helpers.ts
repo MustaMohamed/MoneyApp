@@ -20,7 +20,7 @@ import {
   resolveCommitmentStatusTag,
 } from '../../components/commitment_row.helpers';
 
-export interface PayCycleLine extends CommitmentStatusTag {
+interface PayCycleLine extends CommitmentStatusTag {
   lead: string;
   distance: string;
   distanceTone: DayIndicatorTone;
@@ -34,12 +34,13 @@ export function resolvePayCycleLine(dueDate: string, today: string): PayCycleLin
     resolvePaymentDayDistance(unpaid, today),
   );
   const day = formatWeekdayDate(dueDate);
+  const lead = Strings.commitmentsPayCycleLead(day);
   return {
     ...resolveCommitmentStatusTag(resolvePaymentState(unpaid, today)),
-    lead: Strings.commitmentsPayCycleLead(day),
+    lead,
     distance,
     distanceTone,
-    line: Strings.commitmentsPayCycleLine(day, distance),
+    line: `${lead}${distance}`,
   };
 }
 

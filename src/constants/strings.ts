@@ -1174,7 +1174,6 @@ export const Strings = {
   // Commitments: C5 Pay Sheet
   commitmentsPayTitle: (name: string) => `Pay ${name}`,
   commitmentsPayCycleLead: (day: string) => `${day} · `,
-  commitmentsPayCycleLine: (day: string, distance: string) => `${day} · ${distance}`,
   commitmentsPayStripCaption: 'Pays this cycle from this account.',
   commitmentsPayEstimateHint: (amount: string) =>
     `Estimated ${amount}. Enter the amount on the bill.`,

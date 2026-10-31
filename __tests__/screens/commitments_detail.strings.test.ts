@@ -96,12 +96,6 @@ describe('commitment detail Payments copy (MA-265)', () => {
   });
 
   it('ships the pay sheet cycle line byte-exact', () => {
-    expect({
-      lead: Strings.commitmentsPayCycleLead('Thu 1 Oct 2026'),
-      line: Strings.commitmentsPayCycleLine('Thu 1 Oct 2026', '19 days late'),
-    }).toEqual({
-      lead: 'Thu 1 Oct 2026 · ',
-      line: 'Thu 1 Oct 2026 · 19 days late',
-    });
+    expect(Strings.commitmentsPayCycleLead('Thu 1 Oct 2026')).toBe('Thu 1 Oct 2026 · ');
   });
 });

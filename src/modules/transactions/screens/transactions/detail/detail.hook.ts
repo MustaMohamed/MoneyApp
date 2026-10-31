@@ -15,7 +15,10 @@ import { useAccountsById } from '@/modules/accounts/store/use_accounts_by_id.hoo
 import { budgetRepository } from '@/modules/budget/repositories/budget.repository';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { commitmentRepository } from '@/modules/commitments/repositories/commitment.repository';
-import { stackedPrefixOf } from '@/modules/navigation/domain/stacked_route';
+import {
+  resolveDetailScreenEdges,
+  stackedPrefixOf,
+} from '@/modules/navigation/domain/stacked_route';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import { useTransactionFormState } from '@/modules/transactions/store/transaction_form_host.state';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
@@ -295,6 +298,7 @@ export function useTransactionDetail(id: string) {
   return {
     state: {
       viewState,
+      screenEdges: resolveDetailScreenEdges(stackedPrefix),
       loadingTransactionHint,
       tx: currentTx,
       derived,

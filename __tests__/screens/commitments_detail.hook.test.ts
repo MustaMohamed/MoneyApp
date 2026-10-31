@@ -236,7 +236,9 @@ describe('useCommitmentDetail', () => {
       expect(result.current.state.commitment).toEqual(commitment);
       expect(result.current.state.payment?.id).toBe(payment.id);
       expect(result.current.state.allPayments).toEqual(rentHistory);
-      expect(result.current.state.today).toBe('2026-01-31');
+      expect(useCommitmentDetailStore.getState().entries[result.current.state.owner].loadedOn).toBe(
+        '2026-01-31',
+      );
     } finally {
       jest.useRealTimers();
     }
@@ -252,7 +254,9 @@ describe('useCommitmentDetail', () => {
       jest.setSystemTime(new Date(2026, 0, 31, 0, 5));
       await act(async () => result.current.openPaySheet());
 
-      expect(result.current.state.today).toBe('2026-01-30');
+      expect(useCommitmentDetailStore.getState().entries[result.current.state.owner].loadedOn).toBe(
+        '2026-01-30',
+      );
       expect(result.current.state.paySheetToday).toBe('2026-01-31');
     } finally {
       jest.useRealTimers();
@@ -276,7 +280,9 @@ describe('useCommitmentDetail', () => {
       const { result } = await renderHook(() => useCommitmentDetail());
 
       await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
-      expect(result.current.state.today).toBe('2026-01-30');
+      expect(useCommitmentDetailStore.getState().entries[result.current.state.owner].loadedOn).toBe(
+        '2026-01-30',
+      );
       expect(result.current.state.hero?.badgeLabel).toBe('Every month · varies');
       expect(result.current.state.hero?.caption).toBe('Bills · starts Sat 31 Jan 2026');
       expect(result.current.state.facts.find((fact) => fact.kind === 'repeats')?.value).toBe(
