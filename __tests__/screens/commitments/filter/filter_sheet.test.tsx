@@ -154,7 +154,7 @@ describe('CommitmentFilterSheet', () => {
   });
 
   it('renders all advanced filter sections', async () => {
-    const { getByText } = await render(<CommitmentFilterSheet />);
+    const { getAllByText, getByText } = await render(<CommitmentFilterSheet />);
 
     expect(getByText(Strings.filterTitle)).toBeTruthy();
     expect(getByText('Accounts section')).toBeTruthy();
@@ -162,6 +162,8 @@ describe('CommitmentFilterSheet', () => {
     expect(getByText('Amount section')).toBeTruthy();
     expect(getByText('Amount type section')).toBeTruthy();
     expect(getByText('Recurrence section')).toBeTruthy();
+    const sections = getAllByText(/ section$/).map((node) => node.props.children as string);
+    expect(sections.slice(-2)).toEqual(['Recurrence section', 'Commitments section']);
   });
 
   it('renders Reset and Apply as equal-width themed footer buttons', async () => {

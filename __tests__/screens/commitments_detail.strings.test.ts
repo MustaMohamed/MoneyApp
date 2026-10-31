@@ -110,4 +110,16 @@ describe('commitment See all copy (MA-213)', () => {
     expect(Strings.commitmentsTallyNamedCount('1', 'payment')).toBe('· 1 payment');
     expect(Strings.commitmentsTallyNamedCount('—', 'payments')).toBe('· — payments');
   });
+
+  it('ships the sheet section title, its All summary and the option label byte-exact', () => {
+    expect({
+      title: Strings.filterSectionCommitments,
+      summary: Strings.filterAllCommitments,
+      option: Strings.commitmentFilterCommitmentAccessibility('Rent'),
+    }).toEqual({
+      title: 'Commitments',
+      summary: 'All commitments',
+      option: 'Rent, commitment filter',
+    });
+  });
 });

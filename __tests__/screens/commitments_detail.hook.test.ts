@@ -25,6 +25,7 @@ import { EMPTY_COMMITMENT_FILTERS } from '@/modules/commitments/screens/commitme
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { useCommitmentFormHostState } from '@/modules/commitments/store/commitment_form_host.state';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
+import { backgroundTabPushedStackKey } from '@/modules/navigation/domain/stacked_route';
 import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
 import { deferred } from '@/test_helpers/deferred';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
@@ -41,6 +42,7 @@ const mockGetById = jest.fn();
 const mockGetPaymentsByCommitment = jest.fn();
 const mockSkipPayment = jest.fn();
 const mockLoadAccountLookup = jest.fn<Promise<void>, [string[]]>();
+const mockNavigationDispatch = jest.fn();
 const mockPathname = { current: '/commitments/commitment-1' };
 const TAB_STACK = { routes: [{ name: 'index' }, { name: '[id]/index' }] };
 const APP_STACK = { routes: [{ name: '(tabs)' }, { name: 'stacked/commitments/[id]/index' }] };
@@ -63,7 +65,10 @@ let accountLookupError = false;
 jest.mock('expo-router', () => ({
   useLocalSearchParams: () => mockUseParams(),
   usePathname: () => mockPathname.current,
-  useNavigation: () => ({ getState: () => mockNavigatorState.current }),
+  useNavigation: () => ({
+    getState: () => mockNavigatorState.current,
+    dispatch: (...args: unknown[]) => mockNavigationDispatch(...args),
+  }),
   router: { push: jest.fn(), back: jest.fn(), dismissTo: jest.fn(), dismissAll: jest.fn() },
 }));
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
@@ -1424,6 +1429,32 @@ describe('useCommitmentDetail skeleton cycle hint (MA-267)', () => {
 describe('useCommitmentDetail goToAllPayments (MA-213)', () => {
   const COMMITMENTS_TAB = '/(app)/(tabs)/commitments';
   const stopped: Commitment = { ...commitment, is_active: 0 };
+  const TRANSACTIONS_TAB_INDEX = 1;
+  const COMMITMENTS_TAB_INDEX = 2;
+  const PUSHED_TAB_STACK = {
+    key: 'commitments-tab-stack',
+    routes: [{ name: 'index' }, { name: '[id]/index' }],
+  };
+  const ROOT_TAB_STACK = { key: 'commitments-tab-stack', routes: [{ name: 'index' }] };
+
+  function appStackOver(focusedTab: number, commitmentsStack?: typeof PUSHED_TAB_STACK) {
+    return {
+      routes: [
+        {
+          name: '(tabs)',
+          state: {
+            index: focusedTab,
+            routes: [
+              { name: 'dashboard' },
+              { name: 'transactions' },
+              { name: 'commitments', state: commitmentsStack },
+            ],
+          },
+        },
+        { name: 'stacked/commitments/[id]/index' },
+      ],
+    };
+  }
 
   function dirtyTheList(): void {
     const state = useCommitmentsScreenState.getState();
@@ -1464,6 +1495,42 @@ describe('useCommitmentDetail goToAllPayments (MA-213)', () => {
 
     await act(async () => result.current.goToAllPayments());
 
+    expectTheFilteredTab(commitment.id);
+    expect(mockNavigationDispatch).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [
+      'another tab focused and a screen pushed',
+      appStackOver(TRANSACTIONS_TAB_INDEX, PUSHED_TAB_STACK),
+      PUSHED_TAB_STACK.key,
+    ],
+    ['the tab itself focused', appStackOver(COMMITMENTS_TAB_INDEX, PUSHED_TAB_STACK), undefined],
+    ['only the tab root', appStackOver(TRANSACTIONS_TAB_INDEX, ROOT_TAB_STACK), undefined],
+    ['a tab with no state', appStackOver(TRANSACTIONS_TAB_INDEX), undefined],
+    ['a navigator with no (tabs) route', TAB_STACK, undefined],
+    ['no navigator state', undefined, undefined],
+  ])('backgroundTabPushedStackKey reads %s', (_name, appStack, expected) => {
+    expect(backgroundTabPushedStackKey(appStack, 'commitments')).toBe(expected);
+  });
+
+  it('pops the background tab Stack to its root before the two dismissals', async () => {
+    mockNavigatorState.current = appStackOver(TRANSACTIONS_TAB_INDEX, PUSHED_TAB_STACK);
+    mockPathname.current = '/stacked/commitments/commitment-1';
+    seedRent();
+    dirtyTheList();
+    const { result } = await renderHook(() => useCommitmentDetail());
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+
+    await act(async () => result.current.goToAllPayments());
+
+    expect(mockNavigationDispatch).toHaveBeenCalledTimes(1);
+    expect(mockNavigationDispatch).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'POP_TO_TOP', target: PUSHED_TAB_STACK.key }),
+    );
+    expect(mockNavigationDispatch.mock.invocationCallOrder[0]).toBeLessThan(
+      jest.mocked(router.dismissTo).mock.invocationCallOrder[0],
+    );
     expectTheFilteredTab(commitment.id);
   });
 
