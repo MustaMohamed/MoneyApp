@@ -60,6 +60,11 @@ jest.mock('react', () => {
   };
 });
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
+const mockToast = { show: jest.fn() };
+// The real wrapper's `toast.anim.ts` pulls reanimated, which does not load here.
+jest.mock('@/components/ui/toast', () => ({
+  useToast: () => ({ toast: mockToast, isToastVisible: false }),
+}));
 const capturedFocusCallbacks: Array<() => void | (() => void)> = [];
 let mockOnDayChange: (() => void) | undefined;
 const mockInteractionTasks: Array<{ callback: () => void; cancel: jest.Mock }> = [];
