@@ -156,6 +156,10 @@ jest.mock('heroui-native', () => {
   const Button = passThrough(View);
   Button.Label = passThrough(RNText);
 
+  const Toast = passThrough(View);
+  Toast.Title = passThrough(RNText);
+  Toast.Action = Button;
+
   const Chip = passThrough(View);
   Chip.Label = passThrough(RNText);
 
@@ -219,6 +223,7 @@ jest.mock('heroui-native', () => {
     Separator,
     SkeletonGroup,
     Surface,
+    Toast,
     ToastProvider,
     Typography,
     useTextField: () => ({ isDisabled: false, isInvalid: false, isRequired: false }),

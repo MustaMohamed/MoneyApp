@@ -4,6 +4,7 @@ import {
 } from '@/components/ui/status_badge';
 import { scaledLineHeight } from '@/components/ui/text_scale.geometry';
 import { AccountType, AmountType, CommitmentPaymentStatus, Currency } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import { AcctTokens, CoreTokens, GoldTokens } from '@/constants/theme_tokens';
 import {
   contrastRatio,
@@ -15,6 +16,7 @@ import { resolveCommitmentRowAccountId } from '@/modules/commitments/domain/paym
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import type { CommitmentMonthPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import {
+  buildCommitmentRowActions,
   buildCommitmentRowPresentation,
   COMMITMENT_ROW_AMOUNT_FONT_SIZE,
   COMMITMENT_ROW_CAPTION_FONT_SIZE,
@@ -83,6 +85,68 @@ function present(over: {
     liveRate: 'liveRate' in over ? over.liveRate : RATE,
   });
 }
+
+describe('buildCommitmentRowActions (MA-215)', () => {
+  const commitment = makeTestCommitment();
+  const onPay = jest.fn();
+  const onSkip = jest.fn();
+
+  function actionsOn(payment: CommitmentMonthPayment) {
+    return buildCommitmentRowActions({ payment, commitment, onPay, onSkip });
+  }
+
+  beforeEach(() => {
+    onPay.mockClear();
+    onSkip.mockClear();
+  });
+
+  it.each([
+    ['due today', TODAY],
+    ['upcoming', '2026-10-30'],
+    ['overdue this month', '2026-10-05'],
+    ['carried from an earlier month', '2026-09-01'],
+  ])('offers Pay then Skip on an unpaid row %s', (_name, dueDate) => {
+    const actions = actionsOn(makeTestMonthPayment({ due_date: dueDate }));
+
+    expect(actions.map(({ onPress: _onPress, ...tile }) => tile)).toEqual([
+      { key: 'pay', label: Strings.swipePay, icon: 'check', variant: 'success' },
+      { key: 'skip', label: Strings.swipeSkip, icon: 'minus-circle-outline', variant: 'info' },
+    ]);
+  });
+
+  it.each([
+    ['a paid row', makeTestMonthPayment({ paid_date: '2026-10-01', amount_paid: 8000 })],
+    ['a skipped row', makeTestMonthPayment({ skipped_date: '2026-10-01' })],
+  ])('offers nothing on %s', (_name, payment) => {
+    expect(actionsOn(payment)).toEqual([]);
+  });
+
+  it('offers nothing on a row with no commitment', () => {
+    expect(
+      buildCommitmentRowActions({
+        payment: makeTestMonthPayment(),
+        commitment: undefined,
+        onPay,
+        onSkip,
+      }),
+    ).toEqual([]);
+  });
+
+  it('hands the row back to each tile', () => {
+    const payment = makeTestMonthPayment();
+    const [pay, skip] = actionsOn(payment);
+
+    pay.onPress();
+    expect(onPay).toHaveBeenCalledTimes(1);
+    expect(onPay).toHaveBeenCalledWith(payment, commitment);
+    expect(onSkip).not.toHaveBeenCalled();
+
+    skip.onPress();
+    expect(onSkip).toHaveBeenCalledTimes(1);
+    expect(onSkip).toHaveBeenCalledWith(payment, commitment);
+    expect(onPay).toHaveBeenCalledTimes(1);
+  });
+});
 
 describe('resolveCommitmentRowHeight', () => {
   it('keeps the transaction row height at font scale 1 and below', () => {

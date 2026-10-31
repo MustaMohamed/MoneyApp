@@ -18,7 +18,7 @@ import {
 } from '@/modules/commitments/screens/commitments/components/commitment_row.helpers';
 import { buildCommitmentsHeroModel } from '@/modules/commitments/screens/commitments/components/commitments_hero.helpers';
 import { STATUS_ICONS, STATUS_LABELS } from '@/modules/commitments/utils/commitment_status';
-import { makeTestMonthPayment } from '@/test_helpers/commitment';
+import { makeTestCommitment, makeTestMonthPayment } from '@/test_helpers/commitment';
 
 jest.mock('@/modules/commitments/screens/commitments/commitments.hook', () => ({
   useCommitments: jest.fn(),
@@ -142,15 +142,6 @@ jest.mock('@/components/ui/swipeable_row', () => ({ closeAllRows: jest.fn() }));
 jest.mock('@/components/ui/load_error_alert.hook', () => ({
   useFloatingAlertToastHold: () => ({ frameRef: { current: null }, holdClearance: jest.fn() }),
 }));
-jest.mock('@/utils/use_confirm_action.hook', () => ({
-  useConfirmAction: () => ({
-    pendingPayload: null,
-    busy: false,
-    request: jest.fn(),
-    confirm: jest.fn(),
-    cancel: jest.fn(),
-  }),
-}));
 jest.mock('@/modules/commitments/screens/commitments/components/empty_state', () => ({
   CommitmentsEmptyState: () => {
     const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
@@ -205,21 +196,27 @@ jest.mock('@/components/ui/day_header', () => ({
     return <Text>{section.label}</Text>;
   },
 }));
-jest.mock('@/modules/commitments/screens/commitments/components/commitment_row', () => ({
-  CommitmentRow: () => {
-    const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
-    return <Text>Commitment row</Text>;
-  },
-}));
-jest.mock(
-  '@/modules/commitments/screens/commitments/components/commitment_delete_confirm_sheet',
-  () => ({
-    CommitmentDeleteConfirmSheet: () => null,
-  }),
-);
-jest.mock('@/modules/commitments/screens/commitments/detail/components/skip_confirm_sheet', () => ({
-  SkipConfirmSheet: () => null,
-}));
+jest.mock('@/modules/commitments/screens/commitments/components/commitment_row', () => {
+  const commitmentRowProps: { last: object | undefined } = { last: undefined };
+  return {
+    commitmentRowProps,
+    CommitmentRow: (props: object) => {
+      const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
+      commitmentRowProps.last = props;
+      return <Text>Commitment row</Text>;
+    },
+  };
+});
+jest.mock('@/modules/commitments/screens/commitments/detail/components/pay_sheet', () => {
+  const paySheetProps: { last: object | undefined } = { last: undefined };
+  return {
+    paySheetProps,
+    PaySheet: (props: object) => {
+      paySheetProps.last = props;
+      return null;
+    },
+  };
+});
 jest.mock('@/modules/commitments/screens/commitments/filter', () => ({
   CommitmentFilterSheet: () => {
     const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
@@ -261,6 +258,9 @@ const baseCommitmentsState: CommitmentsScreenState = {
     accessibilityLabel: undefined,
   },
   liveRate: 50,
+  payOwner: 'pay-owner',
+  payTarget: undefined,
+  payToday: undefined,
   hero: buildCommitmentsHeroModel({
     mode: 'skeleton',
     aggregate: undefined,
@@ -301,6 +301,12 @@ const { accountChipsProps } = jest.requireMock<{
 const { searchTallyProps } = jest.requireMock<{
   searchTallyProps: { last: { model: SearchTallyModel; testID: string } | undefined };
 }>('@/components/ui/search_tally');
+const { commitmentRowProps } = jest.requireMock<{
+  commitmentRowProps: { last: { onPay: unknown; onSkip: unknown } | undefined };
+}>('@/modules/commitments/screens/commitments/components/commitment_row');
+const { paySheetProps } = jest.requireMock<{ paySheetProps: { last: object | undefined } }>(
+  '@/modules/commitments/screens/commitments/detail/components/pay_sheet',
+);
 
 const STATUS_TABS = [
   CommitmentPaymentStatus.Overdue,
@@ -319,6 +325,8 @@ const resetFiltersMock = jest.fn();
 const retryAccountLookupMock = jest.fn();
 const onRefreshMock = jest.fn();
 const retryLoadMock = jest.fn();
+const payRowMock = jest.fn();
+const skipRowMock = jest.fn();
 
 function makePayment(overrides: Partial<CommitmentMonthPayment> = {}): CommitmentMonthPayment {
   return makeTestMonthPayment({
@@ -352,9 +360,8 @@ function mockUseCommitments(state: Partial<CommitmentsScreenState> = {}) {
     retryLoad: retryLoadMock,
     goToDetail: jest.fn(),
     goToAdd: jest.fn(),
-    goToEdit: jest.fn(),
-    skipPayment: jest.fn(),
-    deactivateCommitment: jest.fn(),
+    payRow: payRowMock,
+    skipRow: skipRowMock,
     setStatusFilter: jest.fn(),
     setSearchQuery: setSearchQueryMock,
     clearSearch: clearSearchMock,
@@ -630,6 +637,30 @@ describe('CommitmentsScreen', () => {
 
     expect(getByText('commitmentsMonth:December')).toBeTruthy();
     expect(queryByText('No commitments')).toBeNull();
+  });
+
+  it('MA-215: mounts the pay sheet on the hook owner, target and day, and hands the row the hook pay and skip', async () => {
+    const payment = makePayment();
+    const commitment = makeTestCommitment();
+    mockUseCommitments({
+      emptyVariant: 'none',
+      isEmpty: false,
+      sections: [dueSection()],
+      payOwner: 'owner-1',
+      payTarget: { payment, commitment },
+      payToday: '2026-08-05',
+    });
+
+    await render(<CommitmentsScreen />);
+
+    expect(paySheetProps.last).toEqual({
+      owner: 'owner-1',
+      commitment,
+      payment,
+      today: '2026-08-05',
+    });
+    expect(commitmentRowProps.last?.onPay).toBe(payRowMock);
+    expect(commitmentRowProps.last?.onSkip).toBe(skipRowMock);
   });
 
   it('MA-214: a first-load failure draws the error state whose Try again runs retryLoad', async () => {

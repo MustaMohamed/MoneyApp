@@ -20,12 +20,16 @@ import type {
   CommitmentPayment,
 } from '@/modules/commitments/entities/commitment_payment.entity';
 import { useCommitments } from '@/modules/commitments/screens/commitments/commitments.hook';
-import type { CommitmentStatusFilter } from '@/modules/commitments/screens/commitments/commitments.state';
+import type {
+  CommitmentPayTarget,
+  CommitmentStatusFilter,
+} from '@/modules/commitments/screens/commitments/commitments.state';
 import { useCommitmentsScreenState } from '@/modules/commitments/screens/commitments/commitments.state';
 import {
   type CommitmentRowsRead,
   useCommitmentsScreenStore,
 } from '@/modules/commitments/screens/commitments/commitments.store';
+import { usePaySheetState } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.state';
 import { useCommitmentFilterState } from '@/modules/commitments/screens/commitments/filter/filter.state';
 import {
   EMPTY_COMMITMENT_FILTERS,
@@ -119,6 +123,8 @@ const setStatusFilterMock = jest.fn();
 const setSearchQueryMock = jest.fn();
 const clearSearchMock = jest.fn();
 const setAppliedFiltersMock = jest.fn();
+const setPayTargetMock = jest.fn();
+const skipPaymentMock = jest.fn().mockResolvedValue(undefined);
 const { runAfterInteractions } = jest.requireMock('@/utils/run_after_interactions');
 const { router: mockRouter } = jest.requireMock<{ router: { push: jest.Mock } }>('expo-router');
 
@@ -272,6 +278,8 @@ function setup({
   monthAggregateErrorKey = undefined,
   rowsRead = undefined,
   rowsLoadErrorId = undefined,
+  transitioningPaymentIds = [],
+  payTarget = undefined,
 }: {
   selectedMonth?: string;
   commitments?: Commitment[];
@@ -294,6 +302,8 @@ function setup({
   monthAggregateErrorKey?: string;
   rowsRead?: CommitmentRowsRead;
   rowsLoadErrorId?: string;
+  transitioningPaymentIds?: string[];
+  payTarget?: CommitmentPayTarget;
 } = {}) {
   attachMockSelectorStore(useCommitmentsScreenStore as unknown as jest.Mock, () => ({
     rowsRead,
@@ -317,8 +327,8 @@ function setup({
     loadMonthAggregate: loadMonthAggregateMock,
     ensureMonthSnapshot: ensureMonthSnapshotMock,
     ensureMonthAggregate: ensureMonthAggregateMock,
-    skipPayment: jest.fn(),
-    deactivateCommitment: jest.fn(),
+    transitioningPaymentIds,
+    skipPayment: skipPaymentMock,
   }));
   attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
     accounts,
@@ -340,6 +350,8 @@ function setup({
     statusFilter,
     searchQuery,
     appliedFilters,
+    payTarget,
+    setPayTarget: setPayTargetMock,
     setRefreshing: setRefreshingMock,
     setStatusFilter: setStatusFilterMock,
     setSearchQuery: setSearchQueryMock,
@@ -407,44 +419,6 @@ describe('useCommitments', () => {
 
     expect(mockRouter.push).toHaveBeenCalledTimes(1);
     expect(mockRouter.push).toHaveBeenCalledWith('/commitments/commitment-1?cycle=pay-1');
-  });
-
-  it('opens the edit sheet for the commitment from goToEdit, with no landing and no push', async () => {
-    useCommitmentFormHostState.getState().reset();
-    mockRouter.push.mockClear();
-    const { result } = await renderHook(() => useCommitments());
-
-    await act(() => result.current.goToEdit('c-1'));
-
-    expect(useCommitmentFormHostState.getState()).toMatchObject({
-      phase: 'open',
-      sessionId: 1,
-      mode: 'edit',
-      editingCommitmentId: 'c-1',
-    });
-    expect(useCommitmentFormHostState.getState().landing).toBeUndefined();
-    expect(mockRouter.push).not.toHaveBeenCalled();
-  });
-
-  it('opens nothing from goToEdit with no commitment id, so the next Edit opens session 1', async () => {
-    useCommitmentFormHostState.getState().reset();
-    mockRouter.push.mockClear();
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    const { result } = await renderHook(() => useCommitments());
-
-    await act(() => result.current.goToEdit(undefined));
-
-    expect(useCommitmentFormHostState.getState().phase).toBe('closed');
-    expect(mockRouter.push).not.toHaveBeenCalled();
-
-    await act(() => result.current.goToEdit('c-1'));
-
-    expect(useCommitmentFormHostState.getState()).toMatchObject({
-      phase: 'open',
-      sessionId: 1,
-      editingCommitmentId: 'c-1',
-    });
-    warn.mockRestore();
   });
 
   it('isEmpty is true when no payments', async () => {
@@ -1292,6 +1266,94 @@ describe('useCommitments', () => {
     await hook.rerender({});
 
     expect(hook.result.current.state.hero.committed.value).toBe('480');
+  });
+});
+
+describe('useCommitments pay and skip from a row (MA-215)', () => {
+  const OPENED_EARLIER = '2026-05-07';
+  const payment = duePayment();
+  const commitment = dueCommitment();
+
+  const entries = () => usePaySheetState.getState().entries;
+
+  beforeEach(() => {
+    jest.useFakeTimers().setSystemTime(new Date(2026, 4, 8, 10));
+    capturedFocusCallbacks.length = 0;
+    mockInteractionTasks.length = 0;
+    usePaySheetState.getState().reset();
+    setPayTargetMock.mockClear();
+    skipPaymentMock.mockReset().mockResolvedValue(undefined);
+    setup();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('payRow sets the target and opens the owner entry on today', async () => {
+    const { result } = await renderHook(() => useCommitments());
+
+    await act(async () => result.current.payRow(payment, commitment));
+
+    expect(setPayTargetMock).toHaveBeenCalledTimes(1);
+    expect(setPayTargetMock).toHaveBeenCalledWith({ payment, commitment });
+    const { payOwner, payToday } = result.current.state;
+    expect(entries()[payOwner]).toMatchObject({ visible: true, openedOn: TODAY });
+    expect(payToday).toBe(TODAY);
+  });
+
+  it('hands the sheet the target the state holds', async () => {
+    const payTarget = { payment, commitment };
+    setup({ payTarget });
+
+    const { result } = await renderHook(() => useCommitments());
+
+    expect(result.current.state.payTarget).toBe(payTarget);
+  });
+
+  it('payRow on an id in transition does nothing', async () => {
+    setup({ transitioningPaymentIds: [payment.id] });
+    const { result } = await renderHook(() => useCommitments());
+
+    await act(async () => result.current.payRow(payment, commitment));
+
+    expect(setPayTargetMock).not.toHaveBeenCalled();
+    expect(result.current.state.payOwner in entries()).toBe(false);
+  });
+
+  it('skipRow calls the store once with the row id while the sheet is closed', async () => {
+    const { result } = await renderHook(() => useCommitments());
+
+    await act(async () => result.current.skipRow(payment, commitment));
+
+    expect(skipPaymentMock).toHaveBeenCalledTimes(1);
+    expect(skipPaymentMock).toHaveBeenCalledWith(payment.id);
+  });
+
+  it('payRow and skipRow do nothing over a visible sheet', async () => {
+    const { result } = await renderHook(() => useCommitments());
+    const { payOwner } = result.current.state;
+    await act(async () => usePaySheetState.getState().open(payOwner, OPENED_EARLIER));
+
+    await act(async () => {
+      result.current.payRow(payment, commitment);
+      result.current.skipRow(payment, commitment);
+    });
+
+    expect(setPayTargetMock).not.toHaveBeenCalled();
+    expect(skipPaymentMock).not.toHaveBeenCalled();
+    expect(entries()[payOwner].openedOn).toBe(OPENED_EARLIER);
+  });
+
+  it('releases the owner entry on unmount', async () => {
+    const { result, unmount } = await renderHook(() => useCommitments());
+    const { payOwner } = result.current.state;
+    await act(async () => result.current.payRow(payment, commitment));
+    expect(payOwner in entries()).toBe(true);
+
+    await unmount();
+
+    expect(payOwner in entries()).toBe(false);
   });
 });
 

@@ -1,3 +1,4 @@
+import { waitFor } from '@testing-library/react-native';
 import Database from 'better-sqlite3';
 import type { SQLiteDatabase } from 'expo-sqlite';
 import uuid from 'react-native-uuid';
@@ -18,6 +19,7 @@ import {
   CommitmentRepository,
   type UpdateCommitmentInput,
 } from '@/modules/commitments/repositories/commitment.repository';
+import { createCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
 import {
   bridgeBetterSQLite,
@@ -91,7 +93,7 @@ beforeAll(() => {
 
 beforeEach(() => {
   realDb.exec(
-    'DELETE FROM transactions; DELETE FROM commitment_payments; DELETE FROM commitments;',
+    'DELETE FROM commitment_payments; DELETE FROM transactions; DELETE FROM commitments;',
   );
   realDb
     .prepare("UPDATE accounts SET current_balance = ? WHERE id = 'account'")
@@ -443,6 +445,81 @@ describe('CommitmentRepository.undoSkip', () => {
 
     expect(row('skipped-april')?.skipped_date).toBeNull();
     expect(storedCommitment().is_active).toBe(0);
+  });
+});
+
+describe('a carried row through the store (MA-215)', () => {
+  const MAY = '2026-05';
+  const CARRIED = 'carried-april';
+
+  // Pins `new Date()` alone: the timers stay real so `waitFor` and the awaited reads still run.
+  beforeEach(() => {
+    jest.useFakeTimers({
+      now: NOW,
+      doNotFake: [
+        'hrtime',
+        'nextTick',
+        'performance',
+        'queueMicrotask',
+        'requestAnimationFrame',
+        'cancelAnimationFrame',
+        'requestIdleCallback',
+        'cancelIdleCallback',
+        'setImmediate',
+        'clearImmediate',
+        'setInterval',
+        'clearInterval',
+        'setTimeout',
+        'clearTimeout',
+      ],
+    });
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  function monthStore() {
+    const store = createCommitmentStore(new CommitmentRepository(), () => undefined);
+
+    // A write's unawaited reload holds `BEGIN IMMEDIATE` on the one connection, so this waits it out first.
+    async function reload() {
+      await waitFor(() => expect(store.getState().loading).toBe(false));
+      await store.getState().loadMonthSnapshot(MAY, NOW);
+      await store.getState().loadMonthAggregate(MAY, undefined, NOW);
+    }
+
+    function carriedOnTheList() {
+      return {
+        listed: store.getState().payments.some((candidate) => candidate.id === CARRIED),
+        carriedCount: store.getState().monthAggregate?.aggregate.carried.count,
+      };
+    }
+
+    return { store, reload, carriedOnTheList };
+  }
+
+  it('leaves May on a skip, returns on the undo and leaves for good on a pay', async () => {
+    seed(commitment({ start_date: '2026-04-01' }), [payment(CARRIED, '2026-04-01')]);
+    const { store, reload, carriedOnTheList } = monthStore();
+
+    await reload();
+    expect(carriedOnTheList()).toEqual({ listed: true, carriedCount: 1 });
+
+    await store.getState().skipPayment(CARRIED, NOW);
+    await reload();
+    expect(carriedOnTheList()).toEqual({ listed: false, carriedCount: 0 });
+
+    await store.getState().undoSkip(CARRIED, NOW);
+    await reload();
+    expect(carriedOnTheList()).toEqual({ listed: true, carriedCount: 1 });
+
+    const amounts = await store
+      .getState()
+      .markAsPaid(CARRIED, { amount_paid: 100, account_id: 'account', paid_date: TODAY });
+    await reload();
+    expect(carriedOnTheList()).toEqual({ listed: false, carriedCount: 0 });
+    expect(amounts).toMatchObject({ paymentAmount: 100 });
   });
 });
 

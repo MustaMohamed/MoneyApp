@@ -12,6 +12,7 @@ import {
 } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.state';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
+import type { CommitmentPaymentAmounts } from '@/modules/transactions/domain/transaction_amounts';
 import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
 import { deferred } from '@/test_helpers/deferred';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
@@ -19,7 +20,12 @@ import { formatStoredMoneyText } from '@/utils/money_text';
 
 const mockMarkAsPaid = jest.fn();
 const mockLoadAccounts = jest.fn();
+const mockToast = { show: jest.fn() };
 
+// The wrapper, not HeroUI, so `show` sees exactly what the call site passed.
+jest.mock('@/components/ui/toast', () => ({
+  useToast: () => ({ toast: mockToast, isToastVisible: false }),
+}));
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
   useCommitmentStore: jest.fn(),
 }));
@@ -43,6 +49,15 @@ const commitment = makeTestCommitment({
   created_at: '2026-01-01T00:00:00.000Z',
   updated_at: '2026-01-01T00:00:00.000Z',
 });
+
+const PAID_AMOUNTS: CommitmentPaymentAmounts = {
+  paymentAmount: 15,
+  accountNativeAmount: 15,
+  accountCurrency: Currency.EGP,
+  egpAmount: 15,
+  exchangeRate: null,
+};
+const PAID_TOAST = { label: 'Internet paid · 15 EGP', variant: 'success' };
 
 const egpAccount = { id: 'acc-egp', name: 'Cash', currency: Currency.EGP } as unknown as Account;
 const ACCOUNTS: Account[] = [egpAccount];
@@ -78,7 +93,7 @@ async function openAndPrefill(...sheets: [owner: string, sheet: Sheet][]) {
 beforeEach(() => {
   jest.clearAllMocks();
   usePaySheetState.getState().reset();
-  mockMarkAsPaid.mockResolvedValue(undefined);
+  mockMarkAsPaid.mockResolvedValue(PAID_AMOUNTS);
   mockLoadAccounts.mockResolvedValue(undefined);
   attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
     markAsPaid: mockMarkAsPaid,
@@ -107,8 +122,8 @@ describe('usePaySheet under two owners', () => {
   });
 
   it('a save in progress on one copy leaves the other copy free to submit its own payment', async () => {
-    const saveA = deferred<void>();
-    const saveB = deferred<void>();
+    const saveA = deferred<CommitmentPaymentAmounts>();
+    const saveB = deferred<CommitmentPaymentAmounts>();
     mockMarkAsPaid.mockReturnValueOnce(saveA.promise).mockReturnValueOnce(saveB.promise);
     const { a, b } = await mountTwoSheets();
     await openAndPrefill([OWNER_A, a], [OWNER_B, b]);
@@ -129,8 +144,8 @@ describe('usePaySheet under two owners', () => {
     expect(mockMarkAsPaid).toHaveBeenNthCalledWith(2, p2.id, expect.anything());
 
     await act(async () => {
-      saveA.resolve();
-      saveB.resolve();
+      saveA.resolve(PAID_AMOUNTS);
+      saveB.resolve(PAID_AMOUNTS);
       await Promise.all([submitA, submitB]);
     });
 
@@ -193,7 +208,7 @@ describe('usePaySheet under two owners', () => {
   });
 
   it('a save that resolves after its copy released writes nothing back', async () => {
-    const saveA = deferred<void>();
+    const saveA = deferred<CommitmentPaymentAmounts>();
     mockMarkAsPaid.mockReturnValueOnce(saveA.promise);
     const { a, b } = await mountTwoSheets();
     await openAndPrefill([OWNER_A, a], [OWNER_B, b]);
@@ -206,12 +221,96 @@ describe('usePaySheet under two owners', () => {
     await act(async () => usePaySheetState.getState().release(OWNER_A));
 
     await act(async () => {
-      saveA.resolve();
+      saveA.resolve(PAID_AMOUNTS);
       await submitA;
     });
 
     expect(OWNER_A in entries()).toBe(false);
     expect(Object.keys(entries())).toEqual([OWNER_B]);
     expect(mockMarkAsPaid).toHaveBeenCalledWith(p1.id, expect.anything());
+  });
+});
+
+describe('usePaySheet toast for a write that outlives its open (MA-215)', () => {
+  type PaymentProps = { payment: CommitmentPayment };
+
+  async function mountOnP1() {
+    const sheet = await renderHook(
+      ({ payment }: PaymentProps) => usePaySheet(OWNER_A, commitment, payment, TODAY),
+      { initialProps: { payment: p1 } },
+    );
+    await reopen(sheet);
+    return sheet;
+  }
+
+  type PaymentSheet = Awaited<ReturnType<typeof mountOnP1>>;
+
+  async function reopen(sheet: PaymentSheet) {
+    await act(async () => usePaySheetState.getState().open(OWNER_A));
+    await waitFor(() => expect(sheet.result.current.form.getValues('account_id')).toBe('acc-egp'));
+  }
+
+  // Dismisses the sheet with the write still running.
+  async function startWriteThenDismiss(sheet: PaymentSheet) {
+    const save = deferred<CommitmentPaymentAmounts>();
+    mockMarkAsPaid.mockReturnValueOnce(save.promise);
+    let submit: Promise<void> | undefined;
+    await act(async () => {
+      submit = sheet.result.current.onSubmit();
+    });
+    await waitFor(() => expect(mockMarkAsPaid).toHaveBeenCalledTimes(1));
+    await act(async () => sheet.result.current.setVisible(false));
+    return async () => {
+      await act(async () => {
+        save.resolve(PAID_AMOUNTS);
+        await submit;
+      });
+    };
+  }
+
+  beforeEach(() => mockToast.show.mockClear());
+
+  it('sets settled, hides the sheet and toasts once at its close after a reopen of the same payment', async () => {
+    const sheet = await mountOnP1();
+    const finishWrite = await startWriteThenDismiss(sheet);
+    await reopen(sheet);
+
+    await finishWrite();
+
+    expect(entries()[OWNER_A]).toMatchObject({ visible: false, settled: true });
+    expect(mockToast.show).not.toHaveBeenCalled();
+
+    await act(async () => sheet.result.current.handleCloseComplete());
+
+    expect(mockToast.show).toHaveBeenCalledTimes(1);
+    expect(mockToast.show).toHaveBeenCalledWith(PAID_TOAST);
+  });
+
+  it('leaves a reopen on another payment visible and unsettled, and toasts at once', async () => {
+    const sheet = await mountOnP1();
+    const finishWrite = await startWriteThenDismiss(sheet);
+    await sheet.rerender({ payment: p2 });
+    await reopen(sheet);
+
+    await finishWrite();
+
+    expect(entries()[OWNER_A]).toMatchObject({ visible: true, settled: false });
+    expect(mockToast.show).toHaveBeenCalledTimes(1);
+    expect(mockToast.show).toHaveBeenCalledWith(PAID_TOAST);
+
+    await act(async () => sheet.result.current.handleCloseComplete());
+
+    expect(mockToast.show).toHaveBeenCalledTimes(1);
+  });
+
+  it('toasts at once on a dismissed sheet that stays closed', async () => {
+    const sheet = await mountOnP1();
+    const finishWrite = await startWriteThenDismiss(sheet);
+
+    await finishWrite();
+
+    expect(entries()[OWNER_A]).toMatchObject({ visible: false, settled: true });
+    expect(mockToast.show).toHaveBeenCalledTimes(1);
+    expect(mockToast.show).toHaveBeenCalledWith(PAID_TOAST);
   });
 });

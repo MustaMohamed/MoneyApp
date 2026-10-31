@@ -39,9 +39,7 @@ const UNREDESIGNED_OLD_VOICE_KEYS = [
   'incomeSheetSaveError',
   'categoriesSaveError',
   'categoriesReassignError',
-  'commitmentsSkipError',
   'commitmentsSaveError',
-  'commitmentsDeactivateError',
 ] as const satisfies readonly (keyof typeof Strings)[];
 
 function readsOldVoice(text: string): boolean {

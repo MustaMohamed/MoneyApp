@@ -10,6 +10,7 @@ import { PaySheet } from '@/modules/commitments/screens/commitments/detail/compo
 import { usePaySheetState } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.state';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
+import type { CommitmentPaymentAmounts } from '@/modules/transactions/domain/transaction_amounts';
 import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
@@ -120,6 +121,14 @@ const paySheetState = {
   reset: jest.fn(),
 };
 
+const PAID_AMOUNTS: CommitmentPaymentAmounts = {
+  paymentAmount: 1,
+  accountNativeAmount: 1,
+  accountCurrency: Currency.EGP,
+  egpAmount: 1,
+  exchangeRate: null,
+};
+
 const usdPayAccount = {
   ...payAccount,
   id: 'acc-usd',
@@ -131,7 +140,7 @@ let suiteAccounts: Account[] = [payAccount];
 beforeEach(() => {
   suiteAccounts = [payAccount];
   attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
-    markAsPaid: jest.fn().mockResolvedValue(undefined),
+    markAsPaid: jest.fn().mockResolvedValue(PAID_AMOUNTS),
     loadPaymentsForMonth: jest.fn().mockResolvedValue(undefined),
   }));
   attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
