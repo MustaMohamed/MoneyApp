@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 
+import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 import type { Account } from '../entities/account.entity';
@@ -47,7 +48,10 @@ export type AccountStore = typeof INITIAL_STATE & {
   reset: () => void;
 };
 
-export function createAccountStore(repo: IAccountRepository) {
+export function createAccountStore(
+  repo: IAccountRepository,
+  announceCommitmentWrite: () => void = () => useCommitmentStore.getState().announceExternalWrite(),
+) {
   let loadRequestId = 0;
   // Ids whose last lookup failed and that no load has answered since; closure state, not store state.
   const failedLookupIds = new Set<string>();
@@ -173,14 +177,18 @@ export function createAccountStore(repo: IAccountRepository) {
           }),
 
         deleteAccount: async (id) => {
-          await writeThenReload('deleteAccount', () => repo.delete(id));
+          await writeThenReload('deleteAccount', async () => {
+            await repo.delete(id);
+            announceCommitmentWrite();
+          });
           await refreshDeletedLookup(id);
         },
 
         deleteAccountMovingCommitments: async (id, replacementAccountId) => {
-          await writeThenReload('deleteAccountMovingCommitments', () =>
-            repo.delete(id, replacementAccountId),
-          );
+          await writeThenReload('deleteAccountMovingCommitments', async () => {
+            await repo.delete(id, replacementAccountId);
+            announceCommitmentWrite();
+          });
           await refreshDeletedLookup(id);
         },
 

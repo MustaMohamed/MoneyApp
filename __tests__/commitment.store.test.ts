@@ -25,8 +25,8 @@ import {
 import { deferred } from '@/test_helpers/deferred';
 
 const MAY = '2026-05';
-const DAY_ONE = new Date('2026-05-08T23:30:00.000Z');
-const DAY_TWO = new Date('2026-05-09T00:30:00.000Z');
+const DAY_ONE = new Date(2026, 4, 8, 23, 30);
+const DAY_TWO = new Date(2026, 4, 9, 0, 30);
 
 function commitment(overrides: Partial<Commitment> = {}): Commitment {
   return makeTestCommitment({
@@ -86,17 +86,12 @@ function markAsPaidResult(overrides: Partial<CommitmentPaymentAmounts> = {}): Ma
 
 function makeRepository(overrides: Partial<ICommitmentRepository> = {}): ICommitmentRepository {
   return {
-    getAll: jest.fn().mockResolvedValue([commitment()]),
     getById: jest.fn().mockResolvedValue(commitment()),
     add: jest.fn().mockResolvedValue(undefined),
     update: jest.fn().mockResolvedValue(undefined),
     deactivate: jest.fn().mockResolvedValue(undefined),
-    getPaymentsForMonth: jest.fn().mockResolvedValue([payment()]),
     getPaymentsByCommitment: jest.fn().mockResolvedValue([payment()]),
     getPaymentById: jest.fn().mockResolvedValue(payment()),
-    getPaidCount: jest.fn().mockResolvedValue(0),
-    getExistingDueDates: jest.fn().mockResolvedValue([]),
-    insertPayments: jest.fn().mockResolvedValue(undefined),
     markAsPaid: jest.fn().mockResolvedValue(markAsPaidResult()),
     markAsSkipped: jest.fn().mockResolvedValue(undefined),
     undoSkip: jest.fn().mockResolvedValue(undefined),
@@ -150,7 +145,6 @@ describe('commitment store snapshot ownership', () => {
       commitmentsLoaded: false,
       paymentsLoaded: false,
       loadedMonth: undefined,
-      loading: false,
       loadError: false,
       generation: 0,
       transitioningPaymentIds: [],
@@ -184,7 +178,6 @@ describe('commitment store snapshot ownership', () => {
       commitmentsLoaded: true,
       paymentsLoaded: true,
       loadedMonth: MAY,
-      loading: false,
       loadError: false,
     });
   });
@@ -243,7 +236,6 @@ describe('commitment store snapshot ownership', () => {
       loadedMonth: MAY,
       commitmentsLoaded: true,
       paymentsLoaded: true,
-      loading: false,
       loadError: true,
     });
   });
@@ -275,7 +267,7 @@ describe('commitment store snapshot ownership', () => {
 });
 
 describe('commitment store housekeeping ownership', () => {
-  it('keys success by UTC date and generation and skips repeat work', async () => {
+  it('keys success by local date and generation and skips repeat work', async () => {
     const repository = makeRepository();
     const store = createCommitmentStore(repository);
 
@@ -286,7 +278,7 @@ describe('commitment store housekeeping ownership', () => {
     expect(repository.runHousekeeping).toHaveBeenCalledWith(DAY_ONE);
   });
 
-  it('shares concurrent housekeeping for the same UTC date and generation', async () => {
+  it('shares concurrent housekeeping for the same local date and generation', async () => {
     const request = deferred<void>();
     const repository = makeRepository({
       runHousekeeping: jest.fn().mockReturnValue(request.promise),
@@ -300,12 +292,27 @@ describe('commitment store housekeeping ownership', () => {
     await Promise.all([first, second]);
   });
 
-  it('reruns on UTC day rollover', async () => {
+  it('reruns on local day rollover', async () => {
     const repository = makeRepository();
     const store = createCommitmentStore(repository);
 
     await store.getState().ensureHousekeepingCurrent(DAY_ONE);
     await store.getState().ensureHousekeepingCurrent(DAY_TWO);
+
+    expect(repository.runHousekeeping).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([
+    ['2026-05-08 to 05-09', new Date(2026, 4, 8, 23, 30), new Date(2026, 4, 9, 0, 30)],
+    ['2026-05-31 to 06-01', new Date(2026, 4, 31, 23, 30), new Date(2026, 5, 1, 0, 30)],
+    ['2028-02-28 to 02-29', new Date(2028, 1, 28, 23, 30), new Date(2028, 1, 29, 0, 30)],
+  ])('reruns on the local day change %s while the UTC date holds', async (_turn, first, second) => {
+    jest.spyOn(second, 'toISOString').mockReturnValue(first.toISOString());
+    const repository = makeRepository();
+    const store = createCommitmentStore(repository);
+
+    await store.getState().ensureHousekeepingCurrent(first);
+    await store.getState().ensureHousekeepingCurrent(second);
 
     expect(repository.runHousekeeping).toHaveBeenCalledTimes(2);
   });
@@ -427,7 +434,6 @@ describe('commitment store mutation invalidation', () => {
     expect(repository.add).toHaveBeenCalledTimes(1);
     expect(store.getState()).toMatchObject({
       generation: 1,
-      loading: false,
       loadError: true,
     });
     expect(consoleSpy).toHaveBeenCalledWith('[commitmentStore] revalidation failed:', refreshError);
@@ -801,31 +807,7 @@ describe('commitment store transaction write announcement', () => {
   });
 });
 
-describe('commitment store selectors', () => {
-  async function loadedStore(payments: CommitmentMonthPayment[], commitments = [commitment()]) {
-    const repository = makeRepository({
-      getMonthSnapshot: jest.fn().mockResolvedValue(snapshot(MAY, commitments, payments)),
-    });
-    const store = createCommitmentStore(repository);
-    await store.getState().loadMonthSnapshot(MAY, MAY_8_LOCAL);
-    return store;
-  }
-
-  it('reads the five states from the dates against today', async () => {
-    const overdue = payment({ id: 'overdue', due_date: '2026-05-07' });
-    const due = payment({ id: 'due', due_date: MAY_8 });
-    const upcoming = payment({ id: 'upcoming', due_date: '2026-05-09' });
-    const paid = payment({ id: 'paid', due_date: '2026-05-01', paid_date: '2026-05-02' });
-    const skipped = payment({ id: 'skipped', due_date: '2026-05-03', skipped_date: '2026-05-04' });
-    const store = await loadedStore([overdue, due, upcoming, paid, skipped]);
-
-    expect(store.getState().getOverdue()).toEqual([overdue]);
-    expect(store.getState().getDueToday()).toEqual([due]);
-    expect(store.getState().getUpcoming()).toEqual([upcoming]);
-    expect(store.getState().getPaid()).toEqual([paid]);
-    expect(store.getState().getSkipped()).toEqual([skipped]);
-  });
-
+describe('commitment store shape', () => {
   it('does not expose counts or totals folded over loaded rows', () => {
     const state = createCommitmentStore(makeRepository()).getState();
 
@@ -1199,5 +1181,330 @@ describe('commitment store month aggregate', () => {
     await load;
 
     expect(store.getState().monthAggregate).toBeUndefined();
+  });
+});
+
+describe('commitment store focus gate', () => {
+  type Store = ReturnType<typeof createCommitmentStore>;
+
+  const MORNING = new Date(2026, 4, 8, 8);
+  const EVENING = new Date(2026, 4, 8, 23, 59);
+  const aggregate = makeTestMonthAggregate({ due: makeTestHeldBucket({ egp: 250, count: 1 }) });
+
+  let consoleSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    jest.useRealTimers();
+    consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleSpy.mockRestore();
+  });
+
+  function flushTasks() {
+    return new Promise((resolve) => setTimeout(resolve, 0));
+  }
+
+  function gateRepository() {
+    const reads = { failing: false };
+    const read = <T>(value: T) =>
+      reads.failing ? Promise.reject(new Error('read failed')) : Promise.resolve(value);
+    const repository = makeRepository({
+      getMonthSnapshot: jest.fn(() => read(snapshot())),
+      getMonthAggregate: jest.fn(() => read(aggregate)),
+    });
+    return { repository, reads };
+  }
+
+  function clearReads(repository: ICommitmentRepository) {
+    jest.mocked(repository.runHousekeeping).mockClear();
+    jest.mocked(repository.getMonthSnapshot).mockClear();
+    jest.mocked(repository.getMonthAggregate).mockClear();
+  }
+
+  async function landedStore(now = MORNING) {
+    const { repository, reads } = gateRepository();
+    const store = createCommitmentStore(repository, jest.fn());
+    store.setState({ selectedMonth: MAY });
+    await store.getState().loadMonthSnapshot(MAY, now);
+    await store.getState().loadMonthAggregate(MAY, undefined, now);
+    clearReads(repository);
+    return { store, repository, reads };
+  }
+
+  function ensureBoth(store: Store, now: Date) {
+    return Promise.all([
+      store.getState().ensureMonthSnapshot(MAY, now),
+      store.getState().ensureMonthAggregate(MAY, undefined, now),
+    ]);
+  }
+
+  it('reads nothing and publishes nothing on the same local day and month after a landing', async () => {
+    const { store, repository } = await landedStore(MORNING);
+    const published = jest.fn();
+    const unsubscribe = store.subscribe(published);
+
+    await ensureBoth(store, EVENING);
+    unsubscribe();
+
+    expect(repository.runHousekeeping).not.toHaveBeenCalled();
+    expect(repository.getMonthSnapshot).not.toHaveBeenCalled();
+    expect(repository.getMonthAggregate).not.toHaveBeenCalled();
+    expect(published).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    {
+      turn: '05-08 to 05-09',
+      before: new Date(2026, 4, 8, 23, 30),
+      after: new Date(2026, 4, 9, 0, 30),
+      today: '2026-05-09',
+    },
+    {
+      turn: '05-31 to 06-01',
+      before: new Date(2026, 4, 31, 23, 30),
+      after: new Date(2026, 5, 1, 0, 30),
+      today: '2026-06-01',
+    },
+    {
+      turn: '2028-02-28 to 02-29',
+      before: new Date(2028, 1, 28, 23, 30),
+      after: new Date(2028, 1, 29, 0, 30),
+      today: '2028-02-29',
+    },
+    {
+      turn: '2028-02-29 to 03-01',
+      before: new Date(2028, 1, 29, 23, 30),
+      after: new Date(2028, 2, 1, 0, 30),
+      today: '2028-03-01',
+    },
+  ])('reopens both at the local day change $turn', async ({ before, after, today }) => {
+    const { store, repository } = await landedStore(before);
+
+    await ensureBoth(store, after);
+
+    expect(repository.getMonthSnapshot).toHaveBeenCalledTimes(1);
+    expect(repository.getMonthSnapshot).toHaveBeenCalledWith(MAY, today);
+    expect(repository.getMonthAggregate).toHaveBeenCalledTimes(1);
+    expect(repository.getMonthAggregate).toHaveBeenCalledWith(MAY, today, undefined);
+  });
+
+  const writes: [string, (store: Store) => Promise<void>][] = [
+    ['Add', (store) => store.getState().addCommitment(newInput)],
+    ['Edit', (store) => store.getState().updateCommitment('commitment', updateInput)],
+    ['Stop', (store) => store.getState().deactivateCommitment('commitment')],
+    ['Pay', (store) => store.getState().markAsPaid('payment', paymentDetails)],
+    ['Skip', (store) => store.getState().skipPayment('payment', MORNING)],
+    ['Undo', (store) => store.getState().undoSkip('payment', MORNING)],
+    ['announceExternalWrite', async (store) => store.getState().announceExternalWrite()],
+  ];
+
+  it.each(writes)(
+    '%s with no later landing reopens both, and a read after it closes them',
+    async (_name, write) => {
+      const { store, repository, reads } = await landedStore();
+
+      reads.failing = true;
+      await write(store).catch(() => undefined);
+      await flushTasks();
+      reads.failing = false;
+      clearReads(repository);
+
+      await ensureBoth(store, EVENING);
+
+      expect(repository.getMonthSnapshot).toHaveBeenCalledTimes(1);
+      expect(repository.getMonthAggregate).toHaveBeenCalledTimes(1);
+
+      clearReads(repository);
+      await ensureBoth(store, EVENING);
+
+      expect(repository.getMonthSnapshot).not.toHaveBeenCalled();
+      expect(repository.getMonthAggregate).not.toHaveBeenCalled();
+    },
+  );
+
+  it('drops a read in flight at announceExternalWrite, and the next ensure re-queries', async () => {
+    const heldRows = deferred<CommitmentMonthSnapshot>();
+    const heldFigures = deferred<CommitmentMonthAggregate>();
+    const { repository } = gateRepository();
+    jest.mocked(repository.getMonthSnapshot).mockReturnValueOnce(heldRows.promise);
+    jest.mocked(repository.getMonthAggregate).mockReturnValueOnce(heldFigures.promise);
+    const store = createCommitmentStore(repository, jest.fn());
+
+    const inFlight = ensureBoth(store, MORNING);
+    await flushTasks();
+    expect(repository.getMonthSnapshot).toHaveBeenCalledTimes(1);
+    expect(repository.getMonthAggregate).toHaveBeenCalledTimes(1);
+
+    store.getState().announceExternalWrite();
+    const published = jest.fn();
+    const unsubscribe = store.subscribe(published);
+    heldRows.resolve(snapshot());
+    heldFigures.resolve(aggregate);
+    await inFlight;
+    unsubscribe();
+
+    expect(published).not.toHaveBeenCalled();
+    expect(store.getState().loadedMonth).toBeUndefined();
+    clearReads(repository);
+
+    await ensureBoth(store, MORNING);
+
+    expect(repository.getMonthSnapshot).toHaveBeenCalledTimes(1);
+    expect(repository.getMonthAggregate).toHaveBeenCalledTimes(1);
+  });
+
+  it('shares one repository call and one publication with an ensure during a read', async () => {
+    const heldRows = deferred<CommitmentMonthSnapshot>();
+    const heldFigures = deferred<CommitmentMonthAggregate>();
+    const { repository } = gateRepository();
+    jest.mocked(repository.getMonthSnapshot).mockReturnValueOnce(heldRows.promise);
+    jest.mocked(repository.getMonthAggregate).mockReturnValueOnce(heldFigures.promise);
+    const store = createCommitmentStore(repository, jest.fn());
+    const published = jest.fn();
+    const unsubscribe = store.subscribe(published);
+
+    const first = ensureBoth(store, MORNING);
+    await flushTasks();
+    const second = ensureBoth(store, MORNING);
+    await flushTasks();
+    heldRows.resolve(snapshot());
+    heldFigures.resolve(aggregate);
+    await Promise.all([first, second]);
+    unsubscribe();
+
+    expect(repository.getMonthSnapshot).toHaveBeenCalledTimes(1);
+    expect(repository.getMonthAggregate).toHaveBeenCalledTimes(1);
+    // One for the rows and one for the figures.
+    expect(published).toHaveBeenCalledTimes(2);
+  });
+
+  it('re-queries at the next ensure after a failed forced snapshot read', async () => {
+    const { store, repository, reads } = await landedStore();
+    reads.failing = true;
+    await expect(store.getState().loadMonthSnapshot(MAY, MORNING)).rejects.toThrow('read failed');
+    reads.failing = false;
+    clearReads(repository);
+
+    await store.getState().ensureMonthSnapshot(MAY, MORNING);
+
+    expect(repository.getMonthSnapshot).toHaveBeenCalledTimes(1);
+  });
+
+  it('re-queries at the next ensure after a failed aggregate', async () => {
+    const { store, repository, reads } = await landedStore();
+    reads.failing = true;
+    await store.getState().loadMonthAggregate(MAY, undefined, MORNING);
+    reads.failing = false;
+    clearReads(repository);
+
+    await store.getState().ensureMonthAggregate(MAY, undefined, MORNING);
+
+    expect(repository.getMonthAggregate).toHaveBeenCalledTimes(1);
+  });
+
+  it('ensureMonthSnapshot rejects on a failed read and ensureMonthAggregate never does', async () => {
+    const { repository, reads } = gateRepository();
+    reads.failing = true;
+    const store = createCommitmentStore(repository, jest.fn());
+
+    await expect(store.getState().ensureMonthSnapshot(MAY, MORNING)).rejects.toThrow('read failed');
+    await expect(
+      store.getState().ensureMonthAggregate(MAY, undefined, MORNING),
+    ).resolves.toBeUndefined();
+  });
+
+  it('reads a month the store does not hold', async () => {
+    const { store, repository } = await landedStore();
+
+    await store.getState().ensureMonthSnapshot('2026-06', MORNING);
+
+    expect(repository.getMonthSnapshot).toHaveBeenCalledWith('2026-06', MAY_8);
+  });
+
+  it('reads a chip the store does not hold, and a chip back during that read ends on the held key', async () => {
+    const { store, repository } = await landedStore();
+    const chipRead = deferred<CommitmentMonthAggregate>();
+    const backAgain = makeTestMonthAggregate({ paid: { egp: 1500, count: 1 } });
+    jest
+      .mocked(repository.getMonthAggregate)
+      .mockImplementation((_month, _today, accountId) =>
+        accountId === 'account' ? chipRead.promise : Promise.resolve(backAgain),
+      );
+
+    const chip = store.getState().ensureMonthAggregate(MAY, 'account', MORNING);
+    await flushTasks();
+    expect(repository.getMonthAggregate).toHaveBeenCalledWith(MAY, MAY_8, 'account');
+
+    await store.getState().ensureMonthAggregate(MAY, undefined, MORNING);
+    chipRead.resolve(aggregate);
+    await chip;
+
+    expect(repository.getMonthAggregate).toHaveBeenCalledWith(MAY, MAY_8, undefined);
+    expect(store.getState().monthAggregate).toEqual({
+      key: monthAggregateKey(MAY, undefined),
+      aggregate: backAgain,
+    });
+  });
+
+  it('publishes a read after a landing once, when it settles', async () => {
+    const { store, repository } = await landedStore();
+    const read = deferred<CommitmentMonthSnapshot>();
+    jest.mocked(repository.getMonthSnapshot).mockReturnValueOnce(read.promise);
+    const published = jest.fn();
+    const unsubscribe = store.subscribe(published);
+
+    const load = store.getState().loadMonthSnapshot(MAY, MORNING);
+    await flushTasks();
+    expect(published).not.toHaveBeenCalled();
+
+    read.resolve(snapshot());
+    await load;
+    unsubscribe();
+
+    expect(published).toHaveBeenCalledTimes(1);
+  });
+
+  it('publishes a failed read after a landing once, when it settles', async () => {
+    const { store, repository } = await landedStore();
+    const read = deferred<CommitmentMonthSnapshot>();
+    jest.mocked(repository.getMonthSnapshot).mockReturnValueOnce(read.promise);
+    const published = jest.fn();
+    const unsubscribe = store.subscribe(published);
+
+    const load = store.getState().loadMonthSnapshot(MAY, MORNING);
+    await flushTasks();
+    expect(published).not.toHaveBeenCalled();
+
+    read.reject(new Error('read failed'));
+    await expect(load).rejects.toThrow('read failed');
+    unsubscribe();
+
+    expect(published).toHaveBeenCalledTimes(1);
+    expect(store.getState().loadError).toBe(true);
+  });
+
+  it('publishes loadError false before the repository resolves a read after a failure', async () => {
+    const { store, repository, reads } = await landedStore();
+    reads.failing = true;
+    await expect(store.getState().loadMonthSnapshot(MAY, MORNING)).rejects.toThrow('read failed');
+    reads.failing = false;
+    const read = deferred<CommitmentMonthSnapshot>();
+    jest.mocked(repository.getMonthSnapshot).mockReturnValueOnce(read.promise);
+    const published = jest.fn();
+    const unsubscribe = store.subscribe(published);
+
+    const load = store.getState().loadMonthSnapshot(MAY, MORNING);
+    await flushTasks();
+
+    expect(published).toHaveBeenCalledTimes(1);
+    expect(published.mock.calls[0][0]).toMatchObject({ loadError: false });
+
+    read.resolve(snapshot());
+    await load;
+    unsubscribe();
+
+    expect(published).toHaveBeenCalledTimes(2);
   });
 });

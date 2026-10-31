@@ -19,6 +19,7 @@ import {
   stackedTransactionDetailRoute,
 } from '@/modules/navigation/domain/stacked_route';
 import { toLocalDateString } from '@/utils/format_date';
+import { useLocalDayChange } from '@/utils/use_local_day_change.hook';
 
 import { countSettledPayments, resolveCommitmentLifecycle } from '../../../domain/payment_state';
 import { commitmentRepository } from '../../../repositories/commitment.repository';
@@ -291,6 +292,7 @@ export function useCommitmentDetail() {
   }, [owner, setSkipConfirmVisible]);
 
   const reload = useCallback(() => bumpReload(owner), [bumpReload, owner]);
+  useLocalDayChange(reload);
 
   const goToEdit = useCallback(() => {
     if (!commitment) return;

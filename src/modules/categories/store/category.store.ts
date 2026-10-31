@@ -8,6 +8,7 @@ import {
   type NewCategoryInput,
   type UpdateCategoryInput,
 } from '@/modules/categories/repositories/category.repository';
+import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
@@ -29,6 +30,7 @@ export function createCategoryStore(
   repo: ICategoryRepository,
   announceTransactionWrite: () => void = () =>
     useTransactionStore.getState().announceExternalWrite(),
+  announceCommitmentWrite: () => void = () => useCommitmentStore.getState().announceExternalWrite(),
 ) {
   let requestGeneration = 0;
   let lifecycleGeneration = 0;
@@ -97,6 +99,7 @@ export function createCategoryStore(
           mutateAndReload(async () => {
             await repo.reassignAndDelete(fromId, toId);
             announceTransactionWrite();
+            announceCommitmentWrite();
           }, 'reassignAndDelete'),
 
         getCategoryTransactionCount: (id) => repo.getTransactionCount(id),

@@ -6,6 +6,7 @@ import {
   EMPTY_ACCOUNTS,
 } from '@/modules/accounts/store/account.store';
 import { readAccountsById } from '@/modules/accounts/store/account_lookup.helpers';
+import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import type {
   IAccountRepository,
   NewAccountInput,
@@ -860,8 +861,58 @@ describe('accountStore.reorderAccounts', () => {
   });
 });
 
+function itAnnouncesTheCommitmentWrite(
+  write: (store: ReturnType<typeof createAccountStore>) => Promise<void>,
+) {
+  it('announces the commitment write once, before the reload', async () => {
+    const announce = jest.fn();
+    const repo = makeRepo();
+
+    await write(createAccountStore(repo, announce));
+
+    expect(announce).toHaveBeenCalledTimes(1);
+    expect(announce.mock.invocationCallOrder[0]).toBeLessThan(
+      jest.mocked(repo.getAll).mock.invocationCallOrder[0],
+    );
+  });
+
+  it('announces nothing for a rejected write, and once for the write that lands', async () => {
+    const failure = new Error('delete failed');
+    const announce = jest.fn();
+    const repo = makeRepo({
+      delete: jest.fn().mockRejectedValueOnce(failure).mockResolvedValue(undefined),
+    });
+    const store = createAccountStore(repo, announce);
+
+    await expect(write(store)).rejects.toBe(failure);
+    expect(announce).not.toHaveBeenCalled();
+
+    await write(store);
+    expect(announce).toHaveBeenCalledTimes(1);
+  });
+
+  it('announces once when only the reload after the write fails', async () => {
+    const announce = jest.fn();
+    const repo = makeRepo({ getAll: jest.fn().mockRejectedValue(new Error('reload failed')) });
+
+    await expect(write(createAccountStore(repo, announce))).resolves.toBeUndefined();
+
+    expect(announce).toHaveBeenCalledTimes(1);
+  });
+
+  it('raises the commitment store generation by default', async () => {
+    const before = useCommitmentStore.getState().generation;
+
+    await write(createAccountStore(makeRepo()));
+
+    expect(useCommitmentStore.getState().generation).toBe(before + 1);
+  });
+}
+
 describe('accountStore.deleteAccount', () => {
   const deletedRow: Account = { ...mockAccount, is_archived: 1, is_deleted: 1, name: '' };
+
+  itAnnouncesTheCommitmentWrite((store) => store.getState().deleteAccount('test-id'));
 
   it('delegates to repo.delete with the account id', async () => {
     const repo = makeRepo();
@@ -1004,6 +1055,10 @@ describe('accountStore.deleteAccount', () => {
 
 describe('accountStore.deleteAccountMovingCommitments', () => {
   const deletedRow: Account = { ...mockAccount, is_archived: 1, is_deleted: 1, name: '' };
+
+  itAnnouncesTheCommitmentWrite((store) =>
+    store.getState().deleteAccountMovingCommitments('test-id', 'replacement-id'),
+  );
 
   it('delegates to repo.delete with the account id and the replacement id', async () => {
     const repo = makeRepo();

@@ -13,7 +13,6 @@ import {
   getPaymentsByCommitment,
   getPaymentsByMonth,
   getActiveCommitmentDueDates,
-  getPaidCountByCommitment,
   getSettledCountByCommitment,
   insertPaymentRows,
   markCommitmentAsPaid,
@@ -605,65 +604,6 @@ describe('deleteUnpaidPaymentsByCommitment', () => {
     }[];
 
     expect(remaining.map((r) => r.id)).toEqual(['pay-del-paid', 'pay-del-skipped']);
-  });
-});
-
-describe('getPaidCountByCommitment', () => {
-  it('counts paid payments correctly', async () => {
-    const payments = [
-      makePayment({
-        id: 'pay-count-1',
-        due_date: '2026-03-01',
-        paid_date: '2026-03-01',
-        amount_paid: 200,
-      }),
-      makePayment({
-        id: 'pay-count-2',
-        due_date: '2026-04-01',
-        paid_date: '2026-04-01',
-        amount_paid: 200,
-      }),
-      makePayment({
-        id: 'pay-count-3',
-        due_date: '2026-05-01',
-      }),
-      makePayment({
-        id: 'pay-count-4',
-        commitment_id: 'commitment2',
-        due_date: '2026-03-01',
-        paid_date: '2026-03-01',
-        amount_paid: 150,
-      }),
-    ];
-    await addPayments(mockDb, payments);
-
-    const count = await getPaidCountByCommitment(mockDb, 'commitment1');
-    expect(count).toBe(2);
-  });
-
-  it('returns 0 when there are no paid payments', async () => {
-    const count = await getPaidCountByCommitment(mockDb, 'commitment1');
-    expect(count).toBe(0);
-  });
-});
-
-describe('getPaidCountByCommitment — null row fallback', () => {
-  it('returns 0 when the result rows have no count (handles ??0 path)', async () => {
-    // With no payments the COUNT query still returns a row with count 0, so `??` also yields 0.
-    const count = await getPaidCountByCommitment(mockDb, 'commitment-no-payments');
-    expect(count).toBe(0);
-  });
-
-  it('returns 0 when getAllAsync returns an empty array (rows[0] is undefined → ??0)', async () => {
-    const mocked = (SQLite as unknown as { __fakeDb: { getAllAsync: jest.Mock } }).__fakeDb;
-
-    const original = mocked.getAllAsync.getMockImplementation();
-    mocked.getAllAsync.mockResolvedValueOnce([]);
-
-    const count = await getPaidCountByCommitment(mockDb, 'any-id');
-    expect(count).toBe(0);
-
-    if (original) mocked.getAllAsync.mockImplementation(original);
   });
 });
 

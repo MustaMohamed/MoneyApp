@@ -24,6 +24,7 @@ jest.mock('zustand/react/shallow', () => ({
 
 const mockPush = jest.fn();
 let mockCapturedFocusCallback: (() => void | (() => void)) | undefined;
+let mockOnDayChange: (() => void) | undefined;
 
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: mockPush }),
@@ -48,6 +49,12 @@ jest.mock('@/utils/run_after_interactions', () => ({
     mockScheduledTasks.push(task);
     return { cancel: task.cancel };
   }),
+}));
+
+jest.mock('@/utils/use_local_day_change.hook', () => ({
+  useLocalDayChange: (onDayChange: () => void) => {
+    mockOnDayChange = onDayChange;
+  },
 }));
 
 jest.mock('@/modules/dashboard/store/dashboard.store', () => ({
@@ -83,6 +90,7 @@ const ensureSnapshot = jest.fn<Promise<void>, [DashboardLoadInput]>();
 const refreshSnapshot = jest.fn<Promise<void>, [DashboardLoadInput]>();
 const retrySnapshot = jest.fn<Promise<void>, [DashboardLoadInput]>();
 const revalidateAfterMutation = jest.fn<Promise<void>, [DashboardLoadInput]>();
+const revalidateAtDayChange = jest.fn<Promise<void>, [DashboardLoadInput]>();
 const invalidate = jest.fn();
 const loadMonthSnapshot = jest.fn<Promise<void>, [string, Date?]>();
 const setBreakdownVisible = jest.fn();
@@ -187,6 +195,7 @@ let dashboardStoreState: {
   refresh: typeof refreshSnapshot;
   retry: typeof retrySnapshot;
   revalidateAfterMutation: typeof revalidateAfterMutation;
+  revalidateAtDayChange: typeof revalidateAtDayChange;
   invalidate: typeof invalidate;
   reset: jest.MockedFunction<() => void>;
 };
@@ -223,6 +232,7 @@ let commitmentStoreState: {
 beforeEach(() => {
   jest.useFakeTimers({ now: new Date('2026-07-23T10:00:00.000Z') });
   mockCapturedFocusCallback = undefined;
+  mockOnDayChange = undefined;
   mockScheduledTasks.length = 0;
   jest.clearAllMocks();
 
@@ -230,6 +240,7 @@ beforeEach(() => {
   refreshSnapshot.mockResolvedValue(undefined);
   retrySnapshot.mockResolvedValue(undefined);
   revalidateAfterMutation.mockResolvedValue(undefined);
+  revalidateAtDayChange.mockResolvedValue(undefined);
   loadMonthSnapshot.mockResolvedValue(undefined);
   dashboardStoreState = {
     snapshot: populatedSnapshot(),
@@ -240,6 +251,7 @@ beforeEach(() => {
     refresh: refreshSnapshot,
     retry: retrySnapshot,
     revalidateAfterMutation,
+    revalidateAtDayChange,
     invalidate,
     reset: jest.fn(),
   };
@@ -324,6 +336,19 @@ describe('useDashboard', () => {
       yearMonth: '2026-08',
       now: expect.any(Date),
     });
+  });
+
+  it('re-reads the current month at the day change, never through refresh', async () => {
+    await renderHook(() => useDashboard());
+    const newMonth = new Date(2026, 7, 1, 0, 0);
+    jest.setSystemTime(newMonth);
+
+    await act(async () => mockOnDayChange?.());
+
+    expect(revalidateAtDayChange).toHaveBeenCalledTimes(1);
+    expect(revalidateAtDayChange).toHaveBeenCalledWith({ yearMonth: '2026-08', now: newMonth });
+    expect(refreshSnapshot).not.toHaveBeenCalled();
+    expect(revalidateAfterMutation).not.toHaveBeenCalled();
   });
 
   it('supersedes and revalidates after a transaction mutation while Dashboard stays focused', async () => {

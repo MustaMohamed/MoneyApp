@@ -12,11 +12,9 @@ import { getDb, withExclusiveWriteTransactionAsync } from '@/database/client';
 import { getAccountByIdIncludingArchived } from '@/modules/accounts/database/accounts';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import {
-  addPayments,
   deleteUnpaidPaymentsByCommitment,
   getActiveCommitmentDueDates,
   getExistingDueDates,
-  getPaidCountByCommitment,
   insertPaymentRows,
   getPaymentById,
   getPaymentMonthAggregate,
@@ -73,9 +71,7 @@ beforeEach(() => {
   (getActiveCommitmentDueDates as jest.Mock).mockResolvedValue([]);
   (getPaymentsByCommitment as jest.Mock).mockResolvedValue([]);
   (getPaymentById as jest.Mock).mockResolvedValue(null);
-  (getPaidCountByCommitment as jest.Mock).mockResolvedValue(0);
   (getExistingDueDates as jest.Mock).mockResolvedValue([]);
-  (addPayments as jest.Mock).mockResolvedValue(undefined);
   (insertPaymentRows as jest.Mock).mockResolvedValue(undefined);
   (deleteUnpaidPaymentsByCommitment as jest.Mock).mockResolvedValue(undefined);
   (markCommitmentAsPaid as jest.Mock).mockResolvedValue('tx-linked');
@@ -139,24 +135,6 @@ const basePayment = makeTestPayment({
   amount_due: 250,
   created_at: '2026-01-01T00:00:00.000Z',
   updated_at: '2026-01-01T00:00:00.000Z',
-});
-
-describe('CommitmentRepository.getAll', () => {
-  it('calls getCommitments with db and returns result', async () => {
-    const expected = [baseCommitment];
-    (getCommitments as jest.Mock).mockResolvedValue(expected);
-
-    const result = await repo.getAll();
-
-    expect(getDb).toHaveBeenCalledTimes(1);
-    expect(getCommitments).toHaveBeenCalledWith(mockDb);
-    expect(result).toBe(expected);
-  });
-
-  it('returns empty array when no commitments exist', async () => {
-    const result = await repo.getAll();
-    expect(result).toEqual([]);
-  });
 });
 
 describe('CommitmentRepository.getById', () => {
@@ -286,18 +264,6 @@ describe('CommitmentRepository.deactivate', () => {
   });
 });
 
-describe('CommitmentRepository.getPaymentsForMonth', () => {
-  it('calls getPaymentsByMonth with db and yearMonth', async () => {
-    const expected = [basePayment];
-    (getPaymentsByMonth as jest.Mock).mockResolvedValue(expected);
-
-    const result = await repo.getPaymentsForMonth('2026-05', '2026-05-08');
-
-    expect(getPaymentsByMonth).toHaveBeenCalledWith(mockDb, '2026-05', '2026-05-01');
-    expect(result).toBe(expected);
-  });
-});
-
 describe('CommitmentRepository.getMonthAggregate', () => {
   const aggregate = { paid: { egp: 0, count: 0 } };
 
@@ -417,39 +383,6 @@ describe('CommitmentRepository.getPaymentById', () => {
   it('returns undefined when payment not found', async () => {
     const result = await repo.getPaymentById('nonexistent');
     expect(result).toBeUndefined();
-  });
-});
-
-describe('CommitmentRepository.getPaidCount', () => {
-  it('calls getPaidCountByCommitment with db and commitmentId', async () => {
-    (getPaidCountByCommitment as jest.Mock).mockResolvedValue(3);
-
-    const result = await repo.getPaidCount('c-1');
-
-    expect(getPaidCountByCommitment).toHaveBeenCalledWith(mockDb, 'c-1');
-    expect(result).toBe(3);
-  });
-});
-
-describe('CommitmentRepository.getExistingDueDates', () => {
-  it('calls getExistingDueDates with db and commitmentId', async () => {
-    const dates = ['2026-05-01', '2026-06-01'];
-    (getExistingDueDates as jest.Mock).mockResolvedValue(dates);
-
-    const result = await repo.getExistingDueDates('c-1');
-
-    expect(getExistingDueDates).toHaveBeenCalledWith(mockDb, 'c-1');
-    expect(result).toBe(dates);
-  });
-});
-
-describe('CommitmentRepository.insertPayments', () => {
-  it('calls addPayments with db and payments array', async () => {
-    const payments = [basePayment];
-
-    await repo.insertPayments(payments);
-
-    expect(addPayments).toHaveBeenCalledWith(mockDb, payments);
   });
 });
 

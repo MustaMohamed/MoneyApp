@@ -10,16 +10,15 @@ import { resolveCommitmentPaymentAmounts } from '@/modules/transactions/domain/t
 import { resolveCreateDeltas } from '@/modules/transactions/domain/transaction_policy';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { TransactionValidationError } from '@/modules/transactions/repositories/transaction.errors';
+import { toLocalDateString } from '@/utils/format_date';
 import { roundMoney } from '@/utils/money';
 
 import {
   type ActiveCommitmentDueDate,
-  addPayments,
   clearPaymentSkipped,
   deleteUnpaidPaymentsByCommitment,
   getActiveCommitmentDueDates,
   getExistingDueDates,
-  getPaidCountByCommitment,
   getPaymentById,
   getPaymentMonthAggregate,
   getPaymentsByCommitment,
@@ -100,19 +99,13 @@ export interface MarkAsPaidResult {
 }
 
 export interface ICommitmentRepository {
-  getAll(): Promise<Commitment[]>;
   getById(id: string): Promise<Commitment | undefined>;
   add(data: NewCommitmentInput): Promise<void>;
   update(id: string, data: UpdateCommitmentInput, now?: Date): Promise<void>;
   deactivate(id: string): Promise<void>;
 
-  getPaymentsForMonth(yearMonth: string, today: string): Promise<CommitmentMonthPayment[]>;
   getPaymentsByCommitment(commitmentId: string): Promise<CommitmentMonthPayment[]>;
   getPaymentById(id: string): Promise<CommitmentPayment | undefined>;
-  getPaidCount(commitmentId: string): Promise<number>;
-  getExistingDueDates(commitmentId: string): Promise<string[]>;
-
-  insertPayments(payments: CommitmentPayment[]): Promise<void>;
 
   markAsPaid(paymentId: string, details: PaymentDetails): Promise<MarkAsPaidResult>;
   markAsSkipped(paymentId: string, skippedDate: string, updatedAt: string): Promise<void>;
@@ -127,11 +120,6 @@ export interface ICommitmentRepository {
 }
 
 export class CommitmentRepository implements ICommitmentRepository {
-  async getAll(): Promise<Commitment[]> {
-    const db = await getDb();
-    return getCommitments(db);
-  }
-
   async getById(id: string): Promise<Commitment | undefined> {
     const db = await getDb();
     return (await getCommitmentById(db, id)) ?? undefined;
@@ -174,11 +162,6 @@ export class CommitmentRepository implements ICommitmentRepository {
     });
   }
 
-  async getPaymentsForMonth(yearMonth: string, today: string): Promise<CommitmentMonthPayment[]> {
-    const db = await getDb();
-    return getPaymentsByMonth(db, yearMonth, carriedDueBound(yearMonth, today));
-  }
-
   async getMonthAggregate(
     yearMonth: string,
     today: string,
@@ -204,7 +187,7 @@ export class CommitmentRepository implements ICommitmentRepository {
 
   async runHousekeeping(now: Date): Promise<void> {
     const timestamp = now.toISOString();
-    const asOfDate = timestamp.slice(0, 10);
+    const asOfDate = toLocalDateString(now);
     await withExclusiveWriteTransactionAsync(async (transactionDb) => {
       const commitments = await getCommitments(transactionDb);
       const dueDates = await getActiveCommitmentDueDates(transactionDb);
@@ -221,21 +204,6 @@ export class CommitmentRepository implements ICommitmentRepository {
   async getPaymentById(id: string): Promise<CommitmentPayment | undefined> {
     const db = await getDb();
     return (await getPaymentById(db, id)) ?? undefined;
-  }
-
-  async getPaidCount(commitmentId: string): Promise<number> {
-    const db = await getDb();
-    return getPaidCountByCommitment(db, commitmentId);
-  }
-
-  async getExistingDueDates(commitmentId: string): Promise<string[]> {
-    const db = await getDb();
-    return getExistingDueDates(db, commitmentId);
-  }
-
-  async insertPayments(payments: CommitmentPayment[]): Promise<void> {
-    const db = await getDb();
-    await addPayments(db, payments);
   }
 
   async markAsPaid(paymentId: string, details: PaymentDetails): Promise<MarkAsPaidResult> {

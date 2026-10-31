@@ -57,6 +57,7 @@ jest.mock('react', () => {
 });
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 const capturedFocusCallbacks: Array<() => void | (() => void)> = [];
+let mockOnDayChange: (() => void) | undefined;
 const mockInteractionTasks: Array<{ callback: () => void; cancel: jest.Mock }> = [];
 
 jest.mock('expo-router', () => ({
@@ -99,8 +100,16 @@ jest.mock('@/modules/commitments/screens/commitments/commitments.store', () => (
 
 const loadCommitmentRowsMock = jest.fn<Promise<void>, [string]>().mockResolvedValue(undefined);
 const resetCommitmentRowsMock = jest.fn();
+jest.mock('@/utils/use_local_day_change.hook', () => ({
+  useLocalDayChange: (onDayChange: () => void) => {
+    mockOnDayChange = onDayChange;
+  },
+}));
+
 const loadMonthSnapshotMock = jest.fn().mockResolvedValue(undefined);
 const loadMonthAggregateMock = jest.fn().mockResolvedValue(undefined);
+const ensureMonthSnapshotMock = jest.fn().mockResolvedValue(undefined);
+const ensureMonthAggregateMock = jest.fn().mockResolvedValue(undefined);
 const loadAccountLookupMock = jest.fn<Promise<void>, [string[]]>().mockResolvedValue(undefined);
 let currencyRate = 50;
 let currencyRateLoaded = true;
@@ -257,7 +266,6 @@ function setup({
   loadedMonth = selectedMonth,
   commitmentsLoaded = true,
   paymentsLoaded = true,
-  loading = false,
   loadError = false,
   withoutToday = false,
   monthAggregate = undefined,
@@ -280,7 +288,6 @@ function setup({
   loadedMonth?: string;
   commitmentsLoaded?: boolean;
   paymentsLoaded?: boolean;
-  loading?: boolean;
   loadError?: boolean;
   withoutToday?: boolean;
   monthAggregate?: { key: string; aggregate: CommitmentMonthAggregate };
@@ -301,7 +308,6 @@ function setup({
     commitmentsLoaded,
     paymentsLoaded,
     loadedMonth,
-    loading,
     loadError,
     today: withoutToday ? undefined : TODAY,
     setSelectedMonth: setSelectedMonthMock,
@@ -309,6 +315,8 @@ function setup({
     monthAggregate,
     monthAggregateErrorKey,
     loadMonthAggregate: loadMonthAggregateMock,
+    ensureMonthSnapshot: ensureMonthSnapshotMock,
+    ensureMonthAggregate: ensureMonthAggregateMock,
     skipPayment: jest.fn(),
     deactivateCommitment: jest.fn(),
   }));
@@ -348,6 +356,12 @@ const REFRESH_FAILURE = {
   loadError: true,
 };
 const FIRST_LOAD_FAILURE = { loadedMonth: '2026-04', loadError: true };
+
+beforeEach(() => {
+  mockOnDayChange = undefined;
+  ensureMonthSnapshotMock.mockReset().mockResolvedValue(undefined);
+  ensureMonthAggregateMock.mockReset().mockResolvedValue(undefined);
+});
 
 describe('useCommitments', () => {
   beforeEach(() => {
@@ -447,7 +461,7 @@ describe('useCommitments', () => {
     });
 
     expect(runAfterInteractions).toHaveBeenCalledTimes(1);
-    expect(loadMonthSnapshotMock).not.toHaveBeenCalled();
+    expect(ensureMonthSnapshotMock).not.toHaveBeenCalled();
 
     await act(() => {
       cleanup?.();
@@ -455,7 +469,7 @@ describe('useCommitments', () => {
     });
 
     expect(mockInteractionTasks[0]?.cancel).toHaveBeenCalledTimes(1);
-    expect(loadMonthSnapshotMock).not.toHaveBeenCalled();
+    expect(ensureMonthSnapshotMock).not.toHaveBeenCalled();
   });
 
   it('focus delegates all housekeeping and snapshot ownership to one selected-month load', async () => {
@@ -474,8 +488,9 @@ describe('useCommitments', () => {
       expect.any(Function),
       expect.objectContaining({ onError: expect.any(Function) }),
     );
-    expect(loadMonthSnapshotMock).toHaveBeenCalledTimes(1);
-    expect(loadMonthSnapshotMock).toHaveBeenCalledWith('2026-05');
+    expect(ensureMonthSnapshotMock).toHaveBeenCalledTimes(1);
+    expect(ensureMonthSnapshotMock).toHaveBeenCalledWith('2026-05');
+    expect(loadMonthSnapshotMock).not.toHaveBeenCalled();
   });
 
   it('pull-to-refresh reloads immediately without waiting for interactions', async () => {
@@ -972,9 +987,10 @@ describe('useCommitments', () => {
       runAggregateFocusLoad();
     });
 
-    expect(loadMonthAggregateMock).toHaveBeenCalledTimes(1);
-    expect(loadMonthAggregateMock).toHaveBeenCalledWith('2026-05', undefined);
-    expect(loadMonthSnapshotMock).not.toHaveBeenCalled();
+    expect(ensureMonthAggregateMock).toHaveBeenCalledTimes(1);
+    expect(ensureMonthAggregateMock).toHaveBeenCalledWith('2026-05', undefined);
+    expect(ensureMonthSnapshotMock).not.toHaveBeenCalled();
+    expect(loadMonthAggregateMock).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -988,7 +1004,7 @@ describe('useCommitments', () => {
       runAggregateFocusLoad();
     });
 
-    expect(loadMonthAggregateMock).toHaveBeenCalledWith('2026-05', expected);
+    expect(ensureMonthAggregateMock).toHaveBeenCalledWith('2026-05', expected);
   });
 
   it('leaves the aggregate load across every account under a status filter and a search', async () => {
@@ -999,7 +1015,7 @@ describe('useCommitments', () => {
       runAggregateFocusLoad();
     });
 
-    expect(loadMonthAggregateMock).toHaveBeenCalledWith('2026-05', undefined);
+    expect(ensureMonthAggregateMock).toHaveBeenCalledWith('2026-05', undefined);
   });
 
   it('keeps one applied account under a status filter, a search and a category', async () => {
@@ -1014,7 +1030,7 @@ describe('useCommitments', () => {
       runAggregateFocusLoad();
     });
 
-    expect(loadMonthAggregateMock).toHaveBeenCalledWith('2026-05', 'a');
+    expect(ensureMonthAggregateMock).toHaveBeenCalledWith('2026-05', 'a');
   });
 
   it('defers the aggregate focus load until interactions finish and cancels it on cleanup', async () => {
@@ -1025,7 +1041,7 @@ describe('useCommitments', () => {
       cleanup = aggregateFocusCallback()?.();
     });
 
-    expect(loadMonthAggregateMock).not.toHaveBeenCalled();
+    expect(ensureMonthAggregateMock).not.toHaveBeenCalled();
     const task = mockInteractionTasks.at(-1);
 
     await act(() => {
@@ -1034,7 +1050,7 @@ describe('useCommitments', () => {
     });
 
     expect(task?.cancel).toHaveBeenCalledTimes(1);
-    expect(loadMonthAggregateMock).not.toHaveBeenCalled();
+    expect(ensureMonthAggregateMock).not.toHaveBeenCalled();
   });
 
   it('the latest aggregate callback follows a month change', async () => {
@@ -1046,8 +1062,8 @@ describe('useCommitments', () => {
       runAggregateFocusLoad();
     });
 
-    expect(loadMonthAggregateMock).toHaveBeenCalledTimes(1);
-    expect(loadMonthAggregateMock).toHaveBeenCalledWith('2026-06', undefined);
+    expect(ensureMonthAggregateMock).toHaveBeenCalledTimes(1);
+    expect(ensureMonthAggregateMock).toHaveBeenCalledWith('2026-06', undefined);
   });
 
   it('the latest aggregate callback follows an account-scope change', async () => {
@@ -1059,8 +1075,46 @@ describe('useCommitments', () => {
       runAggregateFocusLoad();
     });
 
-    expect(loadMonthAggregateMock).toHaveBeenCalledTimes(1);
-    expect(loadMonthAggregateMock).toHaveBeenCalledWith('2026-05', 'a');
+    expect(ensureMonthAggregateMock).toHaveBeenCalledTimes(1);
+    expect(ensureMonthAggregateMock).toHaveBeenCalledWith('2026-05', 'a');
+  });
+
+  it('MA-274: the day change reads both through the gate for the month on screen, with no spinner', async () => {
+    setup({ appliedFilters: { ...EMPTY_COMMITMENT_FILTERS, accountIds: ['a'] } });
+    await renderHook(() => useCommitments());
+
+    await act(async () => {
+      mockOnDayChange?.();
+      await Promise.resolve();
+    });
+
+    expect(ensureMonthSnapshotMock).toHaveBeenCalledTimes(1);
+    expect(ensureMonthSnapshotMock).toHaveBeenCalledWith('2026-05');
+    expect(ensureMonthAggregateMock).toHaveBeenCalledTimes(1);
+    expect(ensureMonthAggregateMock).toHaveBeenCalledWith('2026-05', 'a');
+    expect(loadMonthSnapshotMock).not.toHaveBeenCalled();
+    expect(loadMonthAggregateMock).not.toHaveBeenCalled();
+    expect(setRefreshingMock).not.toHaveBeenCalled();
+  });
+
+  it('MA-274: a rejected ensureMonthSnapshot at the day change stays contained', async () => {
+    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+    ensureMonthSnapshotMock.mockRejectedValueOnce(new Error('read failed'));
+    await renderHook(() => useCommitments());
+
+    // An escaped rejection reaches jest-circus's unhandledRejection handler and fails this case.
+    await act(async () => {
+      mockOnDayChange?.();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect(ensureMonthSnapshotMock).toHaveBeenCalledTimes(1);
+    expect(setRefreshingMock).not.toHaveBeenCalled();
+    expect(consoleError).toHaveBeenCalledWith(
+      '[commitments] day change read failed:',
+      expect.any(Error),
+    );
+    consoleError.mockRestore();
   });
 
   it('pull-to-refresh reloads the aggregate beside the rows', async () => {
@@ -1110,15 +1164,6 @@ describe('useCommitments', () => {
 
     expect(result.current.state.sections).toEqual([]);
     expect(result.current.state.emptyVariant).toBe('none');
-  });
-
-  it('MA-214: keeps a loaded month on screen while it reloads', async () => {
-    setup({ commitments: [dueCommitment()], payments: [duePayment()], loading: true });
-
-    const { result } = await renderHook(() => useCommitments());
-
-    expect(result.current.state.presentation).toBe('content');
-    expect(result.current.state.sections[0]?.data[0]?.id).toBe('payment');
   });
 
   it('MA-214: retryLoad reads both once under the refresh flag on a refresh failure', async () => {
@@ -1587,7 +1632,7 @@ describe('useCommitments account chips, account prune and tally (MA-241)', () =>
       runAggregateFocusLoad();
     });
     expect(setAppliedFiltersMock).not.toHaveBeenCalled();
-    expect(loadMonthAggregateMock).toHaveBeenLastCalledWith('2026-05', 'account-archived');
+    expect(ensureMonthAggregateMock).toHaveBeenLastCalledWith('2026-05', 'account-archived');
     expect(hook.result.current.state.hero.title).toBe('Left to pay · Old Bank');
 
     setup({
@@ -1602,7 +1647,7 @@ describe('useCommitments account chips, account prune and tally (MA-241)', () =>
     });
 
     expect(setAppliedFiltersMock).toHaveBeenCalledWith({ ...archivedFilter, accountIds: [] });
-    expect(loadMonthAggregateMock).toHaveBeenLastCalledWith('2026-05', undefined);
+    expect(ensureMonthAggregateMock).toHaveBeenLastCalledWith('2026-05', undefined);
     expect(hook.result.current.state.hero.title).toBe('Left to pay');
     expect(hook.result.current.state.accountChips[0]).toMatchObject({
       accountId: undefined,
@@ -1955,7 +2000,7 @@ describe('useCommitments commitment dimension (MA-213)', () => {
     expect(hook.result.current.state.selectedMonth).toBe('2026-06');
     expect(hook.result.current.state.hero.monthLabel).toBe('June');
     expect(hook.result.current.state.hero.mode).toBe('figures');
-    expect(loadMonthAggregateMock).toHaveBeenLastCalledWith('2026-06', undefined);
+    expect(ensureMonthAggregateMock).toHaveBeenLastCalledWith('2026-06', undefined);
     expect(sectionIds(hook.result.current.state.sections)).toEqual(READ_SECTIONS);
   });
 

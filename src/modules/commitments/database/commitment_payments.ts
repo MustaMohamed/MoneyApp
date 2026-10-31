@@ -310,18 +310,6 @@ export async function updateUnpaidPaymentsAccount(
   return result.changes;
 }
 
-export async function getPaidCountByCommitment(
-  db: SQLiteDatabase,
-  commitmentId: string,
-): Promise<number> {
-  const rows = await db.getAllAsync<{ count: number }>(
-    `SELECT COUNT(*) AS count FROM commitment_payments
-     WHERE commitment_id = ? AND ${paidPaymentSql()}`,
-    [commitmentId],
-  );
-  return rows[0]?.count ?? 0;
-}
-
 export async function getSettledCountByCommitment(
   db: SQLiteDatabase,
   commitmentId: string,
