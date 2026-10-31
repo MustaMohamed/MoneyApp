@@ -48,7 +48,7 @@ The screen hook reads `rate` and `hasLoaded` from `useCurrencyStore` in one `use
 
 ## 5. Dashes and days left
 
-The dash is `Strings.commitmentsHeroUnavailable`, `—`.
+The dash is `Strings.listHeroUnavailable`, `—`.
 
 - In `'skeleton'` and `'dashes'`, every money figure, every count and the percent print the dash; `paidPct` and the carried segment are `undefined`.
 - In `'figures'`, the percent prints the dash when Committed is 0 in EGP; otherwise it is `wholePercent(Paid, Committed)` over the two EGP amounts (`docs/adr/2026-10-06-whole-percent-from-two-amounts.md` §3).

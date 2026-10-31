@@ -40,8 +40,6 @@ const UNREDESIGNED_OLD_VOICE_KEYS = [
   'categoriesSaveError',
   'categoriesReassignError',
   'commitmentsSkipError',
-  'commitmentsLoadError',
-  'commitmentsLoadRetry',
   'commitmentsSaveError',
   'commitmentsDeactivateError',
 ] as const satisfies readonly (keyof typeof Strings)[];

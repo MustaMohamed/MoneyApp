@@ -39,6 +39,7 @@ import {
   makeTestMonthAggregate,
   makeTestMonthPayment,
 } from '@/test_helpers/commitment';
+import { deferred } from '@/test_helpers/deferred';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
 const mockUseDeferredValue = jest.fn((value: unknown) => value);
@@ -164,6 +165,14 @@ function makePayment(
     updated_at: '2026-05-01T00:00:00.000Z',
     ...overrides,
   });
+}
+
+function dueCommitment(): Commitment {
+  return makeCommitment('commitment-payment');
+}
+
+function duePayment(): CommitmentMonthPayment {
+  return makePayment('payment', CommitmentPaymentStatus.Due);
 }
 
 function sectionIds(sections: { label: string; data: CommitmentMonthPayment[] }[]) {
@@ -311,6 +320,15 @@ function setup({
     setAppliedFilters: setAppliedFiltersMock,
   }));
 }
+
+type EmptyVariant = ReturnType<typeof useCommitments>['state']['emptyVariant'];
+
+const REFRESH_FAILURE = {
+  commitments: [dueCommitment()],
+  payments: [duePayment()],
+  loadError: true,
+};
+const FIRST_LOAD_FAILURE = { loadedMonth: '2026-04', loadError: true };
 
 describe('useCommitments', () => {
   beforeEach(() => {
@@ -483,10 +501,9 @@ describe('useCommitments', () => {
 
     const { result } = await renderHook(() => useCommitments());
 
-    expect(result.current.state.hasLoaded).toBe(false);
     expect(result.current.state.presentation).toBe('coldLoading');
     expect(result.current.state.sections).toEqual([]);
-    expect(result.current.state.hasCommitments).toBe(false);
+    expect(result.current.state.emptyVariant).toBe('none');
   });
 
   it.each([
@@ -499,7 +516,6 @@ describe('useCommitments', () => {
 
       const { result } = await renderHook(() => useCommitments());
 
-      expect(result.current.state.hasLoaded).toBe(false);
       expect(result.current.state.presentation).toBe('coldLoading');
     },
   );
@@ -528,7 +544,6 @@ describe('useCommitments', () => {
 
     const { result } = await renderHook(() => useCommitments());
 
-    expect(result.current.state.hasLoaded).toBe(true);
     expect(result.current.state.presentation).toBe('contentWithError');
     expect(result.current.state.sections[0]?.data[0]?.id).toBe('payment');
   });
@@ -543,7 +558,7 @@ describe('useCommitments', () => {
 
     const { result } = await renderHook(() => useCommitments());
 
-    expect(result.current.state.hasCommitments).toBe(true);
+    expect(result.current.state.emptyVariant).toBe('none');
     expect(result.current.state.commitmentsById.get(inactiveParent.id)).toBe(inactiveParent);
     expect(result.current.state.sections[0]?.data).toEqual([paidPayment]);
   });
@@ -617,7 +632,6 @@ describe('useCommitments', () => {
     const { result } = await renderHook(() => useCommitments());
 
     expect(result.current.state.activeFilterCount).toBe(2);
-    expect(result.current.state.hasListFilters).toBe(true);
     expect(
       result.current.state.sections.flatMap((section) => section.data.map((p) => p.id)),
     ).toEqual(['internet']);
@@ -678,6 +692,14 @@ describe('useCommitments', () => {
     await act(async () => result.current.navigateMonth('next'));
 
     expect(setSelectedMonthMock).toHaveBeenCalledWith('2027-01');
+  });
+
+  it('names the selected month in full for the empty month state', async () => {
+    setup({ selectedMonth: '2026-12' });
+
+    const { result } = await renderHook(() => useCommitments());
+
+    expect(result.current.state.emptyMonthName).toBe('December');
   });
 
   it('sorts each row into its section and counter by its dates against today', async () => {
@@ -919,7 +941,7 @@ describe('useCommitments', () => {
     const { result: withoutToday } = await renderHook(() => useCommitments());
 
     expect(withoutToday.current.state.today).toBeUndefined();
-    expect(withoutToday.current.state.hasLoaded).toBe(false);
+    expect(withoutToday.current.state.presentation).toBe('coldLoading');
     expect(withoutToday.current.state.sections).toEqual([]);
   });
 
@@ -1032,6 +1054,122 @@ describe('useCommitments', () => {
     expect(loadMonthSnapshotMock).toHaveBeenCalledWith('2026-05');
   });
 
+  it.each<[string, Parameters<typeof setup>[0], EmptyVariant]>([
+    ['no commitment and no row of the month', {}, 'noCommitments'],
+    ['a commitment with no row of the month', { commitments: [dueCommitment()] }, 'emptyMonth'],
+    [
+      'a search that matches none of the rows',
+      { commitments: [dueCommitment()], payments: [duePayment()], searchQuery: 'no such name' },
+      'noResults',
+    ],
+    [
+      'a status tab that matches none of the rows',
+      {
+        commitments: [dueCommitment()],
+        payments: [duePayment()],
+        statusFilter: CommitmentPaymentStatus.Paid,
+      },
+      'noResults',
+    ],
+    ['rows that show', { commitments: [dueCommitment()], payments: [duePayment()] }, 'none'],
+  ])('MA-214: reads the empty variant of %s', async (_label, input, emptyVariant) => {
+    setup(input);
+
+    const { result } = await renderHook(() => useCommitments());
+
+    expect(result.current.state.emptyVariant).toBe(emptyVariant);
+  });
+
+  it('MA-214: draws no empty state on the frame where the status tab lags behind All', async () => {
+    mockUseDeferredValue.mockImplementation((value) =>
+      value === 'all' ? CommitmentPaymentStatus.Paid : value,
+    );
+    setup({ commitments: [dueCommitment()], payments: [duePayment()] });
+
+    const { result } = await renderHook(() => useCommitments());
+
+    expect(result.current.state.sections).toEqual([]);
+    expect(result.current.state.emptyVariant).toBe('none');
+  });
+
+  it('MA-214: keeps a loaded month on screen while it reloads', async () => {
+    setup({ commitments: [dueCommitment()], payments: [duePayment()], loading: true });
+
+    const { result } = await renderHook(() => useCommitments());
+
+    expect(result.current.state.presentation).toBe('content');
+    expect(result.current.state.sections[0]?.data[0]?.id).toBe('payment');
+  });
+
+  it('MA-214: retryLoad reads both once under the refresh flag on a refresh failure', async () => {
+    setup(REFRESH_FAILURE);
+    const { result } = await renderHook(() => useCommitments());
+    expect(result.current.state.presentation).toBe('contentWithError');
+    const snapshot = deferred();
+    loadMonthSnapshotMock.mockReturnValueOnce(snapshot.promise);
+
+    let retry: Promise<void> = Promise.resolve();
+    await act(async () => {
+      retry = result.current.retryLoad();
+      await Promise.resolve();
+    });
+
+    expect(setRefreshingMock.mock.calls).toEqual([[true]]);
+
+    await act(async () => {
+      snapshot.resolve();
+      await retry;
+    });
+
+    expect(setRefreshingMock.mock.calls).toEqual([[true], [false]]);
+    expect(loadMonthSnapshotMock).toHaveBeenCalledTimes(1);
+    expect(loadMonthSnapshotMock).toHaveBeenCalledWith('2026-05');
+    expect(loadMonthAggregateMock).toHaveBeenCalledTimes(1);
+    expect(loadMonthAggregateMock).toHaveBeenCalledWith('2026-05', undefined);
+  });
+
+  it('MA-214: retryLoad reads both once and leaves the refresh flag alone on a first-load failure', async () => {
+    setup(FIRST_LOAD_FAILURE);
+    const { result } = await renderHook(() => useCommitments());
+    expect(result.current.state.presentation).toBe('coldError');
+
+    await act(async () => {
+      await result.current.retryLoad();
+    });
+
+    expect(setRefreshingMock).not.toHaveBeenCalled();
+    expect(loadMonthSnapshotMock).toHaveBeenCalledTimes(1);
+    expect(loadMonthSnapshotMock).toHaveBeenCalledWith('2026-05');
+    expect(loadMonthAggregateMock).toHaveBeenCalledTimes(1);
+    expect(loadMonthAggregateMock).toHaveBeenCalledWith('2026-05', undefined);
+  });
+
+  it.each([
+    ['snapshot', loadMonthSnapshotMock],
+    ['aggregate', loadMonthAggregateMock],
+  ])(
+    'MA-214: retryLoad resolves and lowers the flag on a rejected %s read',
+    async (_read, read) => {
+      read.mockRejectedValueOnce(new Error('read failed'));
+      setup(REFRESH_FAILURE);
+      const { result } = await renderHook(() => useCommitments());
+
+      await expect(result.current.retryLoad()).resolves.toBeUndefined();
+
+      expect(setRefreshingMock.mock.calls).toEqual([[true], [false]]);
+    },
+  );
+
+  it('MA-214: retryLoad resolves on a rejected snapshot read after a first-load failure', async () => {
+    loadMonthSnapshotMock.mockRejectedValueOnce(new Error('read failed'));
+    setup(FIRST_LOAD_FAILURE);
+    const { result } = await renderHook(() => useCommitments());
+
+    await expect(result.current.retryLoad()).resolves.toBeUndefined();
+
+    expect(setRefreshingMock).not.toHaveBeenCalled();
+  });
+
   it('shows figures for a slot held on the key on screen once the rate has loaded', async () => {
     setup({
       monthAggregate: {
@@ -1057,7 +1195,7 @@ describe('useCommitments', () => {
     const { result } = await renderHook(() => useCommitments());
 
     expect(result.current.state.hero.mode).toBe('skeleton');
-    expect(result.current.state.hero.committed.value).toBe(Strings.commitmentsHeroUnavailable);
+    expect(result.current.state.hero.committed.value).toBe(Strings.listHeroUnavailable);
   });
 
   it('prints dashes for an error on the key on screen while the rows still publish', async () => {
@@ -1069,7 +1207,7 @@ describe('useCommitments', () => {
     const { result } = await renderHook(() => useCommitments());
 
     expect(result.current.state.hero.mode).toBe('dashes');
-    expect(result.current.state.hero.committed.value).toBe(Strings.commitmentsHeroUnavailable);
+    expect(result.current.state.hero.committed.value).toBe(Strings.listHeroUnavailable);
     expect(result.current.state.presentation).toBe('content');
     expect(result.current.state.loadError).toBe(false);
     expect(result.current.state.sections[0]?.data[0]?.id).toBe('due');
@@ -1478,11 +1616,12 @@ describe('useCommitments account chips, account prune and tally (MA-241)', () =>
   it('counts no account on the filter button with one applied and one with two, while one still marks the list filtered', async () => {
     setup({
       accounts,
+      commitments: [makeCommitment('commitment-wallet')],
       appliedFilters: { ...EMPTY_COMMITMENT_FILTERS, accountIds: ['account-wallet'] },
     });
     const one = await renderHook(() => useCommitments());
     expect(one.result.current.state.activeFilterCount).toBe(0);
-    expect(one.result.current.state.hasListFilters).toBe(true);
+    expect(one.result.current.state.emptyVariant).toBe('noResults');
 
     setup({
       accounts,

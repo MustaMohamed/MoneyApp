@@ -1,4 +1,5 @@
 import type { LoadErrorAlertProps } from '@/components/ui/load_error_alert';
+import { TAB_FLOATING_ALERT_PROPS } from '@/components/ui/load_error_alert.geometry';
 import { Strings } from '@/constants/strings';
 
 // Not `TransactionLoadErrorVariant` in `../transactions.presentation.ts`, which picks the banner.
@@ -23,23 +24,16 @@ const INLINE_ALERT_PROPS = {
   flatRetry: true,
 } satisfies Partial<Extract<LoadErrorAlertProps, { mode: 'inline' }>>;
 
-const FLOATING_ALERT_PROPS = {
-  mode: 'floating',
-  floatingOffset: 'tabBar',
-  tinted: true,
-  flatRetry: true,
-} satisfies Partial<Extract<LoadErrorAlertProps, { mode: 'floating' }>>;
-
-type TransactionLoadErrorAlertProps = typeof INLINE_ALERT_PROPS | typeof FLOATING_ALERT_PROPS;
+type TransactionLoadErrorAlertProps = typeof INLINE_ALERT_PROPS | typeof TAB_FLOATING_ALERT_PROPS;
 
 const TRANSACTION_LOAD_ERROR_ALERT_PROPS: Record<
   TransactionLoadFailure,
   TransactionLoadErrorAlertProps | undefined
 > = {
   initial: undefined,
-  refresh: FLOATING_ALERT_PROPS,
-  totals: FLOATING_ALERT_PROPS,
-  accounts: FLOATING_ALERT_PROPS,
+  refresh: TAB_FLOATING_ALERT_PROPS,
+  totals: TAB_FLOATING_ALERT_PROPS,
+  accounts: TAB_FLOATING_ALERT_PROPS,
   pagination: INLINE_ALERT_PROPS,
 };
 

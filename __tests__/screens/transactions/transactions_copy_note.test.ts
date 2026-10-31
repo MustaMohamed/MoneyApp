@@ -12,8 +12,11 @@ describe('transactions Copy note strings', () => {
       Strings.transactionsHeroShareSpent(62),
       '62% of income spent',
     ],
-    ['transactionsHeroDaysLeft(1)', Strings.transactionsHeroDaysLeft(1), '1 day left'],
-    ['transactionsHeroDaysLeft(12)', Strings.transactionsHeroDaysLeft(12), '12 days left'],
+    ['listHeroDaysLeft(1)', Strings.listHeroDaysLeft(1), '1 day left'],
+    ['listHeroDaysLeft(12)', Strings.listHeroDaysLeft(12), '12 days left'],
+    ['listHeroCaptionSeparator', Strings.listHeroCaptionSeparator, ' · '],
+    ['listHeroUnavailable', Strings.listHeroUnavailable, '—'],
+    ['listHeroAmountUnavailableA11y(EGP)', Strings.listHeroAmountUnavailableA11y('EGP'), '— EGP'],
     ['searchTransactionsPlaceholder', Strings.searchTransactionsPlaceholder, 'Search transactions'],
     [
       'transactionsTallyResults(October)',

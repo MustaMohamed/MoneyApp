@@ -1063,15 +1063,11 @@ export const Strings = {
   commitmentsHeroTitle: 'Left to pay',
   commitmentsHeroTitleScoped: (account: string) => `Left to pay · ${account}`,
   commitmentsHeroCommitted: 'Committed',
-  commitmentsHeroUnavailable: '—',
   commitmentsHeroPercent: (pct: number) => `${pct}% paid`,
   commitmentsHeroPercentUnavailable: '— paid',
   commitmentsHeroCarriedOverdue: (count: number) => `${count} overdue`,
   // Leading space: it follows the danger segment on one line.
   commitmentsHeroCarried: ' carried',
-  commitmentsHeroCaptionSeparator: ' · ',
-  commitmentsHeroDays: (days: number) => (days === 1 ? '1 day left' : `${days} days left`),
-  commitmentsHeroAmountUnavailableA11y: (code: string) => `— ${code}`,
   commitmentsHeroCounterA11y: (status: string, count: number) =>
     count === 1 ? `${status}, 1 payment` : `${status}, ${count} payments`,
   commitmentsHeroCounterUnavailableA11y: (status: string) => `${status}, —`,
@@ -1157,7 +1153,6 @@ export const Strings = {
   commitmentsDetailLoadErrorDescription:
     'Something went wrong reading your data. Nothing was changed.',
   commitmentsDetailRefreshErrorTitle: "Couldn't refresh this commitment.",
-  commitmentsDetailLoadRetry: 'Try again',
   commitmentsMarkAsPaid: 'Pay',
   commitmentsSkip: 'Skip',
   commitmentsViewTransaction: 'View transaction',
@@ -1169,8 +1164,11 @@ export const Strings = {
   commitmentsSkipConfirmCancel: 'Cancel',
   commitmentsSkipConfirmConfirm: 'Skip Payment',
   commitmentsSkipError: 'Could not skip this payment. Please try again.',
-  commitmentsLoadError: 'Could not load commitments. Please try again.',
-  commitmentsLoadRetry: 'Retry',
+  commitmentsLoadError: "Couldn't load your commitments.",
+  commitmentsLoadErrorDescription:
+    'Something went wrong reading your data. Your commitments are still there.',
+  commitmentsRefreshError: "Couldn't refresh your commitments.",
+  commitmentsLoadRetry: 'Try again',
   commitmentsSaveError: 'Could not save this commitment. Please try again.',
 
   // Commitments: C5 Pay Sheet
@@ -1269,14 +1267,13 @@ export const Strings = {
     `Add a transaction dated in ${month}, or pick another month.`,
   emptyTransactionsMonthBackCta: 'Back to this month',
   emptyCommitmentsHeadline: 'No commitments yet',
-  emptyCommitmentsDescription: 'Track bills, subscriptions, and recurring payments here.',
-  emptyCommitmentsCta: 'Add Commitment',
+  emptyCommitmentsDescription: 'Track rent, subscriptions and loan payments in one place.',
+  emptyCommitmentsCta: 'Add commitment',
   emptyFilteredHeadline: 'No results',
   emptyFilteredDescription: 'Try adjusting your filters.',
   emptyFilteredClearCta: 'Clear Filters',
-  emptyCommitmentsMonthHeadline: 'Nothing this month',
-  emptyCommitmentsMonthDescription:
-    'No commitments scheduled for this month. Use the arrows above to browse other months.',
+  emptyCommitmentsMonthHeadline: (month: string) => `Nothing in ${month}`,
+  emptyCommitmentsMonthDescription: 'No payments fall in this month.',
 
   // §4 Settings root: row descriptions
   settingsCurrencyDescription: 'Set your default currency and exchange rate',
@@ -1340,13 +1337,16 @@ export const Strings = {
   transactionsHeroNet: 'Net',
   transactionsHeroLeftOfIncome: 'Left of income',
   transactionsHeroShareSpent: (pct: number) => `${pct}% of income spent`,
-  transactionsHeroDaysLeft: (days: number) => (days === 1 ? '1 day left' : `${days} days left`),
   transactionsHeroLastMonthOut: (month: string, amount: string) => `${month} ${amount}`,
   transactionsHeroSpentMore: (pct: string, month: string) => `Spent ${pct}% more than ${month}`,
   transactionsHeroSpentLess: (pct: string, month: string) => `Spent ${pct}% less than ${month}`,
   transactionsHeroSpentSame: (month: string) => `Spent the same as ${month}`,
-  transactionsHeroUnavailable: '—',
-  transactionsHeroOutUnavailableA11y: (code: string) => `— ${code}`,
+
+  // List hero: one string for both tabs' heroes
+  listHeroUnavailable: '—',
+  listHeroCaptionSeparator: ' · ',
+  listHeroDaysLeft: (days: number) => (days === 1 ? '1 day left' : `${days} days left`),
+  listHeroAmountUnavailableA11y: (code: string) => `— ${code}`,
 
   // §6 Transactions: Search tally
   transactionsTallyResults: (month: string) => `results in ${month}`,

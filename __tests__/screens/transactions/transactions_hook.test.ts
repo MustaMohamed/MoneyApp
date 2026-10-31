@@ -2000,7 +2000,7 @@ describe('useTransactions search tally', () => {
 describe('useTransactions day sections', () => {
   const DAY = TRANSACTION.transaction_date;
   const COFFEE_KEY = getTransactionQueryKey({ ...JULY_QUERY, search: 'coffee' });
-  const DASH = Strings.transactionsHeroUnavailable;
+  const DASH = Strings.listHeroUnavailable;
 
   function serveDay(netEgp: number, count: number): void {
     mockGetMonthAggregate.mockResolvedValue({
@@ -2097,7 +2097,7 @@ describe('useTransactions account scope change (MA-107)', () => {
   const WALLET = makeTestAccount({ id: 'acc-1', name: 'Wallet' });
   const BANK = makeTestAccount({ id: 'acc-2', name: 'Bank' });
   const DAY = TRANSACTION.transaction_date;
-  const DASH = Strings.transactionsHeroUnavailable;
+  const DASH = Strings.listHeroUnavailable;
   const WALLET_KEY = getTransactionQueryKey({ ...JULY_QUERY, accountIds: ['acc-1'] });
   const JULY = { incomeEgp: 22300, expenseEgp: 9400, netEgp: 12900 };
   const JUNE = { incomeEgp: 20000, expenseEgp: 16900, netEgp: 3100 };

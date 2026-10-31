@@ -50,8 +50,12 @@ export type EmptyStateProps =
       monthName: string;
       showsBackLink: boolean;
     })
+  | (EmptyStateCommonProps & { variant: 'commitmentsMonth'; monthName: string })
   | (EmptyStateCommonProps & {
-      variant: Exclude<EmptyStateVariant, 'accountsArchivedOnly' | 'transactionsMonth'>;
+      variant: Exclude<
+        EmptyStateVariant,
+        'accountsArchivedOnly' | 'transactionsMonth' | 'commitmentsMonth'
+      >;
     });
 
 type MCIName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -69,7 +73,7 @@ interface VariantConfig extends VariantFrame {
   clearLabel?: string;
 }
 
-type FixedCopyVariant = Exclude<EmptyStateVariant, 'transactionsMonth'>;
+type FixedCopyVariant = Exclude<EmptyStateVariant, 'transactionsMonth' | 'commitmentsMonth'>;
 
 const VARIANT_CONFIG: Record<FixedCopyVariant, VariantConfig> & {
   accountsArchivedOnly: { description: (n: number) => string };
@@ -100,12 +104,6 @@ const VARIANT_CONFIG: Record<FixedCopyVariant, VariantConfig> & {
     headline: Strings.emptyCommitmentsHeadline,
     description: Strings.emptyCommitmentsDescription,
     ctaLabel: Strings.emptyCommitmentsCta,
-    placement: 'centered',
-  },
-  commitmentsMonth: {
-    icon: 'calendar-blank-outline',
-    headline: Strings.emptyCommitmentsMonthHeadline,
-    description: Strings.emptyCommitmentsMonthDescription,
     placement: 'centered',
   },
   filtered: {
@@ -143,8 +141,8 @@ const VARIANT_CONFIG: Record<FixedCopyVariant, VariantConfig> & {
   },
 };
 
-// Frame A16's copy takes the month's name, so only its icon and placement are fixed.
-const TRANSACTIONS_MONTH_FRAME: VariantFrame = {
+// Frames A16 and A6 take the month's name in their copy, so only the icon and placement are fixed.
+const MONTH_FRAME: VariantFrame = {
   icon: 'calendar-blank-outline',
   placement: 'centered',
 };
@@ -163,6 +161,14 @@ export function resolveEmptyStateCopy(props: EmptyStateProps): EmptyStateCopy {
       description: Strings.emptyTransactionsMonthDescription(props.monthName),
       ctaLabel: undefined,
       clearLabel: props.showsBackLink ? Strings.emptyTransactionsMonthBackCta : undefined,
+    };
+  }
+  if (props.variant === 'commitmentsMonth') {
+    return {
+      headline: Strings.emptyCommitmentsMonthHeadline(props.monthName),
+      description: Strings.emptyCommitmentsMonthDescription,
+      ctaLabel: undefined,
+      clearLabel: undefined,
     };
   }
   const config = VARIANT_CONFIG[props.variant];
@@ -199,8 +205,8 @@ export function EmptyState(props: EmptyStateProps) {
   const clearLine = resolveOneLineTextProps(clearText);
   const { onAction, clearsFab } = props;
   const frame =
-    props.variant === 'transactionsMonth'
-      ? TRANSACTIONS_MONTH_FRAME
+    props.variant === 'transactionsMonth' || props.variant === 'commitmentsMonth'
+      ? MONTH_FRAME
       : VARIANT_CONFIG[props.variant];
   const copy = resolveEmptyStateCopy(props);
   const placement = resolveEmptyStatePlacement(props.placement, frame.placement);

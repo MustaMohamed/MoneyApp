@@ -6,6 +6,7 @@ import type { SectionListData, SectionListRenderItemInfo } from 'react-native';
 import { AccountChips } from '@/components/ui/account_chips';
 import { DayCardRow } from '@/components/ui/day_card_row';
 import { resolveDayCardSwipeCorners } from '@/components/ui/day_card_row.helpers';
+import { SKELETON_DAY_CARDS, SKELETON_ROWS_PER_CARD } from '@/components/ui/day_cards_skeleton';
 import { DayHeader } from '@/components/ui/day_header';
 import { EmptyState } from '@/components/ui/empty_state';
 import { LIST_RAIL_ALL_OPTION, ListRail } from '@/components/ui/list_rail';
@@ -57,8 +58,6 @@ const TRANSACTION_FILTERS: ReadonlyArray<SegmentFilterOption<TransactionFilter>>
 ];
 
 const LIST_BOTTOM_CLEARANCE = ms(160);
-const SKELETON_DAY_CARDS = 2;
-const SKELETON_ROWS_PER_DAY = 3;
 const SCROLL_POSITION_THROTTLE_MS = 100;
 
 export default function TransactionsScreen(): React.ReactElement {
@@ -165,7 +164,7 @@ export default function TransactionsScreen(): React.ReactElement {
   const listEmptyComponent = useMemo(
     () =>
       showRowsSkeleton ? (
-        <TransactionRowsSkeleton dayCards={SKELETON_DAY_CARDS} rows={SKELETON_ROWS_PER_DAY} />
+        <TransactionRowsSkeleton dayCards={SKELETON_DAY_CARDS} rows={SKELETON_ROWS_PER_CARD} />
       ) : state.showFirstLoadError ? (
         <TransactionLoadError variant="initial" onRetry={() => void retryFailedLoads()} />
       ) : state.emptyVariant === 'noData' ? (

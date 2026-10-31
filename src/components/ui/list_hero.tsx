@@ -152,6 +152,50 @@ function HeroSkeleton({
   );
 }
 
+export function ListHeroCaptionFitLine({
+  geometry,
+  children,
+}: {
+  geometry: ListHeroGeometry;
+  children: React.ReactNode;
+}): React.ReactElement {
+  return (
+    <Typography
+      allowFontScaling={false}
+      numberOfLines={1}
+      adjustsFontSizeToFit
+      minimumFontScale={0.75}
+      className="font-inter text-foreground/55"
+      style={{ flex: 1, fontSize: geometry.chip, lineHeight: lineHeightFor(geometry.chip) }}
+    >
+      {children}
+    </Typography>
+  );
+}
+
+export function ListHeroCaptionFixedLine({
+  geometry,
+  children,
+}: {
+  geometry: ListHeroGeometry;
+  children: React.ReactNode;
+}): React.ReactElement {
+  return (
+    <Typography
+      allowFontScaling={false}
+      numberOfLines={1}
+      className="font-inter text-foreground/55"
+      style={{
+        flexShrink: 0,
+        fontSize: geometry.chip,
+        lineHeight: lineHeightFor(geometry.chip),
+      }}
+    >
+      {children}
+    </Typography>
+  );
+}
+
 export function ListHero({
   model,
   renderCaption,
