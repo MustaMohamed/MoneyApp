@@ -8,8 +8,8 @@ import { AmountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/database/entities/account.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
-import { isRateStale } from '@/modules/currency/store/currency.helpers';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
+import { useRateStale } from '@/modules/currency/utils/use_rate_stale.hook';
 import {
   resolveAccountStripChips,
   resolveStripSelectedId,
@@ -184,6 +184,7 @@ export function usePaySheet(
   const requiresRate =
     commitment !== undefined &&
     requiresExchangeRate(commitment.currency, selectedAccount?.currency);
+  const rateStale = useRateStale(rateUpdatedAt, visible && requiresRate);
 
   // Every figure here comes from the resolver `markAsPaid` runs, so the preview cannot drift.
   const preview = useMemo(() => {
@@ -401,7 +402,7 @@ export function usePaySheet(
       noAccounts: hasLoaded && accounts.length === 0,
       exchangeRateValue,
       rateUpdatedAt,
-      rateStale: isRateStale(rateUpdatedAt, Date.now()),
+      rateStale,
       storedRate: rate,
       converted: convertedFor(exchangeRateValue ?? ''),
       amountText,

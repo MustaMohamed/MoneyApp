@@ -1,6 +1,6 @@
-import { fireEvent, render } from '@testing-library/react-native';
-import type { ReactNode } from 'react';
-import { Dimensions } from 'react-native';
+import { act, fireEvent, render } from '@testing-library/react-native';
+import { useEffect, type ReactNode } from 'react';
+import { Dimensions, Text, View } from 'react-native';
 
 import { MonthFilter } from '@/components/ui/month_filter';
 import {
@@ -16,6 +16,12 @@ import { HIT_SLOP_UNCLIPPED_STYLE, Size, touchFloorHitSlop } from '@/constants/t
 const ROW_HIT_SLOP = { top: 9, bottom: 5 };
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
+jest.mock('@gorhom/bottom-sheet', () => ({
+  BottomSheetFooter: ({ children }: { children: ReactNode }) => children,
+}));
+jest.mock('react-native-safe-area-context', () => ({
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
 jest.mock('@/components/ui/sheet', () => ({
   Sheet: ({ isOpen, title, children }: { isOpen: boolean; title: string; children: ReactNode }) => {
     const { Text, View } = jest.requireActual<typeof import('react-native')>('react-native');
@@ -171,5 +177,87 @@ describe('MonthFilter', () => {
         resolveMonthYearStepHitSlop(yearRowHeight, side),
       );
     }
+  });
+});
+
+describe('Sheet body mount (MA-273)', () => {
+  const heroui = jest.requireMock<{ BottomSheet: object }>('heroui-native');
+  const { Sheet } =
+    jest.requireActual<typeof import('@/components/ui/sheet')>('@/components/ui/sheet');
+  const setupBottomSheet = heroui.BottomSheet;
+  const bodyMounted = jest.fn();
+  let settleClose: (() => void) | undefined;
+
+  // The setup mock's root draws nothing closed, which would hide a body the shared sheet mounts.
+  const Root = ({ children }: { children: ReactNode }) => <>{children}</>;
+  const Content = ({
+    children,
+    onClose,
+    footerComponent,
+  }: {
+    children: ReactNode;
+    onClose: () => void;
+    footerComponent?: (props: object) => ReactNode;
+  }) => {
+    settleClose = onClose;
+    return (
+      <View>
+        {children}
+        {footerComponent?.({})}
+      </View>
+    );
+  };
+
+  function Body() {
+    useEffect(() => {
+      bodyMounted();
+    }, []);
+    return <Text testID="sheet-body">Body</Text>;
+  }
+
+  const sheetAt = (isOpen: boolean) => (
+    <Sheet isOpen={isOpen} onOpenChange={jest.fn()} title="Title" footer={<Text>Footer</Text>}>
+      <Body />
+    </Sheet>
+  );
+
+  beforeAll(() => {
+    heroui.BottomSheet = Object.assign(Root, setupBottomSheet, { Content });
+  });
+
+  afterAll(() => {
+    heroui.BottomSheet = setupBottomSheet;
+  });
+
+  beforeEach(() => {
+    bodyMounted.mockClear();
+    settleClose = undefined;
+  });
+
+  it('holds the body back until the first open, and keeps it through a settled close and a reopen', async () => {
+    const { getByTestId, getByText, queryByTestId, rerender } = await render(sheetAt(false));
+
+    expect(getByText('Title')).toBeTruthy();
+    expect(getByText('Footer')).toBeTruthy();
+    expect(queryByTestId('sheet-body')).toBeNull();
+    expect(bodyMounted).not.toHaveBeenCalled();
+
+    await rerender(sheetAt(true));
+
+    expect(getByTestId('sheet-body')).toBeTruthy();
+    expect(bodyMounted).toHaveBeenCalledTimes(1);
+
+    await rerender(sheetAt(false));
+    await act(() => {
+      settleClose?.();
+    });
+
+    expect(getByTestId('sheet-body')).toBeTruthy();
+    expect(bodyMounted).toHaveBeenCalledTimes(1);
+
+    await rerender(sheetAt(true));
+
+    expect(getByTestId('sheet-body')).toBeTruthy();
+    expect(bodyMounted).toHaveBeenCalledTimes(1);
   });
 });

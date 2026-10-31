@@ -31,6 +31,7 @@ import {
   shouldBlurInputOnClose,
 } from './sheet.helpers';
 import { useSheetCloseHitSlop, useSheetCloseLifecycle } from './sheet.hook';
+import { hasSheetEverOpened } from './sheet_close_lifecycle';
 
 // Keyboard inputs: wire this onto an `Input`'s `onFocus`/`onBlur` inside a sheet.
 export { useBottomSheetAwareHandlers } from 'heroui-native';
@@ -61,6 +62,7 @@ export interface SheetProps {
   liftsAboveKeyboard?: boolean;
   /** Blurs an input that took focus inside the sheet as it closes. Set it on a sheet that holds a text input and opens over a screen with a text field of its own, such as a list's search field; it brings no `adjustPan` mode, which `liftsAboveKeyboard` does. Defaults to false. */
   blursInputOnClose?: boolean;
+  /** Mounts at the sheet's first open and stays through later closes. */
   children: React.ReactNode;
 }
 
@@ -227,7 +229,7 @@ export function Sheet({
                 ) : null}
               </View>
             )}
-            {children}
+            {hasSheetEverOpened(closeLifecycle) ? children : null}
           </BottomSheet.Content>
         </View>
       </BottomSheet.Portal>

@@ -1,10 +1,16 @@
 import {
   RATE_REFRESH_MAX_AGE_MS,
+  isRateStale,
   parsePersistedRate,
   parsePersistedTimestamp,
   parseRemoteRate,
+  resolveRateStaleDelayMs,
   shouldRefreshRate,
 } from '@/modules/currency/store/currency.helpers';
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const STALE_AGE_MS = 30 * DAY_MS;
+const MAX_TIMER_MS = 2 ** 31 - 1;
 
 describe('currency rate policy', () => {
   describe('parsePersistedRate', () => {
@@ -106,6 +112,47 @@ describe('currency rate policy', () => {
           now,
         }),
       ).toBe(true);
+    });
+  });
+
+  describe('resolveRateStaleDelayMs (MA-272)', () => {
+    it.each([
+      ['the first of a month', '2026-09-01T12:00:00.000Z'],
+      ['day 31, crossing a 30-day month', '2026-08-31T12:00:00.000Z'],
+      ['before a leap day, crossing it', '2028-02-15T12:00:00.000Z'],
+    ])(
+      'waits a 29-day-old rate from %s to the first instant isRateStale reads true',
+      (_label, updatedAt) => {
+        const now = Date.parse(updatedAt) + 29 * DAY_MS;
+
+        const delay = resolveRateStaleDelayMs(updatedAt, now);
+
+        expect(delay).toBeDefined();
+        expect(isRateStale(updatedAt, now + (delay as number))).toBe(true);
+        expect(isRateStale(updatedAt, now + (delay as number) - 1)).toBe(false);
+      },
+    );
+
+    const now = Date.parse('2026-09-30T12:00:00.000Z');
+
+    it('caps a 1-day-old rate at the longest single setTimeout', () => {
+      const updatedAt = new Date(now - DAY_MS).toISOString();
+
+      expect(resolveRateStaleDelayMs(updatedAt, now)).toBe(MAX_TIMER_MS);
+    });
+
+    it('gives an update time a day ahead of the clock the same cap', () => {
+      const updatedAt = new Date(now + DAY_MS).toISOString();
+
+      expect(resolveRateStaleDelayMs(updatedAt, now)).toBe(MAX_TIMER_MS);
+    });
+
+    it.each([
+      ['no update time', null],
+      ['an unparseable update time', 'not a date'],
+      ['a rate already stale', new Date(now - STALE_AGE_MS - 1).toISOString()],
+    ])('gives undefined for %s, which no later read can change', (_label, updatedAt) => {
+      expect(resolveRateStaleDelayMs(updatedAt, now)).toBeUndefined();
     });
   });
 });

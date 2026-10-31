@@ -28,7 +28,7 @@ import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 import { CategoryPickerRow } from '@/modules/categories/components/category_picker_row';
 import type { Category } from '@/modules/categories/entities/category.entity';
-import { isRateStale } from '@/modules/currency/store/currency.helpers';
+import { useRateStale } from '@/modules/currency/utils/use_rate_stale.hook';
 
 import { TransactionAmountHero } from './components/transaction_amount_hero';
 import {
@@ -134,7 +134,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
     sourceCurrency: selectedAccount?.currency,
     destinationCurrency: selectedToAccount?.currency,
   };
-  const rateStale = isRateStale(rateUpdatedAt, Date.now());
+  const rateStale = useRateStale(rateUpdatedAt, requiresRate);
 
   return (
     <BottomSheetScrollView

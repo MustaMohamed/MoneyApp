@@ -1,4 +1,5 @@
 export interface SheetCloseLifecycle {
+  /** Open since the last settled close; a settled close drops it. */
   hasOpened: boolean;
   isOpen: boolean;
   completed: boolean;
@@ -15,6 +16,11 @@ export interface SheetCloseSettlement {
 
 export function createSheetCloseLifecycle(isOpen: boolean): SheetCloseLifecycle {
   return { hasOpened: isOpen, isOpen, completed: false, openReported: false, restsClosed: false };
+}
+
+/** True from the first open on: `hasOpened` covers an open not yet settled, `completed` one that settled. */
+export function hasSheetEverOpened(lifecycle: SheetCloseLifecycle): boolean {
+  return lifecycle.hasOpened || lifecycle.completed;
 }
 
 export function syncSheetCloseLifecycle(

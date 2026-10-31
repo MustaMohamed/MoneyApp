@@ -1882,6 +1882,59 @@ describe('usePaySheet', () => {
     });
   });
 
+  describe('MA-272 stale mark on an open sheet', () => {
+    const NOW_MS = Date.parse(`${TODAY}T12:00:00.000Z`);
+    const STALE_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+
+    beforeEach(() => {
+      jest.useFakeTimers({ now: NOW_MS });
+      attachMockSelectorStore(useCurrencyStore as unknown as jest.Mock, () => ({
+        rate: 55,
+        isManualOverride: false,
+        rate_updated_at: new Date(NOW_MS - STALE_AGE_MS + 1000).toISOString(),
+      }));
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('turns rateStale at the stale age on a visible sheet, with no form call and no rerender', async () => {
+      paySheetStateInner = { ...paySheetStateInner, visible: true };
+      const { result } = await renderHook(() =>
+        usePaySheet(OWNER, fixedCommitment, duePayment, TODAY),
+      );
+      await act(async () => {});
+      expect(result.current.state.requiresRate).toBe(true);
+      expect(result.current.state.rateStale).toBe(false);
+
+      await act(() => {
+        jest.advanceTimersByTime(1001);
+      });
+
+      expect(result.current.state.rateStale).toBe(true);
+    });
+
+    it('holds the mark on a hidden sheet past the stale age, and reads it true at the open', async () => {
+      const { result, rerender } = await renderHook(() =>
+        usePaySheet(OWNER, fixedCommitment, duePayment, TODAY),
+      );
+      await act(async () => {});
+
+      await act(() => {
+        jest.advanceTimersByTime(1001);
+      });
+      await act(() => rerender(undefined));
+      expect(result.current.state.visible).toBe(false);
+      expect(result.current.state.rateStale).toBe(false);
+
+      paySheetStateInner = { ...paySheetStateInner, visible: true };
+      await act(() => rerender(undefined));
+
+      expect(result.current.state.rateStale).toBe(true);
+    });
+  });
+
   describe('note', () => {
     async function typeNoteAndSubmit(note: string) {
       const { result, rerender } = await renderTrack(egpCommitment, cib, '8000');

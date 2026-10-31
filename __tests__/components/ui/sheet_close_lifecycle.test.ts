@@ -1,5 +1,6 @@
 import {
   createSheetCloseLifecycle,
+  hasSheetEverOpened,
   isSheetClosePending,
   settleSheetCloseLifecycle,
   syncSheetCloseLifecycle,
@@ -110,5 +111,44 @@ describe('isSheetClosePending (MA-244)', () => {
 
     expect(completed.shouldComplete).toBe(true);
     expect(isSheetClosePending(completed.lifecycle)).toBe(false);
+  });
+});
+
+describe('hasSheetEverOpened (MA-273)', () => {
+  it('reads false on a sheet mounted closed, through a closed sync and a -1', () => {
+    const mounted = createSheetCloseLifecycle(false);
+    expect(hasSheetEverOpened(mounted)).toBe(false);
+
+    const synced = syncSheetCloseLifecycle(mounted, false);
+    expect(hasSheetEverOpened(synced)).toBe(false);
+
+    const settled = settleSheetCloseLifecycle(synced, -1);
+    expect(settled.shouldComplete).toBe(false);
+    expect(hasSheetEverOpened(settled.lifecycle)).toBe(false);
+  });
+
+  it('reads true from the first open', () => {
+    const opened = syncSheetCloseLifecycle(createSheetCloseLifecycle(false), true);
+
+    expect(hasSheetEverOpened(opened)).toBe(true);
+  });
+
+  it('stays true through a settled close and a reopen, while hasOpened drops at the settle', () => {
+    const opened = syncSheetCloseLifecycle(createSheetCloseLifecycle(false), true);
+    const dropped = syncSheetCloseLifecycle(opened, false);
+    expect(hasSheetEverOpened(dropped)).toBe(true);
+
+    const settled = settleSheetCloseLifecycle(dropped, -1);
+    expect(settled.shouldComplete).toBe(true);
+    expect(settled.lifecycle.hasOpened).toBe(false);
+    expect(hasSheetEverOpened(settled.lifecycle)).toBe(true);
+    expect(hasSheetEverOpened(syncSheetCloseLifecycle(settled.lifecycle, false))).toBe(true);
+
+    const reopened = syncSheetCloseLifecycle(settled.lifecycle, true);
+    expect(hasSheetEverOpened(reopened)).toBe(true);
+  });
+
+  it('reads true on a sheet mounted open', () => {
+    expect(hasSheetEverOpened(createSheetCloseLifecycle(true))).toBe(true);
   });
 });
