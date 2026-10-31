@@ -161,10 +161,11 @@ export function useCommitments() {
     else void loadCommitmentRows(commitmentId);
   }, [commitmentId, payments, loadCommitmentRows, resetCommitmentRows]);
 
-  // A change of the dimension is another list, which opens at its top.
+  // A seed writes a fresh filter, so a See all on the held commitment opens at the top as well.
+  const listTopTrigger = commitmentId === undefined ? undefined : appliedFilters;
   useEffect(() => {
     listRef.current?.getScrollResponder()?.scrollTo({ y: 0, animated: false });
-  }, [commitmentId]);
+  }, [listTopTrigger]);
 
   const commitmentsById = useMemo(
     () => new Map(source.commitments.map((c: Commitment) => [c.id, c])),
@@ -405,6 +406,7 @@ export function useCommitments() {
   return {
     state: {
       listRef,
+      listKey: commitmentId,
       sections,
       tally: searchTally,
       liveRate,

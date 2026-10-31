@@ -2078,4 +2078,30 @@ describe('useCommitments commitment dimension (MA-213)', () => {
 
     expect(setAppliedFiltersMock).toHaveBeenLastCalledWith(EMPTY_COMMITMENT_FILTERS);
   });
+
+  it('puts a See all on the held commitment at the top, and leaves a month list filter where it is', async () => {
+    setup({ ...month(), appliedFilters: FILTERED, rowsRead: READ });
+    const hook = await renderHook(() => useCommitments());
+    const scrollTo = jest.fn();
+    hook.result.current.state.listRef.current = {
+      getScrollResponder: () => ({ scrollTo }),
+    } as unknown as typeof hook.result.current.state.listRef.current;
+
+    setup({ ...month(), appliedFilters: { ...FILTERED }, rowsRead: READ });
+    await hook.rerender({});
+
+    expect(scrollTo).toHaveBeenCalledTimes(1);
+    expect(scrollTo).toHaveBeenCalledWith({ y: 0, animated: false });
+
+    setup({ ...month() });
+    await hook.rerender({});
+    expect(scrollTo).toHaveBeenCalledTimes(2);
+
+    setup({
+      ...month(),
+      appliedFilters: { ...EMPTY_COMMITMENT_FILTERS, accountIds: ['account-x'] },
+    });
+    await hook.rerender({});
+    expect(scrollTo).toHaveBeenCalledTimes(2);
+  });
 });
