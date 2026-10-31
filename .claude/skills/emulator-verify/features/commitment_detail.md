@@ -5,7 +5,7 @@ Route `/commitments/[id]?cycle=<payment id>` on the tab stack from the list, and
 ## Reach it
 
 - User path: a commitment row on the `Commitments` tab (`commitments.md` § Outbound).
-- Script: `$MQA tap '<commitment name>'` on the list; the row pushes `/commitments/<commitment id>?cycle=<payment id>` (`commitments.hook.ts:315-317`).
+- Script: `$MQA tap '<commitment name>'` on the list; the row pushes `/commitments/<commitment id>?cycle=<payment id>` (`commitments.hook.ts:304-306`).
 - Deep link: `$MQA open '/commitments/<commitment id>?cycle=<payment id>'`; the detail reads the commitment and its rows from the repository, so it opens before any month has loaded.
 
 ## States

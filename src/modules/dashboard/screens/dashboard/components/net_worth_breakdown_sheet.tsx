@@ -310,9 +310,14 @@ function AccountSubRow({ account, baseCurrency }: { account: AccountRow; baseCur
   return (
     <View
       className="flex-row justify-between"
-      style={{ flexDirection: 'row', paddingVertical: ms(4), paddingLeft: SUB_ROW_INDENT }}
+      style={{
+        flexDirection: 'row',
+        gap: ms(8),
+        paddingVertical: ms(4),
+        paddingLeft: SUB_ROW_INDENT,
+      }}
     >
-      <Text variant="caption" className="text-muted">
+      <Text variant="caption" className="text-muted" style={{ flexShrink: 1 }}>
         {account.name}
       </Text>
       <Text variant="caption" className="font-inter-medium text-foreground">
