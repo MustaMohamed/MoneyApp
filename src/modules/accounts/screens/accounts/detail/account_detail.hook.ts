@@ -1,4 +1,4 @@
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -7,6 +7,7 @@ import { Strings } from '@/constants/strings';
 import { useAccountActivityStore } from '@/modules/accounts/store/account_activity.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { stackedTransactionDetailRoute } from '@/modules/navigation/domain/stacked_route';
+import { jumpToTab } from '@/modules/navigation/utils/jump_to_tab';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import { useTransactionFormState } from '@/modules/transactions/store/transaction_form_host.state';
 import { useTransactionsScreenStore } from '@/modules/transactions/store/transactions.store';
@@ -27,7 +28,6 @@ import { buildActivityRowPresentation } from './components/account_activity.help
 import { buildMonthFacts } from './components/account_facts.helpers';
 import { useReplacementAccountSheetState } from './components/replacement_account_sheet.state';
 
-const TRANSACTIONS_TAB = '/(app)/(tabs)/transactions' as const;
 const ACCOUNTS_LIST = '/accounts' as const;
 
 const editAccountRoute = (accountId: string): `/accounts/${string}/edit` =>
@@ -36,6 +36,7 @@ const editAccountRoute = (accountId: string): `/accounts/${string}/edit` =>
 export function useAccountDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const navigation = useNavigation();
   const { toast } = useToast();
 
   const accounts = useAccountStore((s) => s.accounts);
@@ -353,20 +354,14 @@ export function useAccountDetail() {
     router.push(stackedTransactionDetailRoute(transactionId));
   };
 
-  // The second `dismissTo` pops the landed tab's own Stack, where the href only diverges once the first has run.
-  const jumpToTransactionsTab = () => {
-    router.dismissTo(TRANSACTIONS_TAB);
-    router.dismissTo(TRANSACTIONS_TAB);
-  };
-
   const goToAllTransactions = () => {
     useTransactionsScreenStore.getState().seedAccountFilter(id, currentYearMonth());
-    jumpToTransactionsTab();
+    jumpToTab(navigation, 'transactions');
   };
 
   // Two frames past the pop: a `Sheet` that first renders already-open never animates in.
   const addTransactionForAccount = () => {
-    jumpToTransactionsTab();
+    jumpToTab(navigation, 'transactions');
     runAfterInteractions(() => {
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {

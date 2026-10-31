@@ -5,15 +5,10 @@ import { Controller, useWatch, type UseFormReturn } from 'react-hook-form';
 import { View } from 'react-native';
 
 import { AccountStrip } from '@/components/ui/account_strip';
-import { Button } from '@/components/ui/button';
-import { DangerRing } from '@/components/ui/danger_ring';
 import { DateRow } from '@/components/ui/date_row';
-import { FormErrorText } from '@/components/ui/form_error_text';
+import { FormFactCell } from '@/components/ui/form_fact_cell';
 import { FormPickerRow } from '@/components/ui/form_picker_row';
-import {
-  FORM_FACT_CELL_CLASS,
-  FORM_SHEET_CONTENT_CONTAINER_STYLE,
-} from '@/components/ui/form_sheet.geometry';
+import { FORM_SHEET_CONTENT_CONTAINER_STYLE } from '@/components/ui/form_sheet.geometry';
 import { FormTypeTabs } from '@/components/ui/form_type_tabs';
 import { ListCard } from '@/components/ui/list_card';
 import { NoteFactRow } from '@/components/ui/note_fact_row';
@@ -27,19 +22,20 @@ import {
   RecurrencePeriod,
 } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Size, Type, lineHeightFor } from '@/constants/theme';
+import { Size } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 import type { Account } from '@/database/entities/account.entity';
 import type { Category } from '@/database/entities/category.entity';
 import { CategoryPickerRow } from '@/modules/categories/components/category_picker_row';
 import { CategoryPickerSheet } from '@/modules/categories/components/category_picker_sheet';
-import { ms } from '@/utils/responsive';
 
 import {
   resolveAccountIdFromChip,
   resolveCommitmentStripChips,
   resolveEndsRowValue,
   resolveRepeatsRowValue,
+  setCommitmentEndDate,
+  setCommitmentStartDate,
 } from '../commitment_form.helpers';
 import {
   type CommitmentFormValues,
@@ -64,41 +60,6 @@ interface CommitmentFormBodyProps {
   accounts: Account[];
   locked?: boolean;
   afterFields?: React.ReactNode;
-}
-
-export function CommitmentFormFooter({
-  errorMessage,
-  saving,
-  onSubmit,
-}: {
-  errorMessage?: string;
-  saving: boolean;
-  onSubmit: () => void;
-}): React.ReactElement {
-  return (
-    <>
-      <View
-        style={{ minHeight: ms(16) }}
-        className="justify-center"
-        collapsable={false}
-        accessibilityLiveRegion="polite"
-      >
-        <FormErrorText
-          message={errorMessage}
-          numberOfLines={1}
-          disableAnimation
-          className="text-center"
-          style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
-        />
-      </View>
-      <Button
-        variant="primary"
-        label={Strings.commitmentsSave}
-        isLoading={saving}
-        onPress={onSubmit}
-      />
-    </>
-  );
 }
 
 export function CommitmentFormBody(props: CommitmentFormBodyProps) {
@@ -250,7 +211,7 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
 
         <View testID="commitment-form-card-inset" style={FORM_SHEET_CONTENT_CONTAINER_STYLE}>
           <ListCard testID="commitment-form-fact-group">
-            <View className={FORM_FACT_CELL_CLASS}>
+            <FormFactCell fault={errors.name} ringTestID="name-ring">
               <Controller
                 control={form.control}
                 name="name"
@@ -270,10 +231,9 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
                   />
                 )}
               />
-              {errors.name !== undefined ? <DangerRing testID="name-ring" /> : null}
-            </View>
+            </FormFactCell>
 
-            <View className={FORM_FACT_CELL_CLASS}>
+            <FormFactCell fault={errors.categoryId} ringTestID="category-ring">
               <CategoryPickerRow
                 testID="category-row"
                 label={Strings.commitmentsFieldCategory}
@@ -282,10 +242,9 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
                 disabled={locked}
                 accessibilityHint={errors.categoryId}
               />
-              {errors.categoryId !== undefined ? <DangerRing testID="category-ring" /> : null}
-            </View>
+            </FormFactCell>
 
-            <View className={FORM_FACT_CELL_CLASS}>
+            <FormFactCell fault={errors.recurrenceEvery} ringTestID="repeats-ring">
               <FormPickerRow
                 testID="repeats-row"
                 divider={false}
@@ -296,14 +255,13 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
                 value={resolveRepeatsRowValue(recurrenceEvery, recurrencePeriod)}
                 suffix={chevron}
               />
-              {errors.recurrenceEvery !== undefined ? <DangerRing testID="repeats-ring" /> : null}
-            </View>
+            </FormFactCell>
 
-            <View className={FORM_FACT_CELL_CLASS}>
+            <FormFactCell fault={errors.startDate} ringTestID="starts-ring">
               <DateRow
                 ownerId={startsOwnerId}
                 value={startDate}
-                onChange={(next) => form.setValue('startDate', next, SET_OPTS)}
+                onChange={(next) => setCommitmentStartDate(form, next, isSubmitted)}
                 divider={false}
                 label={Strings.commitmentsFieldStartDate}
                 testID="starts-row"
@@ -311,10 +269,9 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
                 capsAtToday={false}
                 disabled={locked}
               />
-              {errors.startDate !== undefined ? <DangerRing testID="starts-ring" /> : null}
-            </View>
+            </FormFactCell>
 
-            <View className={FORM_FACT_CELL_CLASS}>
+            <FormFactCell fault={endsFault} ringTestID="ends-ring">
               <FormPickerRow
                 testID="ends-row"
                 divider={false}
@@ -325,10 +282,9 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
                 value={resolveEndsRowValue(durationType, endAfterCount, endDate)}
                 suffix={chevron}
               />
-              {endsFault !== undefined ? <DangerRing testID="ends-ring" /> : null}
-            </View>
+            </FormFactCell>
 
-            <View className={FORM_FACT_CELL_CLASS}>
+            <FormFactCell>
               <FormPickerRow
                 testID="currency-row"
                 divider={false}
@@ -338,7 +294,7 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
                 value={currency}
                 suffix={chevron}
               />
-            </View>
+            </FormFactCell>
 
             <Controller
               control={form.control}
@@ -392,6 +348,7 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
           form={form}
           durationType={durationType}
           onDurationTypeChange={handleDurationTypeChange}
+          onEndDateChange={(next) => setCommitmentEndDate(form, next, isSubmitted)}
           showEndDatePicker={showEndDatePicker}
           setShowEndDatePicker={setShowEndDatePicker}
         />

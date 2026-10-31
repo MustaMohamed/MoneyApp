@@ -1,6 +1,11 @@
-import { Sheet } from '@/components/ui/sheet';
+import { View } from 'react-native';
 
-import { CommitmentFormFooter } from '../components/commitment_form_body';
+import { Button } from '@/components/ui/button';
+import { FORM_SHEET_STATUS_GAP } from '@/components/ui/form_sheet.geometry';
+import { Sheet } from '@/components/ui/sheet';
+import { StatusTrack } from '@/components/ui/status_track';
+import { Strings } from '@/constants/strings';
+
 import { useCommitmentFormHost } from './commitment_form_host.hook';
 import { AddCommitmentSession } from './components/add_commitment_session';
 import { EditCommitmentSession } from './components/edit_commitment_session';
@@ -11,7 +16,6 @@ export function CommitmentFormHost(): React.ReactElement {
     registerSubmit,
     handleSave,
     handleOpenChange,
-    handleClose,
     handleSaved,
     handleDeactivated,
     handleCloseComplete,
@@ -29,11 +33,21 @@ export function CommitmentFormHost(): React.ReactElement {
       isDismissable={state.isDismissable}
       footer={
         state.hasSession ? (
-          <CommitmentFormFooter
-            errorMessage={state.saveError}
-            saving={state.saving}
-            onSubmit={handleSave}
-          />
+          <View>
+            <StatusTrack
+              testID="commitment-form-status"
+              footnote={state.statusFootnote}
+              message={state.statusMessage}
+            />
+            <View style={{ height: FORM_SHEET_STATUS_GAP }} />
+            <Button
+              variant="primary"
+              flat
+              label={Strings.commitmentsSave}
+              isLoading={state.saving}
+              onPress={handleSave}
+            />
+          </View>
         ) : undefined
       }
     >
@@ -45,15 +59,14 @@ export function CommitmentFormHost(): React.ReactElement {
           onSaved={handleSaved}
         />
       ) : null}
-      {state.hasSession && state.mode === 'edit' && state.editingCommitmentId !== undefined ? (
+      {state.hasSession && state.mode === 'edit' && state.editingCommitment !== undefined ? (
         <EditCommitmentSession
           key={state.sessionId}
           sessionId={state.sessionId}
-          commitmentId={state.editingCommitmentId}
+          commitment={state.editingCommitment}
           onRegisterSubmit={registerSubmit}
           onSaved={handleSaved}
           onDeactivated={handleDeactivated}
-          onClose={handleClose}
         />
       ) : null}
     </Sheet>

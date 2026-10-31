@@ -62,6 +62,17 @@ export const COMMITMENT_SCHEMA = z
           path: ['endDate'],
         });
       }
+      if (
+        data.durationType === DurationType.UntilDate &&
+        data.endDate &&
+        data.endDate < data.startDate
+      ) {
+        ctx.addIssue({
+          code: 'custom',
+          message: Strings.commitmentsErrEndsBeforeStarts,
+          path: ['endDate'],
+        });
+      }
       if (data.durationType === DurationType.AfterCount && !data.endAfterCount) {
         ctx.addIssue({
           code: 'custom',

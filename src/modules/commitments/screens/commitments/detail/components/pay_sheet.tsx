@@ -5,10 +5,9 @@ import { AccountStrip } from '@/components/ui/account_strip';
 import { AmountHero } from '@/components/ui/amount_hero';
 import { Button } from '@/components/ui/button';
 import { ConvertedAmountLine } from '@/components/ui/converted_amount_line';
-import { DangerRing } from '@/components/ui/danger_ring';
 import { DateRow } from '@/components/ui/date_row';
+import { FormFactCell } from '@/components/ui/form_fact_cell';
 import {
-  FORM_FACT_CELL_CLASS,
   FORM_SHEET_CONTENT_CONTAINER_STYLE,
   FORM_SHEET_STATUS_GAP,
   resolveFormSupportLineTextProps,
@@ -171,23 +170,22 @@ export function PaySheet({ owner, commitment, payment, today }: Props) {
           <View style={FORM_SHEET_CONTENT_CONTAINER_STYLE}>
             <ListCard testID="pay-sheet-fact-group">
               {state.requiresRate ? (
-                <View className={FORM_FACT_CELL_CLASS}>
+                <FormFactCell fault={state.errors.rate} ringTestID="rate-ring">
                   <RateRow
                     ownerId={owner}
                     value={state.exchangeRateValue ?? ''}
                     stale={state.rateStale}
                   />
-                  {state.errors.rate !== undefined ? <DangerRing testID="rate-ring" /> : null}
-                </View>
+                </FormFactCell>
               ) : null}
-              <View className={FORM_FACT_CELL_CLASS}>
+              <FormFactCell>
                 <DateRow
                   ownerId={owner}
                   value={state.paidDate}
                   onChange={setPaidDate}
                   divider={false}
                 />
-              </View>
+              </FormFactCell>
               <NoteFactRow
                 label={Strings.addTxNoteLabel}
                 placeholder={Strings.addTxNotePlaceholder}

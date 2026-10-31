@@ -1,5 +1,4 @@
-import { useEffect, useId, useMemo } from 'react';
-import { useWatch } from 'react-hook-form';
+import { useEffect, useId } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import { DurationType } from '@/constants/enums';
@@ -9,6 +8,7 @@ import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { useRouteDraft } from '@/utils/use_route_draft.hook';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
+import type { Commitment } from '../../../entities/commitment.entity';
 import { useCommitmentStore } from '../../../store/commitment.store';
 import {
   COMMITMENT_SCHEMA,
@@ -20,20 +20,17 @@ import { INITIAL_UI_ENTRY, useEditCommitmentState } from './edit_commitment.stat
 export type { CommitmentFormValues };
 
 interface EditCommitmentOptions {
-  commitmentId: string;
+  commitment: Commitment;
   onSaved: () => void;
   onDeactivated: () => void;
-  onMissing: () => void;
 }
 
 export function useEditCommitment(options: EditCommitmentOptions) {
   const owner = useId();
-  const id = options.commitmentId;
-  const { onMissing } = options;
+  const { commitment } = options;
 
   const accounts = useAccountStore((s) => s.accounts);
   const categories = useCategoryStore.useState.categories();
-  const commitments = useCommitmentStore.useState.commitments();
   const updateCommitment = useCommitmentStore.getState().updateCommitment;
   const deactivateCommitment = useCommitmentStore.getState().deactivateCommitment;
   const { saving, saveError, deactivateDialogVisible } = useEditCommitmentState(
@@ -45,21 +42,11 @@ export function useEditCommitment(options: EditCommitmentOptions) {
   const setDeactivateDialogVisible = useEditCommitmentState.getState().setDeactivateDialogVisible;
   const release = useEditCommitmentState.getState().release;
 
-  const commitment = useMemo(() => commitments.find((c) => c.id === id), [commitments, id]);
-
-  useEffect(() => {
-    if (!commitment && !saving) onMissing();
-  }, [commitment, saving, onMissing]);
-
   const form = useZodForm(COMMITMENT_SCHEMA, {
     mode: 'onSubmit',
     reValidateMode: 'onChange',
-    defaultValues: commitment ? buildEditDefaults(commitment) : undefined,
+    defaultValues: buildEditDefaults(commitment),
   });
-  // RHF types the field as set, but a session seeded with no commitment has none; a draft keeps it after the store drops the commitment.
-  const draftStartDate = useWatch({ control: form.control, name: 'startDate' }) as
-    | string
-    | undefined;
 
   // Read off the store: two taps in one frame both see the render's `saving` as false.
   const isSaving = (): boolean => useEditCommitmentState.getState().entries[owner]?.saving === true;
@@ -68,7 +55,7 @@ export function useEditCommitment(options: EditCommitmentOptions) {
     setDeactivateDialogVisible(owner, false);
   };
   const { isCurrent, submit } = useRouteDraft({
-    id,
+    id: commitment.id,
     entity: commitment,
     form,
     buildDraft: buildEditDefaults,
@@ -82,7 +69,7 @@ export function useEditCommitment(options: EditCommitmentOptions) {
   }, [owner, claim, release]);
 
   async function onValid(data: CommitmentFormValues) {
-    if (!commitment || !isCurrent(commitment.id) || isSaving()) return;
+    if (!isCurrent(commitment.id) || isSaving()) return;
     setSaveError(owner, undefined);
     setSaving(owner, true);
     try {
@@ -119,7 +106,7 @@ export function useEditCommitment(options: EditCommitmentOptions) {
   }
 
   async function confirmDeactivate() {
-    if (!commitment || !isCurrent(commitment.id) || isSaving()) return;
+    if (!isCurrent(commitment.id) || isSaving()) return;
     setSaving(owner, true);
     try {
       await deactivateCommitment(commitment.id);
@@ -142,7 +129,6 @@ export function useEditCommitment(options: EditCommitmentOptions) {
 
   return {
     state: {
-      hasDraft: draftStartDate !== undefined,
       saving,
       saveError,
       deactivateDialogVisible,

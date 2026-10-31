@@ -14,7 +14,7 @@ import { CoreTokens } from '@/constants/theme_tokens';
 import { formatLongDate, toLocalDateString } from '@/utils/format_date';
 
 import { parseWholeNumberInput } from '../commitment_form.helpers';
-import { type CommitmentFormValues, SET_OPTS, composeFieldBlur } from '../commitment_form.shared';
+import { type CommitmentFormValues, composeFieldBlur } from '../commitment_form.shared';
 import {
   COMMITMENT_FORM_PICKER_GAP,
   COMMITMENT_FORM_PILL_SLOP,
@@ -26,6 +26,7 @@ interface Props {
   form: UseFormReturn<CommitmentFormValues>;
   durationType: DurationType;
   onDurationTypeChange: (type: DurationType) => void;
+  onEndDateChange: (next: string) => void;
   showEndDatePicker: boolean;
   setShowEndDatePicker: (v: boolean) => void;
 }
@@ -40,6 +41,7 @@ export function DurationPicker({
   form,
   durationType,
   onDurationTypeChange,
+  onEndDateChange,
   showEndDatePicker,
   setShowEndDatePicker,
 }: Props) {
@@ -63,7 +65,7 @@ export function DurationPicker({
       DateTimePickerAndroid.open({
         value: endDateAsDate,
         mode: 'date',
-        onValueChange: (_, d) => form.setValue('endDate', toLocalDateString(d), SET_OPTS),
+        onValueChange: (_, d) => onEndDateChange(toLocalDateString(d)),
       });
     } else {
       setShowEndDatePicker(!showEndDatePicker);
@@ -139,7 +141,7 @@ export function DurationPicker({
           mode="date"
           display="spinner"
           themeVariant="dark"
-          onValueChange={(_, d) => form.setValue('endDate', toLocalDateString(d), SET_OPTS)}
+          onValueChange={(_, d) => onEndDateChange(toLocalDateString(d))}
         />
       ) : null}
       {dateError ? <Text className="font-inter text-danger text-[11px]">{dateError}</Text> : null}

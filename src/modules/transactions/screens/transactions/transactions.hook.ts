@@ -150,7 +150,9 @@ export function useTransactions() {
     useTransactionsScreenStore,
   );
 
-  const debouncedSearch = useDebouncedValue(searchQuery, 300);
+  const settledSearch = useDebouncedValue(searchQuery, 300);
+  // An emptied query applies at once, so a seeded landing never reads the search it cleared.
+  const debouncedSearch = searchQuery.length === 0 ? '' : settledSearch;
   const periodRange = useMemo(() => resolvePeriod(period), [period]);
   const previousPeriodRange = useMemo(() => resolvePeriod(previousPeriod(period)), [period]);
 

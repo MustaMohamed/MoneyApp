@@ -319,13 +319,18 @@ export function createCommitmentStore(
         updateCommitment: async (id, data) => {
           try {
             await repo.update(id, data);
-            invalidateData();
-            reloadMonthAggregate();
-            await get().loadMonthSnapshot(get().selectedMonth);
           } catch (error) {
             console.error('[commitmentStore] updateCommitment failed:', error);
             throw error;
           }
+          invalidateData();
+          reloadMonthAggregate();
+          // A landed write must not read as a failed one; the failed load has published `loadError`.
+          await get()
+            .loadMonthSnapshot(get().selectedMonth)
+            .catch((error: unknown) =>
+              console.error('[commitmentStore] revalidation failed:', error),
+            );
         },
 
         deactivateCommitment: async (id) => {

@@ -8,6 +8,8 @@ import {
   resolveHollowGraphiteTile,
   toAccountStripChip,
 } from '@/modules/transactions/components/transaction_row.helpers';
+import { computeDueDates } from '@/utils/compute_due_dates';
+import { formatShortWeekdayDate } from '@/utils/format_date';
 import { formatStoredMoneyText } from '@/utils/money_text';
 import { parseTypingDecimalText } from '@/utils/parse_decimal';
 import { holdStillTypingDecimal } from '@/utils/use_zod_form.hook';
@@ -17,6 +19,7 @@ import { buildRecurrenceLabel } from '../../utils/recurrence_label';
 import {
   COMMITMENT_AMOUNT_REFUSES_ZERO,
   type CommitmentFormValues,
+  SET_OPTS,
 } from './commitment_form.shared';
 
 export const NO_ACCOUNT_CHIP_ID = 'no-account';
@@ -118,4 +121,49 @@ export function resolveEndsRowValue(
     end_after_count: endAfterCount ?? null,
     end_date: endDate === '' ? null : (endDate ?? null),
   });
+}
+
+/** Once a Save ran, a Starts move re-reads Ends, whose check depends on both days. */
+export function setCommitmentStartDate(
+  form: Pick<UseFormReturn<CommitmentFormValues>, 'setValue' | 'trigger'>,
+  next: string,
+  isSubmitted: boolean,
+): void {
+  form.setValue('startDate', next, SET_OPTS);
+  if (isSubmitted) void form.trigger('endDate');
+}
+
+/** Before a Save an Ends day earlier than Starts rings nothing. */
+export function setCommitmentEndDate(
+  form: Pick<UseFormReturn<CommitmentFormValues>, 'setValue'>,
+  next: string,
+  isSubmitted: boolean,
+): void {
+  form.setValue('endDate', next, { shouldDirty: true, shouldValidate: isSubmitted });
+}
+
+/** The first payment's line, from the schedule as typed; `undefined` while it has no first payment. */
+export function resolveCommitmentFirstPaymentFootnote(
+  schedule: {
+    startDate: string;
+    recurrenceEvery: number | null | undefined;
+    recurrencePeriod: RecurrencePeriod;
+    durationType: DurationType;
+    endAfterCount: number | null | undefined;
+    endDate: string | undefined;
+  },
+  today: string,
+): string | undefined {
+  const dueDates = computeDueDates({
+    startDate: schedule.startDate,
+    every: schedule.recurrenceEvery ?? 1,
+    period: schedule.recurrencePeriod,
+    durationType: schedule.durationType,
+    // An emptied count reads as 0 there, so the form hands it on as no count typed.
+    endAfterCount: schedule.endAfterCount ?? undefined,
+    endDate: schedule.endDate,
+    maxCount: 1,
+  });
+  if (dueDates.length === 0) return undefined;
+  return Strings.commitmentsFirstPaymentDue(formatShortWeekdayDate(dueDates[0], today));
 }
