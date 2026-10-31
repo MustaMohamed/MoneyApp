@@ -298,11 +298,6 @@ export function useCommitments() {
     [setSelectedMonth],
   );
 
-  const reloadSelectedMonth = useCallback(
-    (yearMonth: string) => loadMonthSnapshot(yearMonth),
-    [loadMonthSnapshot],
-  );
-
   useFocusEffect(
     useCallback(() => {
       const task = runAfterInteractions(
@@ -327,27 +322,21 @@ export function useCommitments() {
     }, [ensureMonthAggregate, selectedMonth, heroAccountId]),
   );
 
-  const readDayChange = useCallback(async () => {
-    try {
-      await Promise.all([
-        ensureMonthSnapshot(selectedMonthRef.current),
-        ensureMonthAggregate(selectedMonth, heroAccountId),
-      ]);
-    } catch {
-      // The store owns loadError; event boundaries contain the rejected operation.
-    }
-  }, [ensureMonthSnapshot, ensureMonthAggregate, selectedMonth, heroAccountId]);
-
   useLocalDayChange(
     useCallback(() => {
-      void readDayChange();
-    }, [readDayChange]),
+      void Promise.all([
+        ensureMonthSnapshot(selectedMonth),
+        ensureMonthAggregate(selectedMonth, heroAccountId),
+      ]).catch((error: unknown) => {
+        console.error('[commitments] day change read failed:', error);
+      });
+    }, [ensureMonthSnapshot, ensureMonthAggregate, selectedMonth, heroAccountId]),
   );
 
   const readSelectedMonth = useCallback(async () => {
     try {
       await Promise.all([
-        reloadSelectedMonth(selectedMonth),
+        loadMonthSnapshot(selectedMonth),
         loadMonthAggregate(selectedMonth, heroAccountId),
         commitmentId === undefined ? undefined : loadCommitmentRows(commitmentId),
       ]);
@@ -355,7 +344,7 @@ export function useCommitments() {
       // The store owns loadError; event boundaries contain the rejected operation.
     }
   }, [
-    reloadSelectedMonth,
+    loadMonthSnapshot,
     loadMonthAggregate,
     loadCommitmentRows,
     selectedMonth,

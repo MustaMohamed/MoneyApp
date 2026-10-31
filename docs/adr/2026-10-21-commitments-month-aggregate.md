@@ -13,7 +13,7 @@
 
 ## 2. The row set and the carried bound are the month read's
 
-The aggregate reads the rows `getPaymentsByMonth` returns (`docs/adr/2026-10-21-derived-payment-state.md` §4): the rows with `due_date >= monthStart AND due_date < nextMonthStart`, plus the unpaid rows with `due_date < carriedBefore`. `ICommitmentRepository.getMonthAggregate(yearMonth, today, accountId?)` sets `carriedBefore` to `carriedDueBound(yearMonth, today)`, the earlier of the month's first day and today, as `getPaymentsForMonth` does. The two ranges are disjoint, so no row counts twice. A late payment counts in its due month.
+The aggregate reads the rows `getPaymentsByMonth` returns (`docs/adr/2026-10-21-derived-payment-state.md` §4): the rows with `due_date >= monthStart AND due_date < nextMonthStart`, plus the unpaid rows with `due_date < carriedBefore`. `ICommitmentRepository.getMonthAggregate(yearMonth, today, accountId?)` sets `carriedBefore` to `carriedDueBound(yearMonth, today)`, the earlier of the month's first day and today, as `getMonthSnapshot` does. The two ranges are disjoint, so no row counts twice. A late payment counts in its due month.
 
 ## 3. Six buckets
 

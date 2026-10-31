@@ -91,6 +91,13 @@ export function createDashboardStore(repository: IDashboardRepository) {
         return request;
       };
 
+      const supersede = (): number => {
+        generation += 1;
+        freshKey = undefined;
+        inFlight = undefined;
+        return generation;
+      };
+
       const startRequest = (input: DashboardLoadInput, force: boolean): Promise<void> => {
         if (inFlight?.key === input.yearMonth) return inFlight.promise;
 
@@ -131,15 +138,11 @@ export function createDashboardStore(repository: IDashboardRepository) {
         refresh: (input) => startRequest(input, true),
         retry: (input) => startRequest(input, true),
         revalidateAfterMutation: (input) => {
-          generation += 1;
-          freshKey = undefined;
-          inFlight = undefined;
+          supersede();
           return startRequest(input, true);
         },
         revalidateAtDayChange: (input) => {
-          const ownerGeneration = ++generation;
-          freshKey = undefined;
-          inFlight = undefined;
+          const ownerGeneration = supersede();
           return readSnapshot(
             input,
             ownerGeneration,
@@ -147,15 +150,11 @@ export function createDashboardStore(repository: IDashboardRepository) {
           );
         },
         invalidate: () => {
-          generation += 1;
-          freshKey = undefined;
-          inFlight = undefined;
+          supersede();
           set({ requestGeneration: generation });
         },
         reset: () => {
-          generation += 1;
-          freshKey = undefined;
-          inFlight = undefined;
+          supersede();
           set({ ...INITIAL_STATE, requestGeneration: generation });
         },
       };

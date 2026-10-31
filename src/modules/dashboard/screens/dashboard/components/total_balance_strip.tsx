@@ -9,10 +9,14 @@ import {
   HERO_GRADIENT_END,
   HERO_GRADIENT_START,
 } from '@/components/ui/hero_gradient';
-import { resolveOneLineTextProps, scaledTextStyle } from '@/components/ui/text_scale.geometry';
+import {
+  resolveOneLineTextProps,
+  scaledLineHeight,
+  scaledTextStyle,
+} from '@/components/ui/text_scale.geometry';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Size, Type } from '@/constants/theme';
+import { HIT_SLOP_UNCLIPPED_STYLE, Size, Type, touchFloorHitSlopWithin } from '@/constants/theme';
 import { GoldTokens, SemanticTokens } from '@/constants/theme_tokens';
 import type {
   DashboardNetWorth,
@@ -23,6 +27,9 @@ import { ms } from '@/utils/responsive';
 
 // Intentionally 2 of the 3 shared hero stops.
 const TOTAL_BALANCE_GRADIENT_COLORS = [HERO_GRADIENT_COLORS[0], HERO_GRADIENT_COLORS[1]] as const;
+
+// The strip clips at its edge, so the link's slop stops at this padding.
+const STRIP_PADDING_Y = ms(12);
 
 interface TotalBalanceStripProps {
   /** One object: a union narrows only when discriminant and fields arrive together. */
@@ -66,7 +73,7 @@ export function TotalBalanceStrip({
           alignItems: 'center',
           justifyContent: 'space-between',
           paddingHorizontal: ms(16),
-          paddingVertical: ms(12),
+          paddingVertical: STRIP_PADDING_Y,
         }}
       >
         <View style={{ flexShrink: 1 }}>
@@ -106,7 +113,14 @@ export function TotalBalanceStrip({
             onPress={onSeeAllPress}
             accessibilityRole="button"
             accessibilityLabel={Strings.dashSeeAll}
-            style={{ marginTop: Size.inlineLinkOffset, alignSelf: 'flex-end' }}
+            hitSlop={touchFloorHitSlopWithin(scaledLineHeight(Type.caption, fontScale), {
+              bottom: STRIP_PADDING_Y,
+            })}
+            style={{
+              marginTop: Size.inlineLinkOffset,
+              alignSelf: 'flex-end',
+              ...HIT_SLOP_UNCLIPPED_STYLE,
+            }}
           >
             <LinkButton.Label
               {...resolveOneLineTextProps(scaledTextStyle(Type.caption, fontScale))}

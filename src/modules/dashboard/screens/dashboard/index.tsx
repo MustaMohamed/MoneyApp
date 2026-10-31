@@ -7,12 +7,20 @@ import Animated from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 
 import { EmptyState } from '@/components/ui/empty_state';
+import { PressHighlight } from '@/components/ui/press_highlight';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { SectionHeader } from '@/components/ui/section_header';
 import { ACCOUNT_TYPE_LABELS } from '@/constants/account_type_labels';
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Colors, Size, Spacing } from '@/constants/theme';
+import {
+  Colors,
+  HIT_SLOP_UNCLIPPED_STYLE,
+  Radius,
+  Size,
+  Spacing,
+  touchFloorHitSlop,
+} from '@/constants/theme';
 
 import { AccountCarousel } from './components/account_carousel';
 import { BudgetCard } from './components/budget_card';
@@ -110,7 +118,10 @@ export default function DashboardScreen() {
             size="sm"
             isIconOnly
             className="bg-surface border-border rounded-lg border"
-            style={{ width: Size.backBtn, height: Size.backBtn }}
+            feedbackVariant="scale"
+            background={<PressHighlight radius={Radius.sm} />}
+            hitSlop={touchFloorHitSlop(Size.backBtn)}
+            style={{ width: Size.backBtn, height: Size.backBtn, ...HIT_SLOP_UNCLIPPED_STYLE }}
             onPress={goToSettings}
             accessibilityRole="button"
             accessibilityLabel={Strings.dashboardSettingsAccessibility}

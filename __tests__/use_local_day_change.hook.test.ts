@@ -120,6 +120,19 @@ describe('useLocalDayChange', () => {
     expect(onDayChange).not.toHaveBeenCalled();
   });
 
+  it('rebuilds the midnight delay from the wall clock on the return to active', async () => {
+    jest.setSystemTime(new Date(2026, 9, 31, 20));
+    const onDayChange = jest.fn();
+    await renderHook(() => useLocalDayChange(onDayChange));
+
+    await act(async () => emitAppState('background'));
+    jest.setSystemTime(new Date(2026, 9, 31, 23, 10));
+    await act(async () => emitAppState('active'));
+    await advanceTo(new Date(2026, 10, 1));
+
+    expect(onDayChange).toHaveBeenCalledTimes(1);
+  });
+
   it('holds no armed timer while blurred across midnight, and fires once at the refocus', async () => {
     jest.setSystemTime(new Date(2026, 9, 31, 23));
     const onDayChange = jest.fn();

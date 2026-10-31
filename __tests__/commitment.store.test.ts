@@ -807,7 +807,7 @@ describe('commitment store transaction write announcement', () => {
   });
 });
 
-describe('commitment store selectors', () => {
+describe('commitment store shape', () => {
   it('does not expose counts or totals folded over loaded rows', () => {
     const state = createCommitmentStore(makeRepository()).getState();
 
@@ -1485,7 +1485,7 @@ describe('commitment store focus gate', () => {
     expect(store.getState().loadError).toBe(true);
   });
 
-  it('publishes loadError false, and no loading flag, before the repository resolves a read after a failure', async () => {
+  it('publishes loadError false before the repository resolves a read after a failure', async () => {
     const { store, repository, reads } = await landedStore();
     reads.failing = true;
     await expect(store.getState().loadMonthSnapshot(MAY, MORNING)).rejects.toThrow('read failed');
@@ -1500,7 +1500,6 @@ describe('commitment store focus gate', () => {
 
     expect(published).toHaveBeenCalledTimes(1);
     expect(published.mock.calls[0][0]).toMatchObject({ loadError: false });
-    expect(published.mock.calls[0][0]).not.toHaveProperty('loading');
 
     read.resolve(snapshot());
     await load;

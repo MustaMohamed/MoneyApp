@@ -1,10 +1,11 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import React from 'react';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
 import { Sheet } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
+import { scaledTextStyleAboveOne } from '@/components/ui/text_scale.geometry';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, Size, Type, lineHeightFor } from '@/constants/theme';
@@ -257,9 +258,17 @@ interface LegendRowProps {
 }
 
 function LegendRow({ color, icon, label, caption, value, count, valueColor }: LegendRowProps) {
+  const { fontScale } = useWindowDimensions();
+  const valueScale = scaledTextStyleAboveOne(Type.body, fontScale);
   return (
-    <View className="flex-row items-center justify-between py-2" style={{ flexDirection: 'row' }}>
-      <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(10) }}>
+    <View
+      className="flex-row items-center justify-between py-2"
+      style={{ flexDirection: 'row', gap: ms(8) }}
+    >
+      <View
+        className="flex-row items-center"
+        style={{ flexDirection: 'row', gap: ms(10), flexShrink: 1 }}
+      >
         {icon ? (
           <View style={{ width: ms(16), alignItems: 'center', justifyContent: 'center' }}>
             <MaterialCommunityIcons name={icon} size={ms(16)} color={color} />
@@ -269,9 +278,11 @@ function LegendRow({ color, icon, label, caption, value, count, valueColor }: Le
             style={{ width: ms(8), height: ms(8), borderRadius: ms(4), backgroundColor: color }}
           />
         )}
-        <View>
+        <View style={{ flexShrink: 1 }}>
           <View style={{ flexDirection: 'row', gap: ms(4) }}>
-            <Text className="font-inter-semibold text-foreground">{label}</Text>
+            <Text className="font-inter-semibold text-foreground" style={{ flexShrink: 1 }}>
+              {label}
+            </Text>
             {count !== undefined && <Text className="font-inter text-muted">({count})</Text>}
           </View>
           {caption && (
@@ -281,7 +292,11 @@ function LegendRow({ color, icon, label, caption, value, count, valueColor }: Le
           )}
         </View>
       </View>
-      <Text className="font-sora-semibold" style={valueColor ? { color: valueColor } : undefined}>
+      <Text
+        allowFontScaling={valueScale === undefined}
+        className="font-sora-semibold"
+        style={[valueScale, valueColor ? { color: valueColor } : undefined]}
+      >
         {value}
       </Text>
     </View>

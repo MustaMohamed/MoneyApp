@@ -4,7 +4,7 @@ import { AppState } from 'react-native';
 
 import { toLocalDateString } from '@/utils/format_date';
 
-/** Calls `onDayChange` once per local day while its screen is focused: at the focus, at local midnight, or on the return to the foreground. `onDayChange` must be stable and must not reject. */
+/** Calls `onDayChange` once per local day while its screen is focused: at the focus, at local midnight, or on the return to the foreground. `onDayChange` must be memoised and must not reject. */
 export function useLocalDayChange(onDayChange: () => void): void {
   const lastDayRef = useRef(toLocalDateString(new Date()));
 
@@ -32,7 +32,11 @@ export function useLocalDayChange(onDayChange: () => void): void {
       check();
       armTimer();
       const subscription = AppState.addEventListener('change', (status) => {
-        if (status === 'active') check();
+        if (status !== 'active') return;
+        check();
+        // RN counts a delay on a clock that stops in deep sleep, so the delay is rebuilt from the wall clock.
+        clearTimeout(timer);
+        armTimer();
       });
       return () => {
         clearTimeout(timer);

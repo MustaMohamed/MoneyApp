@@ -357,15 +357,18 @@ const REFRESH_FAILURE = {
 };
 const FIRST_LOAD_FAILURE = { loadedMonth: '2026-04', loadError: true };
 
+beforeEach(() => {
+  mockOnDayChange = undefined;
+  ensureMonthSnapshotMock.mockReset().mockResolvedValue(undefined);
+  ensureMonthAggregateMock.mockReset().mockResolvedValue(undefined);
+});
+
 describe('useCommitments', () => {
   beforeEach(() => {
     capturedFocusCallbacks.length = 0;
-    mockOnDayChange = undefined;
     mockInteractionTasks.length = 0;
     loadMonthSnapshotMock.mockReset().mockResolvedValue(undefined);
     loadMonthAggregateMock.mockReset().mockResolvedValue(undefined);
-    ensureMonthSnapshotMock.mockReset().mockResolvedValue(undefined);
-    ensureMonthAggregateMock.mockReset().mockResolvedValue(undefined);
     loadAccountLookupMock.mockReset().mockResolvedValue(undefined);
     currencyRate = 50;
     currencyRateLoaded = true;
@@ -1095,6 +1098,7 @@ describe('useCommitments', () => {
   });
 
   it('MA-274: a rejected ensureMonthSnapshot at the day change stays contained', async () => {
+    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
     ensureMonthSnapshotMock.mockRejectedValueOnce(new Error('read failed'));
     await renderHook(() => useCommitments());
 
@@ -1106,6 +1110,11 @@ describe('useCommitments', () => {
 
     expect(ensureMonthSnapshotMock).toHaveBeenCalledTimes(1);
     expect(setRefreshingMock).not.toHaveBeenCalled();
+    expect(consoleError).toHaveBeenCalledWith(
+      '[commitments] day change read failed:',
+      expect.any(Error),
+    );
+    consoleError.mockRestore();
   });
 
   it('pull-to-refresh reloads the aggregate beside the rows', async () => {
@@ -1316,12 +1325,9 @@ describe('useCommitments account read (MA-234)', () => {
 
   beforeEach(() => {
     capturedFocusCallbacks.length = 0;
-    mockOnDayChange = undefined;
     mockInteractionTasks.length = 0;
     loadMonthSnapshotMock.mockReset().mockResolvedValue(undefined);
     loadMonthAggregateMock.mockReset().mockResolvedValue(undefined);
-    ensureMonthSnapshotMock.mockReset().mockResolvedValue(undefined);
-    ensureMonthAggregateMock.mockReset().mockResolvedValue(undefined);
     loadAccountLookupMock.mockReset().mockResolvedValue(undefined);
     mockUseDeferredValue.mockReset().mockImplementation((value: unknown) => value);
   });
@@ -1428,12 +1434,9 @@ describe('useCommitments hero title (MA-258)', () => {
 
   beforeEach(() => {
     capturedFocusCallbacks.length = 0;
-    mockOnDayChange = undefined;
     mockInteractionTasks.length = 0;
     loadMonthSnapshotMock.mockReset().mockResolvedValue(undefined);
     loadMonthAggregateMock.mockReset().mockResolvedValue(undefined);
-    ensureMonthSnapshotMock.mockReset().mockResolvedValue(undefined);
-    ensureMonthAggregateMock.mockReset().mockResolvedValue(undefined);
     loadAccountLookupMock.mockReset().mockResolvedValue(undefined);
     currencyRate = 50;
     currencyRateLoaded = true;
@@ -1536,12 +1539,9 @@ describe('useCommitments account chips, account prune and tally (MA-241)', () =>
 
   beforeEach(() => {
     capturedFocusCallbacks.length = 0;
-    mockOnDayChange = undefined;
     mockInteractionTasks.length = 0;
     loadMonthSnapshotMock.mockReset().mockResolvedValue(undefined);
     loadMonthAggregateMock.mockReset().mockResolvedValue(undefined);
-    ensureMonthSnapshotMock.mockReset().mockResolvedValue(undefined);
-    ensureMonthAggregateMock.mockReset().mockResolvedValue(undefined);
     loadAccountLookupMock.mockReset().mockResolvedValue(undefined);
     setAppliedFiltersMock.mockClear();
     resetCommitmentRowsMock.mockClear();
