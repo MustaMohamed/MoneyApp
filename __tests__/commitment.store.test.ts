@@ -568,10 +568,28 @@ describe('commitment store mutation invalidation', () => {
     const store = createCommitmentStore(repository);
     await store.getState().loadMonthSnapshot(MAY);
 
-    await expect(store.getState().markAsPaid('payment', paymentDetails)).resolves.toBeUndefined();
+    await expect(store.getState().markAsPaid('payment', paymentDetails)).resolves.toEqual(
+      paymentAmounts(),
+    );
 
     expect(repository.markAsPaid).toHaveBeenCalledWith('payment', paymentDetails);
     expect(store.getState().payments).toEqual([]);
+  });
+
+  it('resolves the amounts the repository resolved, the commitment figure with them', async () => {
+    const amounts = {
+      paymentAmount: 15.5,
+      accountNativeAmount: 775,
+      accountCurrency: Currency.EGP,
+      egpAmount: 775,
+      exchangeRate: 50,
+    };
+    const repository = makeRepository({
+      markAsPaid: jest.fn().mockResolvedValue(markAsPaidResult(amounts)),
+    });
+    const store = createCommitmentStore(repository);
+
+    await expect(store.getState().markAsPaid('payment', paymentDetails)).resolves.toEqual(amounts);
   });
 
   it('locks a payment against a stale Skip while Pay persistence is in flight', async () => {
@@ -1095,7 +1113,7 @@ describe('commitment store month aggregate', () => {
     });
   });
 
-  const writes: [string, (store: Store) => Promise<void>][] = [
+  const writes: [string, (store: Store) => Promise<unknown>][] = [
     ['markAsPaid', (store) => store.getState().markAsPaid('payment', paymentDetails)],
     ['skipPayment', (store) => store.getState().skipPayment('payment', MAY_8_LOCAL)],
     ['undoSkip', (store) => store.getState().undoSkip('payment', MAY_8_LOCAL)],

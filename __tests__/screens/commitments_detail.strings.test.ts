@@ -90,6 +90,36 @@ describe('commitment detail lifecycle copy (MA-266)', () => {
   });
 });
 
+describe('swipe and toast copy (MA-215)', () => {
+  it('ships the swipe tiles byte-exact', () => {
+    expect({ pay: Strings.swipePay, skip: Strings.swipeSkip }).toEqual({
+      pay: 'Pay',
+      skip: 'Skip',
+    });
+  });
+
+  it('ships the toast after Pay byte-exact', () => {
+    expect(Strings.commitmentsPaidToast('Rent', '8,000 EGP')).toBe('Rent paid · 8,000 EGP');
+  });
+
+  it('ships the toast after Skip and its action byte-exact', () => {
+    expect({
+      skipped: Strings.commitmentsSkippedToast('Rent'),
+      undo: Strings.commitmentsUndoAction,
+    }).toEqual({ skipped: 'Rent skipped', undo: 'Undo' });
+  });
+
+  it('ships the skip and undo failures byte-exact', () => {
+    expect({
+      skip: Strings.commitmentsSkipError,
+      undo: Strings.commitmentsUndoSkipError,
+    }).toEqual({
+      skip: "Couldn't skip this payment. Nothing was changed.",
+      undo: "Couldn't undo this skip. Nothing was changed.",
+    });
+  });
+});
+
 describe('commitment detail Payments copy (MA-265)', () => {
   it('ships the card title byte-exact', () => {
     expect(Strings.commitmentsDetailPaymentHistory).toBe('Payments');

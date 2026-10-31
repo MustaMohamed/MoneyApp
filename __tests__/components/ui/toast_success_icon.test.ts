@@ -1,10 +1,11 @@
-import { render, renderHook } from '@testing-library/react-native';
+import { fireEvent, render, renderHook } from '@testing-library/react-native';
 import type { ToastShowOptions } from 'heroui-native';
 import { createElement, type ReactElement } from 'react';
 import { View } from 'react-native';
 
-import { useToast } from '@/components/ui/toast';
-import { Colors, Size } from '@/constants/theme';
+import { scaledLineHeight } from '@/components/ui/text_scale.geometry';
+import { resolveToastActionHeight, useToast } from '@/components/ui/toast';
+import { Colors, Size, Type } from '@/constants/theme';
 
 jest.mock('react-native-reanimated', () =>
   jest
@@ -97,6 +98,83 @@ describe('the wrapper toast', () => {
     result.current.toast.show(options);
 
     expect(forwarded()).toBe(options);
+  });
+
+  describe('a success config with an action (MA-215)', () => {
+    type ActionToast = (props: { id: string; show: jest.Mock; hide: jest.Mock }) => ReactElement;
+
+    async function showActionToast(extra: Partial<ToastShowOptions> = {}) {
+      const onActionPress = jest.fn();
+      const { result } = await renderHook(() => useToast());
+
+      result.current.toast.show({
+        label: 'Rent skipped',
+        variant: 'success',
+        actionLabel: 'Undo',
+        onActionPress,
+        ...extra,
+      } as ToastShowOptions);
+
+      return { options: forwarded() as { component: ActionToast }, onActionPress };
+    }
+
+    async function renderActionToast() {
+      const show = jest.fn();
+      const hide = jest.fn();
+      const { options, onActionPress } = await showActionToast();
+      const view = await render(createElement(options.component, { id: 'toast-1', show, hide }));
+      return { ...view, show, hide, onActionPress };
+    }
+
+    it('forwards a component and no variant, label or icon', async () => {
+      const { options } = await showActionToast();
+
+      expect(options).toEqual({ component: expect.any(Function) });
+    });
+
+    it('keeps the id, the duration and the show and hide hooks beside the component', async () => {
+      const onShow = jest.fn();
+      const onHide = jest.fn();
+
+      const { options } = await showActionToast({ id: 'skip', duration: 4000, onShow, onHide });
+
+      expect(options).toEqual({
+        id: 'skip',
+        duration: 4000,
+        onShow,
+        onHide,
+        component: expect.any(Function),
+      });
+    });
+
+    it('draws the check, the label and the action', async () => {
+      const { getByTestId, getByText } = await renderActionToast();
+
+      expect(getByTestId('icon-check-circle')).toHaveStyle({
+        color: Colors.dark.positive,
+        fontSize: Size.toastIcon,
+      });
+      expect(getByText('Rent skipped')).toBeTruthy();
+      expect(getByText('Undo')).toBeTruthy();
+    });
+
+    it('hides this toast, then runs the action once with show and hide', async () => {
+      const { getByText, show, hide, onActionPress } = await renderActionToast();
+
+      await fireEvent.press(getByText('Undo'));
+
+      expect(hide).toHaveBeenCalledTimes(1);
+      expect(hide).toHaveBeenCalledWith('toast-1');
+      expect(onActionPress).toHaveBeenCalledTimes(1);
+      expect(onActionPress).toHaveBeenCalledWith({ show, hide });
+      expect(hide.mock.invocationCallOrder[0]).toBeLessThan(
+        onActionPress.mock.invocationCallOrder[0],
+      );
+    });
+  });
+
+  it('sizes the action to one body line at font scale 2', () => {
+    expect(resolveToastActionHeight(2)).toBe(scaledLineHeight(Type.body, 2));
   });
 
   it('hands back the HeroUI hide and visibility flag', async () => {
