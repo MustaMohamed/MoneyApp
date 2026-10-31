@@ -2,6 +2,7 @@ import {
   STACKED_PREFIX,
   resolveDetailScreenEdges,
   stackedPrefixOf,
+  stackedPrefixOfNavigator,
   stackedTransactionDetailRoute,
 } from '@/modules/navigation/domain/stacked_route';
 
@@ -39,6 +40,33 @@ describe('stackedPrefixOf', () => {
     '/transactions/stacked/tx-1',
   ])('reads %s as the tabbed copy', (pathname) => {
     expect(stackedPrefixOf(pathname)).toBe('');
+  });
+});
+
+describe('stackedPrefixOfNavigator', () => {
+  it('reads a navigator holding a stacked/ route as the stacked copy', () => {
+    const state = {
+      routes: [{ name: '(tabs)' }, { name: 'stacked/transactions/detail/[id]/index' }],
+    };
+
+    expect(stackedPrefixOfNavigator(state)).toBe(STACKED_PREFIX);
+  });
+
+  it('reads a navigator with no stacked/ route as the tabbed copy', () => {
+    const state = {
+      routes: [
+        { name: 'index' },
+        { name: 'detail/[id]/index' },
+        { name: 'stackedthing/index' },
+        { name: 'transactions/stacked/index' },
+      ],
+    };
+
+    expect(stackedPrefixOfNavigator(state)).toBe('');
+  });
+
+  it('reads no navigator state as the tabbed copy', () => {
+    expect(stackedPrefixOfNavigator(undefined)).toBe('');
   });
 });
 
