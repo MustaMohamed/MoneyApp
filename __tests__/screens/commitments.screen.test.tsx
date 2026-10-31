@@ -231,6 +231,7 @@ type CommitmentsScreenHook = ReturnType<typeof useCommitments>;
 type CommitmentsScreenState = CommitmentsScreenHook['state'];
 
 const baseCommitmentsState: CommitmentsScreenState = {
+  listRef: { current: null },
   sections: [],
   selectedMonth: '2026-08',
   emptyMonthName: 'August',

@@ -209,6 +209,46 @@ describe('createCommitmentsScreenStore on a fake repository', () => {
     expect(store.getState().rowsRead?.rows).toEqual([RENT_ROW]);
   });
 
+  it('holds the error id through a read over held rows and clears it in the landing publish', async () => {
+    const repo = fakeRepo();
+    const retry = deferred<CommitmentMonthPayment[]>();
+    repo.getPaymentsByCommitment
+      .mockResolvedValueOnce([RENT_ROW])
+      .mockRejectedValueOnce(READ_FAILED)
+      .mockReturnValueOnce(retry.promise);
+    const store = createCommitmentsScreenStore(repo);
+    await store.getState().loadCommitmentRows('rent', NOW);
+    await store.getState().loadCommitmentRows('rent', NOW);
+    const listener = jest.fn();
+    const unsubscribe = store.subscribe(listener);
+
+    const load = store.getState().loadCommitmentRows('rent', NOW);
+
+    expect(store.getState().rowsLoadErrorId).toBe('rent');
+    retry.resolve([RENT_ROW]);
+    await load;
+    unsubscribe();
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(store.getState().rowsLoadErrorId).toBeUndefined();
+  });
+
+  it('changes nothing when a read over held rows fails again', async () => {
+    const repo = fakeRepo();
+    repo.getPaymentsByCommitment.mockResolvedValueOnce([RENT_ROW]).mockRejectedValue(READ_FAILED);
+    const store = createCommitmentsScreenStore(repo);
+    await store.getState().loadCommitmentRows('rent', NOW);
+    await store.getState().loadCommitmentRows('rent', NOW);
+    const held = store.getState();
+    const listener = jest.fn();
+    const unsubscribe = store.subscribe(listener);
+
+    await store.getState().loadCommitmentRows('rent', NOW);
+    unsubscribe();
+
+    expect(listener).not.toHaveBeenCalled();
+    expect(store.getState()).toBe(held);
+  });
+
   it('notifies once per landed load', async () => {
     const repo = fakeRepo();
     repo.getPaymentsByCommitment.mockResolvedValue([RENT_ROW]);

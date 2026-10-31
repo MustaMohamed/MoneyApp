@@ -19,6 +19,7 @@ import type { CommitmentMonthPayment } from '../../entities/commitment_payment.e
 import type { CommitmentStatusFilter } from './commitments.state';
 import type { CommitmentRowsRead } from './commitments.store';
 import type { CommitmentsHeroMode } from './components/commitments_hero.helpers';
+import { withHeldCommitment } from './filter/filter.helpers';
 
 export interface CommitmentsSection extends DayHeaderSection {
   key: CommitmentPaymentStatus;
@@ -206,14 +207,12 @@ export function resolveCommitmentListSource(
     };
   }
   const { commitment } = rowsRead;
-  const monthLacksIt =
-    commitment !== undefined && !month.commitments.some((c) => c.id === commitment.id);
   return {
     ready: true,
     loadError: rowsFailed || month.loadError,
     today: rowsRead.today,
     yearMonth: undefined,
-    commitments: monthLacksIt ? [...month.commitments, commitment] : month.commitments,
+    commitments: withHeldCommitment(month.commitments, commitment),
     payments: rowsRead.rows,
     commitmentName: commitment?.name,
   };
@@ -241,10 +240,11 @@ function tallyWords(
   };
 }
 
-/** Follows the hero: its skeleton draws one bar, its dashes print `— payments`. */
+/** Follows the hero: its skeleton draws one bar, its dashes print `— payments`. A named tally with its rows summed stands on them alone. */
 export function buildCommitmentsSearchTally(input: CommitmentsSearchTallyInput): SearchTallyModel {
-  const { isOn, heroMode, total, commitmentName } = input;
+  const { isOn, total, commitmentName } = input;
   if (!isOn) return { mode: 'empty', ...NO_TALLY_TEXT };
+  const heroMode = commitmentName !== undefined && total !== undefined ? 'figures' : input.heroMode;
   if (heroMode === 'skeleton' || (heroMode === 'figures' && total === undefined)) {
     return { mode: 'skeleton', ...NO_TALLY_TEXT };
   }

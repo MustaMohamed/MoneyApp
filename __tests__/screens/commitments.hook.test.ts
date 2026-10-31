@@ -98,6 +98,7 @@ jest.mock('@/modules/commitments/screens/commitments/commitments.store', () => (
 }));
 
 const loadCommitmentRowsMock = jest.fn<Promise<void>, [string]>().mockResolvedValue(undefined);
+const resetCommitmentRowsMock = jest.fn();
 const loadMonthSnapshotMock = jest.fn().mockResolvedValue(undefined);
 const loadMonthAggregateMock = jest.fn().mockResolvedValue(undefined);
 const loadAccountLookupMock = jest.fn<Promise<void>, [string[]]>().mockResolvedValue(undefined);
@@ -291,6 +292,7 @@ function setup({
     rowsRead,
     rowsLoadErrorId,
     loadCommitmentRows: loadCommitmentRowsMock,
+    reset: resetCommitmentRowsMock,
   }));
   attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
     commitments,
@@ -362,6 +364,7 @@ describe('useCommitments', () => {
     setSearchQueryMock.mockClear();
     clearSearchMock.mockClear();
     setAppliedFiltersMock.mockClear();
+    resetCommitmentRowsMock.mockClear();
     mockUseDeferredValue.mockReset().mockImplementation((value: unknown) => value);
     runAfterInteractions.mockClear();
     setup();
@@ -1496,6 +1499,7 @@ describe('useCommitments account chips, account prune and tally (MA-241)', () =>
     loadMonthAggregateMock.mockReset().mockResolvedValue(undefined);
     loadAccountLookupMock.mockReset().mockResolvedValue(undefined);
     setAppliedFiltersMock.mockClear();
+    resetCommitmentRowsMock.mockClear();
     currencyRate = 50;
     currencyRateLoaded = true;
     mockUseDeferredValue.mockReset().mockImplementation((value: unknown) => value);
@@ -2038,5 +2042,40 @@ describe('useCommitments commitment dimension (MA-213)', () => {
       sum: undefined,
       accessibilityLabel: '0 payments',
     });
+  });
+
+  it('calls the rows reset once the dimension clears, so a later See all draws the skeletons', async () => {
+    resetCommitmentRowsMock.mockClear();
+    setup({ ...month(), appliedFilters: FILTERED, rowsRead: READ });
+    const hook = await renderHook(() => useCommitments());
+    expect(resetCommitmentRowsMock).not.toHaveBeenCalled();
+
+    setup({ ...month(), rowsRead: READ });
+    await hook.rerender({});
+
+    expect(resetCommitmentRowsMock).toHaveBeenCalled();
+  });
+
+  it('applies an emptied search at once, where a typed one keeps its debounce', async () => {
+    setup({ ...month(), searchQuery: 'no such row' });
+    const hook = await renderHook(() => useCommitments());
+    expect(hook.result.current.state.sections).toEqual([]);
+
+    setup({ ...month(), searchQuery: 'rent' });
+    await hook.rerender({});
+    expect(hook.result.current.state.sections).toEqual([]);
+
+    setup({ ...month(), searchQuery: '' });
+    await hook.rerender({});
+    expect(hook.result.current.state.sections).not.toEqual([]);
+  });
+
+  it('resetFilters drops the commitment dimension', async () => {
+    setup({ ...month(), appliedFilters: FILTERED, rowsRead: READ });
+    const { result } = await renderHook(() => useCommitments());
+
+    await act(async () => result.current.resetFilters());
+
+    expect(setAppliedFiltersMock).toHaveBeenLastCalledWith(EMPTY_COMMITMENT_FILTERS);
   });
 });

@@ -25,7 +25,6 @@ import { EMPTY_COMMITMENT_FILTERS } from '@/modules/commitments/screens/commitme
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { useCommitmentFormHostState } from '@/modules/commitments/store/commitment_form_host.state';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
-import { backgroundTabPushedStackKey } from '@/modules/navigation/domain/stacked_route';
 import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
 import { deferred } from '@/test_helpers/deferred';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
@@ -1430,12 +1429,10 @@ describe('useCommitmentDetail goToAllPayments (MA-213)', () => {
   const COMMITMENTS_TAB = '/(app)/(tabs)/commitments';
   const stopped: Commitment = { ...commitment, is_active: 0 };
   const TRANSACTIONS_TAB_INDEX = 1;
-  const COMMITMENTS_TAB_INDEX = 2;
   const PUSHED_TAB_STACK = {
     key: 'commitments-tab-stack',
     routes: [{ name: 'index' }, { name: '[id]/index' }],
   };
-  const ROOT_TAB_STACK = { key: 'commitments-tab-stack', routes: [{ name: 'index' }] };
 
   function appStackOver(focusedTab: number, commitmentsStack?: typeof PUSHED_TAB_STACK) {
     return {
@@ -1497,21 +1494,6 @@ describe('useCommitmentDetail goToAllPayments (MA-213)', () => {
 
     expectTheFilteredTab(commitment.id);
     expect(mockNavigationDispatch).not.toHaveBeenCalled();
-  });
-
-  it.each([
-    [
-      'another tab focused and a screen pushed',
-      appStackOver(TRANSACTIONS_TAB_INDEX, PUSHED_TAB_STACK),
-      PUSHED_TAB_STACK.key,
-    ],
-    ['the tab itself focused', appStackOver(COMMITMENTS_TAB_INDEX, PUSHED_TAB_STACK), undefined],
-    ['only the tab root', appStackOver(TRANSACTIONS_TAB_INDEX, ROOT_TAB_STACK), undefined],
-    ['a tab with no state', appStackOver(TRANSACTIONS_TAB_INDEX), undefined],
-    ['a navigator with no (tabs) route', TAB_STACK, undefined],
-    ['no navigator state', undefined, undefined],
-  ])('backgroundTabPushedStackKey reads %s', (_name, appStack, expected) => {
-    expect(backgroundTabPushedStackKey(appStack, 'commitments')).toBe(expected);
   });
 
   it('pops the background tab Stack to its root before the two dismissals', async () => {

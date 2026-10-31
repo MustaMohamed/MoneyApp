@@ -15,7 +15,7 @@ import { useCommitmentsScreenStore } from '../commitments.store';
 import {
   commitmentFiltersEqual,
   countActiveCommitmentFilters,
-  resolveCommitmentFilterOptions,
+  withHeldCommitment,
 } from './filter.helpers';
 import { useCommitmentFilterState } from './filter.state';
 import { useCommitmentFilterStore } from './filter.store';
@@ -97,7 +97,7 @@ export function useCommitmentFilterSheet() {
     ).map((option) => option.label),
     Strings.filterAllRepeats,
   );
-  const commitmentOptions = resolveCommitmentFilterOptions(
+  const commitmentOptions = withHeldCommitment(
     commitments.filter((commitment) => commitment.is_active === 1),
     rowsRead?.commitmentId === appliedFilters.commitmentId ? rowsRead?.commitment : undefined,
   );

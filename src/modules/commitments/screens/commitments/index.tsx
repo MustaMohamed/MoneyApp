@@ -262,6 +262,7 @@ export default function CommitmentsScreen() {
         <CommitmentsEmptyState onAdd={goToAdd} />
       ) : (
         <SectionList
+          ref={state.listRef}
           sections={state.sections}
           keyExtractor={(item) => item.id}
           stickySectionHeadersEnabled

@@ -736,12 +736,25 @@ describe('buildCommitmentsSearchTally — the named tally (MA-213)', () => {
     });
   });
 
+  it.each(['skeleton', 'dashes'] as const)(
+    'prints the rows read whatever the month hero reads, here %s',
+    (heroMode) => {
+      expect(
+        buildCommitmentsSearchTally({
+          ...ON,
+          heroMode,
+          total: { egp: 1240, count: 3, showTilde: false },
+        }),
+      ).toMatchObject({ mode: 'figures', lead: 'Rent', label: '· 3 payments' });
+    },
+  );
+
   it('prints "· — payments" with no sum while the hero prints dashes', () => {
     expect(
       buildCommitmentsSearchTally({
         ...ON,
         heroMode: 'dashes',
-        total: { egp: 1240, count: 3, showTilde: false },
+        total: undefined,
       }),
     ).toEqual({
       mode: 'failed',

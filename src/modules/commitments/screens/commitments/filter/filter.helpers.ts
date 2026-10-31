@@ -86,8 +86,8 @@ export function commitmentMatchesAdvancedFilters(
   return true;
 }
 
-/** The sheet's options: `held`, the commitment the applied filter holds, joins them when they lack it. */
-export function resolveCommitmentFilterOptions(
+/** `commitments`, joined by `held`, the commitment a filter holds, when they lack it. */
+export function withHeldCommitment(
   commitments: readonly Commitment[],
   held: Commitment | undefined,
 ): readonly Commitment[] {

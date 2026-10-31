@@ -5,11 +5,11 @@ type CommitmentsEmptyVariant = 'none' | 'noCommitments' | 'emptyMonth' | 'noResu
 type CommitmentsFloatingAlert = 'list' | 'accounts';
 
 export interface CommitmentsPresentationInput {
-  hasMatchingSnapshot: boolean;
+  listReady: boolean;
   loadError: boolean;
-  /** Commitments that are active or hold a row in the month. */
+  /** The commitments the list reads: active, holding a row in the month, or filtered to. */
   commitmentCount: number;
-  /** The month's rows before the status tab, search and filters. */
+  /** The list's rows before the status tab, search and filters. */
   rowCount: number;
   /** The sections left after the status tab, search and filters. */
   matchCount: number;
@@ -24,15 +24,15 @@ export interface CommitmentsPresentation {
 }
 
 function resolveStatus({
-  hasMatchingSnapshot,
+  listReady,
   loadError,
 }: CommitmentsPresentationInput): CommitmentsListStatus {
-  if (!hasMatchingSnapshot) return loadError ? 'coldError' : 'coldLoading';
+  if (!listReady) return loadError ? 'coldError' : 'coldLoading';
   return loadError ? 'contentWithError' : 'content';
 }
 
 function resolveEmptyVariant(input: CommitmentsPresentationInput): CommitmentsEmptyVariant {
-  if (!input.hasMatchingSnapshot || input.matchCount > 0) return 'none';
+  if (!input.listReady || input.matchCount > 0) return 'none';
   if (input.commitmentCount === 0 && input.rowCount === 0) return 'noCommitments';
   if (input.filtersActive) return 'noResults';
   // The frame where a deferred status tab lags the rows stays `none`.

@@ -3,12 +3,11 @@ import Animated from 'react-native-reanimated';
 
 import { DetailRowsCard } from '@/components/ui/detail_rows_card';
 import { SectionHeader } from '@/components/ui/section_header';
-import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Strings } from '@/constants/strings';
-import { Type, touchFloorHitSlop } from '@/constants/theme';
 
 import { historyEntering } from '../detail.anim';
 import type { CommitmentPaymentRowModel } from '../detail.helpers';
+import { resolvePaymentsSeeAllHitSlop } from './payment_history.geometry';
 import { PaymentRow } from './payment_row';
 
 interface Props {
@@ -27,7 +26,7 @@ export function PaymentHistory({ rows, onSeeAll }: Props): React.ReactElement | 
         action={{
           label: Strings.commitmentsDetailSeeAll,
           onPress: onSeeAll,
-          hitSlop: touchFloorHitSlop(scaledTextStyle(Type.caption, fontScale).lineHeight),
+          hitSlop: resolvePaymentsSeeAllHitSlop(fontScale),
         }}
       />
       <DetailRowsCard testID="commitment-detail-payments">

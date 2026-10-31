@@ -6,7 +6,7 @@ import {
   commitmentMatchesAdvancedFilters,
   commitmentMatchesSearch,
   countActiveCommitmentFilters,
-  resolveCommitmentFilterOptions,
+  withHeldCommitment,
 } from '@/modules/commitments/screens/commitments/filter/filter.helpers';
 import type { CommitmentAdvancedFilters } from '@/modules/commitments/screens/commitments/filter/filter.store';
 import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
@@ -261,21 +261,21 @@ describe('the commitment dimension (MA-213)', () => {
   });
 });
 
-describe('resolveCommitmentFilterOptions (MA-213)', () => {
+describe('withHeldCommitment (MA-213)', () => {
   const rent = makeCommitment({ id: 'rent', name: 'Rent' });
   const gym = makeCommitment({ id: 'gym', name: 'Gym' });
   const stopped = makeCommitment({ id: 'old', name: 'Old gym', is_active: 0 });
 
   it('returns the snapshot in its order with nothing held', () => {
-    expect(resolveCommitmentFilterOptions([rent, gym], undefined)).toEqual([rent, gym]);
+    expect(withHeldCommitment([rent, gym], undefined)).toEqual([rent, gym]);
   });
 
   it('appends a held commitment the snapshot lacks', () => {
-    expect(resolveCommitmentFilterOptions([rent, gym], stopped)).toEqual([rent, gym, stopped]);
-    expect(resolveCommitmentFilterOptions([], stopped)).toEqual([stopped]);
+    expect(withHeldCommitment([rent, gym], stopped)).toEqual([rent, gym, stopped]);
+    expect(withHeldCommitment([], stopped)).toEqual([stopped]);
   });
 
   it('lists a held commitment the snapshot holds once, in its place', () => {
-    expect(resolveCommitmentFilterOptions([rent, gym], rent)).toEqual([rent, gym]);
+    expect(withHeldCommitment([rent, gym], rent)).toEqual([rent, gym]);
   });
 });

@@ -46,17 +46,26 @@ export function createCommitmentsScreenStore(
       loadCommitmentRows: async (commitmentId, now = new Date()) => {
         latestRequestId += 1;
         const requestId = latestRequestId;
-        if (get().rowsLoadErrorId !== undefined) set({ rowsLoadErrorId: undefined });
+        // Cold, the skeleton is the indicator; over held rows the alert stands until a load lands.
+        const { rowsRead, rowsLoadErrorId } = get();
+        if (rowsLoadErrorId !== undefined && rowsRead?.commitmentId !== commitmentId) {
+          set({ rowsLoadErrorId: undefined });
+        }
         try {
           const [commitment, rows] = await Promise.all([
             repo.getById(commitmentId),
             repo.getPaymentsByCommitment(commitmentId),
           ]);
           if (requestId !== latestRequestId) return;
-          set({ rowsRead: { commitmentId, commitment, rows, today: toLocalDateString(now) } });
+          set({
+            rowsRead: { commitmentId, commitment, rows, today: toLocalDateString(now) },
+            rowsLoadErrorId: undefined,
+          });
         } catch (error) {
           console.error('[commitments] commitment rows read failed:', error);
-          if (requestId === latestRequestId) set({ rowsLoadErrorId: commitmentId });
+          if (requestId === latestRequestId && get().rowsLoadErrorId !== commitmentId) {
+            set({ rowsLoadErrorId: commitmentId });
+          }
         }
       },
       reset: () => {

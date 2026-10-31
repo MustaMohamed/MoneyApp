@@ -1,5 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef } from 'react';
+import type { SectionList } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
 import { countFunnelFilters } from '@/components/ui/account_chips.helpers';
@@ -25,6 +26,7 @@ import {
   buildCommitmentSections,
   buildCommitmentsSearchTally,
   resolveCommitmentListSource,
+  type CommitmentsSection,
 } from './commitments.helpers';
 import { buildCommitmentsPresentation } from './commitments.presentation';
 import { useCommitmentsScreenState } from './commitments.state';
@@ -101,7 +103,9 @@ export function useCommitments() {
   const clearSearch = useCommitmentsScreenState.getState().clearSearch;
   const setAppliedFilters = useCommitmentsScreenState.getState().setAppliedFilters;
   const deferredStatusFilter = useDeferredValue(statusFilter);
-  const debouncedSearch = useDebouncedValue(searchQuery, 300);
+  const settledSearch = useDebouncedValue(searchQuery, 300);
+  // An emptied query applies at once, so a seeded filter never reads the search it cleared.
+  const debouncedSearch = searchQuery.length === 0 ? '' : settledSearch;
   const openFilter = useCommitmentFilterState.getState().open;
   const setFilterDraft = useCommitmentFilterStore.getState().setDraft;
 
@@ -109,6 +113,8 @@ export function useCommitments() {
     useShallow((s) => ({ rowsRead: s.rowsRead, rowsLoadErrorId: s.rowsLoadErrorId })),
   );
   const loadCommitmentRows = useCommitmentsScreenStore.getState().loadCommitmentRows;
+  const resetCommitmentRows = useCommitmentsScreenStore.getState().reset;
+  const listRef = useRef<SectionList<CommitmentMonthPayment, CommitmentsSection>>(null);
 
   const { effectiveFilters, accountChips, toggleAccountChip } = useAccountChipFilter(
     appliedFilters,
@@ -151,8 +157,14 @@ export function useCommitments() {
 
   // `payments` is the refresh trigger: every store publish re-reads the commitment's rows in place.
   useEffect(() => {
-    if (commitmentId !== undefined) void loadCommitmentRows(commitmentId);
-  }, [commitmentId, payments, loadCommitmentRows]);
+    if (commitmentId === undefined) resetCommitmentRows();
+    else void loadCommitmentRows(commitmentId);
+  }, [commitmentId, payments, loadCommitmentRows, resetCommitmentRows]);
+
+  // A change of the dimension is another list, which opens at its top.
+  useEffect(() => {
+    listRef.current?.getScrollResponder()?.scrollTo({ y: 0, animated: false });
+  }, [commitmentId]);
 
   const commitmentsById = useMemo(
     () => new Map(source.commitments.map((c: Commitment) => [c.id, c])),
@@ -381,7 +393,7 @@ export function useCommitments() {
 
   const showAccountLookupError = lookupLeavesUnresolved(accountRead, rowAccountIds);
   const presentation = buildCommitmentsPresentation({
-    hasMatchingSnapshot: source.ready,
+    listReady: source.ready,
     loadError: source.loadError,
     commitmentCount: source.commitments.length,
     rowCount: source.payments.length,
@@ -392,6 +404,7 @@ export function useCommitments() {
 
   return {
     state: {
+      listRef,
       sections,
       tally: searchTally,
       liveRate,

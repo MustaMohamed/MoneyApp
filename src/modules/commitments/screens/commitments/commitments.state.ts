@@ -41,7 +41,6 @@ export const useCommitmentsScreenState = createMoneyAppSelectors(
     setSearchQuery: (query) => set({ searchQuery: query }),
     clearSearch: () => set({ searchQuery: '' }),
     setAppliedFilters: (filters) => set({ appliedFilters: filters }),
-    // One publication: the list's effects key off these three fields.
     seedCommitmentFilter: (commitmentId) =>
       set({
         searchQuery: '',
