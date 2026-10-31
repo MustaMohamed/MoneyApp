@@ -31,6 +31,7 @@ import {
   shouldBlurInputOnClose,
 } from './sheet.helpers';
 import { useSheetCloseHitSlop, useSheetCloseLifecycle } from './sheet.hook';
+import { hasSheetEverOpened } from './sheet_close_lifecycle';
 
 // Keyboard inputs: wire this onto an `Input`'s `onFocus`/`onBlur` inside a sheet.
 export { useBottomSheetAwareHandlers } from 'heroui-native';
@@ -228,7 +229,7 @@ export function Sheet({
                 ) : null}
               </View>
             )}
-            {closeLifecycle.hasEverOpened ? children : null}
+            {hasSheetEverOpened(closeLifecycle) ? children : null}
           </BottomSheet.Content>
         </View>
       </BottomSheet.Portal>

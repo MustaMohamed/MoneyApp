@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react-native';
 
-import { useRateStale } from '@/modules/currency/store/use_rate_stale.hook';
+import { useRateStale } from '@/modules/currency/utils/use_rate_stale.hook';
 
 const NOW_MS = Date.parse('2026-09-30T12:00:00.000Z');
 const DAY_MS = 24 * 60 * 60 * 1000;

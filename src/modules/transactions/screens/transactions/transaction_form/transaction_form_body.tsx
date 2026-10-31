@@ -28,7 +28,7 @@ import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 import { CategoryPickerRow } from '@/modules/categories/components/category_picker_row';
 import type { Category } from '@/modules/categories/entities/category.entity';
-import { useRateStale } from '@/modules/currency/store/use_rate_stale.hook';
+import { useRateStale } from '@/modules/currency/utils/use_rate_stale.hook';
 
 import { TransactionAmountHero } from './components/transaction_amount_hero';
 import {

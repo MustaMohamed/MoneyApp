@@ -9,7 +9,7 @@ import { Strings } from '@/constants/strings';
 import type { Account } from '@/database/entities/account.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
-import { useRateStale } from '@/modules/currency/store/use_rate_stale.hook';
+import { useRateStale } from '@/modules/currency/utils/use_rate_stale.hook';
 import {
   resolveAccountStripChips,
   resolveStripSelectedId,
