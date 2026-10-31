@@ -267,7 +267,11 @@ export function usePaySheet(
   }, [visible, commitment?.id, payment?.id, today]);
 
   async function onValid(data: PaySheetFormValues) {
-    if (!payment || !commitment || settled) return;
+    if (!payment || settled) return;
+    if (!commitment) {
+      setSaveError(owner, Strings.commitmentsPayError);
+      return;
+    }
     const startedOpen = openGenerationRef.current;
     setSaving(owner, true);
     setSaveError(owner, undefined);
@@ -283,17 +287,14 @@ export function usePaySheet(
         // oxlint-disable-next-line typescript/prefer-nullish-coalescing -- || is intentional: empty string maps to undefined
         notes: data.notes?.trim() || undefined,
       });
+      const closes = openedPaymentIdRef.current === payment.id;
+      // Pay stays off and the day stays put until the next open, so the closing sheet cannot pay twice.
+      if (closes) setSettled(owner, true);
       const paidToast = Strings.commitmentsPaidToast(
         commitment.name,
         formatDisplayAmount(amounts.paymentAmount, commitment.currency),
       );
-      if (openedPaymentIdRef.current === payment.id) {
-        // Pay stays off and the day stays put until the next open, so the closing sheet cannot pay twice.
-        setSettled(owner, true);
-        if (!usePaySheetState.getState().closeWithToast(owner, paidToast)) {
-          toast.show({ label: paidToast, variant: 'success' });
-        }
-      } else {
+      if (!closes || !usePaySheetState.getState().closeWithToast(owner, paidToast)) {
         toast.show({ label: paidToast, variant: 'success' });
       }
       void loadAccounts().catch((error: unknown) =>
@@ -302,8 +303,12 @@ export function usePaySheet(
     } catch (error) {
       // The reload rethrows after publishing `loadError`; a failed reload keeps the failed-write line.
       await loadAccounts().catch(() => undefined);
-      // A reopen during the reload owns the form now, so this failure is not its to show.
-      if (openGenerationRef.current !== startedOpen) return;
+      // A dismissed sheet or a reopen has no status track for this failure, so it reads as a toast.
+      const visibleNow = usePaySheetState.getState().entries[owner]?.visible === true;
+      if (openGenerationRef.current !== startedOpen || !visibleNow) {
+        toast.show({ label: resolvePaySheetSaveError(error), variant: 'danger' });
+        return;
+      }
       const reloaded = useAccountStore.getState();
       if (!reloaded.loadError && !reloaded.accounts.some((a) => a.id === data.account_id)) {
         form.setError('account_id', {

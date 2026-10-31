@@ -91,12 +91,19 @@ jest.mock('@/utils/run_after_interactions', () => ({
     return { cancel: task.cancel };
   }),
 }));
-jest.mock('@/modules/commitments/store/commitment.store', () => ({
-  useCommitmentStore: jest.fn(),
-  monthAggregateKey: jest.requireActual<
-    typeof import('@/modules/commitments/store/commitment.store')
-  >('@/modules/commitments/store/commitment.store').monthAggregateKey,
-}));
+jest.mock('@/modules/commitments/store/commitment.store', () => {
+  const useCommitmentStore = jest.fn() as unknown as {
+    getState: () => { transitioningPaymentIds: string[] };
+  };
+  return {
+    useCommitmentStore,
+    isPaymentInTransition: (paymentId: string) =>
+      useCommitmentStore.getState().transitioningPaymentIds.includes(paymentId),
+    monthAggregateKey: jest.requireActual<
+      typeof import('@/modules/commitments/store/commitment.store')
+    >('@/modules/commitments/store/commitment.store').monthAggregateKey,
+  };
+});
 jest.mock('@/modules/currency/store/currency.store', () => ({ useCurrencyStore: jest.fn() }));
 jest.mock('@/modules/accounts/store/account.store', () => ({ useAccountStore: jest.fn() }));
 jest.mock('@/modules/categories/store/category.store', () => ({ useCategoryStore: jest.fn() }));
@@ -1348,6 +1355,41 @@ describe('useCommitments pay and skip from a row (MA-215)', () => {
     expect(setPayTargetMock).not.toHaveBeenCalled();
     expect(skipPaymentMock).not.toHaveBeenCalled();
     expect(entries()[payOwner].openedOn).toBe(OPENED_EARLIER);
+  });
+
+  it('payRow and skipRow do nothing while a close still owes its toast', async () => {
+    const { result } = await renderHook(() => useCommitments());
+    const { payOwner } = result.current.state;
+    await act(async () => {
+      usePaySheetState.getState().open(payOwner, OPENED_EARLIER);
+      usePaySheetState.getState().closeWithToast(payOwner, 'Paid');
+    });
+
+    await act(async () => {
+      result.current.payRow(payment, commitment);
+      result.current.skipRow(payment, commitment);
+    });
+
+    expect(setPayTargetMock).not.toHaveBeenCalled();
+    expect(skipPaymentMock).not.toHaveBeenCalled();
+    expect(entries()[payOwner].postCloseAction).toEqual({ paidToast: 'Paid' });
+  });
+
+  it('goToDetail waits out a visible sheet and its close', async () => {
+    mockRouter.push.mockClear();
+    const { result } = await renderHook(() => useCommitments());
+    const { payOwner } = result.current.state;
+    await act(async () => usePaySheetState.getState().open(payOwner, OPENED_EARLIER));
+
+    await act(async () => result.current.goToDetail(commitment.id, payment.id));
+    expect(mockRouter.push).not.toHaveBeenCalled();
+
+    await act(async () => {
+      usePaySheetState.getState().closeWithToast(payOwner, 'Paid');
+      usePaySheetState.getState().completeClose(payOwner);
+    });
+    await act(async () => result.current.goToDetail(commitment.id, payment.id));
+    expect(mockRouter.push).toHaveBeenCalledTimes(1);
   });
 
   it('releases the owner entry on unmount', async () => {

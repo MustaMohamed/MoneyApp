@@ -3,9 +3,9 @@ import type { ToastShowOptions } from 'heroui-native';
 import { createElement, type ReactElement } from 'react';
 import { View } from 'react-native';
 
-import { scaledLineHeight } from '@/components/ui/text_scale.geometry';
-import { resolveToastActionHeight, useToast } from '@/components/ui/toast';
-import { Colors, Size, Type } from '@/constants/theme';
+import { resolveButtonLabelStyle } from '@/components/ui/button.geometry';
+import { resolveToastActionHeight, TOAST_ACTION_Z_INDEX, useToast } from '@/components/ui/toast';
+import { Colors, Size } from '@/constants/theme';
 
 jest.mock('react-native-reanimated', () =>
   jest
@@ -132,6 +132,14 @@ describe('the wrapper toast', () => {
       expect(options).toEqual({ component: expect.any(Function) });
     });
 
+    it('lifts the action above the padding placeholders HeroUI lays over the root', async () => {
+      const { getByText } = await renderActionToast();
+
+      expect(getByText('Undo').parent?.props.style).toMatchObject({
+        zIndex: TOAST_ACTION_Z_INDEX,
+      });
+    });
+
     it('keeps the id, the duration and the show and hide hooks beside the component', async () => {
       const onShow = jest.fn();
       const onHide = jest.fn();
@@ -173,24 +181,34 @@ describe('the wrapper toast', () => {
     });
   });
 
-  it('sizes the action to one body line at font scale 2', () => {
-    expect(resolveToastActionHeight(2)).toBe(scaledLineHeight(Type.body, 2));
+  it('sizes the action to hold its label at font scale 2', () => {
+    expect(resolveToastActionHeight(2)).toBeGreaterThanOrEqual(
+      resolveButtonLabelStyle('sm', 2)?.lineHeight ?? Number.POSITIVE_INFINITY,
+    );
   });
 
-  it('hands back the HeroUI hide and visibility flag', async () => {
+  it('hands a hide to HeroUI and its visibility flag back', async () => {
     jest.spyOn(heroui, 'useToast').mockReturnValue({ toast: heroToast, isToastVisible: true });
     const { result } = await renderHook(() => useToast());
 
-    expect(result.current.toast.hide).toBe(heroToast.hide);
+    result.current.toast.hide('toast-1');
+
+    expect(heroToast.hide).toHaveBeenCalledWith('toast-1');
     expect(result.current.isToastVisible).toBe(true);
   });
 
-  it('keeps the toast object while the HeroUI one is unchanged', async () => {
+  it('keeps the toast object across a new HeroUI one and calls the new one', async () => {
+    const heroUseToast = jest.spyOn(heroui, 'useToast');
     const { result, rerender } = await renderHook(() => useToast());
     const first = result.current.toast;
+    const nextHeroToast = { show: jest.fn(), hide: jest.fn() };
+    heroUseToast.mockReturnValue({ toast: nextHeroToast, isToastVisible: false });
 
     await rerender(undefined);
+    first.show('Saved');
 
     expect(result.current.toast).toBe(first);
+    expect(nextHeroToast.show).toHaveBeenCalledWith('Saved');
+    heroUseToast.mockRestore();
   });
 });

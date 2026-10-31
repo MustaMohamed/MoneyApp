@@ -10,11 +10,15 @@ import {
   type ToastShowConfig,
   type ToastShowOptions,
 } from 'heroui-native';
-import { useMemo, type ReactNode } from 'react';
+import { useLayoutEffect, useMemo, useRef, type ReactNode } from 'react';
 import { useWindowDimensions, View } from 'react-native';
 
 import { resolveButtonLabelStyle } from '@/components/ui/button.geometry';
-import { resolveOneLineTextProps, scaledLineHeight } from '@/components/ui/text_scale.geometry';
+import {
+  HEROUI_TEXT_TYPE,
+  resolveOneLineTextProps,
+  scaledLineHeight,
+} from '@/components/ui/text_scale.geometry';
 import { TOAST_ANIMATION } from '@/components/ui/toast.anim';
 import { useToastClearanceState } from '@/components/ui/toast_clearance.state';
 import {
@@ -23,7 +27,6 @@ import {
   Size,
   Spacing,
   touchFloorHitSlop,
-  Type,
 } from '@/constants/theme';
 
 /** One toast at a time, at the bottom — the app's only toast configuration. */
@@ -70,11 +73,11 @@ const SUCCESS_ICON = (
 );
 
 /** HeroUI lays a padding-high placeholder over the root's top and bottom after its children; above them the action's slop takes the tap. */
-const TOAST_ACTION_Z_INDEX = 1;
+export const TOAST_ACTION_Z_INDEX = 1;
 
-/** One body line, in place of `size="sm"`'s 40 dp track, which grows the toast past G5ToastSkipped and cuts the label at 2.0. */
+/** One line of the `sm` label, in place of `size="sm"`'s 40 dp track, which grows the toast past G5ToastSkipped and cuts the label at 2.0. */
 export function resolveToastActionHeight(fontScale: number): number {
-  return scaledLineHeight(Type.body, fontScale);
+  return scaledLineHeight(HEROUI_TEXT_TYPE.sm, fontScale);
 }
 
 interface SuccessActionToastProps extends ToastComponentProps {
@@ -97,9 +100,9 @@ function SuccessActionToast({
     onActionPress?.({ show, hide });
   };
   return (
-    <Toast {...toastProps} className="flex-row gap-3">
+    <Toast {...toastProps} className="gap-3" style={{ flexDirection: 'row' }}>
       <View>{SUCCESS_ICON}</View>
-      <View className="flex-1">
+      <View style={{ flex: 1 }}>
         <Toast.Title>{label}</Toast.Title>
       </View>
       <Toast.Action
@@ -155,12 +158,18 @@ function asSuccessToast(options: string | ToastShowOptions): string | ToastShowO
 // HeroUI takes `icon` and `variant` per call only, so every success toast is rewritten here and no screen reaches past this.
 export function useToast(): ReturnType<typeof useHeroToast> {
   const { toast: heroToast, isToastVisible } = useHeroToast();
+  // HeroUI's toast changes at each show and hide, which would re-render every memoised reader.
+  const heroToastRef = useRef(heroToast);
+  useLayoutEffect(() => {
+    heroToastRef.current = heroToast;
+  });
   const toast = useMemo(
     () => ({
-      show: (options: string | ToastShowOptions) => heroToast.show(asSuccessToast(options)),
-      hide: heroToast.hide,
+      show: (options: string | ToastShowOptions) =>
+        heroToastRef.current.show(asSuccessToast(options)),
+      hide: (ids?: string | string[] | 'all') => heroToastRef.current.hide(ids),
     }),
-    [heroToast],
+    [],
   );
   return { toast, isToastVisible };
 }

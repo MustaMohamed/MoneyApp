@@ -48,16 +48,12 @@ import {
   type PaymentDaySettlement,
 } from '../../../domain/payment_day_distance';
 import {
-  isPaidPayment,
   isUnpaidPayment,
   resolveCommitmentRowAccountId,
   resolvePaymentState,
 } from '../../../domain/payment_state';
 import type { Commitment } from '../../../entities/commitment.entity';
-import type {
-  CommitmentMonthPayment,
-  CommitmentPayment,
-} from '../../../entities/commitment_payment.entity';
+import type { CommitmentMonthPayment } from '../../../entities/commitment_payment.entity';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -225,7 +221,7 @@ export function buildCommitmentRowPresentation({
   };
 }
 
-export interface CommitmentRowActionsInput {
+interface CommitmentRowActionsInput {
   payment: CommitmentMonthPayment;
   commitment: Commitment | undefined;
   onPay: (payment: CommitmentMonthPayment, commitment: Commitment) => void;

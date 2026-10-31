@@ -10,8 +10,11 @@ import { resolvePayButtonLabel } from '@/modules/commitments/screens/commitments
 import { usePaySheetState } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.state';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
-import type { CommitmentPaymentAmounts } from '@/modules/transactions/domain/transaction_amounts';
-import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
+import {
+  makeTestCommitment,
+  makeTestPayment,
+  makeTestPaymentAmounts,
+} from '@/test_helpers/commitment';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => {
@@ -147,13 +150,11 @@ const paySheetState = {
   reset: jest.fn(),
 };
 
-const PAID_AMOUNTS: CommitmentPaymentAmounts = {
+const PAID_AMOUNTS = makeTestPaymentAmounts({
   paymentAmount: 1,
   accountNativeAmount: 1,
-  accountCurrency: Currency.EGP,
   egpAmount: 1,
-  exchangeRate: null,
-};
+});
 const mockMarkAsPaid = jest.fn().mockResolvedValue(PAID_AMOUNTS);
 let suiteAccounts: Account[] = [payAccount];
 

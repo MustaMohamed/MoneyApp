@@ -445,3 +445,8 @@ export function createCommitmentStore(
 }
 
 export const useCommitmentStore = createCommitmentStore(new CommitmentRepository());
+
+// Read at call time: the store throws on an id already in transition, and that throw is no failure to show.
+export function isPaymentInTransition(paymentId: string): boolean {
+  return useCommitmentStore.getState().transitioningPaymentIds.includes(paymentId);
+}

@@ -1,4 +1,3 @@
-import { waitFor } from '@testing-library/react-native';
 import Database from 'better-sqlite3';
 import type { SQLiteDatabase } from 'expo-sqlite';
 import uuid from 'react-native-uuid';
@@ -452,7 +451,7 @@ describe('a carried row through the store (MA-215)', () => {
   const MAY = '2026-05';
   const CARRIED = 'carried-april';
 
-  // Pins `new Date()` alone: the timers stay real so `waitFor` and the awaited reads still run.
+  // Pins `new Date()` alone: the timers stay real so the awaited reads still run.
   beforeEach(() => {
     jest.useFakeTimers({
       now: NOW,
@@ -484,7 +483,7 @@ describe('a carried row through the store (MA-215)', () => {
 
     // A write's unawaited reload holds `BEGIN IMMEDIATE` on the one connection, so this waits it out first.
     async function reload() {
-      await waitFor(() => expect(store.getState().loading).toBe(false));
+      await store.getState().ensureHousekeepingCurrent(NOW);
       await store.getState().loadMonthSnapshot(MAY, NOW);
       await store.getState().loadMonthAggregate(MAY, undefined, NOW);
     }

@@ -21,7 +21,11 @@ import { fullMonthName, shiftYearMonth } from '@/utils/year_month';
 import { resolveCommitmentRowAccountId } from '../../domain/payment_state';
 import type { Commitment } from '../../entities/commitment.entity';
 import type { CommitmentMonthPayment } from '../../entities/commitment_payment.entity';
-import { monthAggregateKey, useCommitmentStore } from '../../store/commitment.store';
+import {
+  isPaymentInTransition,
+  monthAggregateKey,
+  useCommitmentStore,
+} from '../../store/commitment.store';
 import { useCommitmentFormHostState } from '../../store/commitment_form_host.state';
 import {
   buildCommitmentSections,
@@ -379,9 +383,19 @@ export function useCommitments() {
     }
   }, [loadAccountLookup, rowAccountIds]);
 
-  const goToDetail = useCallback((commitmentId: string, paymentId: string) => {
-    router.push(commitmentDetailRoute('', commitmentId, paymentId));
-  }, []);
+  // A set `postCloseAction` is a close still owed its toast, which a second open would reset.
+  const paySheetIsOpen = useCallback(() => {
+    const { entries } = usePaySheetState.getState();
+    return entries[payOwner]?.visible === true || entries[payOwner]?.postCloseAction !== undefined;
+  }, [payOwner]);
+
+  const goToDetail = useCallback(
+    (commitmentId: string, paymentId: string) => {
+      if (paySheetIsOpen()) return;
+      router.push(commitmentDetailRoute('', commitmentId, paymentId));
+    },
+    [paySheetIsOpen],
+  );
 
   const goToAdd = useCallback(() => {
     useCommitmentFormHostState.getState().openAdd();
@@ -389,15 +403,10 @@ export function useCommitments() {
 
   useEffect(() => () => releasePaySheet(payOwner), [payOwner, releasePaySheet]);
 
-  const paySheetIsOpen = useCallback(
-    () => usePaySheetState.getState().entries[payOwner]?.visible === true,
-    [payOwner],
-  );
-
   const payRow = useCallback(
     (payment: CommitmentMonthPayment, commitment: Commitment) => {
       if (paySheetIsOpen()) return;
-      if (useCommitmentStore.getState().transitioningPaymentIds.includes(payment.id)) return;
+      if (isPaymentInTransition(payment.id)) return;
       setPayTarget({ payment, commitment });
       // The pay sheet dates by the day it opens, not the day the list last read.
       usePaySheetState.getState().open(payOwner, toLocalDateString(new Date()));

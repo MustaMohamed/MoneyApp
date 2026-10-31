@@ -3,19 +3,14 @@ import { useCallback } from 'react';
 import { useToast } from '@/components/ui/toast';
 import { Strings } from '@/constants/strings';
 
-import { useCommitmentStore } from '../../store/commitment.store';
-
-// Read at call time: the store throws on an id already in transition, and that throw is no failure to show.
-function isInTransition(paymentId: string): boolean {
-  return useCommitmentStore.getState().transitioningPaymentIds.includes(paymentId);
-}
+import { isPaymentInTransition, useCommitmentStore } from '../../store/commitment.store';
 
 export function useSkipWithUndo() {
   const { toast } = useToast();
 
   const undo = useCallback(
     async (paymentId: string) => {
-      if (isInTransition(paymentId)) return;
+      if (isPaymentInTransition(paymentId)) return;
       try {
         await useCommitmentStore.getState().undoSkip(paymentId);
       } catch {
@@ -39,7 +34,7 @@ export function useSkipWithUndo() {
 
   const skip = useCallback(
     async (paymentId: string, name: string) => {
-      if (isInTransition(paymentId)) return;
+      if (isPaymentInTransition(paymentId)) return;
       try {
         await useCommitmentStore.getState().skipPayment(paymentId);
       } catch {

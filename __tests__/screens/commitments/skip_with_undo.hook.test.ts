@@ -11,9 +11,16 @@ const mockToast = { show: jest.fn() };
 jest.mock('@/components/ui/toast', () => ({
   useToast: () => ({ toast: mockToast, isToastVisible: false }),
 }));
-jest.mock('@/modules/commitments/store/commitment.store', () => ({
-  useCommitmentStore: jest.fn(),
-}));
+jest.mock('@/modules/commitments/store/commitment.store', () => {
+  const useCommitmentStore = jest.fn() as unknown as {
+    getState: () => { transitioningPaymentIds: string[] };
+  };
+  return {
+    useCommitmentStore,
+    isPaymentInTransition: (paymentId: string) =>
+      useCommitmentStore.getState().transitioningPaymentIds.includes(paymentId),
+  };
+});
 
 const PAYMENT_ID = 'payment-1';
 const NAME = 'Rent';

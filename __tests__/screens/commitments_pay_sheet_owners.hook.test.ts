@@ -13,8 +13,12 @@ import {
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import type { CommitmentPaymentAmounts } from '@/modules/transactions/domain/transaction_amounts';
-import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
-import { deferred } from '@/test_helpers/deferred';
+import {
+  makeTestCommitment,
+  makeTestPayment,
+  makeTestPaymentAmounts,
+} from '@/test_helpers/commitment';
+import { deferred, type Deferred } from '@/test_helpers/deferred';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 import { formatStoredMoneyText } from '@/utils/money_text';
 
@@ -50,13 +54,7 @@ const commitment = makeTestCommitment({
   updated_at: '2026-01-01T00:00:00.000Z',
 });
 
-const PAID_AMOUNTS: CommitmentPaymentAmounts = {
-  paymentAmount: 15,
-  accountNativeAmount: 15,
-  accountCurrency: Currency.EGP,
-  egpAmount: 15,
-  exchangeRate: null,
-};
+const PAID_AMOUNTS = makeTestPaymentAmounts();
 const PAID_TOAST = { label: 'Internet paid · 15 EGP', variant: 'success' };
 
 const egpAccount = { id: 'acc-egp', name: 'Cash', currency: Currency.EGP } as unknown as Account;
@@ -251,7 +249,11 @@ describe('usePaySheet toast for a write that outlives its open (MA-215)', () => 
   }
 
   // Dismisses the sheet with the write still running.
-  async function startWriteThenDismiss(sheet: PaymentSheet) {
+  async function startWriteThenDismiss(
+    sheet: PaymentSheet,
+    settle: (save: Deferred<CommitmentPaymentAmounts>) => void = (save) =>
+      save.resolve(PAID_AMOUNTS),
+  ) {
     const save = deferred<CommitmentPaymentAmounts>();
     mockMarkAsPaid.mockReturnValueOnce(save.promise);
     let submit: Promise<void> | undefined;
@@ -262,13 +264,50 @@ describe('usePaySheet toast for a write that outlives its open (MA-215)', () => 
     await act(async () => sheet.result.current.setVisible(false));
     return async () => {
       await act(async () => {
-        save.resolve(PAID_AMOUNTS);
+        settle(save);
         await submit;
       });
     };
   }
 
+  const rejectSave = (save: Deferred<CommitmentPaymentAmounts>) => save.reject(new Error('disk'));
+  const FAILED_TOAST = { label: Strings.commitmentsPayError, variant: 'danger' };
+
   beforeEach(() => mockToast.show.mockClear());
+
+  it('toasts a failed write on a dismissed sheet and leaves the status track empty', async () => {
+    const sheet = await mountOnP1();
+    const failWrite = await startWriteThenDismiss(sheet, rejectSave);
+
+    await failWrite();
+
+    expect(entries()[OWNER_A]).toMatchObject({ visible: false, saveError: undefined });
+    expect(mockToast.show).toHaveBeenCalledTimes(1);
+    expect(mockToast.show).toHaveBeenCalledWith(FAILED_TOAST);
+  });
+
+  it('toasts a failed write after a reopen on another payment and leaves its form alone', async () => {
+    const sheet = await mountOnP1();
+    const failWrite = await startWriteThenDismiss(sheet, rejectSave);
+    await sheet.rerender({ payment: p2 });
+    await reopen(sheet);
+
+    await failWrite();
+
+    expect(entries()[OWNER_A]).toMatchObject({ visible: true, saveError: undefined });
+    expect(mockToast.show).toHaveBeenCalledTimes(1);
+    expect(mockToast.show).toHaveBeenCalledWith(FAILED_TOAST);
+  });
+
+  it('keeps a failed write on the status track of an open sheet, with no toast', async () => {
+    const sheet = await mountOnP1();
+    mockMarkAsPaid.mockRejectedValueOnce(new Error('disk'));
+
+    await act(async () => sheet.result.current.onSubmit());
+
+    expect(sheet.result.current.state.statusMessage).toBe(Strings.commitmentsPayError);
+    expect(mockToast.show).not.toHaveBeenCalled();
+  });
 
   it('sets settled, hides the sheet and toasts once at its close after a reopen of the same payment', async () => {
     const sheet = await mountOnP1();

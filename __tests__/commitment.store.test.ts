@@ -21,6 +21,7 @@ import {
   makeTestHeldBucket,
   makeTestMonthAggregate,
   makeTestMonthPayment,
+  makeTestPaymentAmounts,
 } from '@/test_helpers/commitment';
 import { deferred } from '@/test_helpers/deferred';
 
@@ -70,14 +71,12 @@ function snapshot(
 function paymentAmounts(
   overrides: Partial<CommitmentPaymentAmounts> = {},
 ): CommitmentPaymentAmounts {
-  return {
+  return makeTestPaymentAmounts({
     paymentAmount: 250,
     accountNativeAmount: 250,
-    accountCurrency: Currency.EGP,
     egpAmount: 250,
-    exchangeRate: null,
     ...overrides,
-  };
+  });
 }
 
 function markAsPaidResult(overrides: Partial<CommitmentPaymentAmounts> = {}): MarkAsPaidResult {
@@ -1311,7 +1310,7 @@ describe('commitment store focus gate', () => {
     expect(repository.getMonthAggregate).toHaveBeenCalledWith(MAY, today, undefined);
   });
 
-  const writes: [string, (store: Store) => Promise<void>][] = [
+  const writes: [string, (store: Store) => Promise<unknown>][] = [
     ['Add', (store) => store.getState().addCommitment(newInput)],
     ['Edit', (store) => store.getState().updateCommitment('commitment', updateInput)],
     ['Stop', (store) => store.getState().deactivateCommitment('commitment')],

@@ -9,8 +9,22 @@ import type {
   CommitmentMonthPayment,
   CommitmentPayment,
 } from '@/modules/commitments/entities/commitment_payment.entity';
+import type { CommitmentPaymentAmounts } from '@/modules/transactions/domain/transaction_amounts';
 
 const TEST_TIMESTAMP = '2026-07-22T12:00:00.000Z';
+
+export function makeTestPaymentAmounts(
+  overrides: Partial<CommitmentPaymentAmounts> = {},
+): CommitmentPaymentAmounts {
+  return {
+    paymentAmount: 15,
+    accountNativeAmount: 15,
+    accountCurrency: Currency.EGP,
+    egpAmount: 15,
+    exchangeRate: null,
+    ...overrides,
+  };
+}
 
 export function makeAccountCommitmentRef(
   overrides: Partial<AccountCommitmentRef> = {},

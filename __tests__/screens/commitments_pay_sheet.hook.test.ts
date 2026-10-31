@@ -15,11 +15,12 @@ import {
 } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.state';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
+import { TransactionAmountError } from '@/modules/transactions/domain/transaction_amounts';
 import {
-  TransactionAmountError,
-  type CommitmentPaymentAmounts,
-} from '@/modules/transactions/domain/transaction_amounts';
-import { makeTestCommitment, makeTestPayment } from '@/test_helpers/commitment';
+  makeTestCommitment,
+  makeTestPayment,
+  makeTestPaymentAmounts,
+} from '@/test_helpers/commitment';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 import { makeTestAccount } from '@/test_helpers/transaction';
 
@@ -138,18 +139,7 @@ const duePayment = makeTestPayment({
   updated_at: '2026-01-01T00:00:00.000Z',
 });
 
-function paidAmounts(overrides: Partial<CommitmentPaymentAmounts> = {}): CommitmentPaymentAmounts {
-  return {
-    paymentAmount: 15,
-    accountNativeAmount: 15,
-    accountCurrency: Currency.EGP,
-    egpAmount: 15,
-    exchangeRate: null,
-    ...overrides,
-  };
-}
-
-const mockMarkAsPaid = jest.fn().mockResolvedValue(paidAmounts());
+const mockMarkAsPaid = jest.fn().mockResolvedValue(makeTestPaymentAmounts());
 const mockLoadPaymentsForMonth = jest.fn().mockResolvedValue(undefined);
 const mockLoadAccounts = jest.fn().mockResolvedValue(undefined);
 let mockAccounts: Account[] = [];
@@ -206,7 +196,7 @@ describe('usePaySheet', () => {
     mockHasLoaded = false;
     mockLoadError = false;
     mockMarkAsPaid.mockClear();
-    mockMarkAsPaid.mockResolvedValue(paidAmounts());
+    mockMarkAsPaid.mockResolvedValue(makeTestPaymentAmounts());
     mockLoadPaymentsForMonth.mockClear();
     mockLoadPaymentsForMonth.mockResolvedValue(undefined);
     mockLoadAccounts.mockClear();
@@ -479,6 +469,7 @@ describe('usePaySheet', () => {
   // EGP commitment paid from a loaded EGP account, so a failure here is the typed amount only.
   async function submitAmount(typed: string) {
     mockAccounts = [egpAccount];
+    paySheetStateInner = { ...paySheetStateInner, visible: true };
     const { result, rerender } = await renderHook(() =>
       usePaySheet(OWNER, egpCommitment, duePayment, TODAY),
     );
@@ -1254,6 +1245,7 @@ describe('usePaySheet', () => {
     // A huge finite amount clears the refine, so the resolver throws at `markAsPaid`, not here.
     it('an oversized amount clears field validation; a markAsPaid rejection surfaces the unstorable copy with no write', async () => {
       mockAccounts = [egpAccount];
+      paySheetStateInner = { ...paySheetStateInner, visible: true };
       mockMarkAsPaid.mockRejectedValueOnce(
         new TransactionAmountError('Computed amount exceeds the storable range', 'unstorable'),
       );
@@ -1761,6 +1753,7 @@ describe('usePaySheet', () => {
     });
 
     it('a failed write whose account reload also fails reloads once and still reads the failed-write copy', async () => {
+      paySheetStateInner = { ...paySheetStateInner, visible: true };
       mockMarkAsPaid.mockRejectedValueOnce(new Error('write failed'));
       mockLoadAccounts.mockImplementationOnce(async () => {
         mockLoadError = true;
@@ -1779,6 +1772,7 @@ describe('usePaySheet', () => {
     });
 
     it('a failed write whose reload drops the lit account rings the strip with the unavailable copy, counts it, and sets no save error', async () => {
+      paySheetStateInner = { ...paySheetStateInner, visible: true };
       mockMarkAsPaid.mockRejectedValueOnce(new Error('account archived'));
       mockLoadAccounts.mockImplementationOnce(async () => {
         mockAccounts = [walletAccount];
@@ -2028,7 +2022,7 @@ describe('usePaySheet', () => {
     });
 
     it('shows nothing until the close completes, then the toast once', async () => {
-      mockMarkAsPaid.mockResolvedValueOnce(paidAmounts({ paymentAmount: 8000 }));
+      mockMarkAsPaid.mockResolvedValueOnce(makeTestPaymentAmounts({ paymentAmount: 8000 }));
       const { result, rerender } = await renderTrack(egpCommitment, cib, '8000');
 
       await pay(result);
@@ -2057,7 +2051,7 @@ describe('usePaySheet', () => {
         cib,
         '8000',
         undefined,
-        paidAmounts({ paymentAmount: 7500 }),
+        makeTestPaymentAmounts({ paymentAmount: 7500 }),
         'Netflix paid · 7,500 EGP',
       ],
       [
@@ -2066,7 +2060,7 @@ describe('usePaySheet', () => {
         cib,
         '15',
         '50',
-        paidAmounts({ paymentAmount: 15.5, accountNativeAmount: 775, egpAmount: 775 }),
+        makeTestPaymentAmounts({ paymentAmount: 15.5, accountNativeAmount: 775, egpAmount: 775 }),
         'Netflix paid · 15.50 USD',
       ],
     ])('reads %s', async (_name, commitment, account, amount, rate, amounts, label) => {
