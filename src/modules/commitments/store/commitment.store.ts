@@ -165,13 +165,15 @@ export function createCommitmentStore(
         void get().loadMonthAggregate(get().selectedMonth, latestAggregateScope.accountId);
       };
 
-      const revalidateAfterMutation = () => {
-        const month = get().selectedMonth;
-        void get()
-          .loadMonthSnapshot(month)
+      const revalidateSnapshot = () =>
+        get()
+          .loadMonthSnapshot(get().selectedMonth)
           .catch((error: unknown) =>
             console.error('[commitmentStore] revalidation failed:', error),
           );
+
+      const revalidateAfterMutation = () => {
+        void revalidateSnapshot();
         reloadMonthAggregate();
       };
 
@@ -319,13 +321,14 @@ export function createCommitmentStore(
         updateCommitment: async (id, data) => {
           try {
             await repo.update(id, data);
-            invalidateData();
-            reloadMonthAggregate();
-            await get().loadMonthSnapshot(get().selectedMonth);
           } catch (error) {
             console.error('[commitmentStore] updateCommitment failed:', error);
             throw error;
           }
+          invalidateData();
+          reloadMonthAggregate();
+          // A landed write must not read as a failed one; the failed load has published `loadError`.
+          await revalidateSnapshot();
         },
 
         deactivateCommitment: async (id) => {

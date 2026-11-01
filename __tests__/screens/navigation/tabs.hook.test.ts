@@ -24,6 +24,7 @@ import { Size, Spacing } from '@/constants/theme';
 import { useCommitmentFormHostState } from '@/modules/commitments/store/commitment_form_host.state';
 import { useTabsLayout } from '@/modules/navigation/screens/tabs/tabs.hook';
 import { useTransactionFormState } from '@/modules/transactions/store/transaction_form_host.state';
+import { makeTestCommitment } from '@/test_helpers/commitment';
 
 const FAB_BOTTOM_OFFSET = 12 + Size.tabBarHeight + Spacing.md;
 const SHOWN_CLEARANCE = FAB_BOTTOM_OFFSET + Size.fab + Spacing.md;
@@ -72,7 +73,9 @@ describe('useTabsLayout', () => {
   it('hides the + button while the edit commitment sheet is open over the current tab', async () => {
     const { result } = await renderHook(() => useTabsLayout());
 
-    await act(() => useCommitmentFormHostState.getState().openEdit('c-1'));
+    await act(() =>
+      useCommitmentFormHostState.getState().openEdit(makeTestCommitment({ id: 'c-1' })),
+    );
 
     expect(mockPush).not.toHaveBeenCalled();
     expect(useCommitmentFormHostState.getState().phase).toBe('open');

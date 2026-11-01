@@ -1,6 +1,7 @@
+import { FormSheetFooter } from '@/components/ui/form_sheet_footer';
 import { Sheet } from '@/components/ui/sheet';
+import { Strings } from '@/constants/strings';
 
-import { CommitmentFormFooter } from '../components/commitment_form_body';
 import { useCommitmentFormHost } from './commitment_form_host.hook';
 import { AddCommitmentSession } from './components/add_commitment_session';
 import { EditCommitmentSession } from './components/edit_commitment_session';
@@ -11,7 +12,6 @@ export function CommitmentFormHost(): React.ReactElement {
     registerSubmit,
     handleSave,
     handleOpenChange,
-    handleClose,
     handleSaved,
     handleDeactivated,
     handleCloseComplete,
@@ -29,10 +29,14 @@ export function CommitmentFormHost(): React.ReactElement {
       isDismissable={state.isDismissable}
       footer={
         state.hasSession ? (
-          <CommitmentFormFooter
-            errorMessage={state.saveError}
-            saving={state.saving}
-            onSubmit={handleSave}
+          <FormSheetFooter
+            statusTestID="commitment-form-status"
+            showsStatusTrack
+            footnote={state.statusFootnote}
+            message={state.statusMessage}
+            label={Strings.commitmentsSave}
+            isLoading={state.saving}
+            onPress={handleSave}
           />
         ) : undefined
       }
@@ -45,15 +49,14 @@ export function CommitmentFormHost(): React.ReactElement {
           onSaved={handleSaved}
         />
       ) : null}
-      {state.hasSession && state.mode === 'edit' && state.editingCommitmentId !== undefined ? (
+      {state.hasSession && state.mode === 'edit' && state.editingCommitment !== undefined ? (
         <EditCommitmentSession
           key={state.sessionId}
           sessionId={state.sessionId}
-          commitmentId={state.editingCommitmentId}
+          commitment={state.editingCommitment}
           onRegisterSubmit={registerSubmit}
           onSaved={handleSaved}
           onDeactivated={handleDeactivated}
-          onClose={handleClose}
         />
       ) : null}
     </Sheet>

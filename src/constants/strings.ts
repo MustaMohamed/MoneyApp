@@ -1113,7 +1113,11 @@ export const Strings = {
   commitmentsEndsRowNever: 'Never',
   commitmentsDurationStopAfter: 'Stop after',
   commitmentsDurationPayments: 'payments',
-  commitmentsSave: 'Save Commitment',
+  commitmentsSave: 'Save',
+  commitmentsFirstPaymentDue: (day: string) => `First payment due ${day}.`,
+  commitmentsEditScheduleFootnote: 'Upcoming payments follow the new schedule. Paid ones stay.',
+  commitmentsAddedToast: 'Commitment added',
+  commitmentsUpdatedToast: 'Commitment updated',
   commitmentsOptional: '(optional)',
   commitmentsDone: 'Done',
 
@@ -1125,6 +1129,7 @@ export const Strings = {
   commitmentsErrCategoryRequired: 'Category is required',
   commitmentsErrStartDateRequired: 'Start date is required',
   commitmentsErrEndDateRequired: 'End date is required',
+  commitmentsErrEndsBeforeStarts: 'End date must be on or after start date',
   commitmentsErrAfterCountRequired: 'Number of payments is required',
   commitmentsErrEveryMin: 'Must be at least 1',
   commitmentsErrEveryMax: 'Must be 365 or less',
@@ -1177,7 +1182,7 @@ export const Strings = {
     'Something went wrong reading your data. Your commitments are still there.',
   commitmentsRefreshError: "Couldn't refresh your commitments.",
   commitmentsLoadRetry: 'Try again',
-  commitmentsSaveError: 'Could not save this commitment. Please try again.',
+  commitmentsSaveError: "Couldn't save this commitment. Nothing was changed. Try again.",
 
   // Commitments: C5 Pay Sheet
   commitmentsPayTitle: (name: string) => `Pay ${name}`,

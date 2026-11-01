@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo } from 'react';
-import { useFormState, type UseFormReturn } from 'react-hook-form';
+import { useFormState, useWatch, type UseFormReturn } from 'react-hook-form';
 import { useShallow } from 'zustand/react/shallow';
 
 import { Strings } from '@/constants/strings';
@@ -9,7 +9,12 @@ import {
   lookupLeavesUnresolved,
 } from '@/modules/accounts/store/account_lookup.helpers';
 import { useAccountsById } from '@/modules/accounts/store/use_accounts_by_id.hook';
+import { toLocalDateString } from '@/utils/format_date';
 
+import {
+  resolveCommitmentFirstPaymentFootnote,
+  resolveCommitmentFormStatus,
+} from '../commitment_form.helpers';
 import type { CommitmentFormValues } from '../commitment_form.shared';
 import {
   type CommitmentChoiceSheetKind,
@@ -27,7 +32,7 @@ const BODY_FAULT_FIELDS = [
   'endDate',
 ] as const;
 
-type BodyFaultField = (typeof BODY_FAULT_FIELDS)[number];
+export type BodyFaultField = (typeof BODY_FAULT_FIELDS)[number];
 
 export function useCommitmentFormBodyPickers() {
   const owner = useId();
@@ -75,7 +80,7 @@ export function useCommitmentFormStripAccounts(accountId: string | undefined): A
   return accountRead;
 }
 
-/** The body's own subscription to its faults: a compiled host reuses the body while `form` keeps its identity. */
+/** Each reader subscribes for itself: a compiled host reuses the body while `form` keeps its identity. */
 export function useCommitmentFormBodyFaults(form: UseFormReturn<CommitmentFormValues>): {
   faults: Record<BodyFaultField, string | undefined>;
   isSubmitted: boolean;
@@ -104,4 +109,33 @@ export function resolveCommitmentFormStripError(
   return lookupLeavesUnresolved(accountRead, accountId === undefined ? [] : [accountId])
     ? Strings.transactionsAccountLookupError
     : undefined;
+}
+
+export function useCommitmentFormStatus(
+  form: UseFormReturn<CommitmentFormValues>,
+  saveError: string | undefined,
+): string | undefined {
+  return resolveCommitmentFormStatus(useCommitmentFormBodyFaults(form).faults, saveError);
+}
+
+export function useCommitmentFirstPaymentFootnote(
+  form: UseFormReturn<CommitmentFormValues>,
+  now: Date = new Date(),
+): string | undefined {
+  const [startDate, recurrenceEvery, recurrencePeriod, durationType, endAfterCount, endDate] =
+    useWatch({
+      control: form.control,
+      name: [
+        'startDate',
+        'recurrenceEvery',
+        'recurrencePeriod',
+        'durationType',
+        'endAfterCount',
+        'endDate',
+      ],
+    });
+  return resolveCommitmentFirstPaymentFootnote(
+    { startDate, recurrenceEvery, recurrencePeriod, durationType, endAfterCount, endDate },
+    toLocalDateString(now),
+  );
 }

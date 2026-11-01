@@ -24,6 +24,9 @@ const mockBack = jest.fn();
 const mockNavigate = jest.fn();
 const mockPush = jest.fn();
 const mockDismissTo = jest.fn();
+const mockNavigationDispatch = jest.fn();
+const APP_STACK_AT_REST = { routes: [{ name: '(tabs)' }] };
+const mockNavigatorState: { current: object } = { current: APP_STACK_AT_REST };
 const mockFocusEffect = jest.fn<void, [() => void | (() => void)]>();
 const mockLoadAccountLookup = jest.fn(() => Promise.resolve());
 const mockEnsure = jest.fn();
@@ -43,12 +46,17 @@ jest.mock('@/components/ui/toast', () => ({
 jest.mock('expo-router', () => ({
   useFocusEffect: (effect: () => void | (() => void)) => mockFocusEffect(effect),
   useLocalSearchParams: () => ({ id: 'acc-1' }),
+  useNavigation: () => ({
+    getState: () => mockNavigatorState.current,
+    dispatch: (...args: unknown[]) => mockNavigationDispatch(...args),
+  }),
   useRouter: () => ({
     back: mockBack,
     navigate: mockNavigate,
     push: mockPush,
     dismissTo: mockDismissTo,
   }),
+  router: { dismissTo: (...args: unknown[]) => mockDismissTo(...args) },
 }));
 jest.mock('@/utils/run_after_interactions', () => ({
   runAfterInteractions: (task: () => void) => {
@@ -89,6 +97,28 @@ jest.mock(
 );
 
 const TRANSACTIONS_TAB = '/(app)/(tabs)/transactions';
+const TRANSACTIONS_STACK_KEY = 'transactions-tab-stack';
+const APP_STACK_OVER_PUSHED_TRANSACTIONS = {
+  routes: [
+    {
+      name: '(tabs)',
+      state: {
+        index: 0,
+        routes: [
+          { name: 'dashboard' },
+          {
+            name: 'transactions',
+            state: {
+              key: TRANSACTIONS_STACK_KEY,
+              routes: [{ name: 'index' }, { name: 'detail/[id]/index' }],
+            },
+          },
+        ],
+      },
+    },
+    { name: 'accounts/[id]/index' },
+  ],
+};
 const GYM_REF = makeAccountCommitmentRef({ id: 'com-1', name: 'Gym' });
 
 function mkAccount(overrides: Partial<Account> = {}): Account {
@@ -260,6 +290,7 @@ function mockDetailState(overrides: Partial<DetailStateMock> = {}) {
 
 function setup() {
   jest.clearAllMocks();
+  mockNavigatorState.current = APP_STACK_AT_REST;
   mockRetry.mockReturnValue(Promise.resolve());
   mockSlotEnsure.mockReturnValue(Promise.resolve());
   mockSlotRetry.mockReturnValue(Promise.resolve());
@@ -548,6 +579,29 @@ describe('useAccountDetail', () => {
       mockOpenAdd.mock.invocationCallOrder[0] ?? 0,
     );
   });
+
+  it.each([
+    ['See all', 'goToAllTransactions'],
+    ['Add a transaction', 'addTransactionForAccount'],
+  ] as const)(
+    '%s pops the background Transactions Stack before both dismissals',
+    async (_name, action) => {
+      mockNavigatorState.current = APP_STACK_OVER_PUSHED_TRANSACTIONS;
+      mockAccounts([mkAccount()]);
+      const { result } = await renderHook(() => useAccountDetail());
+
+      await act(() => result.current[action]());
+
+      expect(mockNavigationDispatch).toHaveBeenCalledTimes(1);
+      expect(mockNavigationDispatch).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'POP_TO_TOP', target: TRANSACTIONS_STACK_KEY }),
+      );
+      expect(mockNavigationDispatch.mock.invocationCallOrder[0]).toBeLessThan(
+        mockDismissTo.mock.invocationCallOrder[0] ?? 0,
+      );
+      expect(mockDismissTo.mock.calls).toEqual([[TRANSACTIONS_TAB], [TRANSACTIONS_TAB]]);
+    },
+  );
 
   it('opens a row on the stacked transaction detail, a sibling of this screen', async () => {
     mockAccounts([mkAccount()]);

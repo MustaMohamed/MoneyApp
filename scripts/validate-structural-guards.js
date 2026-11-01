@@ -341,7 +341,6 @@ const NAMED_ROWS = [
     files: [
       `${ACCOUNTS}/components/field_message_rail.tsx`,
       `${ACCOUNTS}/components/account_form/account_color_sheet.tsx`,
-      `${COMMITMENTS}/components/commitment_form_body.tsx`,
     ],
     required: keptLiveRegion(LIVE_REGION),
     needs: KEEPS_LIVE_REGION,

@@ -8,6 +8,8 @@ import {
   resolveHollowGraphiteTile,
   toAccountStripChip,
 } from '@/modules/transactions/components/transaction_row.helpers';
+import { computeDueDates } from '@/utils/compute_due_dates';
+import { formatShortWeekdayDate } from '@/utils/format_date';
 import { formatStoredMoneyText } from '@/utils/money_text';
 import { parseTypingDecimalText } from '@/utils/parse_decimal';
 import { holdStillTypingDecimal } from '@/utils/use_zod_form.hook';
@@ -17,7 +19,9 @@ import { buildRecurrenceLabel } from '../../utils/recurrence_label';
 import {
   COMMITMENT_AMOUNT_REFUSES_ZERO,
   type CommitmentFormValues,
+  SET_OPTS,
 } from './commitment_form.shared';
+import type { BodyFaultField } from './components/commitment_form_body.hook';
 
 export const NO_ACCOUNT_CHIP_ID = 'no-account';
 
@@ -118,4 +122,82 @@ export function resolveEndsRowValue(
     end_after_count: endAfterCount ?? null,
     end_date: endDate === '' ? null : (endDate ?? null),
   });
+}
+
+/** Once a Save ran, a Starts move re-reads an Ends day, whose check depends on both days. */
+export function setCommitmentStartDate(
+  form: Pick<UseFormReturn<CommitmentFormValues>, 'setValue' | 'trigger' | 'getValues'>,
+  next: string,
+  isSubmitted: boolean,
+): void {
+  form.setValue('startDate', next, SET_OPTS);
+  if (isSubmitted && form.getValues('endDate')) void form.trigger('endDate');
+}
+
+/** Before a Save an Ends day earlier than Starts rings nothing. */
+export function setCommitmentEndDate(
+  form: Pick<UseFormReturn<CommitmentFormValues>, 'setValue'>,
+  next: string,
+  isSubmitted: boolean,
+): void {
+  form.setValue('endDate', next, { shouldDirty: true, shouldValidate: isSubmitted });
+}
+
+/** `endDate` has no `Controller`, so `resetField` keeps its value and its error: once a Save ran, an Ends choice re-reads it, unless Until holds no day yet. */
+export function setCommitmentDurationType(
+  form: Pick<
+    UseFormReturn<CommitmentFormValues>,
+    'setValue' | 'resetField' | 'trigger' | 'getValues'
+  >,
+  type: DurationType,
+  isSubmitted: boolean,
+): void {
+  form.setValue('durationType', type, SET_OPTS);
+  if (type !== DurationType.UntilDate) form.resetField('endDate', { defaultValue: undefined });
+  if (type !== DurationType.AfterCount)
+    form.resetField('endAfterCount', { defaultValue: undefined });
+  if (isSubmitted && (type !== DurationType.UntilDate || form.getValues('endDate')))
+    void form.trigger('endDate');
+}
+
+export function resolveCommitmentFirstPaymentFootnote(
+  schedule: {
+    startDate: string;
+    recurrenceEvery: number | null | undefined;
+    recurrencePeriod: RecurrencePeriod;
+    durationType: DurationType;
+    endAfterCount: number | null | undefined;
+    endDate: string | undefined;
+  },
+  today: string,
+): string | undefined {
+  const dueDates = computeDueDates({
+    startDate: schedule.startDate,
+    every: schedule.recurrenceEvery ?? 1,
+    period: schedule.recurrencePeriod,
+    durationType: schedule.durationType,
+    // An emptied count reads as 0 there, so the form hands it on as no count typed.
+    endAfterCount: schedule.endAfterCount ?? undefined,
+    endDate: schedule.endDate,
+    maxCount: 1,
+  });
+  if (dueDates.length === 0) return undefined;
+  return Strings.commitmentsFirstPaymentDue(formatShortWeekdayDate(dueDates[0], today));
+}
+
+/** A count on the Ends row and a date on it are one field; the strip error refuses nothing and sits outside `faults`. */
+export function countCommitmentFormFaults(
+  faults: Record<BodyFaultField, string | undefined>,
+): number {
+  const { endAfterCount, endDate, ...rows } = faults;
+  return [...Object.values(rows), endAfterCount ?? endDate].filter((fault) => fault !== undefined)
+    .length;
+}
+
+export function resolveCommitmentFormStatus(
+  faults: Record<BodyFaultField, string | undefined>,
+  saveError: string | undefined,
+): string | undefined {
+  const count = countCommitmentFormFaults(faults);
+  return count > 0 ? Strings.fixFieldsMarkedAbove(count) : saveError;
 }

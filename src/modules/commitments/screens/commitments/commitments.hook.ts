@@ -14,7 +14,7 @@ import { commitmentDetailRoute } from '@/modules/navigation/domain/stacked_route
 import { resolveAccountName } from '@/utils/account_name';
 import { toLocalDateString } from '@/utils/format_date';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
-import { useDebouncedValue } from '@/utils/use_debounced_value.hook';
+import { useDebouncedSearch } from '@/utils/use_debounced_value.hook';
 import { useLocalDayChange } from '@/utils/use_local_day_change.hook';
 import { fullMonthName, shiftYearMonth } from '@/utils/year_month';
 
@@ -111,9 +111,7 @@ export function useCommitments() {
   const setAppliedFilters = useCommitmentsScreenState.getState().setAppliedFilters;
   const setPayTarget = useCommitmentsScreenState.getState().setPayTarget;
   const deferredStatusFilter = useDeferredValue(statusFilter);
-  const settledSearch = useDebouncedValue(searchQuery, 300);
-  // An emptied query applies at once, so a seeded filter never reads the search it cleared.
-  const debouncedSearch = searchQuery.length === 0 ? '' : settledSearch;
+  const debouncedSearch = useDebouncedSearch(searchQuery, 300);
   const openFilter = useCommitmentFilterState.getState().open;
   const setFilterDraft = useCommitmentFilterStore.getState().setDraft;
   const payOwner = useId();

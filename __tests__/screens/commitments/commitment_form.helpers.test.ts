@@ -6,21 +6,33 @@ import { AccountType, DurationType, RecurrencePeriod } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
+import { useAccountsById } from '@/modules/accounts/store/use_accounts_by_id.hook';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import {
   NO_ACCOUNT_CHIP_ID,
   applyCommitmentAmountText,
+  countCommitmentFormFaults,
   parseCommitmentAmountText,
   resolveAccountIdFromChip,
   resolveAmountHeroSyncText,
+  resolveCommitmentFirstPaymentFootnote,
+  resolveCommitmentFormStatus,
   resolveCommitmentStripChips,
   resolveEndsRowValue,
   resolveRepeatsRowValue,
   parseWholeNumberInput,
+  setCommitmentDurationType,
+  setCommitmentEndDate,
+  setCommitmentStartDate,
 } from '@/modules/commitments/screens/commitments/commitment_form.helpers';
 import { useAddCommitment } from '@/modules/commitments/screens/commitments/commitment_form/add_commitment.hook';
 import { useAddCommitmentState } from '@/modules/commitments/screens/commitments/commitment_form/add_commitment.state';
-import { useCommitmentFormBodyFaults } from '@/modules/commitments/screens/commitments/components/commitment_form_body.hook';
+import {
+  resolveCommitmentFormStripError,
+  useCommitmentFirstPaymentFootnote,
+  useCommitmentFormBodyFaults,
+  useCommitmentFormStatus,
+} from '@/modules/commitments/screens/commitments/components/commitment_form_body.hook';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { resolveHollowGraphiteTile } from '@/modules/transactions/components/transaction_row.helpers';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
@@ -209,7 +221,12 @@ function attachAddCommitmentStores(addCommitment: jest.Mock) {
     addCommitment,
     generatePayments: jest.fn().mockResolvedValue(undefined),
   }));
-  attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({ accounts: [] }));
+  attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
+    accounts: [],
+    archivedAccounts: [],
+    accountLookupById: {},
+    accountLookupError: false,
+  }));
   attachMockSelectorStore(useCategoryStore as unknown as jest.Mock, () => ({ categories: [] }));
   attachMockSelectorStore(useAddCommitmentState as unknown as jest.Mock, () => ({
     saving: false,
@@ -325,6 +342,79 @@ describe('resolveEndsRowValue (MA-255)', () => {
     [DurationType.UntilDate, undefined, '', 'Until date'],
   ] as const)('reads %p with count %p and date %p as %p', (type, count, date, label) => {
     expect(resolveEndsRowValue(type, count, date)).toBe(label);
+  });
+});
+
+describe('resolveCommitmentFirstPaymentFootnote (MA-256)', () => {
+  const TODAY = '2026-10-31';
+  const SUNDAY_LINE = 'First payment due Sun 1 Nov.';
+  const SCHEDULE = {
+    startDate: '2026-11-01',
+    recurrenceEvery: 1,
+    recurrencePeriod: RecurrencePeriod.Months,
+    durationType: DurationType.Forever,
+    endAfterCount: undefined,
+    endDate: undefined,
+  };
+
+  it.each([
+    ['in the year of today', {}, SUNDAY_LINE],
+    ['in another year', { startDate: '2027-02-01' }, 'First payment due Mon 1 Feb 2027.'],
+    ['on a leap day', { startDate: '2028-02-29' }, 'First payment due Tue 29 Feb 2028.'],
+    ['with Every emptied', { recurrenceEvery: null }, SUNDAY_LINE],
+    [
+      'with the count emptied',
+      { durationType: DurationType.AfterCount, endAfterCount: null },
+      SUNDAY_LINE,
+    ],
+    [
+      'with Until and an empty date',
+      { durationType: DurationType.UntilDate, endDate: '' },
+      SUNDAY_LINE,
+    ],
+    ['with Until and no date', { durationType: DurationType.UntilDate }, SUNDAY_LINE],
+    [
+      'with Ends on Starts',
+      { durationType: DurationType.UntilDate, endDate: '2026-11-01' },
+      SUNDAY_LINE,
+    ],
+  ])('reads the Starts day %s', (_name, overrides, line) => {
+    expect(resolveCommitmentFirstPaymentFootnote({ ...SCHEDULE, ...overrides }, TODAY)).toBe(line);
+  });
+
+  it.each([
+    ['with Ends before Starts', { durationType: DurationType.UntilDate, endDate: '2026-10-31' }],
+    ['with a count of 0', { durationType: DurationType.AfterCount, endAfterCount: 0 }],
+  ])('reads nothing %s', (_name, overrides) => {
+    expect(
+      resolveCommitmentFirstPaymentFootnote({ ...SCHEDULE, ...overrides }, TODAY),
+    ).toBeUndefined();
+  });
+});
+
+describe('the track line from the faults (MA-256)', () => {
+  const NONE = {
+    name: undefined,
+    amount: undefined,
+    categoryId: undefined,
+    startDate: undefined,
+    recurrenceEvery: undefined,
+    endAfterCount: undefined,
+    endDate: undefined,
+  };
+
+  it('counts After and Until on the one Ends row, and every other field as its own', () => {
+    expect(countCommitmentFormFaults(NONE)).toBe(0);
+    expect(countCommitmentFormFaults({ ...NONE, endAfterCount: 'a', endDate: 'b' })).toBe(1);
+    expect(countCommitmentFormFaults({ ...NONE, name: 'a', amount: 'b', endDate: 'c' })).toBe(3);
+  });
+
+  it('reads the count while a field is refused, else the save error, else nothing', () => {
+    expect(resolveCommitmentFormStatus({ ...NONE, name: 'a' }, 'Failed')).toBe(
+      'Fix the 1 field marked above.',
+    );
+    expect(resolveCommitmentFormStatus(NONE, 'Failed')).toBe('Failed');
+    expect(resolveCommitmentFormStatus(NONE, undefined)).toBeUndefined();
   });
 });
 
@@ -496,5 +586,272 @@ describe('useCommitmentFormBodyFaults (MA-255)', () => {
 
     expect(addCommitmentMock).toHaveBeenCalledTimes(1);
     expect(result.current.body.faults).toStrictEqual(NO_FAULTS);
+  });
+
+  describe('Ends earlier than Starts (MA-256)', () => {
+    const LEAP_DAY = '2028-02-29';
+    const DAY_BEFORE = '2028-02-28';
+    const TWO_DAYS_BEFORE = '2028-02-27';
+    const DAY_AFTER = '2028-03-01';
+
+    async function moveStarts(result: Mounted, next: string) {
+      await act(async () => {
+        setCommitmentStartDate(result.current.form, next, result.current.body.isSubmitted);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+    }
+
+    async function moveEnds(result: Mounted, next: string) {
+      await act(async () => {
+        setCommitmentEndDate(result.current.form, next, result.current.body.isSubmitted);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+    }
+
+    async function chooseEnds(result: Mounted, next: DurationType) {
+      await act(async () => {
+        setCommitmentDurationType(result.current.form, next, result.current.body.isSubmitted);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+    }
+
+    async function mountUntil(starts: string, ends: string): Promise<Mounted> {
+      const result = await mountFilled();
+      await act(async () => result.current.form.setValue('durationType', DurationType.UntilDate));
+      await moveStarts(result, starts);
+      await moveEnds(result, ends);
+      return result;
+    }
+
+    async function mountRefused(): Promise<Mounted> {
+      const result = await mountUntil(LEAP_DAY, DAY_BEFORE);
+      await save(result);
+      expect(addCommitmentMock).not.toHaveBeenCalled();
+      expect(result.current.body.faults.endDate).toBe(Strings.commitmentsErrEndsBeforeStarts);
+      return result;
+    }
+
+    it('leaves Ends unringed at an earlier date before a Save', async () => {
+      const result = await mountUntil(LEAP_DAY, DAY_BEFORE);
+
+      expect(result.current.body.faults).toStrictEqual(NO_FAULTS);
+    });
+
+    it('rings Ends alone on a Save', async () => {
+      const result = await mountRefused();
+
+      expect(result.current.body.faults).toStrictEqual({
+        ...NO_FAULTS,
+        endDate: Strings.commitmentsErrEndsBeforeStarts,
+      });
+    });
+
+    it('clears the ring with Starts moved onto Ends', async () => {
+      const result = await mountRefused();
+
+      await moveStarts(result, DAY_BEFORE);
+
+      expect(result.current.body.faults.endDate).toBeUndefined();
+    });
+
+    it('holds the ring with Starts moved and still past Ends', async () => {
+      const result = await mountRefused();
+
+      await moveStarts(result, DAY_AFTER);
+
+      expect(result.current.body.faults.endDate).toBe(Strings.commitmentsErrEndsBeforeStarts);
+    });
+
+    it('rings Ends again with Starts moved back past Ends', async () => {
+      const result = await mountRefused();
+      await moveStarts(result, DAY_BEFORE);
+
+      await moveStarts(result, LEAP_DAY);
+
+      expect(result.current.body.faults.endDate).toBe(Strings.commitmentsErrEndsBeforeStarts);
+    });
+
+    it('clears the ring with Ends moved onto Starts', async () => {
+      const result = await mountRefused();
+
+      await moveEnds(result, LEAP_DAY);
+
+      expect(result.current.body.faults.endDate).toBeUndefined();
+    });
+
+    it('holds the ring with Ends moved and still before Starts', async () => {
+      const result = await mountRefused();
+
+      await moveEnds(result, TWO_DAYS_BEFORE);
+
+      expect(result.current.body.faults.endDate).toBe(Strings.commitmentsErrEndsBeforeStarts);
+    });
+
+    it.each([DurationType.Forever, DurationType.AfterCount])(
+      'clears the ring with Ends moved to %s',
+      async (next) => {
+        const result = await mountRefused();
+
+        await chooseEnds(result, next);
+
+        expect(result.current.body.faults.endDate).toBeUndefined();
+      },
+    );
+
+    it('rings again with Ends back on Until and its kept day before Starts', async () => {
+      const result = await mountRefused();
+      await chooseEnds(result, DurationType.Forever);
+
+      await chooseEnds(result, DurationType.UntilDate);
+
+      expect(result.current.body.faults.endDate).toBe(Strings.commitmentsErrEndsBeforeStarts);
+    });
+
+    it('rings the kept day Starts moved past on Forever, after a Save refused for Name', async () => {
+      const result = await mountUntil(DAY_BEFORE, LEAP_DAY);
+      await act(async () => result.current.form.setValue('name', ''));
+      await save(result);
+      await chooseEnds(result, DurationType.Forever);
+      await moveStarts(result, DAY_AFTER);
+      expect(result.current.body.faults.endDate).toBeUndefined();
+
+      await chooseEnds(result, DurationType.UntilDate);
+
+      expect(result.current.body.faults.endDate).toBe(Strings.commitmentsErrEndsBeforeStarts);
+    });
+
+    it('rings nothing new with Until chosen and no day held, after a Save refused for Name', async () => {
+      const result = await mountFilled();
+      await act(async () => result.current.form.setValue('name', ''));
+      await save(result);
+      expect(addCommitmentMock).not.toHaveBeenCalled();
+      expect(countCommitmentFormFaults(result.current.body.faults)).toBe(1);
+
+      await chooseEnds(result, DurationType.UntilDate);
+
+      expect(result.current.body.faults.endDate).toBeUndefined();
+      expect(countCommitmentFormFaults(result.current.body.faults)).toBe(1);
+    });
+
+    it('rings nothing new with Starts moved on Until with no day held, after a Save refused for Name', async () => {
+      const result = await mountFilled();
+      await act(async () => result.current.form.setValue('name', ''));
+      await save(result);
+      await chooseEnds(result, DurationType.UntilDate);
+
+      await moveStarts(result, DAY_AFTER);
+
+      expect(result.current.body.faults.endDate).toBeUndefined();
+      expect(countCommitmentFormFaults(result.current.body.faults)).toBe(1);
+    });
+  });
+
+  describe('the status track (MA-256)', () => {
+    const NOW = new Date(2026, 9, 31);
+
+    function useAddWithFooter(saveError: string | undefined) {
+      const hook = useAddWithBodyFaults();
+      return {
+        ...hook,
+        lookup: useAccountsById(),
+        status: useCommitmentFormStatus(hook.form, saveError),
+        footnote: useCommitmentFirstPaymentFootnote(hook.form, NOW),
+      };
+    }
+
+    async function mountFooter(saveError?: string) {
+      const hook = await renderHook(
+        (props: { saveError: string | undefined }) => useAddWithFooter(props.saveError),
+        { initialProps: { saveError } },
+      );
+      await act(async () => {
+        hook.result.current.form.setValue('name', 'Rent');
+        hook.result.current.form.setValue('amount', 900);
+        hook.result.current.form.setValue('categoryId', 'cat-rent');
+        hook.result.current.form.setValue('startDate', '2026-10-20');
+      });
+      return hook.result;
+    }
+
+    it('reads a moved Starts day, then goes idle with Ends before it and no row ringed', async () => {
+      const result = await mountFooter();
+      await act(async () => result.current.form.setValue('startDate', '2026-11-01'));
+
+      expect(result.current.footnote).toBe('First payment due Sun 1 Nov.');
+
+      await act(async () => {
+        result.current.form.setValue('durationType', DurationType.UntilDate);
+        result.current.form.setValue('endDate', '2026-10-31');
+      });
+
+      expect(result.current.footnote).toBeUndefined();
+      expect(result.current.status).toBeUndefined();
+      expect(result.current.body.faults).toStrictEqual(NO_FAULTS);
+    });
+
+    it('goes idle with a count of 0 on After and no row ringed', async () => {
+      const result = await mountFooter();
+      await act(async () => result.current.form.setValue('durationType', DurationType.AfterCount));
+      await act(async () => result.current.count.onChange(0));
+
+      expect(result.current.footnote).toBeUndefined();
+      expect(result.current.status).toBeUndefined();
+      expect(result.current.body.faults).toStrictEqual(NO_FAULTS);
+    });
+
+    it('counts name, category and amount on a Save, and a failed account lookup adds none', async () => {
+      attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
+        accounts: [],
+        archivedAccounts: [],
+        accountLookupById: {},
+        accountLookupError: true,
+      }));
+      const result = await mountFooter();
+      await act(async () => {
+        result.current.form.setValue('name', '');
+        result.current.form.setValue('categoryId', '');
+        result.current.form.setValue('amount', undefined);
+        result.current.form.setValue('accountId', 'acc-missing');
+      });
+
+      await save(result);
+
+      expect(result.current.lookup.lookupFailed).toBe(true);
+      expect(
+        resolveCommitmentFormStripError(
+          result.current.lookup,
+          result.current.form.getValues('accountId'),
+        ),
+      ).toBe(Strings.transactionsAccountLookupError);
+      expect(result.current.status).toBe('Fix the 3 fields marked above.');
+    });
+
+    it('reads one field on a Save with only Ends earlier than Starts', async () => {
+      const result = await mountFooter();
+      await act(async () => {
+        result.current.form.setValue('durationType', DurationType.UntilDate);
+        result.current.form.setValue('endDate', '2026-10-19');
+      });
+
+      await save(result);
+
+      expect(addCommitmentMock).not.toHaveBeenCalled();
+      expect(result.current.status).toBe('Fix the 1 field marked above.');
+    });
+
+    it('returns to the save error at zero faults', async () => {
+      const result = await mountFooter(Strings.commitmentsSaveError);
+      await act(async () => result.current.form.setValue('name', ''));
+      await save(result);
+
+      expect(result.current.status).toBe('Fix the 1 field marked above.');
+
+      await act(async () => {
+        result.current.form.setValue('name', 'Rent', { shouldValidate: true });
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+
+      expect(result.current.status).toBe(Strings.commitmentsSaveError);
+    });
   });
 });

@@ -1,5 +1,4 @@
 import { router, useLocalSearchParams, useNavigation, usePathname } from 'expo-router';
-import { StackActions } from 'expo-router/react-navigation';
 import { useCallback, useEffect, useId, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -12,22 +11,19 @@ import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import {
   STACKED_PREFIX,
   TABBED_ORIGIN,
-  backgroundTabPushedStackKey,
   resolveDetailScreenEdges,
   stackedPrefixOf,
   stackedPrefixOfNavigator,
   stackedTransactionDetailRoute,
 } from '@/modules/navigation/domain/stacked_route';
+import { jumpToTab } from '@/modules/navigation/utils/jump_to_tab';
 import { toLocalDateString } from '@/utils/format_date';
 import { useLocalDayChange } from '@/utils/use_local_day_change.hook';
 
 import { countSettledPayments, resolveCommitmentLifecycle } from '../../../domain/payment_state';
 import { commitmentRepository } from '../../../repositories/commitment.repository';
 import { useCommitmentStore } from '../../../store/commitment.store';
-import {
-  type CommitmentEditLanding,
-  useCommitmentFormHostState,
-} from '../../../store/commitment_form_host.state';
+import { useCommitmentFormHostState } from '../../../store/commitment_form_host.state';
 import { useCommitmentsScreenState } from '../commitments.state';
 import { usePaySheetState } from './components/pay_sheet.state';
 import {
@@ -48,9 +44,6 @@ import {
 } from './detail.helpers';
 import { INITIAL_UI_ENTRY, useCommitmentDetailState } from './detail.state';
 import { INITIAL_DATA_ENTRY, useCommitmentDetailStore } from './detail.store';
-
-const COMMITMENTS_TAB_NAME = 'commitments';
-const COMMITMENTS_TAB = `/(app)/(tabs)/${COMMITMENTS_TAB_NAME}` as const;
 
 const NO_FACTS: readonly DetailFact<CommitmentDetailFactKind>[] = Object.freeze([]);
 const NO_PAYMENT_ROWS: readonly CommitmentPaymentRowModel[] = Object.freeze([]);
@@ -296,15 +289,12 @@ export function useCommitmentDetail() {
 
   const goToEdit = useCallback(() => {
     if (!commitment) return;
-    const landing: CommitmentEditLanding =
+    const onDeactivated =
       stackedPrefix === STACKED_PREFIX
-        ? { onDeactivated: () => leaveStackedSubtree(originTxId, originTxCopy) }
-        : {
-            onSaved: () => router.dismissTo('/commitments'),
-            onDeactivated: () => router.dismissTo('/commitments'),
-          };
-    useCommitmentFormHostState.getState().openEdit(commitment.id, landing);
-  }, [commitment, stackedPrefix, originTxId, originTxCopy]);
+        ? () => leaveStackedSubtree(originTxId, originTxCopy)
+        : () => router.dismissTo('/commitments');
+    useCommitmentFormHostState.getState().openEdit(commitment, { onSaved: reload, onDeactivated });
+  }, [commitment, stackedPrefix, originTxId, originTxCopy, reload]);
 
   const goBack = useCallback(() => {
     router.back();
@@ -317,17 +307,10 @@ export function useCommitmentDetail() {
     router.push(stackedTransactionDetailRoute(transactionId));
   }, [transactionId]);
 
-  // The second `dismissTo` pops the landed tab's own Stack, where the href only diverges once the first has run.
   const goToAllPayments = useCallback(() => {
     if (!commitmentId) return;
     useCommitmentsScreenState.getState().seedCommitmentFilter(commitmentId);
-    // From another tab the landing pushes a second list over the tab's own detail, so that Stack pops first.
-    const tabStack = backgroundTabPushedStackKey(navigation.getState(), COMMITMENTS_TAB_NAME);
-    if (tabStack !== undefined) {
-      navigation.dispatch({ ...StackActions.popToTop(), target: tabStack });
-    }
-    router.dismissTo(COMMITMENTS_TAB);
-    router.dismissTo(COMMITMENTS_TAB);
+    jumpToTab(navigation, 'commitments');
   }, [commitmentId, navigation]);
 
   return {

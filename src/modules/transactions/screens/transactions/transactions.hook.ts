@@ -25,7 +25,7 @@ import {
 import { toLocalDateString } from '@/utils/format_date';
 import { groupTransactionsByDate } from '@/utils/group_transactions_by_date';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
-import { useDebouncedValue } from '@/utils/use_debounced_value.hook';
+import { useDebouncedSearch } from '@/utils/use_debounced_value.hook';
 import { fullMonthName } from '@/utils/year_month';
 
 import {
@@ -150,7 +150,7 @@ export function useTransactions() {
     useTransactionsScreenStore,
   );
 
-  const debouncedSearch = useDebouncedValue(searchQuery, 300);
+  const debouncedSearch = useDebouncedSearch(searchQuery, 300);
   const periodRange = useMemo(() => resolvePeriod(period), [period]);
   const previousPeriodRange = useMemo(() => resolvePeriod(previousPeriod(period)), [period]);
 

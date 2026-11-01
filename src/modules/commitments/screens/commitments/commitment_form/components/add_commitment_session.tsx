@@ -2,6 +2,10 @@ import { useCommitmentFormHostState } from '@/modules/commitments/store/commitme
 import { type RegisterFormSessionSubmit, useFormSession } from '@/utils/use_form_session.hook';
 
 import { CommitmentFormBody } from '../../components/commitment_form_body';
+import {
+  useCommitmentFirstPaymentFootnote,
+  useCommitmentFormStatus,
+} from '../../components/commitment_form_body.hook';
 import { useAddCommitment } from '../add_commitment.hook';
 
 interface AddCommitmentSessionProps {
@@ -16,11 +20,13 @@ export function AddCommitmentSession({
   onSaved,
 }: AddCommitmentSessionProps): React.ReactElement {
   const { state, form, onSubmit } = useAddCommitment({ onSaved: () => onSaved(sessionId) });
+  const errorMessage = useCommitmentFormStatus(form, state.saveError);
+  const footnote = useCommitmentFirstPaymentFootnote(form);
 
   useFormSession({
     sessionId,
     submit: onSubmit,
-    footer: { saving: state.saving, errorMessage: state.saveError },
+    footer: { saving: state.saving, errorMessage, footnote },
     onRegisterSubmit,
     publishFooter: useCommitmentFormHostState.getState().publishFooter,
   });

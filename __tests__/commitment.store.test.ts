@@ -439,17 +439,19 @@ describe('commitment store mutation invalidation', () => {
     consoleSpy.mockRestore();
   });
 
-  it('rejects update when required schedule regeneration fails', async () => {
+  it('rejects an edit only when its write rejects, never on the reload after it', async () => {
     const refreshError = new Error('schedule regeneration failed');
+    const writeError = new Error('write failed');
     const repository = makeRepository({
       runHousekeeping: jest.fn().mockRejectedValue(refreshError),
     });
     const store = createCommitmentStore(repository);
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-    await expect(store.getState().updateCommitment('commitment', updateInput)).rejects.toThrow(
-      refreshError,
-    );
+    await expect(
+      store.getState().updateCommitment('commitment', updateInput),
+    ).resolves.toBeUndefined();
+    await flushMicrotasks();
 
     expect(repository.update).toHaveBeenCalledTimes(1);
     expect((repository.update as jest.Mock).mock.calls[0].slice(0, 2)).toEqual([
@@ -458,6 +460,12 @@ describe('commitment store mutation invalidation', () => {
     ]);
     expect(repository.getMonthSnapshot).not.toHaveBeenCalled();
     expect(store.getState().loadError).toBe(true);
+
+    (repository.update as jest.Mock).mockRejectedValueOnce(writeError);
+
+    await expect(store.getState().updateCommitment('commitment', updateInput)).rejects.toThrow(
+      writeError,
+    );
     consoleSpy.mockRestore();
   });
 

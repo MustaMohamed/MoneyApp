@@ -180,6 +180,43 @@ describe('COMMITMENT_SCHEMA', () => {
   });
 });
 
+describe('COMMITMENT_SCHEMA Ends earlier than Starts (MA-256)', () => {
+  const ENDS_BEFORE_STARTS = 'End date must be on or after start date';
+  const UNTIL = {
+    ...VALID_BASE,
+    startDate: '2028-02-29',
+    durationType: DurationType.UntilDate,
+  };
+
+  const endDateMessages = (input: Record<string, unknown>): string[] => {
+    const result = COMMITMENT_SCHEMA.safeParse(input);
+    if (result.success) return [];
+    return result.error.issues.filter((e) => e.path[0] === 'endDate').map((e) => e.message);
+  };
+
+  it('fails Until a day before Starts on endDate, and passes Until on Starts and Forever with a stale date', () => {
+    expect({
+      dayBefore: endDateMessages({ ...UNTIL, endDate: '2028-02-28' }),
+      sameDay: COMMITMENT_SCHEMA.safeParse({ ...UNTIL, endDate: '2028-02-29' }).success,
+      staleForever: COMMITMENT_SCHEMA.safeParse({
+        ...UNTIL,
+        durationType: DurationType.Forever,
+        endDate: '2028-02-28',
+      }).success,
+    }).toEqual({
+      dayBefore: [ENDS_BEFORE_STARTS],
+      sameDay: true,
+      staleForever: true,
+    });
+  });
+
+  it('still reports Ends earlier than Starts with Every emptied', () => {
+    expect(endDateMessages({ ...UNTIL, recurrenceEvery: null, endDate: '2028-02-28' })).toEqual([
+      ENDS_BEFORE_STARTS,
+    ]);
+  });
+});
+
 describe('detectPreset', () => {
   it('returns Monthly for every=1, Months', () => {
     expect(detectPreset(1, RecurrencePeriod.Months)).toBe(RecurrencePreset.Monthly);

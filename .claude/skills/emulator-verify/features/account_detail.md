@@ -64,9 +64,9 @@ The canvas draws one account type per frame. Every state below is checked on a b
 
 | Action | Lands on | Back lands on |
 |---|---|---|
-| `See all` in the activity card | Transactions filtered to this account, current month (C5) | this detail |
+| `See all` in the activity card | Transactions filtered to this account, current month (C5), this detail closed | the previous tab, never this detail |
 | activity row tap | transaction detail, stacked twin above the tabs | this detail |
-| `Add a transaction` (C3) | add form with this account preselected | this detail |
+| `Add a transaction` (C3) | add form with this account preselected over the Transactions tab, this detail closed | the previous tab, never this detail |
 | `Edit` | `/accounts/[id]/edit` (MA-078; until it merges, the inline edit) | this detail |
 | `Archive` confirmed | archived detail (C4) | accounts list |
 | Back | accounts list, or the dashboard when opened from its card | n/a |

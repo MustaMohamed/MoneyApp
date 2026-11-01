@@ -6,13 +6,10 @@ import { View } from 'react-native';
 import { TYPE_OPTIONS } from '@/components/account_type_pill';
 import { AccountColorTile } from '@/components/ui/account_color_tile';
 import { AccountStrip } from '@/components/ui/account_strip';
-import { DangerRing } from '@/components/ui/danger_ring';
 import { DateRow } from '@/components/ui/date_row';
+import { FormFactCell } from '@/components/ui/form_fact_cell';
 import { FormPickerRow } from '@/components/ui/form_picker_row';
-import {
-  FORM_FACT_CELL_CLASS,
-  FORM_SHEET_CONTENT_CONTAINER_STYLE,
-} from '@/components/ui/form_sheet.geometry';
+import { FORM_SHEET_CONTENT_CONTAINER_STYLE } from '@/components/ui/form_sheet.geometry';
 import type { AccountStripChip } from '@/components/ui/form_sheet.helpers';
 import { ListCard } from '@/components/ui/list_card';
 import { NoteFactRow } from '@/components/ui/note_fact_row';
@@ -192,7 +189,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
       <View testID="transaction-form-fact-inset" style={FORM_SHEET_CONTENT_CONTAINER_STYLE}>
         <ListCard testID="transaction-form-fact-group">
           {isTransferOrCC ? (
-            <View className={FORM_FACT_CELL_CLASS}>
+            <FormFactCell fault={toAccountError} ringTestID="to-account-ring">
               <FormPickerRow
                 testID="to-account-row"
                 divider={false}
@@ -231,12 +228,11 @@ export function TransactionFormBody(props: Props): React.ReactElement {
                   />
                 }
               />
-              {toAccountError !== undefined ? <DangerRing testID="to-account-ring" /> : null}
-            </View>
+            </FormFactCell>
           ) : null}
 
           {!isTransferOrCC ? (
-            <View className={FORM_FACT_CELL_CLASS}>
+            <FormFactCell fault={categoryError} ringTestID="category-ring">
               <CategoryPickerRow
                 testID="category-row"
                 label={Strings.addTxCategoryLabel}
@@ -244,12 +240,11 @@ export function TransactionFormBody(props: Props): React.ReactElement {
                 onPress={onOpenCategoryPicker}
                 accessibilityHint={categoryError}
               />
-              {categoryError !== undefined ? <DangerRing testID="category-ring" /> : null}
-            </View>
+            </FormFactCell>
           ) : null}
 
           {showBudgetField ? (
-            <View className={FORM_FACT_CELL_CLASS}>
+            <FormFactCell fault={budgetFieldError} ringTestID="budget-ring">
               <FormPickerRow
                 testID="budget-row"
                 divider={false}
@@ -293,19 +288,18 @@ export function TransactionFormBody(props: Props): React.ReactElement {
                   )
                 }
               />
-              {budgetFieldError !== undefined ? <DangerRing testID="budget-ring" /> : null}
-            </View>
+            </FormFactCell>
           ) : null}
 
           {requiresRate ? (
-            <View className={FORM_FACT_CELL_CLASS}>
+            <FormFactCell>
               <RateRow ownerId={datePickerOwnerId} value={exchangeRate} stale={rateStale} />
-            </View>
+            </FormFactCell>
           ) : null}
 
-          <View className={FORM_FACT_CELL_CLASS}>
+          <FormFactCell>
             <DateRow ownerId={datePickerOwnerId} value={date} onChange={setDate} divider={false} />
-          </View>
+          </FormFactCell>
 
           <NoteFactRow
             label={Strings.addTxNoteLabel}

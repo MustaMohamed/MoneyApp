@@ -56,7 +56,6 @@ const TRANSACTION_CALLS =
   'db.withTransactionAsync(task);\ndb.withExclusiveTransactionAsync(task);\ndb.getEachAsync(source);\n';
 const FIELD_MESSAGE_RAIL = 'src/modules/accounts/components/field_message_rail.tsx';
 const ACCOUNT_COLOR_SHEET = 'src/modules/accounts/components/account_form/account_color_sheet.tsx';
-const COMMITMENT_FORM_BODY = `${COMMITMENTS}/components/commitment_form_body.tsx`;
 const STATUS_TRACK = 'src/components/ui/status_track.tsx';
 const LIST_RAIL = 'src/components/ui/list_rail.tsx';
 
@@ -469,7 +468,6 @@ const REQUIRED: RequiredSeed[] = [
   withoutKind(ERROR_STATE, 'error', 'empty'),
   withoutKeptView(FIELD_MESSAGE_RAIL, 'the account form field message rail'),
   withoutKeptView(ACCOUNT_COLOR_SHEET, 'the account colour sheet'),
-  withoutKeptView(COMMITMENT_FORM_BODY, 'the commitment form'),
   withoutKeptView(STATUS_TRACK, 'the footer status line'),
 ];
 
@@ -665,11 +663,11 @@ describe('validate-structural-guards.js, named files', () => {
     expectClean(runGuard());
   });
 
-  it('reports the commitment form when the prop sits on a view other than the live region', () => {
-    replaceEvery(COMMITMENT_FORM_BODY, KEPT_VIEW, '');
-    appendLine(COMMITMENT_FORM_BODY, `<View ${KEPT_VIEW} />`);
+  it('reports the field message rail when the prop sits on a view other than the live region', () => {
+    replaceEvery(FIELD_MESSAGE_RAIL, KEPT_VIEW, '');
+    appendLine(FIELD_MESSAGE_RAIL, `<View ${KEPT_VIEW} />`);
 
-    expectReported(runGuard(), [lineFor(COMMITMENT_FORM_BODY, NO_KEPT_VIEW)]);
+    expectReported(runGuard(), [lineFor(FIELD_MESSAGE_RAIL, NO_KEPT_VIEW)]);
   });
 
   it.each([
@@ -709,7 +707,7 @@ describe('validate-structural-guards.js, named files', () => {
   );
 
   it('exits 0 when an arrow-function prop sits before the live region on the kept view', () => {
-    replaceOnce(COMMITMENT_FORM_BODY, LIVE_REGION, `onLayout={(e) => setH(e)} ${LIVE_REGION}`);
+    replaceOnce(FIELD_MESSAGE_RAIL, LIVE_REGION, `onLayout={(e) => setH(e)} ${LIVE_REGION}`);
 
     expectClean(runGuard());
   });
