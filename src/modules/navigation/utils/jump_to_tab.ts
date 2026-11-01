@@ -11,7 +11,7 @@ type AppStackNavigation = Pick<NavigationProp<ReactNavigation.RootParamList>, 'd
   getState: () => NavigationState | undefined;
 };
 
-/** Lands on `tabName`'s list from a screen on the `(app)` Stack; `navigation` is that Stack's. */
+/** Lands on `tabName`'s list. `navigation` is the screen's own: only the `(app)` Stack's state shows a background tab, so a tab's own Stack pops nothing. */
 export function jumpToTab(
   navigation: AppStackNavigation,
   tabName: 'transactions' | 'commitments',

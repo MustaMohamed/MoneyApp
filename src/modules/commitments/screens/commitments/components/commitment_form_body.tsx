@@ -14,13 +14,7 @@ import { ListCard } from '@/components/ui/list_card';
 import { NoteFactRow } from '@/components/ui/note_fact_row';
 import { useNoteReveal } from '@/components/ui/note_reveal.hook';
 import { ValidationSlot } from '@/components/ui/validation_slot';
-import {
-  AmountType,
-  CategoryType,
-  Currency,
-  DurationType,
-  RecurrencePeriod,
-} from '@/constants/enums';
+import { AmountType, CategoryType, Currency, RecurrencePeriod } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Size } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
@@ -34,6 +28,7 @@ import {
   resolveCommitmentStripChips,
   resolveEndsRowValue,
   resolveRepeatsRowValue,
+  setCommitmentDurationType,
   setCommitmentEndDate,
   setCommitmentStartDate,
 } from '../commitment_form.helpers';
@@ -140,13 +135,6 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
       // Already non-1 months, so switch period instead; `detectPreset` cannot map it back.
       form.setValue('recurrencePeriod', RecurrencePeriod.Days, SET_OPTS);
     }
-  }
-
-  function handleDurationTypeChange(type: DurationType) {
-    form.setValue('durationType', type, SET_OPTS);
-    if (type !== DurationType.UntilDate) form.resetField('endDate', { defaultValue: undefined });
-    if (type !== DurationType.AfterCount)
-      form.resetField('endAfterCount', { defaultValue: undefined });
   }
 
   function selectCategory(category: Category) {
@@ -347,7 +335,7 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
         <DurationPicker
           form={form}
           durationType={durationType}
-          onDurationTypeChange={handleDurationTypeChange}
+          onDurationTypeChange={(type) => setCommitmentDurationType(form, type, isSubmitted)}
           onEndDateChange={(next) => setCommitmentEndDate(form, next, isSubmitted)}
           showEndDatePicker={showEndDatePicker}
           setShowEndDatePicker={setShowEndDatePicker}

@@ -5,7 +5,6 @@ import { DurationType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
-import { useRouteDraft } from '@/utils/use_route_draft.hook';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
 import type { Commitment } from '../../../entities/commitment.entity';
@@ -50,18 +49,6 @@ export function useEditCommitment(options: EditCommitmentOptions) {
 
   // Read off the store: two taps in one frame both see the render's `saving` as false.
   const isSaving = (): boolean => useEditCommitmentState.getState().entries[owner]?.saving === true;
-  const onRedraft = (): void => {
-    setSaveError(owner, undefined);
-    setDeactivateDialogVisible(owner, false);
-  };
-  const { isCurrent, submit } = useRouteDraft({
-    id: commitment.id,
-    entity: commitment,
-    form,
-    buildDraft: buildEditDefaults,
-    onRedraft,
-    isBusy: isSaving,
-  });
 
   useEffect(() => {
     claim(owner);
@@ -69,7 +56,7 @@ export function useEditCommitment(options: EditCommitmentOptions) {
   }, [owner, claim, release]);
 
   async function onValid(data: CommitmentFormValues) {
-    if (!isCurrent(commitment.id) || isSaving()) return;
+    if (isSaving()) return;
     setSaveError(owner, undefined);
     setSaving(owner, true);
     try {
@@ -90,31 +77,31 @@ export function useEditCommitment(options: EditCommitmentOptions) {
         end_after_count:
           data.durationType === DurationType.AfterCount ? (data.endAfterCount ?? null) : null,
       });
-      if (!isCurrent(commitment.id)) return;
       options.onSaved();
     } catch {
-      if (isCurrent(commitment.id)) setSaveError(owner, Strings.commitmentsSaveError);
+      setSaveError(owner, Strings.commitmentsSaveError);
     } finally {
       setSaving(owner, false);
     }
   }
 
-  const onSubmit = (): Promise<void> => submit(onValid);
+  const onSubmit = async (): Promise<void> => {
+    if (isSaving()) return;
+    await form.handleSubmit(onValid)();
+  };
 
   function handleDeactivate() {
     setDeactivateDialogVisible(owner, true);
   }
 
   async function confirmDeactivate() {
-    if (!isCurrent(commitment.id) || isSaving()) return;
+    if (isSaving()) return;
     setSaving(owner, true);
     try {
       await deactivateCommitment(commitment.id);
-      if (!isCurrent(commitment.id)) return;
       setDeactivateDialogVisible(owner, false);
       options.onDeactivated();
     } catch {
-      if (!isCurrent(commitment.id)) return;
       // The sheet is a portal over the form, so it must close for the banner to show.
       setDeactivateDialogVisible(owner, false);
       setSaveError(owner, Strings.commitmentsSaveError);

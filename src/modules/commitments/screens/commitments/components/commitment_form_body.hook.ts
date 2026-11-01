@@ -11,7 +11,10 @@ import {
 import { useAccountsById } from '@/modules/accounts/store/use_accounts_by_id.hook';
 import { toLocalDateString } from '@/utils/format_date';
 
-import { resolveCommitmentFirstPaymentFootnote } from '../commitment_form.helpers';
+import {
+  resolveCommitmentFirstPaymentFootnote,
+  resolveCommitmentFormStatus,
+} from '../commitment_form.helpers';
 import type { CommitmentFormValues } from '../commitment_form.shared';
 import {
   type CommitmentChoiceSheetKind,
@@ -29,7 +32,7 @@ const BODY_FAULT_FIELDS = [
   'endDate',
 ] as const;
 
-type BodyFaultField = (typeof BODY_FAULT_FIELDS)[number];
+export type BodyFaultField = (typeof BODY_FAULT_FIELDS)[number];
 
 export function useCommitmentFormBodyPickers() {
   const owner = useId();
@@ -77,7 +80,7 @@ export function useCommitmentFormStripAccounts(accountId: string | undefined): A
   return accountRead;
 }
 
-/** The body's own subscription to its faults: a compiled host reuses the body while `form` keeps its identity. */
+/** Each reader subscribes for itself: a compiled host reuses the body while `form` keeps its identity. */
 export function useCommitmentFormBodyFaults(form: UseFormReturn<CommitmentFormValues>): {
   faults: Record<BodyFaultField, string | undefined>;
   isSubmitted: boolean;
@@ -106,24 +109,6 @@ export function resolveCommitmentFormStripError(
   return lookupLeavesUnresolved(accountRead, accountId === undefined ? [] : [accountId])
     ? Strings.transactionsAccountLookupError
     : undefined;
-}
-
-/** A count on the Ends row and a date on it are one field; the strip error refuses nothing and sits outside `faults`. */
-export function countCommitmentFormFaults(
-  faults: Record<BodyFaultField, string | undefined>,
-): number {
-  const { endAfterCount, endDate, ...rows } = faults;
-  return [...Object.values(rows), endAfterCount ?? endDate].filter((fault) => fault !== undefined)
-    .length;
-}
-
-/** The field count while a Save's refusal stands, else the save error. */
-export function resolveCommitmentFormStatus(
-  faults: Record<BodyFaultField, string | undefined>,
-  saveError: string | undefined,
-): string | undefined {
-  const count = countCommitmentFormFaults(faults);
-  return count > 0 ? Strings.fixFieldsMarkedAbove(count) : saveError;
 }
 
 export function useCommitmentFormStatus(

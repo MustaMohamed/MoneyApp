@@ -1,9 +1,5 @@
-import { View } from 'react-native';
-
-import { Button } from '@/components/ui/button';
-import { FORM_SHEET_STATUS_GAP } from '@/components/ui/form_sheet.geometry';
+import { FormSheetFooter } from '@/components/ui/form_sheet_footer';
 import { Sheet } from '@/components/ui/sheet';
-import { StatusTrack } from '@/components/ui/status_track';
 import { Strings } from '@/constants/strings';
 
 import { useCommitmentFormHost } from './commitment_form_host.hook';
@@ -33,21 +29,15 @@ export function CommitmentFormHost(): React.ReactElement {
       isDismissable={state.isDismissable}
       footer={
         state.hasSession ? (
-          <View>
-            <StatusTrack
-              testID="commitment-form-status"
-              footnote={state.statusFootnote}
-              message={state.statusMessage}
-            />
-            <View style={{ height: FORM_SHEET_STATUS_GAP }} />
-            <Button
-              variant="primary"
-              flat
-              label={Strings.commitmentsSave}
-              isLoading={state.saving}
-              onPress={handleSave}
-            />
-          </View>
+          <FormSheetFooter
+            statusTestID="commitment-form-status"
+            showsStatusTrack
+            footnote={state.statusFootnote}
+            message={state.statusMessage}
+            label={Strings.commitmentsSave}
+            isLoading={state.saving}
+            onPress={handleSave}
+          />
         ) : undefined
       }
     >

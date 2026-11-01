@@ -6,26 +6,28 @@ import { AccountType, DurationType, RecurrencePeriod } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
+import { useAccountsById } from '@/modules/accounts/store/use_accounts_by_id.hook';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import {
   NO_ACCOUNT_CHIP_ID,
   applyCommitmentAmountText,
+  countCommitmentFormFaults,
   parseCommitmentAmountText,
   resolveAccountIdFromChip,
   resolveAmountHeroSyncText,
   resolveCommitmentFirstPaymentFootnote,
+  resolveCommitmentFormStatus,
   resolveCommitmentStripChips,
   resolveEndsRowValue,
   resolveRepeatsRowValue,
   parseWholeNumberInput,
+  setCommitmentDurationType,
   setCommitmentEndDate,
   setCommitmentStartDate,
 } from '@/modules/commitments/screens/commitments/commitment_form.helpers';
 import { useAddCommitment } from '@/modules/commitments/screens/commitments/commitment_form/add_commitment.hook';
 import { useAddCommitmentState } from '@/modules/commitments/screens/commitments/commitment_form/add_commitment.state';
 import {
-  countCommitmentFormFaults,
-  resolveCommitmentFormStatus,
   resolveCommitmentFormStripError,
   useCommitmentFirstPaymentFootnote,
   useCommitmentFormBodyFaults,
@@ -219,7 +221,12 @@ function attachAddCommitmentStores(addCommitment: jest.Mock) {
     addCommitment,
     generatePayments: jest.fn().mockResolvedValue(undefined),
   }));
-  attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({ accounts: [] }));
+  attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
+    accounts: [],
+    archivedAccounts: [],
+    accountLookupById: {},
+    accountLookupError: false,
+  }));
   attachMockSelectorStore(useCategoryStore as unknown as jest.Mock, () => ({ categories: [] }));
   attachMockSelectorStore(useAddCommitmentState as unknown as jest.Mock, () => ({
     saving: false,
@@ -601,6 +608,13 @@ describe('useCommitmentFormBodyFaults (MA-255)', () => {
       });
     }
 
+    async function chooseEnds(result: Mounted, next: DurationType) {
+      await act(async () => {
+        setCommitmentDurationType(result.current.form, next, result.current.body.isSubmitted);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+    }
+
     async function mountUntil(starts: string, ends: string): Promise<Mounted> {
       const result = await mountFilled();
       await act(async () => result.current.form.setValue('durationType', DurationType.UntilDate));
@@ -672,6 +686,39 @@ describe('useCommitmentFormBodyFaults (MA-255)', () => {
 
       expect(result.current.body.faults.endDate).toBe(Strings.commitmentsErrEndsBeforeStarts);
     });
+
+    it.each([DurationType.Forever, DurationType.AfterCount])(
+      'clears the ring with Ends moved to %s',
+      async (next) => {
+        const result = await mountRefused();
+
+        await chooseEnds(result, next);
+
+        expect(result.current.body.faults.endDate).toBeUndefined();
+      },
+    );
+
+    it('rings again with Ends back on Until and its kept day before Starts', async () => {
+      const result = await mountRefused();
+      await chooseEnds(result, DurationType.Forever);
+
+      await chooseEnds(result, DurationType.UntilDate);
+
+      expect(result.current.body.faults.endDate).toBe(Strings.commitmentsErrEndsBeforeStarts);
+    });
+
+    it('rings the kept day Starts moved past on Forever, after a Save refused for Name', async () => {
+      const result = await mountUntil(DAY_BEFORE, LEAP_DAY);
+      await act(async () => result.current.form.setValue('name', ''));
+      await save(result);
+      await chooseEnds(result, DurationType.Forever);
+      await moveStarts(result, DAY_AFTER);
+      expect(result.current.body.faults.endDate).toBeUndefined();
+
+      await chooseEnds(result, DurationType.UntilDate);
+
+      expect(result.current.body.faults.endDate).toBe(Strings.commitmentsErrEndsBeforeStarts);
+    });
   });
 
   describe('the status track (MA-256)', () => {
@@ -681,6 +728,7 @@ describe('useCommitmentFormBodyFaults (MA-255)', () => {
       const hook = useAddWithBodyFaults();
       return {
         ...hook,
+        lookup: useAccountsById(),
         status: useCommitmentFormStatus(hook.form, saveError),
         footnote: useCommitmentFirstPaymentFootnote(hook.form, NOW),
       };
@@ -727,6 +775,12 @@ describe('useCommitmentFormBodyFaults (MA-255)', () => {
     });
 
     it('counts name, category and amount on a Save, and a failed account lookup adds none', async () => {
+      attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
+        accounts: [],
+        archivedAccounts: [],
+        accountLookupById: {},
+        accountLookupError: true,
+      }));
       const result = await mountFooter();
       await act(async () => {
         result.current.form.setValue('name', '');
@@ -737,9 +791,10 @@ describe('useCommitmentFormBodyFaults (MA-255)', () => {
 
       await save(result);
 
+      expect(result.current.lookup.lookupFailed).toBe(true);
       expect(
         resolveCommitmentFormStripError(
-          { accountsById: new Map(), lookupFailed: true },
+          result.current.lookup,
           result.current.form.getValues('accountId'),
         ),
       ).toBe(Strings.transactionsAccountLookupError);

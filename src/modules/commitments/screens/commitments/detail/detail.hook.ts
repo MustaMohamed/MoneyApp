@@ -23,10 +23,7 @@ import { useLocalDayChange } from '@/utils/use_local_day_change.hook';
 import { countSettledPayments, resolveCommitmentLifecycle } from '../../../domain/payment_state';
 import { commitmentRepository } from '../../../repositories/commitment.repository';
 import { useCommitmentStore } from '../../../store/commitment.store';
-import {
-  type CommitmentEditLanding,
-  useCommitmentFormHostState,
-} from '../../../store/commitment_form_host.state';
+import { useCommitmentFormHostState } from '../../../store/commitment_form_host.state';
 import { useCommitmentsScreenState } from '../commitments.state';
 import { usePaySheetState } from './components/pay_sheet.state';
 import {
@@ -292,11 +289,11 @@ export function useCommitmentDetail() {
 
   const goToEdit = useCallback(() => {
     if (!commitment) return;
-    const landing: CommitmentEditLanding =
+    const onDeactivated =
       stackedPrefix === STACKED_PREFIX
-        ? { onSaved: reload, onDeactivated: () => leaveStackedSubtree(originTxId, originTxCopy) }
-        : { onSaved: reload, onDeactivated: () => router.dismissTo('/commitments') };
-    useCommitmentFormHostState.getState().openEdit(commitment, landing);
+        ? () => leaveStackedSubtree(originTxId, originTxCopy)
+        : () => router.dismissTo('/commitments');
+    useCommitmentFormHostState.getState().openEdit(commitment, { onSaved: reload, onDeactivated });
   }, [commitment, stackedPrefix, originTxId, originTxCopy, reload]);
 
   const goBack = useCallback(() => {

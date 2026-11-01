@@ -57,7 +57,7 @@ The totals helpers split under 2026-09-28 §1. `computeDeltaPct` is a money deri
 
 **Amended 2026-10-29, MA-219 (#793).** `ExchangeRateRow` is deleted rather than moved, and `src/modules/transactions/components/exchange_rate_row.tsx` with it. The pay sheet takes `RateRow` and `RateEditor` from `src/components/ui/`.
 
-**Extended 2026-10-31 (#856, MA-256).** The fact cell of the commitment sheet, the pay sheet and the transaction sheet lives in `src/components/ui/form_fact_cell.tsx` (epic #777 R25): `FormFactCell` holds the cell's string and its canvas comment, and takes an optional `fault` and `ringTestID`, both or neither, drawing `DangerRing` while the fault stands. Each sheet keeps its ring testIDs. `FORM_FACT_CELL_CLASS` left `form_sheet.geometry.ts` with no re-export, which supersedes the class's home in the MA-255 and MA-259 lines above. The file is new, so §3's `git mv` does not apply.
+**Extended 2026-10-31 (#856, MA-256).** The fact cell of the commitment sheet, the pay sheet and the transaction sheet lives in `src/components/ui/form_fact_cell.tsx` (epic #777 R25): `FormFactCell` holds the cell's string and its canvas comment, and takes an optional `fault` and `ringTestID`, both or neither, drawing `DangerRing` while the fault stands. Each sheet keeps its ring testIDs. `FORM_FACT_CELL_CLASS` left `form_sheet.geometry.ts` with no re-export, which supersedes the class's home in the MA-255 and MA-259 lines above. The file is new, so §3's `git mv` does not apply. The same three sheets draw their status track over the flat button through `FormSheetFooter`, `src/components/ui/form_sheet_footer.tsx`, a new file too.
 
 ## 2. A shared piece imports nothing from a screen folder
 

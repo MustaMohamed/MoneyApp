@@ -1,9 +1,5 @@
-import { View } from 'react-native';
-
-import { Button } from '@/components/ui/button';
-import { FORM_SHEET_STATUS_GAP } from '@/components/ui/form_sheet.geometry';
+import { FormSheetFooter } from '@/components/ui/form_sheet_footer';
 import { Sheet } from '@/components/ui/sheet';
-import { StatusTrack } from '@/components/ui/status_track';
 import { Strings } from '@/constants/strings';
 
 import { AddTransactionSession } from './components/add_transaction_session';
@@ -34,22 +30,15 @@ export function TransactionFormHost(): React.ReactElement {
       isDismissable={state.isDismissable}
       footer={
         state.footer.visible ? (
-          <View>
-            {state.showsStatusTrack ? (
-              <>
-                <StatusTrack testID="transaction-form-status" message={state.footer.status} />
-                <View style={{ height: FORM_SHEET_STATUS_GAP }} />
-              </>
-            ) : null}
-            <Button
-              variant="primary"
-              flat
-              label={state.mode === 'edit' ? Strings.editTxSaveCta : Strings.addTxSaveCta}
-              isLoading={state.footer.saving}
-              isDisabled={state.footer.disabled}
-              onPress={handleSave}
-            />
-          </View>
+          <FormSheetFooter
+            statusTestID="transaction-form-status"
+            showsStatusTrack={state.showsStatusTrack}
+            message={state.footer.status}
+            label={state.mode === 'edit' ? Strings.editTxSaveCta : Strings.addTxSaveCta}
+            isLoading={state.footer.saving}
+            isDisabled={state.footer.disabled}
+            onPress={handleSave}
+          />
         ) : undefined
       }
     >

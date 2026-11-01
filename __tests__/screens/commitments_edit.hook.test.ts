@@ -97,8 +97,6 @@ function mount(opened: Commitment = commitment) {
   );
 }
 
-type Pending = ReturnType<typeof deferred<void>>;
-
 type Hook = Awaited<ReturnType<typeof mount>>;
 
 const entries = () => useEditCommitmentState.getState().entries;
@@ -112,34 +110,12 @@ async function mountTwoCopies() {
   return { lower, lowerOwner, upper, upperOwner };
 }
 
-function expectNoLanding() {
-  expect(onSaved).not.toHaveBeenCalled();
-  expect(onDeactivated).not.toHaveBeenCalled();
-}
-
-const settles: [string, (pending: Pending) => void][] = [
-  ['resolves', (pending) => pending.resolve()],
-  ['rejects', (pending) => pending.reject(new Error('disk full'))],
-];
-
 async function startSave(hook: Hook) {
   const pending = deferred<void>();
   updateCommitmentMock.mockReturnValueOnce(pending.promise);
   let inFlight = Promise.resolve();
   await act(async () => {
     inFlight = hook.result.current.onSubmit();
-  });
-  expect(hook.result.current.state.saving).toBe(true);
-  return { pending, inFlight };
-}
-
-async function startDeactivate(hook: Hook) {
-  const pending = deferred<void>();
-  deactivateCommitmentMock.mockReturnValueOnce(pending.promise);
-  await act(async () => hook.result.current.handleDeactivate());
-  let inFlight = Promise.resolve();
-  await act(async () => {
-    inFlight = hook.result.current.confirmDeactivate();
   });
   expect(hook.result.current.state.saving).toBe(true);
   return { pending, inFlight };
@@ -424,11 +400,7 @@ describe('useEditCommitment', () => {
     expect(onDeactivated).not.toHaveBeenCalled();
   });
 
-  describe('MA-188 the mounted form rerenders on a second commitment', () => {
-    async function openOn(hook: Hook, opened: Commitment) {
-      await hook.rerender({ commitment: opened });
-    }
-
+  describe('MA-188 a re-read and a save in flight', () => {
     async function typeName(hook: Hook, name: string) {
       await act(async () => {
         hook.result.current.form.setValue('name', name, { shouldDirty: true, shouldTouch: true });
@@ -444,83 +416,12 @@ describe('useEditCommitment', () => {
       expect(hook.result.current.form.getValues('name')).toBe('Typed name');
     });
 
-    it('every field shows the second commitment stored values', async () => {
-      const hook = await mount();
-      await typeName(hook, 'Typed name');
-
-      await openOn(hook, second);
-
-      expect(hook.result.current.form.getValues()).toEqual(buildEditDefaults(second));
-    });
-
-    it('drops a settled save failure of the first commitment', async () => {
-      updateCommitmentMock.mockRejectedValueOnce(new Error('disk full'));
-      const hook = await mount();
-      await act(async () => {
-        await hook.result.current.onSubmit();
-      });
-      expect(hook.result.current.state.saveError).toBe(Strings.commitmentsSaveError);
-
-      await openOn(hook, second);
-
-      expect(hook.result.current.state.saveError).toBeUndefined();
-    });
-
-    it('closes a deactivate confirmation opened on the first commitment', async () => {
-      const hook = await mount();
-      await act(async () => hook.result.current.handleDeactivate());
-      expect(hook.result.current.state.deactivateDialogVisible).toBe(true);
-
-      await openOn(hook, second);
-
-      expect(hook.result.current.state.deactivateDialogVisible).toBe(false);
-    });
-
-    it.each(settles)(
-      'a first commitment save that %s after the switch shows no error and calls no landing',
-      async (_outcome, finish) => {
-        const hook = await mount();
-        const { pending, inFlight } = await startSave(hook);
-
-        await openOn(hook, second);
-        await settle(inFlight, () => finish(pending));
-
-        expect(updateCommitmentMock).toHaveBeenCalledTimes(1);
-        expect(updateCommitmentMock).toHaveBeenCalledWith('com-1', expect.anything());
-        expectNoLanding();
-        expect(hook.result.current.state.saveError).toBeUndefined();
-        expect(hook.result.current.state.saving).toBe(false);
-        expect(hook.result.current.form.getValues()).toEqual(buildEditDefaults(second));
-      },
-    );
-
-    it.each(settles)(
-      'a first commitment deactivate that %s after the confirmation reopens on the second calls no landing and keeps it open',
-      async (_outcome, finish) => {
-        const hook = await mount();
-        const { pending, inFlight } = await startDeactivate(hook);
-
-        await openOn(hook, second);
-        await act(async () => hook.result.current.handleDeactivate());
-        expect(hook.result.current.state.deactivateDialogVisible).toBe(true);
-        await settle(inFlight, () => finish(pending));
-
-        expect(deactivateCommitmentMock).toHaveBeenCalledTimes(1);
-        expect(deactivateCommitmentMock).toHaveBeenCalledWith('com-1');
-        expectNoLanding();
-        expect(hook.result.current.state.deactivateDialogVisible).toBe(true);
-        expect(hook.result.current.state.saveError).toBeUndefined();
-        expect(hook.result.current.state.saving).toBe(false);
-      },
-    );
-
-    it('a Save on the second commitment while the first commitment save is in flight writes nothing and leaves the form unsubmitted', async () => {
+    it('a second Save while a save is in flight writes nothing and leaves the form unsubmitted', async () => {
       const hook = await mount();
       expect(hook.result.current.form.formState.isSubmitted).toBe(false);
       expect(hook.result.current.form.formState.submitCount).toBe(0);
       const { pending, inFlight } = await startSave(hook);
 
-      await openOn(hook, second);
       await act(async () => {
         await hook.result.current.onSubmit();
       });
@@ -531,35 +432,6 @@ describe('useEditCommitment', () => {
       expect(hook.result.current.form.formState.submitCount).toBe(0);
 
       await settle(inFlight, () => pending.resolve());
-    });
-
-    it('a Save after it rerenders on the second commitment writes the second and calls onSaved', async () => {
-      const hook = await mount();
-
-      await openOn(hook, second);
-      await act(async () => {
-        await hook.result.current.onSubmit();
-      });
-
-      expect(updateCommitmentMock).toHaveBeenCalledTimes(1);
-      expect(updateCommitmentMock).toHaveBeenCalledWith('com-2', expect.anything());
-      expect(onSaved).toHaveBeenCalledTimes(1);
-      expect(onDeactivated).not.toHaveBeenCalled();
-    });
-
-    it('a Confirm after it rerenders on the second commitment deactivates the second and calls onDeactivated', async () => {
-      const hook = await mount();
-
-      await openOn(hook, second);
-      await act(async () => hook.result.current.handleDeactivate());
-      await act(async () => {
-        await hook.result.current.confirmDeactivate();
-      });
-
-      expect(deactivateCommitmentMock).toHaveBeenCalledTimes(1);
-      expect(deactivateCommitmentMock).toHaveBeenCalledWith('com-2');
-      expect(onDeactivated).toHaveBeenCalledTimes(1);
-      expect(onSaved).not.toHaveBeenCalled();
     });
 
     it('a Confirm while a save is in flight does not deactivate', async () => {
@@ -575,28 +447,6 @@ describe('useEditCommitment', () => {
 
       await settle(inFlight, () => pending.resolve());
     });
-
-    it.each(settles)(
-      'a first commitment save that %s after the switch leaves the second commitment unsubmitted, with its edits kept',
-      async (_outcome, finish) => {
-        const hook = await mount();
-        expect(hook.result.current.form.formState.isSubmitted).toBe(false);
-        expect(hook.result.current.form.formState.submitCount).toBe(0);
-        const { pending, inFlight } = await startSave(hook);
-
-        await openOn(hook, second);
-        await typeName(hook, 'Typed on second');
-        await settle(inFlight, () => finish(pending));
-
-        const { form } = hook.result.current;
-        expect(form.formState.isSubmitted).toBe(false);
-        expect(form.formState.submitCount).toBe(0);
-        expect(form.getValues('name')).toBe('Typed on second');
-        expect(form.getFieldState('name')).toEqual(
-          expect.objectContaining({ isDirty: true, isTouched: true }),
-        );
-      },
-    );
   });
 
   describe('MA-256 a session on the commitment the detail holds, the month store empty', () => {

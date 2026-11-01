@@ -21,6 +21,7 @@ import {
   type CommitmentFormValues,
   SET_OPTS,
 } from './commitment_form.shared';
+import type { BodyFaultField } from './components/commitment_form_body.hook';
 
 export const NO_ACCOUNT_CHIP_ID = 'no-account';
 
@@ -142,7 +143,19 @@ export function setCommitmentEndDate(
   form.setValue('endDate', next, { shouldDirty: true, shouldValidate: isSubmitted });
 }
 
-/** The first payment's line, from the schedule as typed; `undefined` while it has no first payment. */
+/** `endDate` has no `Controller`, so `resetField` keeps its value and its error: once a Save ran, an Ends choice re-reads it. */
+export function setCommitmentDurationType(
+  form: Pick<UseFormReturn<CommitmentFormValues>, 'setValue' | 'resetField' | 'trigger'>,
+  type: DurationType,
+  isSubmitted: boolean,
+): void {
+  form.setValue('durationType', type, SET_OPTS);
+  if (type !== DurationType.UntilDate) form.resetField('endDate', { defaultValue: undefined });
+  if (type !== DurationType.AfterCount)
+    form.resetField('endAfterCount', { defaultValue: undefined });
+  if (isSubmitted) void form.trigger('endDate');
+}
+
 export function resolveCommitmentFirstPaymentFootnote(
   schedule: {
     startDate: string;
@@ -166,4 +179,21 @@ export function resolveCommitmentFirstPaymentFootnote(
   });
   if (dueDates.length === 0) return undefined;
   return Strings.commitmentsFirstPaymentDue(formatShortWeekdayDate(dueDates[0], today));
+}
+
+/** A count on the Ends row and a date on it are one field; the strip error refuses nothing and sits outside `faults`. */
+export function countCommitmentFormFaults(
+  faults: Record<BodyFaultField, string | undefined>,
+): number {
+  const { endAfterCount, endDate, ...rows } = faults;
+  return [...Object.values(rows), endAfterCount ?? endDate].filter((fault) => fault !== undefined)
+    .length;
+}
+
+export function resolveCommitmentFormStatus(
+  faults: Record<BodyFaultField, string | undefined>,
+  saveError: string | undefined,
+): string | undefined {
+  const count = countCommitmentFormFaults(faults);
+  return count > 0 ? Strings.fixFieldsMarkedAbove(count) : saveError;
 }

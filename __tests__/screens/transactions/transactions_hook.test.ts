@@ -25,7 +25,7 @@ import { useTransactionsScreenStore } from '@/modules/transactions/store/transac
 import { deferred } from '@/test_helpers/deferred';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 import { makeTestAccount, makeTestCategory } from '@/test_helpers/transaction';
-import { useDebouncedValue } from '@/utils/use_debounced_value.hook';
+import { useDebouncedSearch } from '@/utils/use_debounced_value.hook';
 
 let mockFocusEffectCallback: (() => void | (() => void)) | undefined;
 const mockPush = jest.fn();
@@ -65,7 +65,7 @@ jest.mock('@/utils/run_after_interactions', () => ({
 }));
 
 jest.mock('@/utils/use_debounced_value.hook', () => ({
-  useDebouncedValue: jest.fn((value: unknown) => value),
+  useDebouncedSearch: jest.fn((value: unknown) => value),
 }));
 
 jest.mock('@/database/client', () => ({
@@ -3112,19 +3112,19 @@ describe('useTransactions delete dialog (MA-093)', () => {
 });
 
 describe('useTransactions search debounce (MA-256)', () => {
-  const realDebounce = jest.requireActual<{ useDebouncedValue: typeof useDebouncedValue }>(
+  const realDebounce = jest.requireActual<{ useDebouncedSearch: typeof useDebouncedSearch }>(
     '@/utils/use_debounced_value.hook',
-  ).useDebouncedValue;
+  ).useDebouncedSearch;
 
   beforeEach(() => {
     mockGetMonthAggregate.mockReturnValue(new Promise(() => {}));
-    jest.mocked(useDebouncedValue).mockImplementation(realDebounce);
+    jest.mocked(useDebouncedSearch).mockImplementation(realDebounce);
     jest.useFakeTimers();
   });
 
   afterEach(() => {
     jest.useRealTimers();
-    jest.mocked(useDebouncedValue).mockImplementation(<T>(value: T) => value);
+    jest.mocked(useDebouncedSearch).mockImplementation((value: string) => value);
   });
 
   async function typeSearch(text: string) {
