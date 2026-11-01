@@ -732,6 +732,18 @@ describe('useCommitmentFormBodyFaults (MA-255)', () => {
       expect(result.current.body.faults.endDate).toBeUndefined();
       expect(countCommitmentFormFaults(result.current.body.faults)).toBe(1);
     });
+
+    it('rings nothing new with Starts moved on Until with no day held, after a Save refused for Name', async () => {
+      const result = await mountFilled();
+      await act(async () => result.current.form.setValue('name', ''));
+      await save(result);
+      await chooseEnds(result, DurationType.UntilDate);
+
+      await moveStarts(result, DAY_AFTER);
+
+      expect(result.current.body.faults.endDate).toBeUndefined();
+      expect(countCommitmentFormFaults(result.current.body.faults)).toBe(1);
+    });
   });
 
   describe('the status track (MA-256)', () => {

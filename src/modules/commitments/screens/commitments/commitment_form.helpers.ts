@@ -124,14 +124,14 @@ export function resolveEndsRowValue(
   });
 }
 
-/** Once a Save ran, a Starts move re-reads Ends, whose check depends on both days. */
+/** Once a Save ran, a Starts move re-reads an Ends day, whose check depends on both days. */
 export function setCommitmentStartDate(
-  form: Pick<UseFormReturn<CommitmentFormValues>, 'setValue' | 'trigger'>,
+  form: Pick<UseFormReturn<CommitmentFormValues>, 'setValue' | 'trigger' | 'getValues'>,
   next: string,
   isSubmitted: boolean,
 ): void {
   form.setValue('startDate', next, SET_OPTS);
-  if (isSubmitted) void form.trigger('endDate');
+  if (isSubmitted && form.getValues('endDate')) void form.trigger('endDate');
 }
 
 /** Before a Save an Ends day earlier than Starts rings nothing. */

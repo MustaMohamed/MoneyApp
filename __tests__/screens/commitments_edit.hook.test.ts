@@ -81,20 +81,8 @@ function setup() {
   }));
 }
 
-interface EditProps {
-  commitment: Commitment;
-}
-
 function mount(opened: Commitment = commitment) {
-  return renderHook(
-    (props: EditProps) =>
-      useEditCommitment({
-        commitment: props.commitment,
-        onSaved,
-        onDeactivated,
-      }),
-    { initialProps: { commitment: opened } },
-  );
+  return renderHook(() => useEditCommitment({ commitment: opened, onSaved, onDeactivated }));
 }
 
 type Hook = Awaited<ReturnType<typeof mount>>;
