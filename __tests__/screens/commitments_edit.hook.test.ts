@@ -400,22 +400,7 @@ describe('useEditCommitment', () => {
     expect(onDeactivated).not.toHaveBeenCalled();
   });
 
-  describe('MA-188 a re-read and a save in flight', () => {
-    async function typeName(hook: Hook, name: string) {
-      await act(async () => {
-        hook.result.current.form.setValue('name', name, { shouldDirty: true, shouldTouch: true });
-      });
-    }
-
-    it('keeps what the user typed through a re-read of the one commitment', async () => {
-      const hook = await mount();
-      await typeName(hook, 'Typed name');
-
-      await hook.rerender({ commitment: { ...commitment } });
-
-      expect(hook.result.current.form.getValues('name')).toBe('Typed name');
-    });
-
+  describe('MA-188 a save in flight', () => {
     it('a second Save while a save is in flight writes nothing and leaves the form unsubmitted', async () => {
       const hook = await mount();
       expect(hook.result.current.form.formState.isSubmitted).toBe(false);

@@ -19,7 +19,7 @@ type CommitmentFormMode = 'add' | 'edit';
 
 export type CommitmentFormPostCloseToast = 'added' | 'updated';
 
-export interface CommitmentEditLanding {
+interface CommitmentEditLanding {
   onSaved?: () => void;
   onDeactivated?: () => void;
 }

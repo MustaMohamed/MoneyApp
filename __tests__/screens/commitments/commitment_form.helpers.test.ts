@@ -719,6 +719,19 @@ describe('useCommitmentFormBodyFaults (MA-255)', () => {
 
       expect(result.current.body.faults.endDate).toBe(Strings.commitmentsErrEndsBeforeStarts);
     });
+
+    it('rings nothing new with Until chosen and no day held, after a Save refused for Name', async () => {
+      const result = await mountFilled();
+      await act(async () => result.current.form.setValue('name', ''));
+      await save(result);
+      expect(addCommitmentMock).not.toHaveBeenCalled();
+      expect(countCommitmentFormFaults(result.current.body.faults)).toBe(1);
+
+      await chooseEnds(result, DurationType.UntilDate);
+
+      expect(result.current.body.faults.endDate).toBeUndefined();
+      expect(countCommitmentFormFaults(result.current.body.faults)).toBe(1);
+    });
   });
 
   describe('the status track (MA-256)', () => {

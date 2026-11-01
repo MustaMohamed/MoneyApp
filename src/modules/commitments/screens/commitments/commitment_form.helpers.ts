@@ -143,9 +143,12 @@ export function setCommitmentEndDate(
   form.setValue('endDate', next, { shouldDirty: true, shouldValidate: isSubmitted });
 }
 
-/** `endDate` has no `Controller`, so `resetField` keeps its value and its error: once a Save ran, an Ends choice re-reads it. */
+/** `endDate` has no `Controller`, so `resetField` keeps its value and its error: once a Save ran, an Ends choice re-reads it, unless Until holds no day yet. */
 export function setCommitmentDurationType(
-  form: Pick<UseFormReturn<CommitmentFormValues>, 'setValue' | 'resetField' | 'trigger'>,
+  form: Pick<
+    UseFormReturn<CommitmentFormValues>,
+    'setValue' | 'resetField' | 'trigger' | 'getValues'
+  >,
   type: DurationType,
   isSubmitted: boolean,
 ): void {
@@ -153,7 +156,8 @@ export function setCommitmentDurationType(
   if (type !== DurationType.UntilDate) form.resetField('endDate', { defaultValue: undefined });
   if (type !== DurationType.AfterCount)
     form.resetField('endAfterCount', { defaultValue: undefined });
-  if (isSubmitted) void form.trigger('endDate');
+  if (isSubmitted && (type !== DurationType.UntilDate || form.getValues('endDate')))
+    void form.trigger('endDate');
 }
 
 export function resolveCommitmentFirstPaymentFootnote(
