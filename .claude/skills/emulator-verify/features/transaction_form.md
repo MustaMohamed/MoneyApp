@@ -97,6 +97,7 @@ The add and edit sheet, over any tab. Host `src/modules/transactions/screens/tra
 
 ## Gotchas
 
+- `Add a transaction` draws only on an account with no activity (MA-256). The walk's seed had none, so it pushed a copy of a seeded account under a new id.
 - After one `fab-button` tap on Home, Commitments or Budget, the tree lists the add sheet twice: two `Add transaction` groups, each with an `amount-hero-value` field, at one box (MA-175). `mqa fill` and `mqa tap` on `id="amount-hero-value"`, `id="category-row"`, a category cell or `label="Save"` read `AMBIGUOUS_MATCH`; take the first box from `mqa bounds` whose centre is on screen, `tapxy` its centre, and `mqa type` the amount.
 - The detail's edit icon label (`Strings.detailEditAccessibility`) equals the sheet title in edit, so `grep -c 'Edit transaction'` over `mqa read` on the detail counts one before the sheet opens and two after. The FAB menu pill reads `Add Transaction` (title case, `Strings.fabMenuAddTransaction`), the sheet title `Add transaction`: grep the sheet title case-sensitively.
 - The compact `SegmentedTabs` is shared with the list's type tabs and the accounts-list rail (`transactions.md` § Gotchas); one read of a trigger holds on all three, and a divergence is a caller override.

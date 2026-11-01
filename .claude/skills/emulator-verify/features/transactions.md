@@ -131,6 +131,8 @@ Route `/transactions`, a tab. Screen `src/modules/transactions/screens/transacti
 
 ## Gotchas
 
+- A commitment-paid row reads its category as its title, `~Bank Fees`, never the commitment's name (MA-256): a row tap that holds a detail names the category.
+- `mqa ime-down` after a search fill sent Back and left the tab for Home (MA-256): read `No results` before it.
 - `month_filter.tsx` is shared with commitments and budget; a height read here holds there, and a divergence is a caller override.
 - `filter_sheet_frame.tsx` and the Accounts, Categories and Amount sections are shared with the commitments filter sheet (MA-233); a read of the frame or a section here holds there, and a divergence is a caller override.
 - With a section open, `label="<Title>"` matches two nodes, the header button and its title `TextView`. A walk closes an open section with `tapxy` on the title's centre, which lies inside the button (MA-233).

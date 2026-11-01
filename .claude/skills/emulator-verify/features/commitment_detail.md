@@ -89,6 +89,7 @@ Route `/commitments/[id]?cycle=<payment id>` on the tab stack from the list, and
 
 ## Gotchas
 
+- `See all` draws only with a row before the shown cycle (MA-256): a stacked detail on a commitment's first cycle has none, so the walk opens `/stacked/commitments/<id>?cycle=<later payment id>`.
 - The `tagMd` `StatusBadge` is a `View` with no touch handler, so it is flattened out of the accessibility tree: read the label `TextView` and add `STATUS_BADGE_PADDING_VERTICAL` (2 dp each side), or measure the painted tag on the shot (`README.md` § The rule).
 - `Pay` is the only way to `Paid` without a seed push, and it does not come back: use one commitment per status, or re-push the seed. A seed push that reaches `Paid` gives the row the transaction a Pay writes, by the `Paid row` rule of `commitments.md` § Seeding and forcing states (MA-246).
 - The card's `Pay` (MA-262) and the pay sheet's empty-amount `Pay` (MA-259) share `label="Pay"`, unwalked together: if a tap in the open sheet reports more than one node, press the sheet's `@ref` from `mqa read`.
