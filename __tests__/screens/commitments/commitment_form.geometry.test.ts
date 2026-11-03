@@ -6,9 +6,8 @@ import {
 } from '@/components/ui/chip.geometry';
 import { lineHeightFor, touchFloorHitSlop } from '@/constants/theme';
 import {
-  COMMITMENT_FORM_PICKER_GAP,
   COMMITMENT_FORM_PILL_SLOP,
-  resolvePeriodRowTopRoom,
+  resolveCommitmentChoiceSheetSizing,
 } from '@/modules/commitments/screens/commitments/components/commitment_form.geometry';
 
 describe('COMMITMENT_FORM_PILL_SLOP', () => {
@@ -24,32 +23,19 @@ describe('COMMITMENT_FORM_PILL_SLOP', () => {
   });
 });
 
-describe('resolvePeriodRowTopRoom', () => {
-  const presetsRowBottom = 33;
-  const customRowTop = 41;
-  const inputLineBottom = 48;
+describe('resolveCommitmentChoiceSheetSizing (MA-276)', () => {
+  const fits = { fitContent: true, scrollable: false, size: undefined };
+  const scrolls = { fitContent: false, scrollable: true, size: 'xxl' };
 
-  it('MA-236: before every row lays out, the period row takes half the picker gap', () => {
-    expect(resolvePeriodRowTopRoom(undefined, customRowTop, inputLineBottom, 0)).toBe(
-      COMMITMENT_FORM_PICKER_GAP / 2,
-    );
-    expect(resolvePeriodRowTopRoom(presetsRowBottom, customRowTop, undefined, 0)).toBe(
-      COMMITMENT_FORM_PICKER_GAP / 2,
-    );
+  it('fits its content with a footer at font scale 1', () => {
+    expect(resolveCommitmentChoiceSheetSizing(1, true)).toEqual(fits);
   });
 
-  it('MA-236: a period row wrapped at or below the input line takes half the gap to the input', () => {
-    expect(
-      resolvePeriodRowTopRoom(presetsRowBottom, customRowTop, inputLineBottom, inputLineBottom + 8),
-    ).toBe(COMMITMENT_FORM_PICKER_GAP / 2);
-    expect(
-      resolvePeriodRowTopRoom(presetsRowBottom, customRowTop, inputLineBottom, inputLineBottom),
-    ).toBe(COMMITMENT_FORM_PICKER_GAP / 2);
+  it.each([1.01, 2])('scrolls at xxl with a footer at font scale %p', (fontScale) => {
+    expect(resolveCommitmentChoiceSheetSizing(fontScale, true)).toEqual(scrolls);
   });
 
-  it('MA-236: a period row centred on the input line takes half the drawn distance to the presets', () => {
-    expect(resolvePeriodRowTopRoom(presetsRowBottom, customRowTop, inputLineBottom, 11.24)).toBe(
-      (customRowTop + 11.24 - presetsRowBottom) / 2,
-    );
+  it('fits its content without a footer at font scale 2', () => {
+    expect(resolveCommitmentChoiceSheetSizing(2, false)).toEqual(fits);
   });
 });

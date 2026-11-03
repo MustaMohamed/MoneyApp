@@ -1,5 +1,6 @@
 import { act, renderHook } from '@testing-library/react-native';
 
+import { RecurrencePeriod, RecurrencePreset } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import {
@@ -50,6 +51,22 @@ describe('useCommitmentFormBodyPickers', () => {
 
     expect(lower.result.current.state.choiceSheet).toBeUndefined();
     expect(upper.result.current.state.choiceSheet).toBe('ends');
+  });
+
+  it('openRepeatsSheet on one mounted copy seeds its draft and opens its sheet, the other copy reading neither (MA-276)', async () => {
+    const { lower, lowerOwner, upper } = await mountTwoCopies();
+
+    await act(async () => lower.result.current.openRepeatsSheet(2, RecurrencePeriod.Weeks));
+
+    expect(lower.result.current.owner).toBe(lowerOwner);
+    expect(lower.result.current.state.choiceSheet).toBe('repeats');
+    expect(entries()[lowerOwner].repeatsDraft).toStrictEqual({
+      preset: RecurrencePreset.Custom,
+      every: 2,
+      period: RecurrencePeriod.Weeks,
+    });
+    expect(upper.result.current.state.choiceSheet).toBeUndefined();
+    expect(entries()[upper.result.current.owner].repeatsDraft).toBeUndefined();
   });
 
   it('unmounting one copy leaves the other copy open picker as it was', async () => {
