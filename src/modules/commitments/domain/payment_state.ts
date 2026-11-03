@@ -1,4 +1,5 @@
 import { CommitmentPaymentStatus, DurationType } from '@/constants/enums';
+import { monthNumberFromYearMonth, shiftYearMonth, yearFromYearMonth } from '@/utils/year_month';
 
 import type { Commitment } from '../entities/commitment.entity';
 import type { CommitmentPayment } from '../entities/commitment_payment.entity';
@@ -50,6 +51,27 @@ export function countSettledPayments(rows: readonly PaymentDates[]): number {
 export function carriedDueBound(yearMonth: string, today: string): string {
   const monthStart = `${yearMonth}-01`;
   return monthStart < today ? monthStart : today;
+}
+
+const GENERATION_WINDOW_MONTHS = 3;
+
+function lastDayOfMonth(yearMonth: string): number {
+  return new Date(
+    Date.UTC(yearFromYearMonth(yearMonth), monthNumberFromYearMonth(yearMonth), 0),
+  ).getUTCDate();
+}
+
+function toIsoDay(yearMonth: string, day: number): string {
+  return `${yearMonth}-${String(day).padStart(2, '0')}`;
+}
+
+/** The later of today plus three months, its day clamped to that month, and the last day of `yearMonth`. */
+export function generationWindowEnd(yearMonth: string, today: string): string {
+  const windowMonth = shiftYearMonth(today.slice(0, 7), GENERATION_WINDOW_MONTHS);
+  const windowDay = Math.min(Number(today.slice(8, 10)), lastDayOfMonth(windowMonth));
+  const todayBound = toIsoDay(windowMonth, windowDay);
+  const monthEnd = toIsoDay(yearMonth, lastDayOfMonth(yearMonth));
+  return todayBound > monthEnd ? todayBound : monthEnd;
 }
 
 export function isDueInMonth(

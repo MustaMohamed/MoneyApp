@@ -7,6 +7,7 @@ import { currentYearMonth } from '@/utils/year_month';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 import type { CommitmentMonthAggregate } from '../domain/commitment_month_totals';
+import { generationWindowEnd } from '../domain/payment_state';
 import type { Commitment } from '../entities/commitment.entity';
 import type {
   CommitmentMonthPayment,
@@ -46,7 +47,8 @@ interface CommitmentStoreState {
 }
 
 type CommitmentStore = CommitmentStoreState & {
-  ensureHousekeepingCurrent(now?: Date): Promise<void>;
+  /** `yearMonth` absent reads as `now`'s month; the pass writes rows through `generationWindowEnd`. */
+  ensureHousekeepingCurrent(now?: Date, yearMonth?: string): Promise<void>;
   loadMonthSnapshot(yearMonth: string, now?: Date): Promise<void>;
   /** Never rejects: a failure sets `monthAggregateErrorKey` and keeps the held slot. */
   loadMonthAggregate(yearMonth: string, accountId: string | undefined, now?: Date): Promise<void>;
@@ -59,7 +61,7 @@ type CommitmentStore = CommitmentStoreState & {
   announceExternalWrite(): void;
 
   addCommitment(data: NewCommitmentInput): Promise<void>;
-  updateCommitment(id: string, data: UpdateCommitmentInput): Promise<void>;
+  updateCommitment(id: string, data: UpdateCommitmentInput, now?: Date): Promise<void>;
   deactivateCommitment(id: string): Promise<void>;
   markAsPaid(paymentId: string, details: PaymentDetails): Promise<CommitmentPaymentAmounts>;
   skipPayment(paymentId: string, now?: Date): Promise<void>;
@@ -109,9 +111,11 @@ export function createCommitmentStore(
     useTransactionStore.getState().announceExternalWrite(),
 ) {
   let dataGeneration = 0;
-  let lastSuccessfulHousekeepingKey: string | undefined;
   let latestHousekeepingRequest = 0;
-  let latestHousekeepingKey: string | undefined;
+  // The widest window a landed pass wrote for one local day and data generation.
+  let housekeepingCoverage:
+    | { today: string; generation: number; throughDate: string; requestId: number }
+    | undefined;
   let latestSnapshotRequest = 0;
   let latestRequestedMonth: string | undefined;
   let latestAggregateRequest = 0;
@@ -123,8 +127,21 @@ export function createCommitmentStore(
   const inFlightSnapshots = new Map<string, Promise<CommitmentMonthSnapshot>>();
   const inFlightAggregates = new Map<string, Promise<CommitmentMonthAggregate>>();
 
-  const getHousekeepingRequest = (key: string, now: Date) =>
-    shareInFlight(inFlightHousekeeping, key, () => repo.runHousekeeping(now));
+  const isHousekeepingCovered = (today: string, generation: number, throughDate: string) =>
+    housekeepingCoverage !== undefined &&
+    housekeepingCoverage.today === today &&
+    housekeepingCoverage.generation === generation &&
+    housekeepingCoverage.throughDate >= throughDate;
+
+  const getHousekeepingRequest = (
+    today: string,
+    generation: number,
+    throughDate: string,
+    now: Date,
+  ) =>
+    shareInFlight(inFlightHousekeeping, `${today}:${generation}:${throughDate}`, () =>
+      repo.runHousekeeping(now, throughDate),
+    );
 
   const snapshotRequestKey = (month: string, today: string, generation: number) =>
     `${month}:${today}:${generation}`;
@@ -197,21 +214,21 @@ export function createCommitmentStore(
       return {
         ...initialState(),
 
-        ensureHousekeepingCurrent: async (now = new Date()) => {
+        ensureHousekeepingCurrent: async (now = new Date(), yearMonth = currentYearMonth(now)) => {
           const generation = dataGeneration;
-          const key = `${toLocalDateString(now)}:${generation}`;
-          if (lastSuccessfulHousekeepingKey === key) return;
+          const today = toLocalDateString(now);
+          const throughDate = generationWindowEnd(yearMonth, today);
+          if (isHousekeepingCovered(today, generation, throughDate)) return;
 
           const requestId = ++latestHousekeepingRequest;
-          latestHousekeepingKey = key;
-          await getHousekeepingRequest(key, now);
-          if (
-            requestId === latestHousekeepingRequest &&
-            key === latestHousekeepingKey &&
-            generation === dataGeneration
-          ) {
-            lastSuccessfulHousekeepingKey = key;
+          await getHousekeepingRequest(today, generation, throughDate, now);
+          if (generation !== dataGeneration) return;
+          const held = housekeepingCoverage;
+          const sameScope = held?.today === today && held.generation === generation;
+          if (sameScope ? held.throughDate >= throughDate : (held?.requestId ?? 0) > requestId) {
+            return;
           }
+          housekeepingCoverage = { today, generation, throughDate, requestId };
         },
 
         loadMonthSnapshot: async (yearMonth, now = new Date()) => {
@@ -223,7 +240,7 @@ export function createCommitmentStore(
           if (get().loadError) set({ loadError: false });
 
           try {
-            await get().ensureHousekeepingCurrent(now);
+            await get().ensureHousekeepingCurrent(now, yearMonth);
             if (
               requestId !== latestSnapshotRequest ||
               yearMonth !== latestRequestedMonth ||
@@ -268,7 +285,7 @@ export function createCommitmentStore(
           freshAggregateKey = undefined;
 
           try {
-            await get().ensureHousekeepingCurrent(now);
+            await get().ensureHousekeepingCurrent(now, yearMonth);
             if (requestId !== latestAggregateRequest || generation !== dataGeneration) return;
 
             const aggregate = await getAggregateRequest(yearMonth, accountId, today, generation);
@@ -318,9 +335,10 @@ export function createCommitmentStore(
           }
         },
 
-        updateCommitment: async (id, data) => {
+        updateCommitment: async (id, data, now = new Date()) => {
           try {
-            await repo.update(id, data);
+            const throughDate = generationWindowEnd(get().selectedMonth, toLocalDateString(now));
+            await repo.update(id, data, now, throughDate);
           } catch (error) {
             console.error('[commitmentStore] updateCommitment failed:', error);
             throw error;
@@ -428,9 +446,7 @@ export function createCommitmentStore(
 
         reset: () => {
           dataGeneration += 1;
-          lastSuccessfulHousekeepingKey = undefined;
-          latestHousekeepingRequest += 1;
-          latestHousekeepingKey = undefined;
+          housekeepingCoverage = undefined;
           latestSnapshotRequest += 1;
           latestRequestedMonth = undefined;
           latestAggregateRequest += 1;
