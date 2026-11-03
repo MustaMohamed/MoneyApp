@@ -62,7 +62,8 @@ export function useCommitmentFormBodyPickers() {
     return {
       setCategoryPickerVisible: (v: boolean) => state.setCategoryPickerVisible(owner, v),
       setShowEndDatePicker: (v: boolean) => state.setShowEndDatePicker(owner, v),
-      setChoiceSheet: (sheet: CommitmentChoiceSheetKind | undefined) =>
+      // Repeats opens only through `openRepeatsSheet`, which seeds its draft.
+      setChoiceSheet: (sheet: Exclude<CommitmentChoiceSheetKind, 'repeats'> | undefined) =>
         state.setChoiceSheet(owner, sheet),
       // The row tap re-seeds the draft from the form, since a close without Done keeps the last one.
       openRepeatsSheet: (every: number, period: RecurrencePeriod) =>

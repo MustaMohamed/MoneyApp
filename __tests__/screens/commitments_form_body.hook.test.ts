@@ -41,9 +41,9 @@ describe('useCommitmentFormBodyPickers', () => {
   it('a choice sheet opened on one mounted copy stays closed on the other', async () => {
     const { lower, upper } = await mountTwoCopies();
 
-    await act(async () => lower.result.current.setChoiceSheet('repeats'));
+    await act(async () => lower.result.current.setChoiceSheet('ends'));
 
-    expect(lower.result.current.state.choiceSheet).toBe('repeats');
+    expect(lower.result.current.state.choiceSheet).toBe('ends');
     expect(upper.result.current.state.choiceSheet).toBeUndefined();
 
     await act(async () => upper.result.current.setChoiceSheet('ends'));

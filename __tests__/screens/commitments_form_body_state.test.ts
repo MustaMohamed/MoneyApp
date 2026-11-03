@@ -26,7 +26,7 @@ const customDraft: RepeatsDraft = {
 const guardedWrites: ((owner: string) => void)[] = [
   (owner) => useCommitmentFormBodyState.getState().setCategoryPickerVisible(owner, true),
   (owner) => useCommitmentFormBodyState.getState().setShowEndDatePicker(owner, true),
-  (owner) => useCommitmentFormBodyState.getState().setChoiceSheet(owner, 'repeats'),
+  (owner) => useCommitmentFormBodyState.getState().setChoiceSheet(owner, 'ends'),
   (owner) => useCommitmentFormBodyState.getState().openRepeatsSheet(owner, monthlyDraft),
   (owner) => useCommitmentFormBodyState.getState().setRepeatsDraft(owner, customDraft),
 ];

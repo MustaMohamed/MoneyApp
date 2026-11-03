@@ -374,10 +374,10 @@ describe('pickRepeatsPreset (MA-276)', () => {
 describe('resolveRepeatsOptions (MA-276)', () => {
   it('lists Every week, Every month, Every year and Custom, in that order', () => {
     expect(resolveRepeatsOptions()).toStrictEqual([
-      { preset: RecurrencePreset.Weekly, label: 'Every week' },
-      { preset: RecurrencePreset.Monthly, label: 'Every month' },
-      { preset: RecurrencePreset.Annually, label: 'Every year' },
-      { preset: RecurrencePreset.Custom, label: 'Custom' },
+      { value: RecurrencePreset.Weekly, label: 'Every week' },
+      { value: RecurrencePreset.Monthly, label: 'Every month' },
+      { value: RecurrencePreset.Annually, label: 'Every year' },
+      { value: RecurrencePreset.Custom, label: 'Custom' },
     ]);
   });
 });

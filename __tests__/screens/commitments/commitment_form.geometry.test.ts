@@ -6,6 +6,7 @@ import {
 } from '@/components/ui/chip.geometry';
 import { lineHeightFor, touchFloorHitSlop } from '@/constants/theme';
 import {
+  COMMITMENT_CHOICE_SHEET_SCROLL_SIZE,
   COMMITMENT_FORM_PILL_SLOP,
   resolveCommitmentChoiceSheetSizing,
 } from '@/modules/commitments/screens/commitments/components/commitment_form.geometry';
@@ -25,7 +26,11 @@ describe('COMMITMENT_FORM_PILL_SLOP', () => {
 
 describe('resolveCommitmentChoiceSheetSizing (MA-276)', () => {
   const fits = { fitContent: true, scrollable: false, size: undefined };
-  const scrolls = { fitContent: false, scrollable: true, size: 'xxl' };
+  const scrolls = {
+    fitContent: false,
+    scrollable: true,
+    size: COMMITMENT_CHOICE_SHEET_SCROLL_SIZE,
+  };
 
   it('fits its content with a footer at font scale 1', () => {
     expect(resolveCommitmentChoiceSheetSizing(1, true)).toEqual(fits);

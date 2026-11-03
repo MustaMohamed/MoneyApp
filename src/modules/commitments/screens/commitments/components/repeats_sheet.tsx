@@ -9,6 +9,7 @@ import { Text } from '@/components/ui/text';
 import { RecurrencePeriod, type RecurrencePreset } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { LetterSpacing, Radius, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
+import { orderByRank } from '@/utils/rank_order';
 import { ms } from '@/utils/responsive';
 
 import { resolveRepeatsOptions } from '../commitment_form.helpers';
@@ -28,16 +29,25 @@ interface RepeatsSheetProps {
   onClose: () => void;
 }
 
-const REPEATS_OPTIONS: { value: RecurrencePreset; label: string }[] = resolveRepeatsOptions().map(
-  ({ preset, label }) => ({ value: preset, label }),
-);
+const REPEATS_OPTIONS = resolveRepeatsOptions();
 
-const REPEATS_UNITS: TabSegment<RecurrencePeriod>[] = [
-  { value: RecurrencePeriod.Days, label: Strings.commitmentsRepeatsUnitDays },
-  { value: RecurrencePeriod.Weeks, label: Strings.commitmentsRepeatsUnitWeeks },
-  { value: RecurrencePeriod.Months, label: Strings.commitmentsRepeatsUnitMonths },
-  { value: RecurrencePeriod.Years, label: Strings.commitmentsRepeatsUnitYears },
-];
+const REPEATS_UNIT_RANK = {
+  [RecurrencePeriod.Days]: 1,
+  [RecurrencePeriod.Weeks]: 2,
+  [RecurrencePeriod.Months]: 3,
+  [RecurrencePeriod.Years]: 4,
+} satisfies Record<RecurrencePeriod, number>;
+
+const REPEATS_UNIT_LABELS: Record<RecurrencePeriod, string> = {
+  [RecurrencePeriod.Days]: Strings.commitmentsRepeatsUnitDays,
+  [RecurrencePeriod.Weeks]: Strings.commitmentsRepeatsUnitWeeks,
+  [RecurrencePeriod.Months]: Strings.commitmentsRepeatsUnitMonths,
+  [RecurrencePeriod.Years]: Strings.commitmentsRepeatsUnitYears,
+};
+
+const REPEATS_UNITS: TabSegment<RecurrencePeriod>[] = orderByRank(REPEATS_UNIT_RANK).map(
+  (period) => ({ value: period, label: REPEATS_UNIT_LABELS[period] }),
+);
 
 export function RepeatsSheet({ owner, form, isOpen, onClose }: RepeatsSheetProps) {
   const {

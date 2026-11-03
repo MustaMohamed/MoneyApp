@@ -17,6 +17,7 @@ import { computeDueDates } from '@/utils/compute_due_dates';
 import { formatShortWeekdayDate } from '@/utils/format_date';
 import { formatStoredMoneyText } from '@/utils/money_text';
 import { parseTypingDecimalText } from '@/utils/parse_decimal';
+import { orderByRank } from '@/utils/rank_order';
 import { holdStillTypingDecimal } from '@/utils/use_zod_form.hook';
 
 import { buildCommitmentEndsLabel } from '../../utils/commitment_ends_label';
@@ -127,19 +128,19 @@ export function pickRepeatsPreset(draft: RepeatsDraft, preset: RecurrencePreset)
   return { preset, every: REPEATS_CUSTOM_START_EVERY, period: draft.period };
 }
 
-const REPEATS_OPTION_ORDER = [
-  RecurrencePreset.Weekly,
-  RecurrencePreset.Monthly,
-  RecurrencePreset.Annually,
-  RecurrencePreset.Custom,
-] as const;
+const REPEATS_OPTION_RANK = {
+  [RecurrencePreset.Weekly]: 1,
+  [RecurrencePreset.Monthly]: 2,
+  [RecurrencePreset.Annually]: 3,
+  [RecurrencePreset.Custom]: 4,
+} satisfies Record<RecurrencePreset, number>;
 
 /** Each preset row reads as the Repeats row would read its cadence. */
-export function resolveRepeatsOptions(): { preset: RecurrencePreset; label: string }[] {
-  return REPEATS_OPTION_ORDER.map((preset) => {
+export function resolveRepeatsOptions(): { value: RecurrencePreset; label: string }[] {
+  return orderByRank(REPEATS_OPTION_RANK).map((preset) => {
     const mapped = PRESET_MAP[preset];
     return {
-      preset,
+      value: preset,
       label:
         mapped === null
           ? Strings.commitmentsRecurrenceCustom

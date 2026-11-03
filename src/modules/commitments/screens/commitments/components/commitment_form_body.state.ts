@@ -20,7 +20,10 @@ type CommitmentFormBodyState = CommitmentFormBodyStateShape & {
   claim: (owner: string) => void;
   setCategoryPickerVisible: (owner: string, v: boolean) => void;
   setShowEndDatePicker: (owner: string, v: boolean) => void;
-  setChoiceSheet: (owner: string, sheet: CommitmentChoiceSheetKind | undefined) => void;
+  setChoiceSheet: (
+    owner: string,
+    sheet: Exclude<CommitmentChoiceSheetKind, 'repeats'> | undefined,
+  ) => void;
   openRepeatsSheet: (owner: string, draft: RepeatsDraft) => void;
   setRepeatsDraft: (owner: string, draft: RepeatsDraft) => void;
   release: (owner: string) => void;

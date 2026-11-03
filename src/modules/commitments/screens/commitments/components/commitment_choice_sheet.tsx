@@ -82,7 +82,7 @@ interface CommitmentChoiceOptionsProps<T extends string> {
   testIDPrefix: string;
 }
 
-/** One card of radio rows, drawn as the transaction sheet's budget picker draws its rows. */
+/** One card of radio rows, drawn as the budget picker draws its rows, but the last row takes no separator: the card's border closes it. */
 export function CommitmentChoiceOptions<T extends string>({
   options,
   value,
@@ -110,12 +110,19 @@ export function CommitmentChoiceOptions<T extends string>({
             style={{ flexDirection: 'row', alignItems: 'center' }}
           >
             <Text
-              className="font-inter text-foreground"
+              className="font-sora-semibold text-foreground"
               style={{ flex: 1, fontSize: Type.body, lineHeight: lineHeightFor(Type.body) }}
             >
               {option.label}
             </Text>
-            <Radio testID={`${testIDPrefix}-${option.value}-selected`} />
+            {/* Drawn only: the row is the one pressable and the one node read aloud. */}
+            <Radio
+              testID={`${testIDPrefix}-${option.value}-selected`}
+              pointerEvents="none"
+              accessible={false}
+              importantForAccessibility="no-hide-descendants"
+              accessibilityElementsHidden
+            />
           </RadioGroup.Item>
         ))}
       </RadioGroup>
