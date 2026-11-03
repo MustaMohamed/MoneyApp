@@ -107,6 +107,7 @@
         {
           "number": 501,
           "state": "OPEN",
+          "draft": true,
           "checks": "SUCCESS",
           "reviewDecision": null,
           "updatedAt": "2026-09-08T09:00:00Z"

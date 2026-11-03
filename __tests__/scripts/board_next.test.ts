@@ -17,7 +17,7 @@ interface Action {
   frees?: number[];
   waitsOn?: number[];
   reviewed?: string | null;
-  pr?: { number: number; state: string; url: string } | null;
+  pr?: { number: number; state: string; draft: boolean; url: string } | null;
   progress?: { total: number; closed: number; open: number[] } | null;
   questions?: number;
   lease?: 'held' | 'stale' | null;
@@ -325,7 +325,7 @@ describe('board_next card fields', () => {
   });
 
   test('a card gets its PR, its review date and a parent its progress', () => {
-    expect(byNumber(list, 101).pr).toMatchObject({ number: 501, state: 'OPEN' });
+    expect(byNumber(list, 101).pr).toMatchObject({ number: 501, state: 'OPEN', draft: true });
     expect(byNumber(list, 109).reviewed).toBe('none');
     expect(byNumber(list, 115).progress).toEqual({ total: 2, closed: 0, open: [114, 116] });
   });
