@@ -207,7 +207,7 @@ describe('CommitmentRepository.runHousekeeping', () => {
       );
       const repository = new CommitmentRepository();
 
-      await repository.runHousekeeping(NOW);
+      await repository.runHousekeeping(NOW, '2026-08-08');
 
       expect(workloadCounts()).toEqual({
         activeReads: 1,
@@ -219,26 +219,42 @@ describe('CommitmentRepository.runHousekeeping', () => {
     },
   );
 
-  it('chunks the maximum 100-by-64 generation workload into bounded writes', async () => {
-    const commitmentCount = 100;
-    const occurrencesPerCommitment = 64;
-    insertCommitments(
-      Array.from({ length: commitmentCount }, (_, index) =>
-        commitment(`maximum-${index}`, {
-          recurrence_period: RecurrencePeriod.Days,
-          duration_type: DurationType.Forever,
-          end_after_count: null,
-        }),
-      ),
-    );
+  it.each([1, 100])(
+    'writes 93 daily rows each for %i Forever commitments through the window end in bounded chunks',
+    async (commitmentCount) => {
+      const rowsPerCommitment = 93;
+      insertCommitments(
+        Array.from({ length: commitmentCount }, (_, index) =>
+          commitment(`window-${index}`, {
+            recurrence_period: RecurrencePeriod.Days,
+            duration_type: DurationType.Forever,
+            end_after_count: null,
+          }),
+        ),
+      );
 
-    await new CommitmentRepository().runHousekeeping(NOW);
+      await new CommitmentRepository().runHousekeeping(NOW, '2026-08-08');
 
-    expect(realDb.prepare('SELECT COUNT(*) AS count FROM commitment_payments').get()).toEqual({
-      count: commitmentCount * occurrencesPerCommitment,
-    });
-    expect(workloadCounts().inserts).toBeLessThanOrEqual(108);
-  });
+      expect(
+        realDb
+          .prepare(
+            'SELECT COUNT(*) AS count, MIN(due_date) AS first, MAX(due_date) AS last FROM commitment_payments',
+          )
+          .get(),
+      ).toEqual({
+        count: commitmentCount * rowsPerCommitment,
+        first: '2026-05-08',
+        last: '2026-08-08',
+      });
+      expect(workloadCounts()).toEqual({
+        activeReads: 1,
+        dueDateReads: 1,
+        inserts: Math.ceil((commitmentCount * rowsPerCommitment) / 60),
+        expiryUpdates: 1,
+        exclusiveTransactions: 1,
+      });
+    },
+  );
 
   it('writes exact fixed and variable rows and inserts no duplicates on a second pass', async () => {
     insertCommitments([
@@ -253,7 +269,7 @@ describe('CommitmentRepository.runHousekeeping', () => {
     ]);
     const repository = new CommitmentRepository();
 
-    await repository.runHousekeeping(NOW);
+    await repository.runHousekeeping(NOW, '2026-08-08');
     const firstPass = realDb
       .prepare(
         `SELECT commitment_id, due_date, amount_due, account_id, created_at, updated_at
@@ -262,7 +278,7 @@ describe('CommitmentRepository.runHousekeeping', () => {
       )
       .all();
     sqlCalls = [];
-    await repository.runHousekeeping(NOW);
+    await repository.runHousekeeping(NOW, '2026-08-08');
 
     expect(firstPass).toEqual([
       {
@@ -312,7 +328,7 @@ describe('CommitmentRepository.runHousekeeping', () => {
     ]);
     insertPayment(payment('paid', 'after-paid', '2026-05-08', CommitmentPaymentStatus.Paid));
 
-    await new CommitmentRepository().runHousekeeping(NOW);
+    await new CommitmentRepository().runHousekeeping(NOW, '2026-08-08');
 
     const active = realDb
       .prepare('SELECT id, is_active FROM commitments ORDER BY id')
@@ -338,7 +354,7 @@ describe('CommitmentRepository.runHousekeeping', () => {
     const pastLocalMidnight = new Date(2026, 4, 9, 0, 30);
     jest.spyOn(pastLocalMidnight, 'toISOString').mockReturnValue('2026-05-08T21:30:00.000Z');
 
-    await new CommitmentRepository().runHousekeeping(pastLocalMidnight);
+    await new CommitmentRepository().runHousekeeping(pastLocalMidnight, '2026-08-09');
 
     expect(realDb.prepare('SELECT is_active FROM commitments').all()).toEqual([{ is_active: 0 }]);
   });
@@ -347,12 +363,116 @@ describe('CommitmentRepository.runHousekeeping', () => {
     insertCommitments(Array.from({ length: 61 }, (_, index) => commitment(`rollback-${index}`)));
     injectedInsertFailure = 1;
 
-    await expect(new CommitmentRepository().runHousekeeping(NOW)).rejects.toThrow(
+    await expect(new CommitmentRepository().runHousekeeping(NOW, '2026-08-08')).rejects.toThrow(
       'injected insert failure',
     );
 
     expect(realDb.prepare('SELECT COUNT(*) AS count FROM commitment_payments').get()).toEqual({
       count: 0,
+    });
+  });
+});
+
+describe('CommitmentRepository.runHousekeeping through a window end', () => {
+  const daily = {
+    recurrence_period: RecurrencePeriod.Days,
+    duration_type: DurationType.Forever,
+    end_after_count: null,
+  };
+
+  function rangeOf(commitmentId: string) {
+    return realDb
+      .prepare(
+        `SELECT COUNT(*) AS count, COUNT(DISTINCT due_date) AS dates,
+                MIN(due_date) AS first, MAX(due_date) AS last
+           FROM commitment_payments
+          WHERE commitment_id = ?`,
+      )
+      .get(commitmentId);
+  }
+
+  it('adds the rows past the first end on a wider pass the same day, with no duplicate', async () => {
+    insertCommitments([commitment('daily', daily)]);
+    const repository = new CommitmentRepository();
+
+    await repository.runHousekeeping(NOW, '2026-08-08');
+    expect(rangeOf('daily')).toEqual({
+      count: 93,
+      dates: 93,
+      first: '2026-05-08',
+      last: '2026-08-08',
+    });
+
+    await repository.runHousekeeping(NOW, '2026-12-31');
+    expect(rangeOf('daily')).toEqual({
+      count: 238,
+      dates: 238,
+      first: '2026-05-08',
+      last: '2026-12-31',
+    });
+  });
+
+  it('stops an until-date commitment at its end date inside a wider window', async () => {
+    insertCommitments([
+      commitment('until', {
+        ...daily,
+        start_date: '2026-03-01',
+        duration_type: DurationType.UntilDate,
+        end_date: '2026-06-15',
+      }),
+    ]);
+
+    await new CommitmentRepository().runHousekeeping(NOW, '2026-12-31');
+
+    expect(rangeOf('until')).toEqual({
+      count: 107,
+      dates: 107,
+      first: '2026-03-01',
+      last: '2026-06-15',
+    });
+  });
+
+  it('stops an after-N commitment at N rows across two passes', async () => {
+    insertCommitments([
+      commitment('after-100', {
+        ...daily,
+        duration_type: DurationType.AfterCount,
+        end_after_count: 100,
+      }),
+    ]);
+    const repository = new CommitmentRepository();
+
+    await repository.runHousekeeping(NOW, '2026-06-30');
+    expect(rangeOf('after-100')).toEqual({
+      count: 54,
+      dates: 54,
+      first: '2026-05-08',
+      last: '2026-06-30',
+    });
+
+    await repository.runHousekeeping(NOW, '2026-12-31');
+    expect(rangeOf('after-100')).toEqual({
+      count: 100,
+      dates: 100,
+      first: '2026-05-08',
+      last: '2026-08-15',
+    });
+  });
+
+  it('gives a stopped commitment no row while a running one reaches the end', async () => {
+    insertCommitments([commitment('running', daily), commitment('stopped', daily)]);
+    const repository = new CommitmentRepository();
+    await repository.runHousekeeping(NOW, '2026-08-08');
+    await repository.deactivate('stopped');
+
+    await repository.runHousekeeping(NOW, '2030-12-31');
+
+    expect(rangeOf('stopped')).toEqual({ count: 0, dates: 0, first: null, last: null });
+    expect(rangeOf('running')).toEqual({
+      count: 1699,
+      dates: 1699,
+      first: '2026-05-08',
+      last: '2030-12-31',
     });
   });
 });

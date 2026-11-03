@@ -11,11 +11,14 @@ export function planMissingCommitmentPayments({
   dueDates,
   now,
   createId,
+  throughDate,
 }: {
   commitments: Commitment[];
   dueDates: ActiveCommitmentDueDate[];
   now: Date;
   createId: () => string;
+  /** The inclusive `YYYY-MM-DD` the rows run through. */
+  throughDate: string;
 }): CommitmentPayment[] {
   const existingByCommitment = new Map<string, Set<string>>();
   for (const row of dueDates) {
@@ -37,7 +40,7 @@ export function planMissingCommitmentPayments({
       durationType: commitment.duration_type,
       endAfterCount: commitment.end_after_count ?? undefined,
       endDate: commitment.end_date ?? undefined,
-      maxCount: 64,
+      throughDate,
     });
 
     let remaining =

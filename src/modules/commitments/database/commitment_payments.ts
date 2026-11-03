@@ -333,6 +333,18 @@ export async function getExistingDueDates(
   return rows.map((r) => r.due_date);
 }
 
+export async function getLatestUnpaidDueDate(
+  db: SQLiteDatabase,
+  commitmentId: string,
+): Promise<string | undefined> {
+  const rows = await db.getAllAsync<{ due_date: string | null }>(
+    `SELECT MAX(due_date) AS due_date FROM commitment_payments
+     WHERE commitment_id = ? AND ${unpaidPaymentSql()}`,
+    [commitmentId],
+  );
+  return rows[0]?.due_date ?? undefined;
+}
+
 export interface MarkAsPaidDetails {
   amount_paid: number;
   account_id: string;

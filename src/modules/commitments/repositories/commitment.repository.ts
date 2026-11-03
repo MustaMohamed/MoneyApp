@@ -19,6 +19,7 @@ import {
   deleteUnpaidPaymentsByCommitment,
   getActiveCommitmentDueDates,
   getExistingDueDates,
+  getLatestUnpaidDueDate,
   getPaymentById,
   getPaymentMonthAggregate,
   getPaymentsByCommitment,
@@ -101,7 +102,7 @@ export interface MarkAsPaidResult {
 export interface ICommitmentRepository {
   getById(id: string): Promise<Commitment | undefined>;
   add(data: NewCommitmentInput): Promise<void>;
-  update(id: string, data: UpdateCommitmentInput, now?: Date): Promise<void>;
+  update(id: string, data: UpdateCommitmentInput, now: Date, throughDate: string): Promise<void>;
   deactivate(id: string): Promise<void>;
 
   getPaymentsByCommitment(commitmentId: string): Promise<CommitmentMonthPayment[]>;
@@ -110,7 +111,7 @@ export interface ICommitmentRepository {
   markAsPaid(paymentId: string, details: PaymentDetails): Promise<MarkAsPaidResult>;
   markAsSkipped(paymentId: string, skippedDate: string, updatedAt: string): Promise<void>;
   undoSkip(paymentId: string, today: string, updatedAt: string): Promise<void>;
-  runHousekeeping(now: Date): Promise<void>;
+  runHousekeeping(now: Date, throughDate: string): Promise<void>;
   getMonthSnapshot(yearMonth: string, today: string): Promise<CommitmentMonthSnapshot>;
   getMonthAggregate(
     yearMonth: string,
@@ -139,7 +140,12 @@ export class CommitmentRepository implements ICommitmentRepository {
     await addCommitment(db, commitment);
   }
 
-  async update(id: string, data: UpdateCommitmentInput, now: Date = new Date()): Promise<void> {
+  async update(
+    id: string,
+    data: UpdateCommitmentInput,
+    now: Date,
+    throughDate: string,
+  ): Promise<void> {
     const input = { ...data, amount: roundMoney(data.amount) };
     const updateData: UpdateCommitmentData = { ...input };
     await withExclusiveWriteTransactionAsync(async (transactionDb) => {
@@ -148,10 +154,14 @@ export class CommitmentRepository implements ICommitmentRepository {
       if (!commitment) throw new CommitmentNotFoundError(id);
       // An inactive commitment generates no rows, so its unpaid rows must stay.
       if (commitment.is_active !== 1) return;
+      // A far browse wrote unpaid rows past the window; the edit replaces them, not drops them.
+      const latestUnpaid = await getLatestUnpaidDueDate(transactionDb, id);
+      const regenerateThrough =
+        latestUnpaid !== undefined && latestUnpaid > throughDate ? latestUnpaid : throughDate;
       await deleteUnpaidPaymentsByCommitment(transactionDb, id);
       const existing = await getExistingDueDates(transactionDb, id);
       const dueDates = existing.map((due_date) => ({ commitment_id: id, due_date }));
-      await insertPlannedPayments(transactionDb, [commitment], dueDates, now);
+      await insertPlannedPayments(transactionDb, [commitment], dueDates, now, regenerateThrough);
     });
   }
 
@@ -185,13 +195,13 @@ export class CommitmentRepository implements ICommitmentRepository {
     return { loadedMonth: yearMonth, today, commitments, payments };
   }
 
-  async runHousekeeping(now: Date): Promise<void> {
+  async runHousekeeping(now: Date, throughDate: string): Promise<void> {
     const timestamp = now.toISOString();
     const asOfDate = toLocalDateString(now);
     await withExclusiveWriteTransactionAsync(async (transactionDb) => {
       const commitments = await getCommitments(transactionDb);
       const dueDates = await getActiveCommitmentDueDates(transactionDb);
-      await insertPlannedPayments(transactionDb, commitments, dueDates, now);
+      await insertPlannedPayments(transactionDb, commitments, dueDates, now, throughDate);
       await deactivateExpiredCommitments(transactionDb, asOfDate, timestamp);
     });
   }
@@ -301,12 +311,14 @@ async function insertPlannedPayments(
   commitments: Commitment[],
   dueDates: ActiveCommitmentDueDate[],
   now: Date,
+  throughDate: string,
 ): Promise<void> {
   const payments = planMissingCommitmentPayments({
     commitments,
     dueDates,
     now,
     createId: () => String(uuid.v4()),
+    throughDate,
   });
   await insertPaymentRows(db, payments);
 }

@@ -210,7 +210,7 @@ describe('CommitmentRepository.update', () => {
     (getCommitmentById as jest.Mock).mockResolvedValue({ ...baseCommitment, ...updateData });
     (getExistingDueDates as jest.Mock).mockResolvedValue(['2026-01-01']);
 
-    await repo.update('c-1', updateData, new Date('2026-05-08T10:00:00.000Z'));
+    await repo.update('c-1', updateData, new Date('2026-05-08T10:00:00.000Z'), '2026-08-08');
 
     expect(withExclusiveWriteTransactionAsync).toHaveBeenCalledTimes(1);
     expect(updateCommitment).toHaveBeenCalledWith(transactionDb, 'c-1', updateData);
@@ -246,6 +246,7 @@ describe('CommitmentRepository.update', () => {
           end_after_count: baseCommitment.end_after_count,
         },
         new Date('2026-05-08T10:00:00.000Z'),
+        '2026-08-08',
       ),
     ).rejects.toThrow(CommitmentNotFoundError);
 
@@ -336,7 +337,7 @@ describe('CommitmentRepository.runHousekeeping', () => {
     };
     (getCommitments as jest.Mock).mockResolvedValue([commitment]);
 
-    await repo.runHousekeeping(new Date('2026-05-08T10:11:12.000Z'));
+    await repo.runHousekeeping(new Date('2026-05-08T10:11:12.000Z'), '2026-08-08');
 
     expect(withExclusiveWriteTransactionAsync).toHaveBeenCalledTimes(1);
     expect(getCommitments).toHaveBeenCalledWith(transactionDb);

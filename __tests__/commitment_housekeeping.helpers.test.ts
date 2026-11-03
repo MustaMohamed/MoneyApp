@@ -7,6 +7,7 @@ import {
 import { makeTestCommitment } from '@/test_helpers/commitment';
 
 const NOW = new Date('2026-05-08T10:11:12.000Z');
+const THROUGH = '2026-08-08';
 
 function commitment(overrides: Partial<Commitment> = {}): Commitment {
   return makeTestCommitment({
@@ -45,6 +46,7 @@ describe('planMissingCommitmentPayments', () => {
       commitments,
       dueDates: [{ commitment_id: 'fixed', due_date: '2026-05-08' }],
       now: NOW,
+      throughDate: THROUGH,
       createId,
     });
 
@@ -119,6 +121,7 @@ describe('planMissingCommitmentPayments', () => {
       commitments: [finite],
       dueDates: existing,
       now: NOW,
+      throughDate: THROUGH,
       createId: () => 'last-payment',
     });
 
@@ -130,6 +133,7 @@ describe('planMissingCommitmentPayments', () => {
       commitments: [commitment()],
       dueDates: [] as ActiveCommitmentDueDate[],
       now: NOW,
+      throughDate: THROUGH,
       createId: jest.fn(() => 'generated'),
     };
     const first = planMissingCommitmentPayments(input);
@@ -154,6 +158,7 @@ describe('planMissingCommitmentPayments', () => {
         commitments: [commitment({ is_active: 0 })],
         dueDates: [],
         now: NOW,
+        throughDate: THROUGH,
         createId,
       }),
     ).toEqual([]);
@@ -167,6 +172,7 @@ describe('planMissingCommitmentPayments — after-N keeps N rows in all', () => 
       commitments: [commitment(overrides)],
       dueDates: heldDates.map((due_date) => ({ commitment_id: 'fixed', due_date })),
       now: NOW,
+      throughDate: THROUGH,
       createId: () => 'generated',
     }).map((row) => row.due_date);
   }
@@ -204,5 +210,67 @@ describe('planMissingCommitmentPayments — after-N keeps N rows in all', () => 
         ['2023-06-01'],
       ),
     ).toEqual(['2024-02-29', '2025-02-28']);
+  });
+});
+
+describe('planMissingCommitmentPayments — rows through the window end', () => {
+  const daily = {
+    recurrence_period: RecurrencePeriod.Days,
+    start_date: '2026-01-01',
+    duration_type: DurationType.Forever,
+    end_after_count: null,
+  };
+
+  it('plans every daily row from the start date through the window end, past the 64th', () => {
+    const rows = planMissingCommitmentPayments({
+      commitments: [commitment(daily)],
+      dueDates: [],
+      now: NOW,
+      throughDate: '2026-08-08',
+      createId: () => 'generated',
+    });
+
+    expect(rows).toHaveLength(220);
+    expect(rows[0].due_date).toBe('2026-01-01');
+    expect(rows.at(-1)?.due_date).toBe('2026-08-08');
+  });
+
+  it('tops an after-N commitment holding 70 rows up to N and no further', () => {
+    const held = Array.from({ length: 70 }, (_, index) => {
+      const date = new Date(Date.UTC(2026, 0, 1 + index));
+      return { commitment_id: 'fixed', due_date: date.toISOString().slice(0, 10) };
+    });
+
+    const rows = planMissingCommitmentPayments({
+      commitments: [
+        commitment({ ...daily, duration_type: DurationType.AfterCount, end_after_count: 100 }),
+      ],
+      dueDates: held,
+      now: NOW,
+      throughDate: '2026-12-31',
+      createId: () => 'generated',
+    });
+
+    expect(held.at(-1)?.due_date).toBe('2026-03-11');
+    expect(rows).toHaveLength(30);
+    expect(rows[0].due_date).toBe('2026-03-12');
+    expect(rows.at(-1)?.due_date).toBe('2026-04-10');
+  });
+
+  it('plans no row for a stopped commitment while a running one in the same pass reaches the end', () => {
+    const rows = planMissingCommitmentPayments({
+      commitments: [
+        commitment({ ...daily, id: 'running' }),
+        commitment({ ...daily, id: 'stopped', is_active: 0 }),
+      ],
+      dueDates: [],
+      now: NOW,
+      throughDate: '2030-12-31',
+      createId: () => 'generated',
+    });
+
+    expect(rows.filter((row) => row.commitment_id === 'stopped')).toEqual([]);
+    const running = rows.filter((row) => row.commitment_id === 'running');
+    expect(running.at(-1)?.due_date).toBe('2030-12-31');
   });
 });

@@ -1,23 +1,25 @@
 import { DurationType, RecurrencePeriod } from '@/constants/enums';
 
-interface ComputeDueDatesInput {
+/** `throughDate` is an inclusive `YYYY-MM-DD`; without a default cap, one bound is required. */
+type ComputeDueDatesInput = {
   startDate: string;
   every: number;
   period: RecurrencePeriod;
   durationType: DurationType;
   endAfterCount?: number;
   endDate?: string;
-  maxCount?: number;
-}
+} & ({ maxCount: number; throughDate?: string } | { maxCount?: number; throughDate: string });
 
 export function computeDueDates(input: ComputeDueDatesInput): string[] {
-  const { startDate, every, period, durationType, endAfterCount, endDate, maxCount = 64 } = input;
+  const { startDate, every, period, durationType, endAfterCount, endDate, maxCount, throughDate } =
+    input;
   const dates: string[] = [];
 
+  const countBound = maxCount ?? Number.POSITIVE_INFINITY;
   const limit =
     durationType === DurationType.AfterCount && endAfterCount !== undefined
-      ? Math.min(endAfterCount, maxCount)
-      : maxCount;
+      ? Math.min(endAfterCount, countBound)
+      : countBound;
 
   const [startYear, startMonth, startDay] = startDate.split('-').map(Number);
 
@@ -45,6 +47,9 @@ export function computeDueDates(input: ComputeDueDatesInput): string[] {
     }
 
     if (durationType === DurationType.UntilDate && endDate && date > endDate) break;
+    if (throughDate !== undefined && date > throughDate) break;
+    // A step below one day repeats or reverses the date, and no default cap bounds the loop.
+    if (dates.length > 0 && date <= dates[dates.length - 1]) break;
 
     dates.push(date);
   }
