@@ -339,7 +339,7 @@ export async function getLatestUnpaidDueDate(
 ): Promise<string | undefined> {
   const rows = await db.getAllAsync<{ due_date: string | null }>(
     `SELECT MAX(due_date) AS due_date FROM commitment_payments
-     WHERE commitment_id = ? AND paid_date IS NULL AND skipped_date IS NULL`,
+     WHERE commitment_id = ? AND ${unpaidPaymentSql()}`,
     [commitmentId],
   );
   return rows[0]?.due_date ?? undefined;
