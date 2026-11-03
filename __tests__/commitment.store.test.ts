@@ -274,7 +274,7 @@ describe('commitment store housekeeping ownership', () => {
     await store.getState().ensureHousekeepingCurrent(DAY_ONE);
 
     expect(repository.runHousekeeping).toHaveBeenCalledTimes(1);
-    expect(repository.runHousekeeping).toHaveBeenCalledWith(DAY_ONE);
+    expect(repository.runHousekeeping).toHaveBeenCalledWith(DAY_ONE, '2026-08-08');
   });
 
   it('shares concurrent housekeeping for the same local date and generation', async () => {
@@ -415,6 +415,146 @@ describe('commitment store housekeeping ownership', () => {
 
     expect(repository.runHousekeeping).toHaveBeenCalledTimes(2);
     expect(store.getState().generation).toBe(1);
+  });
+});
+
+describe('commitment store generation window', () => {
+  const DECEMBER = '2026-12';
+  const TODAY_WINDOW = [DAY_ONE, '2026-08-08'];
+  const DECEMBER_WINDOW = [DAY_ONE, '2026-12-31'];
+
+  let consoleSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleSpy.mockRestore();
+  });
+
+  it('runs a second pass through the far month end the same day, before the snapshot read', async () => {
+    const repository = makeRepository({
+      getMonthSnapshot: jest.fn().mockResolvedValue(snapshot(DECEMBER)),
+    });
+    const store = createCommitmentStore(repository);
+
+    await store.getState().ensureHousekeepingCurrent(DAY_ONE);
+    await store.getState().loadMonthSnapshot(DECEMBER, DAY_ONE);
+
+    const runHousekeeping = repository.runHousekeeping as jest.Mock;
+    expect(runHousekeeping.mock.calls).toEqual([TODAY_WINDOW, DECEMBER_WINDOW]);
+    expect(repository.getMonthSnapshot).toHaveBeenCalledWith(DECEMBER, MAY_8);
+    expect(runHousekeeping.mock.invocationCallOrder[1]).toBeLessThan(
+      (repository.getMonthSnapshot as jest.Mock).mock.invocationCallOrder[0],
+    );
+  });
+
+  it('runs no pass for a month the far pass already covered', async () => {
+    const repository = makeRepository();
+    const store = createCommitmentStore(repository);
+
+    await store.getState().ensureHousekeepingCurrent(DAY_ONE);
+    await store.getState().loadMonthSnapshot(DECEMBER, DAY_ONE);
+    await store.getState().loadMonthSnapshot('2026-06', DAY_ONE);
+
+    expect((repository.runHousekeeping as jest.Mock).mock.calls).toEqual([
+      TODAY_WINDOW,
+      DECEMBER_WINDOW,
+    ]);
+  });
+
+  it('leaves the far month unread with loadError on a failed pass, and the next load runs it again', async () => {
+    const repository = makeRepository({
+      runHousekeeping: jest
+        .fn()
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new Error('far pass failed'))
+        .mockResolvedValueOnce(undefined),
+      getMonthSnapshot: jest.fn().mockResolvedValue(snapshot(DECEMBER)),
+    });
+    const store = createCommitmentStore(repository);
+    await store.getState().ensureHousekeepingCurrent(DAY_ONE);
+
+    await expect(store.getState().loadMonthSnapshot(DECEMBER, DAY_ONE)).rejects.toThrow(
+      'far pass failed',
+    );
+    expect(store.getState().loadError).toBe(true);
+    expect(repository.getMonthSnapshot).not.toHaveBeenCalled();
+
+    await store.getState().loadMonthSnapshot(DECEMBER, DAY_ONE);
+
+    expect((repository.runHousekeeping as jest.Mock).mock.calls).toEqual([
+      TODAY_WINDOW,
+      DECEMBER_WINDOW,
+      DECEMBER_WINDOW,
+    ]);
+    expect(repository.getMonthSnapshot).toHaveBeenCalledTimes(1);
+    expect(store.getState().loadError).toBe(false);
+  });
+
+  it('leaves the far month figures unread with the error key on a failed pass', async () => {
+    const repository = makeRepository({
+      runHousekeeping: jest
+        .fn()
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new Error('far pass failed')),
+      getMonthAggregate: jest.fn().mockResolvedValue(makeTestMonthAggregate()),
+    });
+    const store = createCommitmentStore(repository);
+    await store.getState().ensureHousekeepingCurrent(DAY_ONE);
+
+    await store.getState().loadMonthAggregate(DECEMBER, undefined, DAY_ONE);
+
+    expect((repository.runHousekeeping as jest.Mock).mock.calls).toEqual([
+      TODAY_WINDOW,
+      DECEMBER_WINDOW,
+    ]);
+    expect(store.getState().monthAggregateErrorKey).toBe('2026-12|');
+    expect(store.getState().monthAggregate).toBeUndefined();
+    expect(repository.getMonthAggregate).not.toHaveBeenCalled();
+  });
+
+  it('keeps the wider end when a narrower pass lands after it', async () => {
+    const junePass = deferred<void>();
+    const decemberPass = deferred<void>();
+    const repository = makeRepository({
+      runHousekeeping: jest
+        .fn()
+        .mockReturnValueOnce(junePass.promise)
+        .mockReturnValueOnce(decemberPass.promise),
+    });
+    const store = createCommitmentStore(repository);
+
+    const juneLoad = store.getState().loadMonthSnapshot('2026-06', DAY_ONE);
+    const decemberLoad = store.getState().loadMonthSnapshot(DECEMBER, DAY_ONE);
+    await flushMicrotasks();
+    decemberPass.resolve();
+    await flushMicrotasks();
+    junePass.resolve();
+    await Promise.all([juneLoad, decemberLoad]);
+
+    await store.getState().loadMonthSnapshot(DECEMBER, DAY_ONE);
+
+    expect((repository.runHousekeeping as jest.Mock).mock.calls).toEqual([
+      TODAY_WINDOW,
+      DECEMBER_WINDOW,
+    ]);
+  });
+
+  it('regenerates an edit through the selected month end', async () => {
+    const repository = makeRepository();
+    const store = createCommitmentStore(repository);
+    store.setState({ selectedMonth: DECEMBER });
+
+    await store.getState().updateCommitment('commitment', updateInput, DAY_ONE);
+
+    expect(repository.update).toHaveBeenCalledWith(
+      'commitment',
+      updateInput,
+      DAY_ONE,
+      '2026-12-31',
+    );
   });
 });
 
@@ -947,7 +1087,7 @@ describe('commitment store month aggregate', () => {
 
     await store.getState().loadMonthAggregate(MAY, undefined, MAY_8_LOCAL);
 
-    expect(repository.runHousekeeping).toHaveBeenCalledWith(MAY_8_LOCAL);
+    expect(repository.runHousekeeping).toHaveBeenCalledWith(MAY_8_LOCAL, '2026-08-08');
     expect(repository.getMonthAggregate).toHaveBeenCalledWith(MAY, MAY_8, undefined);
     expect((repository.runHousekeeping as jest.Mock).mock.invocationCallOrder[0]).toBeLessThan(
       (repository.getMonthAggregate as jest.Mock).mock.invocationCallOrder[0],

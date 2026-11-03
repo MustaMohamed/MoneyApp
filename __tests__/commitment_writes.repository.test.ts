@@ -2,7 +2,7 @@ import Database from 'better-sqlite3';
 import type { SQLiteDatabase } from 'expo-sqlite';
 import uuid from 'react-native-uuid';
 
-import { CommitmentPaymentStatus, DurationType } from '@/constants/enums';
+import { CommitmentPaymentStatus, DurationType, RecurrencePeriod } from '@/constants/enums';
 import { getDb, withExclusiveWriteTransactionAsync } from '@/database/client';
 import { MIGRATIONS } from '@/database/migrations';
 import { deactivateExpiredCommitments } from '@/modules/commitments/database/commitments';
@@ -300,6 +300,43 @@ describe('CommitmentRepository.update', () => {
     expect(row('overdue-may')).toEqual(OVERDUE_MAY);
     expect(rows()).toEqual(before);
     expect(storedCommitment()).toMatchObject({ name: 'Rent, renamed', amount: 150, is_active: 0 });
+  });
+});
+
+describe('CommitmentRepository.update through a window end', () => {
+  it('moves every unpaid row through the given end to the new amount, the settled rows standing', async () => {
+    seedMonthly();
+
+    await repository.update('commitment', editInput({ amount: 150 }), NOW, '2026-12-31');
+
+    expect(row('paid-march')).toEqual(PAID_MARCH);
+    expect(row('skipped-april')).toEqual(SKIPPED_APRIL);
+    const unpaid = unpaidRows();
+    expect(unpaid.map((r) => r.due_date)).toEqual([
+      '2026-05-01',
+      '2026-06-01',
+      '2026-07-01',
+      '2026-08-01',
+      '2026-09-01',
+      '2026-10-01',
+      '2026-11-01',
+      '2026-12-01',
+    ]);
+    expect(unpaid.map((r) => r.amount_due)).toEqual(unpaid.map(() => 150));
+  });
+
+  it('regenerates a daily commitment started 100 days back past its 64th row through the end', async () => {
+    const daily = { recurrence_period: RecurrencePeriod.Days, start_date: '2026-01-28' };
+    seed(commitment(daily), []);
+
+    await repository.update('commitment', editInput({ ...daily, amount: 150 }), NOW, '2026-06-30');
+
+    const all = rows();
+    expect(all).toHaveLength(154);
+    expect(all[0].due_date).toBe('2026-01-28');
+    expect(all[63].due_date).toBe('2026-04-01');
+    expect(all.at(-1)?.due_date).toBe('2026-06-30');
+    expect(all.every((r) => r.amount_due === 150)).toBe(true);
   });
 });
 

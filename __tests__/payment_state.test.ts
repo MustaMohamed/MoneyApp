@@ -1,6 +1,7 @@
 import { CommitmentPaymentStatus, DurationType } from '@/constants/enums';
 import {
   carriedDueBound,
+  generationWindowEnd,
   isDueInMonth,
   isPaidPayment,
   isSkippedPayment,
@@ -97,6 +98,21 @@ describe('carriedDueBound', () => {
     ['2026-08', '2026-10-21', '2026-08-01'],
   ])('bounds %s against today %s at %s', (yearMonth, today, expected) => {
     expect(carriedDueBound(yearMonth, today)).toBe(expected);
+  });
+});
+
+describe('generationWindowEnd', () => {
+  it.each([
+    ['2026-11', '2026-11-30', '2027-02-28'],
+    ['2027-11', '2027-11-30', '2028-02-29'],
+    ['2026-08', '2026-08-31', '2026-11-30'],
+    ['2026-12', '2026-12-31', '2027-03-31'],
+    ['2027-06', '2026-11-03', '2027-06-30'],
+    ['2026-01', '2026-11-03', '2027-02-03'],
+    ['2027-02', '2026-11-03', '2027-02-28'],
+    ['2028-02', '2027-11-15', '2028-02-29'],
+  ])('ends the window for %s against today %s at %s', (yearMonth, today, expected) => {
+    expect(generationWindowEnd(yearMonth, today)).toBe(expected);
   });
 });
 
