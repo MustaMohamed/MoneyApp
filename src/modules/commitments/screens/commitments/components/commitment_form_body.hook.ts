@@ -2,6 +2,7 @@ import { useEffect, useId, useMemo } from 'react';
 import { useFormState, useWatch, type UseFormReturn } from 'react-hook-form';
 import { useShallow } from 'zustand/react/shallow';
 
+import type { RecurrencePeriod } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import {
@@ -14,6 +15,7 @@ import { toLocalDateString } from '@/utils/format_date';
 import {
   resolveCommitmentFirstPaymentFootnote,
   resolveCommitmentFormStatus,
+  seedRepeatsDraft,
 } from '../commitment_form.helpers';
 import type { CommitmentFormValues } from '../commitment_form.shared';
 import {
@@ -36,8 +38,16 @@ export type BodyFaultField = (typeof BODY_FAULT_FIELDS)[number];
 
 export function useCommitmentFormBodyPickers() {
   const owner = useId();
+  // Picks the three flags alone, so a Repeats draft step does not re-render the body.
   const { categoryPickerVisible, showEndDatePicker, choiceSheet } = useCommitmentFormBodyState(
-    useShallow((s) => s.entries[owner] ?? INITIAL_PICKER_ENTRY),
+    useShallow((s) => {
+      const entry = s.entries[owner] ?? INITIAL_PICKER_ENTRY;
+      return {
+        categoryPickerVisible: entry.categoryPickerVisible,
+        showEndDatePicker: entry.showEndDatePicker,
+        choiceSheet: entry.choiceSheet,
+      };
+    }),
   );
   const claim = useCommitmentFormBodyState.getState().claim;
   const release = useCommitmentFormBodyState.getState().release;
@@ -54,10 +64,14 @@ export function useCommitmentFormBodyPickers() {
       setShowEndDatePicker: (v: boolean) => state.setShowEndDatePicker(owner, v),
       setChoiceSheet: (sheet: CommitmentChoiceSheetKind | undefined) =>
         state.setChoiceSheet(owner, sheet),
+      // The row tap re-seeds the draft from the form, since a close without Done keeps the last one.
+      openRepeatsSheet: (every: number, period: RecurrencePeriod) =>
+        state.openRepeatsSheet(owner, seedRepeatsDraft(every, period)),
     };
   }, [owner]);
 
   return {
+    owner,
     state: { categoryPickerVisible, showEndDatePicker, choiceSheet },
     ...setters,
   };

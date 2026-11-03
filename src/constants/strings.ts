@@ -1101,11 +1101,13 @@ export const Strings = {
   commitmentsStripNoAccount: 'No account',
   commitmentsAmountTypeSelectorA11y: 'Amount type',
   commitmentsAmountInputAccessibility: 'Commitment amount',
-  commitmentsRecurrenceMonthly: 'Monthly',
-  commitmentsRecurrenceWeekly: 'Weekly',
-  commitmentsRecurrenceAnnually: 'Annually',
   commitmentsRecurrenceCustom: 'Custom',
   commitmentsRecurrenceEvery: 'Every',
+  commitmentsRepeatsUnitDays: 'days',
+  commitmentsRepeatsUnitWeeks: 'weeks',
+  commitmentsRepeatsUnitMonths: 'months',
+  commitmentsRepeatsUnitYears: 'years',
+  commitmentsRepeatsUnitA11y: 'Repeat unit',
   commitmentsDurationForever: 'Forever',
   commitmentsDurationAfterCount: 'After N payments',
   commitmentsDurationUntilDate: 'Until date',
@@ -1251,7 +1253,6 @@ export const Strings = {
   commitmentsRecurrencePeriodWeek: 'week',
   commitmentsRecurrencePeriodMonth: 'month',
   commitmentsRecurrencePeriodYear: 'year',
-  commitmentsRecurrenceUnitDays: 'Days',
   commitmentsRecurrenceUnitWeeks: 'Weeks',
   commitmentsRecurrenceUnitMonths: 'Months',
   commitmentsRecurrenceUnitYears: 'Years',
@@ -1314,6 +1315,12 @@ export const Strings = {
   // §4 EmptyState: categories variant
   emptyStateCategoriesHeadline: 'No categories yet',
   emptyStateCategoriesDescription: 'Your categories will appear here.',
+
+  // Shared stepper
+  stepperDecreaseGlyph: '−',
+  stepperIncreaseGlyph: '+',
+  stepperDecreaseA11y: 'Decrease',
+  stepperIncreaseA11y: 'Increase',
 
   // Shared month filter
   monthFilterLabel: 'Month filter',

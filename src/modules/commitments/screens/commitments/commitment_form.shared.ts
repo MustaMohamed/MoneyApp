@@ -15,6 +15,18 @@ import { stripNameEdges } from '@/utils/strip_name_edges';
 
 import type { Commitment } from '../../entities/commitment.entity';
 
+export const RECURRENCE_EVERY_MIN = 1;
+export const RECURRENCE_EVERY_MAX = 365;
+/** Custom picked from a preset starts the stepper here, in that preset's unit. */
+export const REPEATS_CUSTOM_START_EVERY = 2;
+
+/** The Repeats sheet's staged cadence, which only Done writes to the form. */
+export interface RepeatsDraft {
+  preset: RecurrencePreset;
+  every: number;
+  period: RecurrencePeriod;
+}
+
 /** Save refuses an amount of `0`, so the still-typing hold holds a zero-so-far text. */
 export const COMMITMENT_AMOUNT_REFUSES_ZERO: boolean = true;
 
@@ -35,8 +47,8 @@ export const COMMITMENT_SCHEMA = z
     recurrenceEvery: z
       .number()
       .int()
-      .min(1, Strings.commitmentsErrEveryMin)
-      .max(365, Strings.commitmentsErrEveryMax),
+      .min(RECURRENCE_EVERY_MIN, Strings.commitmentsErrEveryMin)
+      .max(RECURRENCE_EVERY_MAX, Strings.commitmentsErrEveryMax),
     recurrencePeriod: z.enum(RecurrencePeriod),
     startDate: z.string().min(1, Strings.commitmentsErrStartDateRequired),
     accountId: z.string().optional(),
