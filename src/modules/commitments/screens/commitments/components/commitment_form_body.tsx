@@ -14,7 +14,7 @@ import { ListCard } from '@/components/ui/list_card';
 import { NoteFactRow } from '@/components/ui/note_fact_row';
 import { useNoteReveal } from '@/components/ui/note_reveal.hook';
 import { ValidationSlot } from '@/components/ui/validation_slot';
-import { AmountType, CategoryType, Currency, RecurrencePeriod } from '@/constants/enums';
+import { AmountType, CategoryType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Size } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
@@ -32,12 +32,7 @@ import {
   setCommitmentEndDate,
   setCommitmentStartDate,
 } from '../commitment_form.helpers';
-import {
-  type CommitmentFormValues,
-  PRESET_MAP,
-  SET_OPTS,
-  detectPreset,
-} from '../commitment_form.shared';
+import { type CommitmentFormValues, SET_OPTS } from '../commitment_form.shared';
 import { CommitmentAmountHero } from './commitment_amount_hero';
 import { CommitmentChoiceSheet } from './commitment_choice_sheet';
 import {
@@ -47,7 +42,7 @@ import {
   useCommitmentFormStripAccounts,
 } from './commitment_form_body.hook';
 import { DurationPicker } from './duration_picker';
-import { RecurrencePicker } from './recurrence_picker';
+import { RepeatsSheet } from './repeats_sheet';
 
 interface CommitmentFormBodyProps {
   form: UseFormReturn<CommitmentFormValues>;
@@ -87,7 +82,6 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
       'endDate',
     ],
   });
-  const recurrencePreset = detectPreset(recurrenceEvery, recurrencePeriod);
 
   const selectedCategory = useMemo(
     () => categories.find((c) => c.id === categoryId),
@@ -107,10 +101,12 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
   });
 
   const {
+    owner,
     state: { categoryPickerVisible, showEndDatePicker, choiceSheet },
     setCategoryPickerVisible,
     setShowEndDatePicker,
     setChoiceSheet,
+    openRepeatsSheet,
   } = useCommitmentFormBodyPickers();
 
   const { faults: errors, isSubmitted } = useCommitmentFormBodyFaults(form);
@@ -119,22 +115,6 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
   function handleAmountTypeChange(v: AmountType) {
     form.setValue('amountType', v, SET_OPTS);
     if (isSubmitted) void form.trigger('amount');
-  }
-
-  function handleRecurrencePresetChange(preset: ReturnType<typeof detectPreset>) {
-    const mapped = PRESET_MAP[preset];
-    if (mapped) {
-      form.setValue('recurrenceEvery', mapped.every, SET_OPTS);
-      form.setValue('recurrencePeriod', mapped.period, SET_OPTS);
-      return;
-    }
-    // Nudge the values away from every preset shape so `detectPreset` returns Custom.
-    if (recurrenceEvery === 1) {
-      form.setValue('recurrenceEvery', 2, SET_OPTS);
-    } else if (recurrencePeriod === RecurrencePeriod.Months) {
-      // Already non-1 months, so switch period instead; `detectPreset` cannot map it back.
-      form.setValue('recurrencePeriod', RecurrencePeriod.Days, SET_OPTS);
-    }
   }
 
   function selectCategory(category: Category) {
@@ -236,7 +216,7 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
               <FormPickerRow
                 testID="repeats-row"
                 divider={false}
-                onPress={() => setChoiceSheet('repeats')}
+                onPress={() => openRepeatsSheet(recurrenceEvery, recurrencePeriod)}
                 disabled={locked}
                 label={Strings.commitmentsFieldRecurrence}
                 accessibilityHint={errors.recurrenceEvery}
@@ -314,18 +294,12 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
         onSelect={selectCategory}
         onOpenChange={() => setCategoryPickerVisible(false)}
       />
-      <CommitmentChoiceSheet
+      <RepeatsSheet
+        owner={owner}
+        form={form}
         isOpen={choiceSheet === 'repeats'}
-        title={Strings.commitmentsFieldRecurrence}
-        testID="repeats-sheet"
         onClose={() => setChoiceSheet(undefined)}
-      >
-        <RecurrencePicker
-          form={form}
-          recurrencePreset={recurrencePreset}
-          onPresetChange={handleRecurrencePresetChange}
-        />
-      </CommitmentChoiceSheet>
+      />
       <CommitmentChoiceSheet
         isOpen={choiceSheet === 'ends'}
         title={Strings.commitmentsFieldDuration}

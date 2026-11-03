@@ -1,4 +1,5 @@
 import { SELECTABLE_PILL_BARE_HEIGHT } from '@/components/ui/chip.geometry';
+import type { SheetSize } from '@/components/ui/sheet.helpers';
 import { type TouchFloorHitSlop, type TouchFloorRoom, touchFloorHitSlop } from '@/constants/theme';
 
 /** Sized from the bare pill's height at scale 1, its shortest, so the touch area reaches the floor at every scale. */
@@ -20,21 +21,18 @@ export const COMMITMENT_PICKER_FIRST_ROW_OVER_ROW_EDGE: TouchFloorRoom = {
   bottom: COMMITMENT_FORM_PICKER_GAP / 2,
 };
 
-/** The period row's room above: half the drawn distance to the presets while it shares the `Every` input's line, half the gap to that input once it wraps at or below the line's bottom. */
-export function resolvePeriodRowTopRoom(
-  presetsRowBottom: number | undefined,
-  customRowTop: number | undefined,
-  inputLineBottom: number | undefined,
-  periodRowTop: number | undefined,
-): number {
-  if (
-    presetsRowBottom === undefined ||
-    customRowTop === undefined ||
-    inputLineBottom === undefined ||
-    periodRowTop === undefined
-  ) {
-    return COMMITMENT_FORM_PICKER_GAP / 2;
+/** A choice sheet with a footer scrolls above font scale 1, where its content can pass the screen. */
+export const COMMITMENT_CHOICE_SHEET_SCROLL_SIZE: SheetSize = 'xxl';
+
+/** The Repeats unit choice's narrowest width, F2's `.useg`; past it the choice wraps under the stepper. */
+export const REPEATS_UNIT_MIN_WIDTH = 200;
+
+export function resolveCommitmentChoiceSheetSizing(
+  fontScale: number,
+  hasFooter: boolean,
+): { fitContent: boolean; scrollable: boolean; size: SheetSize | undefined } {
+  if (hasFooter && fontScale > 1) {
+    return { fitContent: false, scrollable: true, size: COMMITMENT_CHOICE_SHEET_SCROLL_SIZE };
   }
-  if (periodRowTop >= inputLineBottom) return COMMITMENT_FORM_PICKER_GAP / 2;
-  return (customRowTop + periodRowTop - presetsRowBottom) / 2;
+  return { fitContent: true, scrollable: false, size: undefined };
 }

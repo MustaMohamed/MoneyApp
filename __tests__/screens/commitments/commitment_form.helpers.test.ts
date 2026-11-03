@@ -2,7 +2,7 @@ import { act, renderHook } from '@testing-library/react-native';
 import { useController } from 'react-hook-form';
 
 import type { AccountStripChip } from '@/components/ui/form_sheet.helpers';
-import { AccountType, DurationType, RecurrencePeriod } from '@/constants/enums';
+import { AccountType, DurationType, RecurrencePeriod, RecurrencePreset } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
@@ -13,18 +13,22 @@ import {
   applyCommitmentAmountText,
   countCommitmentFormFaults,
   parseCommitmentAmountText,
+  pickRepeatsPreset,
   resolveAccountIdFromChip,
   resolveAmountHeroSyncText,
   resolveCommitmentFirstPaymentFootnote,
   resolveCommitmentFormStatus,
   resolveCommitmentStripChips,
   resolveEndsRowValue,
+  resolveRepeatsOptions,
   resolveRepeatsRowValue,
   parseWholeNumberInput,
+  seedRepeatsDraft,
   setCommitmentDurationType,
   setCommitmentEndDate,
   setCommitmentStartDate,
 } from '@/modules/commitments/screens/commitments/commitment_form.helpers';
+import type { RepeatsDraft } from '@/modules/commitments/screens/commitments/commitment_form.shared';
 import { useAddCommitment } from '@/modules/commitments/screens/commitments/commitment_form/add_commitment.hook';
 import { useAddCommitmentState } from '@/modules/commitments/screens/commitments/commitment_form/add_commitment.state';
 import {
@@ -310,9 +314,71 @@ describe('resolveRepeatsRowValue (MA-255)', () => {
     [2, RecurrencePeriod.Weeks, 'Every 2 weeks'],
     [0, RecurrencePeriod.Months, 'Every 0 months'],
     [366, RecurrencePeriod.Days, 'Every 366 days'],
-    [undefined, RecurrencePeriod.Months, 'Custom'],
   ] as const)('reads Every %p %p as %p', (every, period, label) => {
     expect(resolveRepeatsRowValue(every, period)).toBe(label);
+  });
+});
+
+describe('seedRepeatsDraft (MA-276)', () => {
+  it.each([
+    [1, RecurrencePeriod.Months, RecurrencePreset.Monthly],
+    [1, RecurrencePeriod.Weeks, RecurrencePreset.Weekly],
+    [1, RecurrencePeriod.Years, RecurrencePreset.Annually],
+    [2, RecurrencePeriod.Weeks, RecurrencePreset.Custom],
+    [1, RecurrencePeriod.Days, RecurrencePreset.Custom],
+  ] as const)('lights Every %p %p as %p, holding the count and unit', (every, period, preset) => {
+    expect(seedRepeatsDraft(every, period)).toStrictEqual({ preset, every, period });
+  });
+});
+
+describe('pickRepeatsPreset (MA-276)', () => {
+  it.each([
+    [RecurrencePreset.Weekly, RecurrencePeriod.Weeks],
+    [RecurrencePreset.Monthly, RecurrencePeriod.Months],
+    [RecurrencePreset.Annually, RecurrencePeriod.Years],
+  ] as const)('Custom from %p starts the stepper at 2 %p', (preset, period) => {
+    const draft: RepeatsDraft = { preset, every: 1, period };
+
+    expect(pickRepeatsPreset(draft, RecurrencePreset.Custom)).toStrictEqual({
+      preset: RecurrencePreset.Custom,
+      every: 2,
+      period,
+    });
+  });
+
+  it('Custom while Custom keeps the draft', () => {
+    const draft: RepeatsDraft = {
+      preset: RecurrencePreset.Custom,
+      every: 5,
+      period: RecurrencePeriod.Days,
+    };
+
+    expect(pickRepeatsPreset(draft, RecurrencePreset.Custom)).toBe(draft);
+  });
+
+  it.each([
+    [RecurrencePreset.Weekly, RecurrencePeriod.Weeks],
+    [RecurrencePreset.Monthly, RecurrencePeriod.Months],
+    [RecurrencePreset.Annually, RecurrencePeriod.Years],
+  ] as const)('%p from Every 5 days reads 1 %p', (preset, period) => {
+    const draft: RepeatsDraft = {
+      preset: RecurrencePreset.Custom,
+      every: 5,
+      period: RecurrencePeriod.Days,
+    };
+
+    expect(pickRepeatsPreset(draft, preset)).toStrictEqual({ preset, every: 1, period });
+  });
+});
+
+describe('resolveRepeatsOptions (MA-276)', () => {
+  it('lists Every week, Every month, Every year and Custom, in that order', () => {
+    expect(resolveRepeatsOptions()).toStrictEqual([
+      { value: RecurrencePreset.Weekly, label: 'Every week' },
+      { value: RecurrencePreset.Monthly, label: 'Every month' },
+      { value: RecurrencePreset.Annually, label: 'Every year' },
+      { value: RecurrencePreset.Custom, label: 'Custom' },
+    ]);
   });
 });
 

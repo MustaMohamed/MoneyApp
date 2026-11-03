@@ -83,3 +83,41 @@ describe('commitment form footer copy (MA-256)', () => {
     });
   });
 });
+
+describe('Repeats sheet copy (MA-276)', () => {
+  it('ships the sheet title, the Custom caption, the four units, the unit read-aloud and Done byte-exact', () => {
+    expect({
+      title: Strings.commitmentsFieldRecurrence,
+      every: Strings.commitmentsRecurrenceEvery,
+      days: Strings.commitmentsRepeatsUnitDays,
+      weeks: Strings.commitmentsRepeatsUnitWeeks,
+      months: Strings.commitmentsRepeatsUnitMonths,
+      years: Strings.commitmentsRepeatsUnitYears,
+      unitA11y: Strings.commitmentsRepeatsUnitA11y,
+      done: Strings.commitmentsDone,
+    }).toEqual({
+      title: 'Repeats',
+      every: 'Every',
+      days: 'days',
+      weeks: 'weeks',
+      months: 'months',
+      years: 'years',
+      unitA11y: 'Repeat unit',
+      done: 'Done',
+    });
+  });
+
+  it('ships the stepper glyphs, U+2212 and +, and their read-aloud labels byte-exact', () => {
+    expect({
+      decrease: Strings.stepperDecreaseGlyph,
+      increase: Strings.stepperIncreaseGlyph,
+      decreaseA11y: Strings.stepperDecreaseA11y,
+      increaseA11y: Strings.stepperIncreaseA11y,
+    }).toEqual({
+      decrease: '−',
+      increase: '+',
+      decreaseA11y: 'Decrease',
+      increaseA11y: 'Increase',
+    });
+  });
+});

@@ -1,7 +1,12 @@
 import type { UseFormReturn } from 'react-hook-form';
 
 import type { AccountStripChip } from '@/components/ui/form_sheet.helpers';
-import { AccountType, DurationType, type RecurrencePeriod } from '@/constants/enums';
+import {
+  AccountType,
+  DurationType,
+  type RecurrencePeriod,
+  RecurrencePreset,
+} from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import {
@@ -12,6 +17,7 @@ import { computeDueDates } from '@/utils/compute_due_dates';
 import { formatShortWeekdayDate } from '@/utils/format_date';
 import { formatStoredMoneyText } from '@/utils/money_text';
 import { parseTypingDecimalText } from '@/utils/parse_decimal';
+import { orderByRank } from '@/utils/rank_order';
 import { holdStillTypingDecimal } from '@/utils/use_zod_form.hook';
 
 import { buildCommitmentEndsLabel } from '../../utils/commitment_ends_label';
@@ -19,7 +25,11 @@ import { buildRecurrenceLabel } from '../../utils/recurrence_label';
 import {
   COMMITMENT_AMOUNT_REFUSES_ZERO,
   type CommitmentFormValues,
+  PRESET_MAP,
+  REPEATS_CUSTOM_START_EVERY,
+  type RepeatsDraft,
   SET_OPTS,
+  detectPreset,
 } from './commitment_form.shared';
 import type { BodyFaultField } from './components/commitment_form_body.hook';
 
@@ -101,13 +111,42 @@ export function parseWholeNumberInput(text: string): number | null | undefined {
   return isNaN(n) ? undefined : n;
 }
 
-/** The Repeats row: `Custom` while the Every input is empty, which the field holds as `null`. */
-export function resolveRepeatsRowValue(
-  every: number | undefined,
-  period: RecurrencePeriod,
-): string {
-  if (typeof every !== 'number') return Strings.commitmentsRecurrenceCustom;
+export function resolveRepeatsRowValue(every: number, period: RecurrencePeriod): string {
   return buildRecurrenceLabel({ recurrence_every: every, recurrence_period: period });
+}
+
+/** The Repeats sheet opens on the form's cadence, lighting its preset or Custom. */
+export function seedRepeatsDraft(every: number, period: RecurrencePeriod): RepeatsDraft {
+  return { preset: detectPreset(every, period), every, period };
+}
+
+/** A preset row takes its cadence; Custom from a preset starts at 2 in that unit, and Custom while Custom keeps the draft. */
+export function pickRepeatsPreset(draft: RepeatsDraft, preset: RecurrencePreset): RepeatsDraft {
+  const mapped = PRESET_MAP[preset];
+  if (mapped !== null) return { preset, every: mapped.every, period: mapped.period };
+  if (draft.preset === RecurrencePreset.Custom) return draft;
+  return { preset, every: REPEATS_CUSTOM_START_EVERY, period: draft.period };
+}
+
+const REPEATS_OPTION_RANK = {
+  [RecurrencePreset.Weekly]: 1,
+  [RecurrencePreset.Monthly]: 2,
+  [RecurrencePreset.Annually]: 3,
+  [RecurrencePreset.Custom]: 4,
+} satisfies Record<RecurrencePreset, number>;
+
+/** Each preset row reads as the Repeats row would read its cadence. */
+export function resolveRepeatsOptions(): { value: RecurrencePreset; label: string }[] {
+  return orderByRank(REPEATS_OPTION_RANK).map((preset) => {
+    const mapped = PRESET_MAP[preset];
+    return {
+      value: preset,
+      label:
+        mapped === null
+          ? Strings.commitmentsRecurrenceCustom
+          : resolveRepeatsRowValue(mapped.every, mapped.period),
+    };
+  });
 }
 
 /** The Ends row reads `Never` from its own key, and otherwise as the detail's Ends fact, so a missing count or date reads the incomplete label. */
