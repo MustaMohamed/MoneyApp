@@ -106,6 +106,7 @@ function normalizeIssue(c) {
     prs: (c.closedByPullRequestsReferences?.nodes ?? []).map((p) => ({
       number: p.number,
       state: p.state,
+      draft: p.isDraft === true,
       checks: p.commits?.nodes?.[0]?.commit?.statusCheckRollup?.state ?? 'NONE',
       reviewDecision: p.reviewDecision ?? null,
       updatedAt: p.updatedAt,
@@ -641,6 +642,7 @@ function prOf(item) {
   return {
     number: p.number,
     state: p.state,
+    draft: p.draft === true,
     checks: p.checks ?? 'NONE',
     reviewDecision: p.reviewDecision ?? null,
     updatedAt: p.updatedAt ?? null,
