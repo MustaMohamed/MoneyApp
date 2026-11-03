@@ -542,6 +542,32 @@ describe('commitment store generation window', () => {
     ]);
   });
 
+  it('joins a wider pass in flight for a narrower month the same day', async () => {
+    const junePass = deferred<void>();
+    const repository = makeRepository({
+      runHousekeeping: jest
+        .fn()
+        .mockResolvedValueOnce(undefined)
+        .mockReturnValueOnce(junePass.promise),
+      getMonthSnapshot: jest.fn((month: string) => Promise.resolve(snapshot(month))),
+    });
+    const store = createCommitmentStore(repository);
+    await store.getState().ensureHousekeepingCurrent(DAY_ONE);
+
+    const juneLoad = store.getState().loadMonthSnapshot('2027-06', DAY_ONE);
+    const mayLoad = store.getState().loadMonthSnapshot('2027-05', DAY_ONE);
+    await flushMicrotasks();
+    junePass.resolve();
+    await Promise.all([juneLoad, mayLoad]);
+
+    expect((repository.runHousekeeping as jest.Mock).mock.calls).toEqual([
+      TODAY_WINDOW,
+      [DAY_ONE, '2027-06-30'],
+    ]);
+    expect(repository.getMonthSnapshot).toHaveBeenCalledWith('2027-05', MAY_8);
+    expect(store.getState().loadedMonth).toBe('2027-05');
+  });
+
   it('regenerates an edit through the selected month end', async () => {
     const repository = makeRepository();
     const store = createCommitmentStore(repository);

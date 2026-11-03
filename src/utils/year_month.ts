@@ -44,6 +44,16 @@ export function shiftYearMonth(yearMonth: string, delta: number): string {
   return toYearMonth(nextYear, nextMonth);
 }
 
+export function lastDayOfMonth(yearMonth: string): number {
+  return new Date(
+    Date.UTC(yearFromYearMonth(yearMonth), monthNumberFromYearMonth(yearMonth), 0),
+  ).getUTCDate();
+}
+
+export function toIsoDay(yearMonth: string, day: number): string {
+  return `${yearMonth}-${pad2(day)}`;
+}
+
 export function fullMonthName(yearMonth: string): string {
   return new Date(`${yearMonth}-01T12:00:00`).toLocaleDateString('en-US', { month: 'long' });
 }

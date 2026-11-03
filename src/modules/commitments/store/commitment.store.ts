@@ -138,10 +138,16 @@ export function createCommitmentStore(
     generation: number,
     throughDate: string,
     now: Date,
-  ) =>
-    shareInFlight(inFlightHousekeeping, `${today}:${generation}:${throughDate}`, () =>
+  ) => {
+    const scope = `${today}:${generation}:`;
+    // A pass in flight for the same day and data through this end or past it covers the request.
+    for (const [key, request] of inFlightHousekeeping) {
+      if (key.startsWith(scope) && key.slice(scope.length) >= throughDate) return request;
+    }
+    return shareInFlight(inFlightHousekeeping, `${scope}${throughDate}`, () =>
       repo.runHousekeeping(now, throughDate),
     );
+  };
 
   const snapshotRequestKey = (month: string, today: string, generation: number) =>
     `${month}:${today}:${generation}`;
@@ -223,11 +229,10 @@ export function createCommitmentStore(
           const requestId = ++latestHousekeepingRequest;
           await getHousekeepingRequest(today, generation, throughDate, now);
           if (generation !== dataGeneration) return;
+          if (isHousekeepingCovered(today, generation, throughDate)) return;
           const held = housekeepingCoverage;
           const sameScope = held?.today === today && held.generation === generation;
-          if (sameScope ? held.throughDate >= throughDate : (held?.requestId ?? 0) > requestId) {
-            return;
-          }
+          if (!sameScope && (held?.requestId ?? 0) > requestId) return;
           housekeepingCoverage = { today, generation, throughDate, requestId };
         },
 

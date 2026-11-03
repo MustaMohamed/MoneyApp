@@ -26,6 +26,7 @@ import {
   exclusiveWriteOnRealDb,
   getSQLiteParams,
 } from '@/test_helpers/sqlite';
+import { shiftYearMonth } from '@/utils/year_month';
 
 jest.mock('@/database/client', () => ({
   getDb: jest.fn(),
@@ -231,7 +232,7 @@ describe('CommitmentRepository.update', () => {
   it('keeps the paid and skipped rows and moves every unpaid row, the overdue one included, to the new amount', async () => {
     seedMonthly();
 
-    await repository.update('commitment', editInput({ amount: 150 }), NOW);
+    await repository.update('commitment', editInput({ amount: 150 }), NOW, '2026-08-08');
 
     expect(row('paid-march')).toEqual(PAID_MARCH);
     expect(row('skipped-april')).toEqual(SKIPPED_APRIL);
@@ -245,7 +246,12 @@ describe('CommitmentRepository.update', () => {
   it('regenerates the unpaid rows on the new schedule', async () => {
     seedMonthly();
 
-    await repository.update('commitment', editInput({ start_date: '2026-03-15' }), NOW);
+    await repository.update(
+      'commitment',
+      editInput({ start_date: '2026-03-15' }),
+      NOW,
+      '2026-08-08',
+    );
 
     const unpaid = unpaidRows();
     expect(unpaid.length).toBeGreaterThan(0);
@@ -264,6 +270,7 @@ describe('CommitmentRepository.update', () => {
       'commitment',
       editInput({ ...afterThree, start_date: '2026-03-15' }),
       NOW,
+      '2026-08-08',
     );
 
     expect(rows().map((r) => r.due_date)).toEqual(['2026-03-01', '2026-03-15', '2026-04-01']);
@@ -276,9 +283,9 @@ describe('CommitmentRepository.update', () => {
     const before = rows();
     injectedFailure = 'payment insert';
 
-    await expect(repository.update('commitment', editInput({ amount: 150 }), NOW)).rejects.toThrow(
-      'injected payment insert failure',
-    );
+    await expect(
+      repository.update('commitment', editInput({ amount: 150 }), NOW, '2026-08-08'),
+    ).rejects.toThrow('injected payment insert failure');
 
     expect(storedCommitment().amount).toBe(100);
     expect(rows()).toEqual(before);
@@ -287,7 +294,7 @@ describe('CommitmentRepository.update', () => {
   it('writes only the commitment row when the commitment its end date ended is edited', async () => {
     const untilMay7 = { duration_type: DurationType.UntilDate, end_date: '2026-05-07' };
     seed(commitment(untilMay7), [PAID_MARCH, SKIPPED_APRIL, OVERDUE_MAY]);
-    await repository.runHousekeeping(NOW);
+    await repository.runHousekeeping(NOW, '2026-08-08');
     expect(storedCommitment().is_active).toBe(0);
     const before = rows();
 
@@ -295,6 +302,7 @@ describe('CommitmentRepository.update', () => {
       'commitment',
       editInput({ ...untilMay7, name: 'Rent, renamed', amount: 150 }),
       NOW,
+      '2026-08-08',
     );
 
     expect(row('overdue-may')).toEqual(OVERDUE_MAY);
@@ -323,6 +331,23 @@ describe('CommitmentRepository.update through a window end', () => {
       '2026-12-01',
     ]);
     expect(unpaid.map((r) => r.amount_due)).toEqual(unpaid.map(() => 150));
+  });
+
+  it('regenerates through the latest unpaid row a far browse wrote when it lies past the end', async () => {
+    const unpaidThroughMarch2028 = Array.from({ length: 23 }, (_, index) =>
+      payment(`far-${index}`, `${shiftYearMonth('2026-05', index)}-01`),
+    );
+    seed(commitment(), [PAID_MARCH, SKIPPED_APRIL, ...unpaidThroughMarch2028]);
+
+    await repository.update('commitment', editInput({ amount: 150 }), NOW, '2026-12-31');
+
+    expect(row('paid-march')).toEqual(PAID_MARCH);
+    expect(row('skipped-april')).toEqual(SKIPPED_APRIL);
+    const unpaid = unpaidRows();
+    expect(unpaid).toHaveLength(23);
+    expect(unpaid.at(-1)).toMatchObject({ due_date: '2028-03-01', amount_due: 150 });
+    expect(unpaid.every((r) => r.amount_due === 150)).toBe(true);
+    expect(rows().filter((r) => r.due_date > '2028-03-01')).toEqual([]);
   });
 
   it('regenerates a daily commitment started 100 days back past its 64th row through the end', async () => {
@@ -435,7 +460,7 @@ describe('CommitmentRepository.undoSkip', () => {
       PAID_MARCH,
       SKIPPED_APRIL,
     ]);
-    await repository.runHousekeeping(NOW);
+    await repository.runHousekeeping(NOW, '2026-08-08');
     expect(storedCommitment().is_active).toBe(0);
 
     await repository.undoSkip('skipped-april', TODAY, NOW_ISO);
@@ -449,7 +474,7 @@ describe('CommitmentRepository.undoSkip', () => {
       PAID_MARCH,
       SKIPPED_APRIL,
     ]);
-    await repository.runHousekeeping(NOW);
+    await repository.runHousekeeping(NOW, '2026-08-08');
     injectedFailure = 'reactivation';
 
     await expect(repository.undoSkip('skipped-april', TODAY, NOW_ISO)).rejects.toThrow(
@@ -577,7 +602,7 @@ describe('CommitmentRepository.markAsPaid on a removed row', () => {
 
   it('rejects a row an edit replaced with no payment, transaction or balance change', async () => {
     seedMonthly();
-    await repository.update('commitment', editInput({ amount: 150 }), NOW);
+    await repository.update('commitment', editInput({ amount: 150 }), NOW, '2026-08-08');
     const after = rows();
 
     await expect(repository.markAsPaid('overdue-may', details)).rejects.toThrow(

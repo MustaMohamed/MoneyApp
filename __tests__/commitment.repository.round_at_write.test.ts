@@ -126,7 +126,7 @@ describe('CommitmentRepository.update — rounds at the first statement', () => 
       end_date: baseInput.end_date,
       end_after_count: baseInput.end_after_count,
     };
-    await repo.update(id, updateData);
+    await repo.update(id, updateData, new Date(NOW_ISO), '2026-08-08');
 
     // 12.345 * 100 is exactly 1234.5, and banker's rounding picks the even cent: 12.34, not 12.35.
     expect(readAmount(id)).toBe(12.34);
@@ -137,21 +137,26 @@ describe('CommitmentRepository.update — rounds at the first statement', () => 
     await repo.add(baseInput);
     const id = 'generated-1';
 
-    await repo.update(id, {
-      name: baseInput.name,
-      amount_type: AmountType.Variable,
-      amount: null,
-      currency: baseInput.currency,
-      category_id: baseInput.category_id,
-      recurrence_every: baseInput.recurrence_every,
-      recurrence_period: baseInput.recurrence_period,
-      start_date: baseInput.start_date,
-      account_id: baseInput.account_id,
-      notes: baseInput.notes,
-      duration_type: baseInput.duration_type,
-      end_date: baseInput.end_date,
-      end_after_count: baseInput.end_after_count,
-    });
+    await repo.update(
+      id,
+      {
+        name: baseInput.name,
+        amount_type: AmountType.Variable,
+        amount: null,
+        currency: baseInput.currency,
+        category_id: baseInput.category_id,
+        recurrence_every: baseInput.recurrence_every,
+        recurrence_period: baseInput.recurrence_period,
+        start_date: baseInput.start_date,
+        account_id: baseInput.account_id,
+        notes: baseInput.notes,
+        duration_type: baseInput.duration_type,
+        end_date: baseInput.end_date,
+        end_after_count: baseInput.end_after_count,
+      },
+      new Date(NOW_ISO),
+      '2026-08-08',
+    );
 
     expect(readAmount(id)).toBeNull();
   });

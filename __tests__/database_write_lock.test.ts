@@ -229,7 +229,7 @@ describe('an exclusive write while another connection holds the write lock', () 
   it('housekeeping, which reads first, waits and plans the payments', async () => {
     seed(COMMITMENT, []);
 
-    await whileLocked(() => commitmentRepository.runHousekeeping(NOW));
+    await whileLocked(() => commitmentRepository.runHousekeeping(NOW, '2026-08-08'));
 
     expect(dueDates()).toEqual(expect.arrayContaining(['2026-03-01', '2026-04-01', '2026-05-01']));
   });
@@ -246,7 +246,7 @@ describe('an exclusive write while another connection holds the write lock', () 
     seed(COMMITMENT, [OVERDUE_MAY]);
 
     await whileLocked(() =>
-      commitmentRepository.update('commitment', editInput({ amount: 150 }), NOW),
+      commitmentRepository.update('commitment', editInput({ amount: 150 }), NOW, '2026-08-08'),
     );
 
     expect(row('commitments', 'commitment')).toMatchObject({ amount: 150 });

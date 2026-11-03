@@ -12,7 +12,6 @@ import type { Transaction } from '@/modules/transactions/entities/transaction.en
 import { TransactionValidationError } from '@/modules/transactions/repositories/transaction.errors';
 import { toLocalDateString } from '@/utils/format_date';
 import { roundMoney } from '@/utils/money';
-import { currentYearMonth } from '@/utils/year_month';
 
 import {
   type ActiveCommitmentDueDate,
@@ -20,6 +19,7 @@ import {
   deleteUnpaidPaymentsByCommitment,
   getActiveCommitmentDueDates,
   getExistingDueDates,
+  getLatestUnpaidDueDate,
   getPaymentById,
   getPaymentMonthAggregate,
   getPaymentsByCommitment,
@@ -43,7 +43,6 @@ import {
 import type { CommitmentMonthAggregate } from '../domain/commitment_month_totals';
 import {
   carriedDueBound,
-  generationWindowEnd,
   isPaidPayment,
   isUnpaidPayment,
   resolveUndoSkip,
@@ -103,7 +102,7 @@ export interface MarkAsPaidResult {
 export interface ICommitmentRepository {
   getById(id: string): Promise<Commitment | undefined>;
   add(data: NewCommitmentInput): Promise<void>;
-  update(id: string, data: UpdateCommitmentInput, now?: Date, throughDate?: string): Promise<void>;
+  update(id: string, data: UpdateCommitmentInput, now: Date, throughDate: string): Promise<void>;
   deactivate(id: string): Promise<void>;
 
   getPaymentsByCommitment(commitmentId: string): Promise<CommitmentMonthPayment[]>;
@@ -112,8 +111,7 @@ export interface ICommitmentRepository {
   markAsPaid(paymentId: string, details: PaymentDetails): Promise<MarkAsPaidResult>;
   markAsSkipped(paymentId: string, skippedDate: string, updatedAt: string): Promise<void>;
   undoSkip(paymentId: string, today: string, updatedAt: string): Promise<void>;
-  /** `throughDate` absent reads as today plus three months (`generationWindowEnd`). */
-  runHousekeeping(now: Date, throughDate?: string): Promise<void>;
+  runHousekeeping(now: Date, throughDate: string): Promise<void>;
   getMonthSnapshot(yearMonth: string, today: string): Promise<CommitmentMonthSnapshot>;
   getMonthAggregate(
     yearMonth: string,
@@ -145,8 +143,8 @@ export class CommitmentRepository implements ICommitmentRepository {
   async update(
     id: string,
     data: UpdateCommitmentInput,
-    now: Date = new Date(),
-    throughDate: string = todayWindowEnd(now),
+    now: Date,
+    throughDate: string,
   ): Promise<void> {
     const input = { ...data, amount: roundMoney(data.amount) };
     const updateData: UpdateCommitmentData = { ...input };
@@ -156,10 +154,14 @@ export class CommitmentRepository implements ICommitmentRepository {
       if (!commitment) throw new CommitmentNotFoundError(id);
       // An inactive commitment generates no rows, so its unpaid rows must stay.
       if (commitment.is_active !== 1) return;
+      // A far browse wrote unpaid rows past the window; the edit replaces them, not drops them.
+      const latestUnpaid = await getLatestUnpaidDueDate(transactionDb, id);
+      const regenerateThrough =
+        latestUnpaid !== undefined && latestUnpaid > throughDate ? latestUnpaid : throughDate;
       await deleteUnpaidPaymentsByCommitment(transactionDb, id);
       const existing = await getExistingDueDates(transactionDb, id);
       const dueDates = existing.map((due_date) => ({ commitment_id: id, due_date }));
-      await insertPlannedPayments(transactionDb, [commitment], dueDates, now, throughDate);
+      await insertPlannedPayments(transactionDb, [commitment], dueDates, now, regenerateThrough);
     });
   }
 
@@ -193,7 +195,7 @@ export class CommitmentRepository implements ICommitmentRepository {
     return { loadedMonth: yearMonth, today, commitments, payments };
   }
 
-  async runHousekeeping(now: Date, throughDate: string = todayWindowEnd(now)): Promise<void> {
+  async runHousekeeping(now: Date, throughDate: string): Promise<void> {
     const timestamp = now.toISOString();
     const asOfDate = toLocalDateString(now);
     await withExclusiveWriteTransactionAsync(async (transactionDb) => {
@@ -302,10 +304,6 @@ export class CommitmentRepository implements ICommitmentRepository {
       }
     });
   }
-}
-
-function todayWindowEnd(now: Date): string {
-  return generationWindowEnd(currentYearMonth(now), toLocalDateString(now));
 }
 
 async function insertPlannedPayments(

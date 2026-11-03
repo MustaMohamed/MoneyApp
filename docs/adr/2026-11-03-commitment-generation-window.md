@@ -21,7 +21,7 @@ A commitment's rows run from `start_date` through `generationWindowEnd(yearMonth
 - **App start:** the post-onboarding microtask calls `ensureHousekeepingCurrent()` with no month, so the pass reads the month of now and runs through today plus three months.
 - **List focus and month change:** `loadMonthSnapshot` and `loadMonthAggregate` pass the month they read. A month past the covered window runs a pass before the read, even when a pass already ran that day. A pass that fails leaves the month unread: the list shows its load error and the hero its figures error, and the next load runs the pass again.
 - **Add:** the write opens the data generation, and the next load runs the pass through that load's month.
-- **Edit:** `updateCommitment` regenerates the unpaid rows through the window of the selected month.
+- **Edit:** `updateCommitment` regenerates the unpaid rows through the later of the selected month's window and the latest unpaid row it replaces, read in the edit's own transaction before the delete. A cycle a far browse wrote, opened from See all, therefore survives the edit at its new amount.
 
 The store skips a pass only when a landed pass for the same local day and data generation reached a window end on or after the one asked for. It shares in-flight passes by day, generation and window end. A narrower pass that lands after a wider one never lowers the recorded end, and a failed pass records nothing.
 
@@ -31,4 +31,4 @@ The store skips a pass only when a landed pass for the same local day and data g
 
 ## 4. The cost accepted
 
-The month picker has no forward bound. A browse years ahead writes every row through that month in one exclusive transaction: for a daily commitment, one row per day. A daily commitment started years back writes thousands of rows in its first pass. Those rows stay until an edit or a Stop, every later pass's active due-date read (`getActiveCommitmentDueDates`) loads them, and See all lists every one. A forward bound on the picker, a cap on a far browse and pruning rows on a browse back are out of scope for #910.
+The month picker has no forward bound. A browse years ahead writes every row through that month in one exclusive transaction: for a daily commitment, one row per day. A daily commitment started years back writes thousands of rows in its first pass. Those rows stay until a Stop, since an edit regenerates through them, and every later pass's active due-date read (`getActiveCommitmentDueDates`) loads them, and See all lists every one. A forward bound on the picker, a cap on a far browse and pruning rows on a browse back are out of scope for #910.

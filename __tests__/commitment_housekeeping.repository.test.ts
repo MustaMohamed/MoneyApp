@@ -207,7 +207,7 @@ describe('CommitmentRepository.runHousekeeping', () => {
       );
       const repository = new CommitmentRepository();
 
-      await repository.runHousekeeping(NOW);
+      await repository.runHousekeeping(NOW, '2026-08-08');
 
       expect(workloadCounts()).toEqual({
         activeReads: 1,
@@ -269,7 +269,7 @@ describe('CommitmentRepository.runHousekeeping', () => {
     ]);
     const repository = new CommitmentRepository();
 
-    await repository.runHousekeeping(NOW);
+    await repository.runHousekeeping(NOW, '2026-08-08');
     const firstPass = realDb
       .prepare(
         `SELECT commitment_id, due_date, amount_due, account_id, created_at, updated_at
@@ -278,7 +278,7 @@ describe('CommitmentRepository.runHousekeeping', () => {
       )
       .all();
     sqlCalls = [];
-    await repository.runHousekeeping(NOW);
+    await repository.runHousekeeping(NOW, '2026-08-08');
 
     expect(firstPass).toEqual([
       {
@@ -328,7 +328,7 @@ describe('CommitmentRepository.runHousekeeping', () => {
     ]);
     insertPayment(payment('paid', 'after-paid', '2026-05-08', CommitmentPaymentStatus.Paid));
 
-    await new CommitmentRepository().runHousekeeping(NOW);
+    await new CommitmentRepository().runHousekeeping(NOW, '2026-08-08');
 
     const active = realDb
       .prepare('SELECT id, is_active FROM commitments ORDER BY id')
@@ -354,7 +354,7 @@ describe('CommitmentRepository.runHousekeeping', () => {
     const pastLocalMidnight = new Date(2026, 4, 9, 0, 30);
     jest.spyOn(pastLocalMidnight, 'toISOString').mockReturnValue('2026-05-08T21:30:00.000Z');
 
-    await new CommitmentRepository().runHousekeeping(pastLocalMidnight);
+    await new CommitmentRepository().runHousekeeping(pastLocalMidnight, '2026-08-09');
 
     expect(realDb.prepare('SELECT is_active FROM commitments').all()).toEqual([{ is_active: 0 }]);
   });
@@ -363,7 +363,7 @@ describe('CommitmentRepository.runHousekeeping', () => {
     insertCommitments(Array.from({ length: 61 }, (_, index) => commitment(`rollback-${index}`)));
     injectedInsertFailure = 1;
 
-    await expect(new CommitmentRepository().runHousekeeping(NOW)).rejects.toThrow(
+    await expect(new CommitmentRepository().runHousekeeping(NOW, '2026-08-08')).rejects.toThrow(
       'injected insert failure',
     );
 
