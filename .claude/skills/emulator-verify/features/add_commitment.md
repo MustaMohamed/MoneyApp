@@ -70,6 +70,7 @@ No route: one sheet host for add and edit, `src/modules/commitments/screens/comm
 ## Gotchas
 
 - The native date picker draws November 2026 at rows y 873, 978, 1083, 1188, 1293 and columns x 261, 353, 445, 537, 629, 721, 813 px, in a dialog from x 162 to 918 (MA-256). A tap on a blank cell or outside the grid leaves the pick unchanged, so a pick that does not land is a wrong tap until a shot of the dialog says otherwise.
+- The native date picker's month arrows are in agent-device's tree: `$MQA tap 'label="Previous month"'` and `'label="Next month"'` (MA-277). Under a `minimumDate` no previous arrow draws in the month of that day, and its earlier days read greyed.
 - A `fab-menu-item-2` tap while `Commitment added` shows does not open the sheet (MA-256): wait 4 s for the toast to go.
 - A commitments list row under the FAB (MA-256): `mqa tap` presses the row's centre, x 540, and `fab-button` takes it at px (540, 1585). `mqa bounds` the row 2 s after the scroll stops, since a tap right after a raw swipe read a stale y, then `adb -s <serial> shell input tap 300 <y>`.
 
