@@ -39,7 +39,7 @@ async function tapRow(result: Harness) {
 }
 
 async function closeWithoutDone(result: Harness) {
-  await act(async () => result.current.pickers.setChoiceSheet(undefined));
+  await act(async () => result.current.pickers.closeChoiceSheet());
 }
 
 async function stageThreeWeeks(result: Harness) {

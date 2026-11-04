@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react-native';
 
-import { RecurrencePeriod, RecurrencePreset } from '@/constants/enums';
+import { DurationType, RecurrencePeriod, RecurrencePreset } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import {
@@ -20,6 +20,14 @@ async function mountTwoCopies() {
   const upper = await renderHook(() => useCommitmentFormBodyPickers());
   return { lower, lowerOwner, upper };
 }
+
+// The four values the Ends row tap reads off the form.
+const NEVER_HELD = {
+  durationType: DurationType.Forever,
+  endAfterCount: undefined,
+  endDate: undefined,
+  startDate: '2026-10-20',
+};
 
 beforeEach(() => {
   useCommitmentFormBodyState.getState().reset();
@@ -41,13 +49,13 @@ describe('useCommitmentFormBodyPickers', () => {
   it('a choice sheet opened on one mounted copy stays closed on the other', async () => {
     const { lower, upper } = await mountTwoCopies();
 
-    await act(async () => lower.result.current.setChoiceSheet('ends'));
+    await act(async () => lower.result.current.openEndsSheet(NEVER_HELD));
 
     expect(lower.result.current.state.choiceSheet).toBe('ends');
     expect(upper.result.current.state.choiceSheet).toBeUndefined();
 
-    await act(async () => upper.result.current.setChoiceSheet('ends'));
-    await act(async () => lower.result.current.setChoiceSheet(undefined));
+    await act(async () => upper.result.current.openEndsSheet(NEVER_HELD));
+    await act(async () => lower.result.current.closeChoiceSheet());
 
     expect(lower.result.current.state.choiceSheet).toBeUndefined();
     expect(upper.result.current.state.choiceSheet).toBe('ends');
@@ -67,6 +75,27 @@ describe('useCommitmentFormBodyPickers', () => {
     });
     expect(upper.result.current.state.choiceSheet).toBeUndefined();
     expect(entries()[upper.result.current.owner].repeatsDraft).toBeUndefined();
+  });
+
+  it('openEndsSheet on one mounted copy seeds its draft and opens its sheet, the other copy reading neither (MA-277)', async () => {
+    const { lower, lowerOwner, upper } = await mountTwoCopies();
+
+    await act(async () =>
+      lower.result.current.openEndsSheet({
+        ...NEVER_HELD,
+        durationType: DurationType.AfterCount,
+        endAfterCount: 5,
+      }),
+    );
+
+    expect(lower.result.current.state.choiceSheet).toBe('ends');
+    expect(entries()[lowerOwner].endsDraft).toStrictEqual({
+      type: DurationType.AfterCount,
+      count: 5,
+      date: '2026-12-31',
+    });
+    expect(upper.result.current.state.choiceSheet).toBeUndefined();
+    expect(entries()[upper.result.current.owner].endsDraft).toBeUndefined();
   });
 
   it('unmounting one copy leaves the other copy open picker as it was', async () => {

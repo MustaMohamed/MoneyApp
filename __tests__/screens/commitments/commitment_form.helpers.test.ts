@@ -11,6 +11,7 @@ import { useCategoryStore } from '@/modules/categories/store/category.store';
 import {
   NO_ACCOUNT_CHIP_ID,
   applyCommitmentAmountText,
+  applyEndsDraft,
   countCommitmentFormFaults,
   parseCommitmentAmountText,
   pickRepeatsPreset,
@@ -19,16 +20,22 @@ import {
   resolveCommitmentFirstPaymentFootnote,
   resolveCommitmentFormStatus,
   resolveCommitmentStripChips,
+  resolveEndsOptions,
   resolveEndsRowValue,
   resolveRepeatsOptions,
   resolveRepeatsRowValue,
   parseWholeNumberInput,
+  seedEndsDraft,
   seedRepeatsDraft,
   setCommitmentDurationType,
   setCommitmentEndDate,
   setCommitmentStartDate,
 } from '@/modules/commitments/screens/commitments/commitment_form.helpers';
-import type { RepeatsDraft } from '@/modules/commitments/screens/commitments/commitment_form.shared';
+import type {
+  CommitmentFormValues,
+  EndsDraft,
+  RepeatsDraft,
+} from '@/modules/commitments/screens/commitments/commitment_form.shared';
 import { useAddCommitment } from '@/modules/commitments/screens/commitments/commitment_form/add_commitment.hook';
 import { useAddCommitmentState } from '@/modules/commitments/screens/commitments/commitment_form/add_commitment.state';
 import {
@@ -382,6 +389,104 @@ describe('resolveRepeatsOptions (MA-276)', () => {
   });
 });
 
+describe('resolveEndsOptions (MA-277)', () => {
+  it('lists Never, After a number of payments and On a date, in that order', () => {
+    expect(resolveEndsOptions()).toStrictEqual([
+      { value: DurationType.Forever, label: 'Never' },
+      { value: DurationType.AfterCount, label: 'After a number of payments' },
+      { value: DurationType.UntilDate, label: 'On a date' },
+    ]);
+  });
+});
+
+describe('seedEndsDraft (MA-277)', () => {
+  type SeedValues = Pick<
+    CommitmentFormValues,
+    'durationType' | 'endAfterCount' | 'endDate' | 'startDate'
+  >;
+  const STARTS = '2026-10-20';
+  const NOTHING_HELD: SeedValues = {
+    durationType: DurationType.Forever,
+    endAfterCount: undefined,
+    endDate: undefined,
+    startDate: STARTS,
+  };
+
+  it.each<[string, Partial<SeedValues>, EndsDraft]>([
+    ['Never with nothing held', {}, { type: DurationType.Forever, count: 12, date: '2026-12-31' }],
+    [
+      'After with a count of 5 held',
+      { durationType: DurationType.AfterCount, endAfterCount: 5 },
+      { type: DurationType.AfterCount, count: 5, date: '2026-12-31' },
+    ],
+    [
+      'After with an emptied count',
+      { durationType: DurationType.AfterCount, endAfterCount: null },
+      { type: DurationType.AfterCount, count: 12, date: '2026-12-31' },
+    ],
+    [
+      'After with no count',
+      { durationType: DurationType.AfterCount, endAfterCount: undefined },
+      { type: DurationType.AfterCount, count: 12, date: '2026-12-31' },
+    ],
+    [
+      'After with a count of 0',
+      { durationType: DurationType.AfterCount, endAfterCount: 0 },
+      { type: DurationType.AfterCount, count: 12, date: '2026-12-31' },
+    ],
+    [
+      'On a date with a day after Starts',
+      { durationType: DurationType.UntilDate, endDate: '2027-03-15' },
+      { type: DurationType.UntilDate, count: 12, date: '2027-03-15' },
+    ],
+    [
+      'On a date with the Starts day',
+      { durationType: DurationType.UntilDate, endDate: STARTS },
+      { type: DurationType.UntilDate, count: 12, date: STARTS },
+    ],
+    [
+      'On a date with a day earlier than Starts',
+      { durationType: DurationType.UntilDate, endDate: '2026-10-19' },
+      { type: DurationType.UntilDate, count: 12, date: STARTS },
+    ],
+    [
+      'On a date with an empty day',
+      { durationType: DurationType.UntilDate, endDate: '' },
+      { type: DurationType.UntilDate, count: 12, date: '2026-12-31' },
+    ],
+    [
+      'Never with a count and a day still held',
+      { endAfterCount: 5, endDate: '2027-03-15' },
+      { type: DurationType.Forever, count: 5, date: '2027-03-15' },
+    ],
+    [
+      'Never from a 29 February Starts',
+      { startDate: '2028-02-29' },
+      { type: DurationType.Forever, count: 12, date: '2028-12-31' },
+    ],
+    [
+      'Never from a 31 January Starts',
+      { startDate: '2026-01-31' },
+      { type: DurationType.Forever, count: 12, date: '2026-12-31' },
+    ],
+  ])('seeds %s', (_name, held, draft) => {
+    expect(seedEndsDraft({ ...NOTHING_HELD, ...held })).toStrictEqual(draft);
+  });
+
+  it('seeds the Starts day from a held day earlier than Starts, while the row reads the held day', () => {
+    const held: SeedValues = {
+      ...NOTHING_HELD,
+      durationType: DurationType.UntilDate,
+      endDate: '2026-10-19',
+    };
+
+    expect(seedEndsDraft(held).date).toBe(STARTS);
+    expect(resolveEndsRowValue(held.durationType, held.endAfterCount, held.endDate)).toBe(
+      'Until Mon 19 Oct 2026',
+    );
+  });
+});
+
 describe('parseWholeNumberInput (MA-255)', () => {
   it.each([
     ['', null],
@@ -696,6 +801,73 @@ describe('useCommitmentFormBodyFaults (MA-255)', () => {
       expect(result.current.body.faults.endDate).toBe(Strings.commitmentsErrEndsBeforeStarts);
       return result;
     }
+
+    // The Ends sheet's Done.
+    async function applyDraft(result: Mounted, draft: EndsDraft) {
+      await act(async () => {
+        applyEndsDraft(result.current.form, draft, result.current.body.isSubmitted);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+    }
+
+    const formEnds = (result: Mounted) => ({
+      durationType: result.current.form.getValues('durationType'),
+      endAfterCount: result.current.form.getValues('endAfterCount'),
+      endDate: result.current.form.getValues('endDate'),
+    });
+
+    it('clears the ring with Done on a date at the Starts day (MA-277)', async () => {
+      const result = await mountRefused();
+
+      await applyDraft(result, { type: DurationType.UntilDate, count: 12, date: LEAP_DAY });
+
+      expect(formEnds(result)).toStrictEqual({
+        durationType: DurationType.UntilDate,
+        endAfterCount: undefined,
+        endDate: LEAP_DAY,
+      });
+      expect(result.current.body.faults).toStrictEqual(NO_FAULTS);
+    });
+
+    it.each([DurationType.Forever, DurationType.AfterCount])(
+      'clears the ring with Done on %s, the held day left as it was (MA-277)',
+      async (type) => {
+        const result = await mountRefused();
+
+        await applyDraft(result, { type, count: 12, date: LEAP_DAY });
+
+        expect(formEnds(result)).toMatchObject({ durationType: type, endDate: DAY_BEFORE });
+        expect(result.current.body.faults).toStrictEqual(NO_FAULTS);
+      },
+    );
+
+    it('writes 12 with Done on After and leaves the held day (MA-277)', async () => {
+      const result = await mountRefused();
+
+      await applyDraft(result, { type: DurationType.AfterCount, count: 12, date: LEAP_DAY });
+
+      expect(formEnds(result)).toStrictEqual({
+        durationType: DurationType.AfterCount,
+        endAfterCount: 12,
+        endDate: DAY_BEFORE,
+      });
+    });
+
+    it.each<[string, EndsDraft]>([
+      ['Never', { type: DurationType.Forever, count: 12, date: LEAP_DAY }],
+      ['After 12', { type: DurationType.AfterCount, count: 12, date: LEAP_DAY }],
+      [
+        'On a date earlier than Starts',
+        { type: DurationType.UntilDate, count: 12, date: DAY_BEFORE },
+      ],
+    ])('rings nothing with Done on %s before any Save (MA-277)', async (_name, draft) => {
+      const result = await mountUntil(LEAP_DAY, DAY_BEFORE);
+
+      await applyDraft(result, draft);
+
+      expect(formEnds(result).durationType).toBe(draft.type);
+      expect(result.current.body.faults).toStrictEqual(NO_FAULTS);
+    });
 
     it('leaves Ends unringed at an earlier date before a Save', async () => {
       const result = await mountUntil(LEAP_DAY, DAY_BEFORE);

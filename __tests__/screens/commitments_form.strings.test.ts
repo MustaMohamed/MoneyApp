@@ -121,3 +121,29 @@ describe('Repeats sheet copy (MA-276)', () => {
     });
   });
 });
+
+describe('Ends sheet copy (MA-277)', () => {
+  it('ships the sheet title, the three options, the After and On a date blocks and the stepper unit byte-exact', () => {
+    expect({
+      title: Strings.commitmentsFieldDuration,
+      never: Strings.commitmentsEndsOptionNever,
+      afterCount: Strings.commitmentsEndsOptionAfterCount,
+      untilDate: Strings.commitmentsEndsOptionUntilDate,
+      stopAfter: Strings.commitmentsDurationStopAfter,
+      untilLabel: Strings.commitmentsEndsUntilLabel,
+      dateRow: Strings.commitmentsEndsDateRow,
+      unitOne: Strings.commitmentsEndsStepperUnit(1),
+      unitMany: Strings.commitmentsEndsStepperUnit(12),
+    }).toEqual({
+      title: 'Ends',
+      never: 'Never',
+      afterCount: 'After a number of payments',
+      untilDate: 'On a date',
+      stopAfter: 'Stop after',
+      untilLabel: 'Last payment on or before',
+      dateRow: 'Date',
+      unitOne: 'payment',
+      unitMany: 'payments',
+    });
+  });
+});
