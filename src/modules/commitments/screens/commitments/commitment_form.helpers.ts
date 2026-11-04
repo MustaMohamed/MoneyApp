@@ -107,13 +107,6 @@ export function applyCommitmentAmountText(
   }
 }
 
-/** A whole-number input's typed text as its field value: `null` once emptied, since `Controller` reads an `undefined` field back as its default; `undefined` for text that is not a number. */
-export function parseWholeNumberInput(text: string): number | null | undefined {
-  if (text === '') return null;
-  const n = parseInt(text, 10);
-  return isNaN(n) ? undefined : n;
-}
-
 export function resolveRepeatsRowValue(every: number, period: RecurrencePeriod): string {
   return buildRecurrenceLabel({ recurrence_every: every, recurrence_period: period });
 }
@@ -228,23 +221,6 @@ export function setCommitmentEndDate(
   isSubmitted: boolean,
 ): void {
   form.setValue('endDate', next, { shouldDirty: true, shouldValidate: isSubmitted });
-}
-
-/** `endDate` has no `Controller`, so `resetField` keeps its value and its error: once a Save ran, an Ends choice re-reads it, unless Until holds no day yet. */
-export function setCommitmentDurationType(
-  form: Pick<
-    UseFormReturn<CommitmentFormValues>,
-    'setValue' | 'resetField' | 'trigger' | 'getValues'
-  >,
-  type: DurationType,
-  isSubmitted: boolean,
-): void {
-  form.setValue('durationType', type, SET_OPTS);
-  if (type !== DurationType.UntilDate) form.resetField('endDate', { defaultValue: undefined });
-  if (type !== DurationType.AfterCount)
-    form.resetField('endAfterCount', { defaultValue: undefined });
-  if (isSubmitted && (type !== DurationType.UntilDate || form.getValues('endDate')))
-    void form.trigger('endDate');
 }
 
 export function resolveCommitmentFirstPaymentFootnote(

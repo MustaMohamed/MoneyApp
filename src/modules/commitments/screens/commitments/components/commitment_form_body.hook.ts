@@ -35,13 +35,12 @@ export type BodyFaultField = (typeof BODY_FAULT_FIELDS)[number];
 
 export function useCommitmentFormBodyPickers() {
   const owner = useId();
-  // Picks the three flags alone, so a Repeats draft step does not re-render the body.
-  const { categoryPickerVisible, showEndDatePicker, choiceSheet } = useCommitmentFormBodyState(
+  // Picks the two flags alone, so a draft step does not re-render the body.
+  const { categoryPickerVisible, choiceSheet } = useCommitmentFormBodyState(
     useShallow((s) => {
       const entry = s.entries[owner] ?? INITIAL_PICKER_ENTRY;
       return {
         categoryPickerVisible: entry.categoryPickerVisible,
-        showEndDatePicker: entry.showEndDatePicker,
         choiceSheet: entry.choiceSheet,
       };
     }),
@@ -58,7 +57,6 @@ export function useCommitmentFormBodyPickers() {
     const state = useCommitmentFormBodyState.getState();
     return {
       setCategoryPickerVisible: (v: boolean) => state.setCategoryPickerVisible(owner, v),
-      setShowEndDatePicker: (v: boolean) => state.setShowEndDatePicker(owner, v),
       closeChoiceSheet: () => state.closeChoiceSheet(owner),
       // A row tap re-seeds its draft from the form, since a close without Done keeps the last one.
       openRepeatsSheet: (every: number, period: RecurrencePeriod) =>
@@ -74,7 +72,7 @@ export function useCommitmentFormBodyPickers() {
 
   return {
     owner,
-    state: { categoryPickerVisible, showEndDatePicker, choiceSheet },
+    state: { categoryPickerVisible, choiceSheet },
     ...setters,
   };
 }

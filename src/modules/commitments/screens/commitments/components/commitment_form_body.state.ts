@@ -9,7 +9,6 @@ export type CommitmentChoiceSheetKind = 'repeats' | 'ends';
 
 interface CommitmentFormBodyPickerEntry {
   categoryPickerVisible: boolean;
-  showEndDatePicker: boolean;
   choiceSheet: CommitmentChoiceSheetKind | undefined;
   repeatsDraft: RepeatsDraft | undefined;
   endsDraft: EndsDraft | undefined;
@@ -20,7 +19,6 @@ type CommitmentFormBodyStateShape = KeyedEntries<CommitmentFormBodyPickerEntry>;
 type CommitmentFormBodyState = CommitmentFormBodyStateShape & {
   claim: (owner: string) => void;
   setCategoryPickerVisible: (owner: string, v: boolean) => void;
-  setShowEndDatePicker: (owner: string, v: boolean) => void;
   closeChoiceSheet: (owner: string) => void;
   openEndsSheet: (owner: string, draft: EndsDraft) => void;
   setEndsDraft: (owner: string, draft: EndsDraft) => void;
@@ -32,7 +30,6 @@ type CommitmentFormBodyState = CommitmentFormBodyStateShape & {
 
 export const INITIAL_PICKER_ENTRY: CommitmentFormBodyPickerEntry = Object.freeze({
   categoryPickerVisible: false,
-  showEndDatePicker: false,
   choiceSheet: undefined,
   repeatsDraft: undefined,
   endsDraft: undefined,
@@ -57,7 +54,6 @@ export const useCommitmentFormBodyState = createMoneyAppSelectors(
           owner in state.entries ? state : withEntry(state, owner, INITIAL_PICKER_ENTRY),
         ),
       setCategoryPickerVisible: (owner, v) => updateEntry(owner, { categoryPickerVisible: v }),
-      setShowEndDatePicker: (owner, v) => updateEntry(owner, { showEndDatePicker: v }),
       // A close keeps both drafts, so the sheet's body holds through the close animation.
       closeChoiceSheet: (owner) => updateEntry(owner, { choiceSheet: undefined }),
       openEndsSheet: (owner, draft) =>

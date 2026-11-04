@@ -1,11 +1,4 @@
-import { SELECTABLE_PILL_BARE_HEIGHT } from '@/components/ui/chip.geometry';
 import type { SheetSize } from '@/components/ui/sheet.helpers';
-import { type TouchFloorHitSlop, touchFloorHitSlop } from '@/constants/theme';
-
-/** Sized from the bare pill's height at scale 1, its shortest, so the touch area reaches the floor at every scale. */
-export const COMMITMENT_FORM_PILL_SLOP: TouchFloorHitSlop = touchFloorHitSlop(
-  SELECTABLE_PILL_BARE_HEIGHT,
-);
 
 // The choice sheets' top padding, above their option rows, unscaled CSS px.
 export const COMMITMENT_FORM_PICKER_GAP = 8;

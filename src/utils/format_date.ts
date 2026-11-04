@@ -20,11 +20,6 @@ export function formatShortDate(dateStr: string): string {
   return `${MONTHS_SHORT[month - 1]} ${day}`;
 }
 
-export function formatLongDate(dateStr: string): string {
-  const [y, month, day] = dateStr.split('-').map(Number);
-  return `${MONTHS_LONG[month - 1]} ${day}, ${y}`;
-}
-
 /** `Tue 22 Sep 2026`: the weekday of the local calendar date, the day unpadded. */
 export function formatWeekdayDate(dateStr: string): string {
   const [y, month, day] = dateStr.split('-').map(Number);
