@@ -48,6 +48,13 @@ import { BudgetPickerSheet } from '@/modules/transactions/screens/transactions/t
 
 const NOW = '2026-07-20T00:00:00.000Z';
 
+type HeroUIDouble = React.ComponentType<Record<string, unknown>>;
+
+const heroUIDouble = jest.requireMock<{
+  Radio: HeroUIDouble;
+  RadioGroup: { Item: HeroUIDouble };
+}>('heroui-native');
+
 function budget(index: number): Budget {
   return {
     id: `budget-${index}`,
@@ -107,5 +114,45 @@ describe('BudgetPickerSheet', () => {
     expect(screen.getByText(Strings.addTxBudgetEmptyTitle)).toBeTruthy();
     expect(screen.getByText(Strings.addTxBudgetEmptyBody)).toBeTruthy();
     expect(screen.queryByTestId('budget-picker-list')).toBeNull();
+  });
+
+  describe('in the accessibility tree', () => {
+    const baseRadio = heroUIDouble.Radio;
+    const baseItem = heroUIDouble.RadioGroup.Item;
+
+    // HeroUI's Item and Radio are each a Pressable with role="radio" (primitives/radio-group/radio-group.tsx:81-86, primitives/radio/radio.tsx:88-101).
+    beforeAll(() => {
+      heroUIDouble.Radio = (props) =>
+        React.createElement(baseRadio, { role: 'radio', accessible: true, ...props });
+      heroUIDouble.RadioGroup.Item = (props) =>
+        React.createElement(baseItem, { accessible: true, ...props });
+    });
+
+    afterAll(() => {
+      heroUIDouble.Radio = baseRadio;
+      heroUIDouble.RadioGroup.Item = baseItem;
+    });
+
+    it('reads each row as one radio, its trailing radio no node of its own', async () => {
+      const screen = await render(
+        <BudgetPickerSheet
+          isOpen
+          budgets={[1, 2, 3].map(budget)}
+          selectedId="budget-1"
+          onSelect={jest.fn()}
+          onOpenChange={jest.fn()}
+        />,
+      );
+
+      expect(screen.getAllByRole('radio').map((node) => node.props.testID)).toEqual([
+        'budget-picker-row-budget-1',
+        'budget-picker-row-budget-2',
+        'budget-picker-row-budget-3',
+      ]);
+      expect(screen.queryByTestId('budget-picker-row-budget-1-selected')).toBeNull();
+      expect(
+        screen.getByTestId('budget-picker-row-budget-1-selected', { includeHiddenElements: true }),
+      ).toBeTruthy();
+    });
   });
 });
