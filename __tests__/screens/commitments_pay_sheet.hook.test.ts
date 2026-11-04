@@ -1,4 +1,5 @@
 import { act, renderHook } from '@testing-library/react-native';
+import { AppState } from 'react-native';
 
 import { AmountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -203,6 +204,33 @@ describe('usePaySheet', () => {
     mockLoadAccounts.mockResolvedValue(undefined);
     // Re-setup store mocks after `clearAllMocks`.
     setupStoreMocks();
+  });
+
+  // Pins `new Date()` alone at TODAY, so a visible sheet's day check reads the today passed in; the timers stay real.
+  beforeEach(() => {
+    jest.useFakeTimers({
+      now: new Date(2026, 9, 20, 12),
+      doNotFake: [
+        'hrtime',
+        'nextTick',
+        'performance',
+        'queueMicrotask',
+        'requestAnimationFrame',
+        'cancelAnimationFrame',
+        'requestIdleCallback',
+        'cancelIdleCallback',
+        'setImmediate',
+        'clearImmediate',
+        'setInterval',
+        'clearInterval',
+        'setTimeout',
+        'clearTimeout',
+      ],
+    });
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
   it('prefills the fixed amount from amount_due when the sheet is visible on mount', async () => {
@@ -2006,6 +2034,114 @@ describe('usePaySheet', () => {
       await act(() => rerender({ today: '2026-10-21' }));
 
       expect(result.current.state.cycleLine?.distance).toBe('173 days late');
+    });
+
+    describe('across local midnight (MA-250)', () => {
+      async function openAt(
+        minuteBefore: Date,
+        today: string,
+        payment = duePayment,
+        visible = true,
+      ) {
+        jest.useFakeTimers({ now: minuteBefore });
+        (AppState as { currentState: string }).currentState = 'active';
+        paySheetStateInner = { ...paySheetStateInner, visible };
+        const hook = await renderHook(() => usePaySheet(OWNER, egpCommitment, payment, today));
+        await act(async () => {});
+        return hook;
+      }
+
+      async function passMidnight() {
+        await act(async () => {
+          jest.advanceTimersByTime(2 * 60_000);
+        });
+      }
+
+      it('moves the distance by a day after the midnight with no input, and keeps the Overdue tag', async () => {
+        const { result } = await openAt(new Date(2026, 9, 31, 23, 59), '2026-10-31');
+        expect(result.current.state.cycleLine).toMatchObject({
+          statusLabel: 'Overdue',
+          distance: '183 days late',
+        });
+
+        await passMidnight();
+
+        expect(result.current.state.cycleLine).toMatchObject({
+          statusLabel: 'Overdue',
+          distance: '184 days late',
+        });
+      });
+
+      it('moves a payment due on the open day from Due to Overdue, one day late', async () => {
+        const { result } = await openAt(new Date(2026, 9, 31, 23, 59), '2026-10-31', {
+          ...duePayment,
+          due_date: '2026-10-31',
+        });
+        expect(result.current.state.cycleLine).toMatchObject({
+          statusLabel: 'Due',
+          distance: 'Due today',
+        });
+
+        await passMidnight();
+
+        expect(result.current.state.cycleLine).toMatchObject({
+          statusLabel: 'Overdue',
+          distance: '1 day late',
+        });
+      });
+
+      it('moves to the leap-day distance across the midnight that ends 28 February 2028', async () => {
+        const { result } = await openAt(new Date(2028, 1, 28, 23, 59), '2028-02-28', {
+          ...duePayment,
+          due_date: '2028-02-01',
+        });
+        expect(result.current.state.cycleLine?.distance).toBe('27 days late');
+
+        await passMidnight();
+
+        expect(result.current.state.cycleLine?.distance).toBe('28 days late');
+      });
+
+      it('keeps the paid date and the typed amount, and dates the footnote on the open day', async () => {
+        mockAccounts = [egpAccount];
+        const { result, rerender } = await openAt(new Date(2026, 9, 31, 23, 59), '2026-10-31');
+        await act(() => {
+          result.current.form.setValue('account_id', egpAccount.id);
+          result.current.form.setValue('amountText', '8000');
+        });
+        await act(() => rerender(undefined));
+        expect(result.current.state.trackFootnote).toBe(
+          'Writes an expense of 8,000 EGP on Cash, dated today.',
+        );
+
+        await passMidnight();
+
+        expect(result.current.state.trackFootnote).toBe(
+          'Writes an expense of 8,000 EGP on Cash, dated Sat 31 Oct.',
+        );
+        expect(result.current.state.paidDate).toBe('2026-10-31');
+        expect(result.current.form.getValues('paid_date')).toBe('2026-10-31');
+        expect(result.current.state.amountText).toBe('8000');
+        expect(result.current.form.getValues('account_id')).toBe(egpAccount.id);
+      });
+
+      it('holds the line on a hidden sheet across the midnight, and reads the new today at the open', async () => {
+        const { result, rerender } = await openAt(
+          new Date(2026, 9, 31, 23, 59),
+          '2026-10-31',
+          duePayment,
+          false,
+        );
+
+        await passMidnight();
+        await act(() => rerender(undefined));
+        expect(result.current.state.cycleLine?.distance).toBe('183 days late');
+
+        paySheetStateInner = { ...paySheetStateInner, visible: true };
+        await act(() => rerender(undefined));
+
+        expect(result.current.state.cycleLine?.distance).toBe('184 days late');
+      });
     });
   });
 

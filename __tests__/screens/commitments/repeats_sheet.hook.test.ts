@@ -1,8 +1,9 @@
 import { act, renderHook } from '@testing-library/react-native';
 import { useMemo } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
+import { AppState, type AppStateStatus } from 'react-native';
 
-import { RecurrencePeriod, RecurrencePreset } from '@/constants/enums';
+import { DurationType, RecurrencePeriod, RecurrencePreset } from '@/constants/enums';
 import {
   type CommitmentFormSchedule,
   NO_SETTLED_DUE_DATES,
@@ -21,9 +22,9 @@ const STARTS = '2026-10-20';
 const NOW = new Date(2026, 9, 20, 12);
 
 // The body as it composes the Repeats row and sheet: one form, one owner, one schedule from the watched fields.
-function useRepeatsHarness(settledDueDates: readonly string[]) {
+function useRepeatsHarness(settledDueDates: readonly string[], now: Date, starts: string) {
   const form = useForm<CommitmentFormValues>({
-    defaultValues: { ...buildAddDefaults(), startDate: STARTS },
+    defaultValues: { ...buildAddDefaults(), startDate: starts },
   });
   const pickers = useCommitmentFormBodyPickers();
   const [startDate, recurrenceEvery, recurrencePeriod, durationType, endAfterCount, endDate] =
@@ -49,7 +50,7 @@ function useRepeatsHarness(settledDueDates: readonly string[]) {
     }),
     [startDate, recurrenceEvery, recurrencePeriod, durationType, endAfterCount, endDate],
   );
-  const sheet = useRepeatsSheet(pickers.owner, form, schedule, settledDueDates, NOW);
+  const sheet = useRepeatsSheet(pickers.owner, form, schedule, settledDueDates, now);
   return {
     form,
     pickers,
@@ -60,8 +61,12 @@ function useRepeatsHarness(settledDueDates: readonly string[]) {
 
 type Harness = { current: ReturnType<typeof useRepeatsHarness> };
 
-async function mount(settledDueDates: readonly string[] = NO_SETTLED_DUE_DATES): Promise<Harness> {
-  const { result } = await renderHook(() => useRepeatsHarness(settledDueDates));
+async function mount(
+  settledDueDates: readonly string[] = NO_SETTLED_DUE_DATES,
+  now: Date = NOW,
+  starts: string = STARTS,
+): Promise<Harness> {
+  const { result } = await renderHook(() => useRepeatsHarness(settledDueDates, now, starts));
   return result;
 }
 
@@ -88,8 +93,36 @@ const formCadence = (result: Harness) => ({
   period: result.current.form.getValues('recurrencePeriod'),
 });
 
+// Pins `new Date()` alone, so a day read at mount sees the harness's day and the timers stay real.
+function pinDate(now: Date) {
+  jest.useFakeTimers({
+    now,
+    doNotFake: [
+      'hrtime',
+      'nextTick',
+      'performance',
+      'queueMicrotask',
+      'requestAnimationFrame',
+      'cancelAnimationFrame',
+      'requestIdleCallback',
+      'cancelIdleCallback',
+      'setImmediate',
+      'clearImmediate',
+      'setInterval',
+      'clearInterval',
+      'setTimeout',
+      'clearTimeout',
+    ],
+  });
+}
+
 beforeEach(() => {
+  pinDate(NOW);
   useCommitmentFormBodyState.getState().reset();
+});
+
+afterEach(() => {
+  jest.useRealTimers();
 });
 
 describe('useRepeatsSheet (MA-276)', () => {
@@ -194,5 +227,112 @@ describe('useRepeatsSheet (MA-276)', () => {
     expect(formCadence(result)).toEqual({ every: 1, period: RecurrencePeriod.Months });
     expect(result.current.row).toBe('Every month');
     expect(result.current.pickers.state.choiceSheet).toBeUndefined();
+  });
+});
+
+describe('across local midnight (MA-250)', () => {
+  type ChangeListener = (status: AppStateStatus) => void;
+  const changeListeners = new Set<ChangeListener>();
+
+  function setAppState(status: AppStateStatus) {
+    (AppState as { currentState: AppStateStatus }).currentState = status;
+  }
+
+  async function advanceTo(moment: Date) {
+    await act(async () => {
+      jest.advanceTimersByTime(moment.getTime() - Date.now());
+    });
+  }
+
+  // Custom at every 1 in days, staged with no Done, so each day is a due day.
+  async function stageEveryDay(result: Harness) {
+    await tapRow(result);
+    await act(async () => result.current.sheet.pickPreset(RecurrencePreset.Custom));
+    await act(async () => result.current.sheet.setEvery(1));
+    await act(async () => result.current.sheet.setPeriod(RecurrencePeriod.Days));
+  }
+
+  async function mountAt(minuteBefore: Date, starts: string, settled = NO_SETTLED_DUE_DATES) {
+    jest.useFakeTimers({ now: minuteBefore });
+    return mount(settled, minuteBefore, starts);
+  }
+
+  beforeEach(() => {
+    changeListeners.clear();
+    setAppState('active');
+    jest.spyOn(AppState, 'addEventListener').mockImplementation((_type, listener) => {
+      const changeListener = listener as ChangeListener;
+      changeListeners.add(changeListener);
+      return { remove: () => changeListeners.delete(changeListener) };
+    });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it.each([
+    ['2026-10-31', new Date(2026, 9, 31, 23, 59), 'Sun 1 Nov', 'Mon 2 Nov'],
+    ['2028-02-28', new Date(2028, 1, 28, 23, 59), 'Tue 29 Feb', 'Wed 1 Mar'],
+    ['2026-12-30', new Date(2026, 11, 31, 23, 59), 'Fri 1 Jan 2027', 'Sat 2 Jan'],
+  ])(
+    'Starts %s moves the next day past the new today with no input',
+    async (starts, minuteBefore, before, after) => {
+      const result = await mountAt(minuteBefore, starts);
+      await stageEveryDay(result);
+      expect(result.current.sheet.state.track).toBe(`Every day · next ${before}`);
+
+      await advanceTo(new Date(minuteBefore.getTime() + 2 * 60_000));
+
+      expect(result.current.sheet.state.track).toBe(`Every day · next ${after}`);
+      expect(result.current.sheet.state.isCustom).toBe(true);
+      expect(formCadence(result)).toEqual({ every: 1, period: RecurrencePeriod.Months });
+    },
+  );
+
+  it('After 2 from Starts 2026-10-31 reads the label alone once its last day is today', async () => {
+    const minuteBefore = new Date(2026, 9, 31, 23, 59);
+    const result = await mountAt(minuteBefore, '2026-10-31');
+    await act(async () => {
+      result.current.form.setValue('durationType', DurationType.AfterCount);
+      result.current.form.setValue('endAfterCount', 2);
+    });
+    await stageEveryDay(result);
+    expect(result.current.sheet.state.track).toBe('Every day · next Sun 1 Nov');
+
+    await advanceTo(new Date(2026, 10, 1, 0, 1));
+
+    expect(result.current.sheet.state.track).toBe('Every day');
+    expect(formCadence(result)).toEqual({ every: 1, period: RecurrencePeriod.Months });
+  });
+
+  it('on edit, a settled day after the new today is skipped', async () => {
+    const minuteBefore = new Date(2026, 9, 31, 23, 59);
+    const result = await mountAt(minuteBefore, '2026-10-30', ['2026-11-02']);
+    await stageEveryDay(result);
+    expect(result.current.sheet.state.track).toBe('Every day · next Sun 1 Nov');
+
+    await advanceTo(new Date(2026, 10, 1, 0, 1));
+
+    expect(result.current.sheet.state.track).toBe('Every day · next Tue 3 Nov');
+    expect(formCadence(result)).toEqual({ every: 1, period: RecurrencePeriod.Months });
+  });
+
+  it('holds the day across a midnight passed in the background, and moves on the return to active', async () => {
+    const minuteBefore = new Date(2026, 9, 31, 23, 59);
+    const result = await mountAt(minuteBefore, '2026-10-31');
+    await stageEveryDay(result);
+
+    setAppState('background');
+    await advanceTo(new Date(2026, 10, 1, 0, 1));
+    expect(result.current.sheet.state.track).toBe('Every day · next Sun 1 Nov');
+
+    await act(async () => {
+      setAppState('active');
+      for (const listener of [...changeListeners]) listener('active');
+    });
+
+    expect(result.current.sheet.state.track).toBe('Every day · next Mon 2 Nov');
+    expect(formCadence(result)).toEqual({ every: 1, period: RecurrencePeriod.Months });
   });
 });
