@@ -47,7 +47,7 @@ interface RadioOptionRowProps {
   children: ReactNode;
 }
 
-/** One picker row: the leading content, then the trailing radio; it adds no margin, so the group keeps its gap. */
+/** Adds no margin, so the parent `RadioGroup` keeps its own gap. */
 export function RadioOptionRow({
   value,
   testID,
