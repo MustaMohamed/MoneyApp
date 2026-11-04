@@ -158,6 +158,33 @@ const PAID_AMOUNTS = makeTestPaymentAmounts({
 const mockMarkAsPaid = jest.fn().mockResolvedValue(PAID_AMOUNTS);
 let suiteAccounts: Account[] = [payAccount];
 
+// Pins `new Date()` alone at TODAY, so a visible sheet's day check reads the today passed in; the timers stay real.
+beforeEach(() => {
+  jest.useFakeTimers({
+    now: new Date(2026, 9, 20, 12),
+    doNotFake: [
+      'hrtime',
+      'nextTick',
+      'performance',
+      'queueMicrotask',
+      'requestAnimationFrame',
+      'cancelAnimationFrame',
+      'requestIdleCallback',
+      'cancelIdleCallback',
+      'setImmediate',
+      'clearImmediate',
+      'setInterval',
+      'clearInterval',
+      'setTimeout',
+      'clearTimeout',
+    ],
+  });
+});
+
+afterEach(() => {
+  jest.useRealTimers();
+});
+
 beforeEach(() => {
   jest.clearAllMocks();
   mockMarkAsPaid.mockResolvedValue(PAID_AMOUNTS);
