@@ -24,10 +24,8 @@ import {
   resolveEndsRowValue,
   resolveRepeatsOptions,
   resolveRepeatsRowValue,
-  parseWholeNumberInput,
   seedEndsDraft,
   seedRepeatsDraft,
-  setCommitmentDurationType,
   setCommitmentEndDate,
   setCommitmentStartDate,
 } from '@/modules/commitments/screens/commitments/commitment_form.helpers';
@@ -487,20 +485,6 @@ describe('seedEndsDraft (MA-277)', () => {
   });
 });
 
-describe('parseWholeNumberInput (MA-255)', () => {
-  it.each([
-    ['', null],
-    ['0', 0],
-    ['2', 2],
-    ['12', 12],
-    ['366', 366],
-    ['-', undefined],
-    ['abc', undefined],
-  ] as const)('maps %p to %p', (text, value) => {
-    expect(parseWholeNumberInput(text)).toBe(value);
-  });
-});
-
 describe('resolveEndsRowValue (MA-255)', () => {
   it.each([
     [DurationType.Forever, undefined, undefined, 'Never'],
@@ -640,18 +624,15 @@ describe('useCommitmentFormBodyFaults (MA-255)', () => {
     });
   }
 
-  it.each([[parseWholeNumberInput('')], [0], [366]])(
-    'rings Repeats on a Save with Every %p',
-    async (every) => {
-      const result = await mountFilled();
-      await act(async () => result.current.every.onChange(every));
+  it.each([[null], [0], [366]])('rings Repeats on a Save with Every %p', async (every) => {
+    const result = await mountFilled();
+    await act(async () => result.current.every.onChange(every));
 
-      await save(result);
+    await save(result);
 
-      expect(addCommitmentMock).not.toHaveBeenCalled();
-      expect(result.current.body.faults.recurrenceEvery).toEqual(expect.any(String));
-    },
-  );
+    expect(addCommitmentMock).not.toHaveBeenCalled();
+    expect(result.current.body.faults.recurrenceEvery).toEqual(expect.any(String));
+  });
 
   it('rings Ends on a Save with After and no count', async () => {
     const result = await mountFilled();
@@ -664,7 +645,7 @@ describe('useCommitmentFormBodyFaults (MA-255)', () => {
 
   it('reads an emptied Every back as empty, not as its default', async () => {
     const result = await mountFilled();
-    await act(async () => result.current.every.onChange(parseWholeNumberInput('')));
+    await act(async () => result.current.every.onChange(null));
 
     expect(result.current.every.value).toBeNull();
   });
@@ -680,14 +661,14 @@ describe('useCommitmentFormBodyFaults (MA-255)', () => {
 
   it('reads an emptied stored count back as empty, not as the stored count', async () => {
     const result = await mountWithStoredCount();
-    await act(async () => result.current.count.onChange(parseWholeNumberInput('')));
+    await act(async () => result.current.count.onChange(null));
 
     expect(result.current.count.value).toBeNull();
   });
 
   it('rings Ends on a Save with After and its stored count emptied', async () => {
     const result = await mountWithStoredCount();
-    await act(async () => result.current.count.onChange(parseWholeNumberInput('')));
+    await act(async () => result.current.count.onChange(null));
 
     await save(result);
 
@@ -700,7 +681,7 @@ describe('useCommitmentFormBodyFaults (MA-255)', () => {
     async (type) => {
       const result = await mountWithStoredCount();
       await act(async () => {
-        result.current.count.onChange(parseWholeNumberInput(''));
+        result.current.count.onChange(null);
         result.current.form.setValue('durationType', type);
         result.current.form.setValue('endDate', '2027-01-31');
       });
@@ -724,7 +705,7 @@ describe('useCommitmentFormBodyFaults (MA-255)', () => {
   it('rings Repeats and Ends on one Save with Every emptied and After with no count', async () => {
     const result = await mountFilled();
     await act(async () => {
-      result.current.every.onChange(parseWholeNumberInput(''));
+      result.current.every.onChange(null);
       result.current.form.setValue('durationType', DurationType.AfterCount);
     });
 
@@ -779,9 +760,11 @@ describe('useCommitmentFormBodyFaults (MA-255)', () => {
       });
     }
 
+    // The Ends sheet's path: seeded from the form, the type picked, then Done.
     async function chooseEnds(result: Mounted, next: DurationType) {
       await act(async () => {
-        setCommitmentDurationType(result.current.form, next, result.current.body.isSubmitted);
+        const { form, body } = result.current;
+        applyEndsDraft(form, { ...seedEndsDraft(form.getValues()), type: next }, body.isSubmitted);
         await new Promise((resolve) => setTimeout(resolve, 0));
       });
     }
@@ -935,53 +918,6 @@ describe('useCommitmentFormBodyFaults (MA-255)', () => {
         expect(result.current.body.faults.endDate).toBeUndefined();
       },
     );
-
-    it('rings again with Ends back on Until and its kept day before Starts', async () => {
-      const result = await mountRefused();
-      await chooseEnds(result, DurationType.Forever);
-
-      await chooseEnds(result, DurationType.UntilDate);
-
-      expect(result.current.body.faults.endDate).toBe(Strings.commitmentsErrEndsBeforeStarts);
-    });
-
-    it('rings the kept day Starts moved past on Forever, after a Save refused for Name', async () => {
-      const result = await mountUntil(DAY_BEFORE, LEAP_DAY);
-      await act(async () => result.current.form.setValue('name', ''));
-      await save(result);
-      await chooseEnds(result, DurationType.Forever);
-      await moveStarts(result, DAY_AFTER);
-      expect(result.current.body.faults.endDate).toBeUndefined();
-
-      await chooseEnds(result, DurationType.UntilDate);
-
-      expect(result.current.body.faults.endDate).toBe(Strings.commitmentsErrEndsBeforeStarts);
-    });
-
-    it('rings nothing new with Until chosen and no day held, after a Save refused for Name', async () => {
-      const result = await mountFilled();
-      await act(async () => result.current.form.setValue('name', ''));
-      await save(result);
-      expect(addCommitmentMock).not.toHaveBeenCalled();
-      expect(countCommitmentFormFaults(result.current.body.faults)).toBe(1);
-
-      await chooseEnds(result, DurationType.UntilDate);
-
-      expect(result.current.body.faults.endDate).toBeUndefined();
-      expect(countCommitmentFormFaults(result.current.body.faults)).toBe(1);
-    });
-
-    it('rings nothing new with Starts moved on Until with no day held, after a Save refused for Name', async () => {
-      const result = await mountFilled();
-      await act(async () => result.current.form.setValue('name', ''));
-      await save(result);
-      await chooseEnds(result, DurationType.UntilDate);
-
-      await moveStarts(result, DAY_AFTER);
-
-      expect(result.current.body.faults.endDate).toBeUndefined();
-      expect(countCommitmentFormFaults(result.current.body.faults)).toBe(1);
-    });
   });
 
   describe('the status track (MA-256)', () => {

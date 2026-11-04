@@ -34,16 +34,16 @@ beforeEach(() => {
 });
 
 describe('useCommitmentFormBodyPickers', () => {
-  it('a picker or date picker opened on one mounted copy stays closed on the other', async () => {
+  it('a picker or the Ends sheet opened on one mounted copy stays closed on the other', async () => {
     const { lower, upper } = await mountTwoCopies();
 
     await act(async () => lower.result.current.setCategoryPickerVisible(true));
-    await act(async () => upper.result.current.setShowEndDatePicker(true));
+    await act(async () => upper.result.current.openEndsSheet(NEVER_HELD));
 
     expect(lower.result.current.state.categoryPickerVisible).toBe(true);
     expect(upper.result.current.state.categoryPickerVisible).toBe(false);
-    expect(upper.result.current.state.showEndDatePicker).toBe(true);
-    expect(lower.result.current.state.showEndDatePicker).toBe(false);
+    expect(upper.result.current.state.choiceSheet).toBe('ends');
+    expect(lower.result.current.state.choiceSheet).toBeUndefined();
   });
 
   it('a choice sheet opened on one mounted copy stays closed on the other', async () => {
@@ -114,7 +114,7 @@ describe('useCommitmentFormBodyPickers', () => {
 
   it('unmounting both copies leaves no entry behind', async () => {
     const { lower, upper } = await mountTwoCopies();
-    await act(async () => upper.result.current.setShowEndDatePicker(true));
+    await act(async () => upper.result.current.openEndsSheet(NEVER_HELD));
 
     await upper.unmount();
     await lower.unmount();

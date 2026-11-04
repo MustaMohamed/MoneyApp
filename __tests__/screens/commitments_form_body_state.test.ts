@@ -30,7 +30,6 @@ const untilDraft: EndsDraft = { type: DurationType.UntilDate, count: 12, date: '
 // Every write except `claim`, the begin action; each must refuse an owner with no entry.
 const guardedWrites: ((owner: string) => void)[] = [
   (owner) => useCommitmentFormBodyState.getState().setCategoryPickerVisible(owner, true),
-  (owner) => useCommitmentFormBodyState.getState().setShowEndDatePicker(owner, true),
   (owner) => useCommitmentFormBodyState.getState().closeChoiceSheet(owner),
   (owner) => useCommitmentFormBodyState.getState().openEndsSheet(owner, afterDraft),
   (owner) => useCommitmentFormBodyState.getState().setEndsDraft(owner, untilDraft),
@@ -43,12 +42,11 @@ describe('useCommitmentFormBodyState', () => {
     expect(useCommitmentFormBodyState.getState().entries).toEqual({});
   });
 
-  it('claim opens a copy entry with every picker, date picker and choice sheet hidden, and no Repeats or Ends draft', () => {
+  it('claim opens a copy entry with every picker and choice sheet hidden, and no Repeats or Ends draft', () => {
     useCommitmentFormBodyState.getState().claim('owner-a');
 
     expect(entryOf('owner-a')).toStrictEqual({
       categoryPickerVisible: false,
-      showEndDatePicker: false,
       choiceSheet: undefined,
       repeatsDraft: undefined,
       endsDraft: undefined,
@@ -135,7 +133,6 @@ describe('useCommitmentFormBodyState', () => {
     }
     expect(entryOf('owner-b')).toStrictEqual({
       categoryPickerVisible: true,
-      showEndDatePicker: true,
       choiceSheet: 'repeats',
       repeatsDraft: customDraft,
       endsDraft: untilDraft,
@@ -166,7 +163,7 @@ describe('useCommitmentFormBodyState', () => {
 
   it('claim after release opens the copy again, from the initial entry', () => {
     useCommitmentFormBodyState.getState().claim('owner-a');
-    useCommitmentFormBodyState.getState().setShowEndDatePicker('owner-a', true);
+    useCommitmentFormBodyState.getState().openEndsSheet('owner-a', afterDraft);
     useCommitmentFormBodyState.getState().release('owner-a');
 
     useCommitmentFormBodyState.getState().claim('owner-a');
