@@ -1,9 +1,10 @@
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { Radio, RadioGroup, cn } from 'heroui-native';
+import { RadioGroup } from 'heroui-native';
 import type { ReactNode } from 'react';
 import { View, useWindowDimensions } from 'react-native';
 
 import { ListCard } from '@/components/ui/list_card';
+import { RadioOptionRow } from '@/components/ui/radio_option_row';
 import { Sheet } from '@/components/ui/sheet';
 import { SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet.helpers';
 import { Text } from '@/components/ui/text';
@@ -97,16 +98,12 @@ export function CommitmentChoiceOptions<T extends string>({
       {/* `gap-0`: the root's own gap would open 12 dp between the rows. */}
       <RadioGroup value={value} onValueChange={handleValueChange} className="gap-0">
         {options.map((option, index) => (
-          <RadioGroup.Item
+          <RadioOptionRow
             key={option.value}
             value={option.value}
             testID={`${testIDPrefix}-${option.value}`}
             accessibilityLabel={option.label}
-            className={cn(
-              'min-h-14 gap-3 px-4 py-2.5',
-              index < options.length - 1 && 'border-separator border-b',
-            )}
-            style={{ flexDirection: 'row', alignItems: 'center' }}
+            separator={index < options.length - 1}
           >
             <Text
               className="font-sora-semibold text-foreground"
@@ -114,15 +111,7 @@ export function CommitmentChoiceOptions<T extends string>({
             >
               {option.label}
             </Text>
-            {/* Drawn only: the row is the one pressable and the one node read aloud. */}
-            <Radio
-              testID={`${testIDPrefix}-${option.value}-selected`}
-              pointerEvents="none"
-              accessible={false}
-              importantForAccessibility="no-hide-descendants"
-              accessibilityElementsHidden
-            />
-          </RadioGroup.Item>
+          </RadioOptionRow>
         ))}
       </RadioGroup>
     </ListCard>
