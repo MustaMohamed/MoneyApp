@@ -13,6 +13,7 @@ import { DeactivateSheet } from './deactivate_sheet';
 interface EditCommitmentSessionProps {
   sessionId: number;
   commitment: Commitment;
+  settledDueDates: readonly string[];
   onRegisterSubmit: RegisterFormSessionSubmit;
   onSaved: (sessionId: number) => void;
   onDeactivated: (sessionId: number) => void;
@@ -21,6 +22,7 @@ interface EditCommitmentSessionProps {
 export function EditCommitmentSession({
   sessionId,
   commitment,
+  settledDueDates,
   onRegisterSubmit,
   onSaved,
   onDeactivated,
@@ -51,6 +53,7 @@ export function EditCommitmentSession({
         form={form}
         categories={state.categories}
         accounts={state.accounts}
+        settledDueDates={settledDueDates}
         afterFields={
           <PressableFeedback
             onPress={handleDeactivate}

@@ -24,6 +24,8 @@ import { CategoryPickerRow } from '@/modules/categories/components/category_pick
 import { CategoryPickerSheet } from '@/modules/categories/components/category_picker_sheet';
 
 import {
+  type CommitmentFormSchedule,
+  NO_SETTLED_DUE_DATES,
   resolveAccountIdFromChip,
   resolveCommitmentStripChips,
   resolveEndsRowValue,
@@ -47,10 +49,19 @@ interface CommitmentFormBodyProps {
   accounts: Account[];
   locked?: boolean;
   afterFields?: React.ReactNode;
+  /** The edited commitment's paid and skipped due dates, which every schedule preview counts. */
+  settledDueDates?: readonly string[];
 }
 
 export function CommitmentFormBody(props: CommitmentFormBodyProps) {
-  const { form, categories, accounts, locked, afterFields } = props;
+  const {
+    form,
+    categories,
+    accounts,
+    locked,
+    afterFields,
+    settledDueDates = NO_SETTLED_DUE_DATES,
+  } = props;
   const startsOwnerId = useId();
   const { scrollRef, handleScrollLayout, handleNoteFocus, handleNoteBlur } = useNoteReveal();
   const [
@@ -79,6 +90,22 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
       'endDate',
     ],
   });
+
+  const schedule = useMemo<CommitmentFormSchedule>(
+    () => ({
+      startDate,
+      recurrenceEvery,
+      recurrencePeriod,
+      durationType,
+      endAfterCount,
+      endDate,
+    }),
+    [startDate, recurrenceEvery, recurrencePeriod, durationType, endAfterCount, endDate],
+  );
+  const endsRowValue = useMemo(
+    () => resolveEndsRowValue(schedule, settledDueDates),
+    [schedule, settledDueDates],
+  );
 
   const selectedCategory = useMemo(
     () => categories.find((c) => c.id === categoryId),
@@ -244,7 +271,7 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
                 disabled={locked}
                 label={Strings.commitmentsFieldDuration}
                 accessibilityHint={endsFault}
-                value={resolveEndsRowValue(durationType, endAfterCount, endDate)}
+                value={endsRowValue}
                 suffix={chevron}
               />
             </FormFactCell>
@@ -294,13 +321,16 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
       <RepeatsSheet
         owner={owner}
         form={form}
+        schedule={schedule}
+        settledDueDates={settledDueDates}
         isOpen={choiceSheet === 'repeats'}
         onClose={closeChoiceSheet}
       />
       <EndsSheet
         owner={owner}
         form={form}
-        startDate={startDate}
+        schedule={schedule}
+        settledDueDates={settledDueDates}
         isSubmitted={isSubmitted}
         isOpen={choiceSheet === 'ends'}
         onClose={closeChoiceSheet}

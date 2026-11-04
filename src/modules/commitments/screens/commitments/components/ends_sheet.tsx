@@ -9,7 +9,7 @@ import { Stepper } from '@/components/ui/stepper';
 import { DurationType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 
-import { resolveEndsOptions } from '../commitment_form.helpers';
+import { type CommitmentFormSchedule, resolveEndsOptions } from '../commitment_form.helpers';
 import { type CommitmentFormValues, ENDS_AFTER_COUNT_MIN } from '../commitment_form.shared';
 import {
   CommitmentChoiceBlock,
@@ -21,7 +21,8 @@ import { useEndsSheet } from './ends_sheet.hook';
 interface EndsSheetProps {
   owner: string;
   form: UseFormReturn<CommitmentFormValues>;
-  startDate: string;
+  schedule: CommitmentFormSchedule;
+  settledDueDates: readonly string[];
   isSubmitted: boolean;
   isOpen: boolean;
   onClose: () => void;
@@ -32,19 +33,20 @@ const ENDS_OPTIONS = resolveEndsOptions();
 export function EndsSheet({
   owner,
   form,
-  startDate,
+  schedule,
+  settledDueDates,
   isSubmitted,
   isOpen,
   onClose,
 }: EndsSheetProps) {
   const dateOwnerId = useId();
   const {
-    state: { draft, track },
+    state: { draft, track, line },
     pickType,
     setCount,
     setDate,
     done,
-  } = useEndsSheet(owner, form, isSubmitted);
+  } = useEndsSheet(owner, form, isSubmitted, schedule, settledDueDates);
 
   return (
     <CommitmentChoiceSheet
@@ -72,7 +74,11 @@ export function EndsSheet({
             testIDPrefix="ends-option"
           />
           {draft.type === DurationType.AfterCount ? (
-            <CommitmentChoiceBlock testID="ends-after" label={Strings.commitmentsDurationStopAfter}>
+            <CommitmentChoiceBlock
+              testID="ends-after"
+              label={Strings.commitmentsDurationStopAfter}
+              line={line}
+            >
               <Stepper
                 value={draft.count}
                 min={ENDS_AFTER_COUNT_MIN}
@@ -83,7 +89,11 @@ export function EndsSheet({
             </CommitmentChoiceBlock>
           ) : null}
           {draft.type === DurationType.UntilDate ? (
-            <CommitmentChoiceBlock testID="ends-date" label={Strings.commitmentsEndsUntilLabel}>
+            <CommitmentChoiceBlock
+              testID="ends-date"
+              label={Strings.commitmentsEndsUntilLabel}
+              line={line}
+            >
               <ListCard>
                 <FormFactCell divider={false}>
                   <DateRow
@@ -95,7 +105,7 @@ export function EndsSheet({
                     testID="ends-date-row"
                     pickerTitle={Strings.commitmentsFieldDuration}
                     capsAtToday={false}
-                    minimumDate={startDate}
+                    minimumDate={schedule.startDate}
                   />
                 </FormFactCell>
               </ListCard>

@@ -9,12 +9,14 @@ import {
 } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/modules/accounts/entities/account.entity';
+import { selectNewDueDates } from '@/modules/commitments/repositories/commitment_housekeeping.helpers';
 import {
   resolveHollowGraphiteTile,
   toAccountStripChip,
 } from '@/modules/transactions/components/transaction_row.helpers';
 import { computeDueDates } from '@/utils/compute_due_dates';
-import { formatShortWeekdayDate } from '@/utils/format_date';
+import { formatAmount } from '@/utils/format_amount';
+import { formatShortWeekdayDate, formatWeekdayDate } from '@/utils/format_date';
 import { formatStoredMoneyText } from '@/utils/money_text';
 import { parseTypingDecimalText } from '@/utils/parse_decimal';
 import { orderByRank } from '@/utils/rank_order';
@@ -190,18 +192,63 @@ export function applyEndsDraft(
   if (isSubmitted) void form.trigger(['endAfterCount', 'endDate']);
 }
 
-/** The Ends row reads `Never` from its own key, and otherwise as the detail's Ends fact, so a missing count or date reads the incomplete label. */
+/** The Ends row reads `Never` from its own key, a complete count or date as its preview, and otherwise as the detail's Ends fact. */
 export function resolveEndsRowValue(
-  durationType: DurationType,
-  endAfterCount: number | null | undefined,
-  endDate: string | undefined,
+  schedule: CommitmentFormSchedule,
+  settledDueDates: readonly string[],
 ): string {
+  const { durationType, endAfterCount, endDate } = schedule;
   if (durationType === DurationType.Forever) return Strings.commitmentsEndsRowNever;
+  if (durationType === DurationType.AfterCount && isCompleteEndsCount(endAfterCount)) {
+    const day = resolveEndsLastDueDate(schedule, endAfterCount, settledDueDates);
+    if (day !== undefined) {
+      return Strings.commitmentsEndsAfterPreview(
+        endAfterCount,
+        formatAmount(endAfterCount),
+        formatWeekdayDate(day),
+      );
+    }
+  }
+  if (durationType === DurationType.UntilDate && endDate) {
+    const count = countEndsThroughDate(schedule, endDate, settledDueDates);
+    return Strings.commitmentsEndsOnDatePreview(
+      count,
+      formatAmount(count),
+      formatWeekdayDate(endDate),
+    );
+  }
   return buildCommitmentEndsLabel({
     duration_type: durationType,
     end_after_count: endAfterCount ?? null,
     end_date: endDate === '' ? null : (endDate ?? null),
   });
+}
+
+/** The line under the Ends sheet's chosen block; nothing for Never or an incomplete count or date. */
+export function resolveEndsSheetLine(
+  schedule: CommitmentFormSchedule,
+  settledDueDates: readonly string[],
+): string | undefined {
+  const { durationType, endAfterCount, endDate } = schedule;
+  if (durationType === DurationType.AfterCount && isCompleteEndsCount(endAfterCount)) {
+    const day = resolveEndsLastDueDate(schedule, endAfterCount, settledDueDates);
+    return day === undefined
+      ? undefined
+      : Strings.commitmentsEndsLastPayment(formatWeekdayDate(day));
+  }
+  if (durationType === DurationType.UntilDate && endDate) {
+    const count = countEndsThroughDate(schedule, endDate, settledDueDates);
+    return Strings.commitmentsEndsThroughLine(
+      count,
+      formatAmount(count),
+      formatWeekdayDate(endDate),
+    );
+  }
+  return undefined;
+}
+
+function isCompleteEndsCount(count: number | null | undefined): count is number {
+  return typeof count === 'number' && count >= ENDS_AFTER_COUNT_MIN;
 }
 
 /** Once a Save ran, a Starts move re-reads an Ends day, whose check depends on both days. */
@@ -223,15 +270,105 @@ export function setCommitmentEndDate(
   form.setValue('endDate', next, { shouldDirty: true, shouldValidate: isSubmitted });
 }
 
+export interface CommitmentFormSchedule {
+  startDate: string;
+  recurrenceEvery: number | null | undefined;
+  recurrencePeriod: RecurrencePeriod;
+  durationType: DurationType;
+  endAfterCount?: number | null;
+  endDate?: string;
+}
+
+/** The add form holds no paid or skipped rows. */
+export const NO_SETTLED_DUE_DATES: readonly string[] = Object.freeze([]);
+
+/** The day of the latest row After `count` leaves: the settled rows, then the save's selection of new ones. */
+export function resolveEndsLastDueDate(
+  schedule: CommitmentFormSchedule,
+  count: number,
+  settledDueDates: readonly string[],
+): string | undefined {
+  const dates = computeDueDates({
+    startDate: schedule.startDate,
+    every: schedule.recurrenceEvery ?? 1,
+    period: schedule.recurrencePeriod,
+    durationType: DurationType.AfterCount,
+    endAfterCount: count,
+    maxCount: count,
+  });
+  const selected = selectNewDueDates(dates, new Set(settledDueDates), {
+    durationType: DurationType.AfterCount,
+    endAfterCount: count,
+  });
+  return [...settledDueDates, ...selected].reduce<string | undefined>(
+    (latest, date) => (latest === undefined || date > latest ? date : latest),
+    undefined,
+  );
+}
+
+/** The rows the whole schedule holds through `day`: the settled ones through it, then the save's selection of new ones. */
+export function countEndsThroughDate(
+  schedule: CommitmentFormSchedule,
+  day: string,
+  settledDueDates: readonly string[],
+): number {
+  const settled = new Set(settledDueDates);
+  const dates = computeDueDates({
+    startDate: schedule.startDate,
+    every: schedule.recurrenceEvery ?? 1,
+    period: schedule.recurrencePeriod,
+    durationType: DurationType.UntilDate,
+    endDate: day,
+    throughDate: day,
+  });
+  const selected = selectNewDueDates(dates, settled, {
+    durationType: DurationType.UntilDate,
+    endAfterCount: schedule.endAfterCount ?? null,
+  });
+  let settledThrough = 0;
+  for (const date of settled) if (date <= day) settledThrough += 1;
+  return settledThrough + selected.length;
+}
+
+/** The first due day after `today` the save leaves unpaid, read past the generation window. */
+export function resolveRepeatsNextDueDate(
+  schedule: CommitmentFormSchedule,
+  settledDueDates: readonly string[],
+  today: string,
+): string | undefined {
+  const settled = new Set(settledDueDates);
+  const input = {
+    startDate: schedule.startDate,
+    every: schedule.recurrenceEvery ?? 1,
+    period: schedule.recurrencePeriod,
+    durationType: schedule.durationType,
+    endAfterCount: schedule.endAfterCount ?? undefined,
+    endDate: schedule.endDate,
+  };
+  // Of the settled + 1 schedule days after today at most `settled.size` are settled, so one stays unpaid.
+  const maxCount = computeDueDates({ ...input, throughDate: today }).length + settled.size + 1;
+  const selected = selectNewDueDates(computeDueDates({ ...input, maxCount }), settled, {
+    durationType: schedule.durationType,
+    endAfterCount: schedule.endAfterCount ?? null,
+  });
+  return selected.find((date) => date > today);
+}
+
+/** The Repeats sheet's track and Custom line: the label, and the next due day when the schedule has one. */
+export function resolveRepeatsTrack(
+  schedule: CommitmentFormSchedule,
+  settledDueDates: readonly string[],
+  today: string,
+): string {
+  const label = resolveRepeatsRowValue(schedule.recurrenceEvery ?? 1, schedule.recurrencePeriod);
+  const next = resolveRepeatsNextDueDate(schedule, settledDueDates, today);
+  return next === undefined
+    ? label
+    : Strings.commitmentsRepeatsNext(label, formatShortWeekdayDate(next, today));
+}
+
 export function resolveCommitmentFirstPaymentFootnote(
-  schedule: {
-    startDate: string;
-    recurrenceEvery: number | null | undefined;
-    recurrencePeriod: RecurrencePeriod;
-    durationType: DurationType;
-    endAfterCount: number | null | undefined;
-    endDate: string | undefined;
-  },
+  schedule: CommitmentFormSchedule,
   today: string,
 ): string | undefined {
   const dueDates = computeDueDates({

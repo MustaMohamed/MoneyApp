@@ -6,6 +6,27 @@ import { computeDueDates } from '@/utils/compute_due_dates';
 
 export type { ActiveCommitmentDueDate } from '@/modules/commitments/database/commitment_payments';
 
+/** The due dates the save writes as new rows: `dates` in order, minus `existing`, capped by After N. */
+export function selectNewDueDates(
+  dates: readonly string[],
+  existing: ReadonlySet<string>,
+  schedule: { durationType: DurationType; endAfterCount: number | null },
+): string[] {
+  let remaining =
+    schedule.durationType === DurationType.AfterCount && schedule.endAfterCount !== null
+      ? Math.max(0, schedule.endAfterCount - existing.size)
+      : Number.POSITIVE_INFINITY;
+
+  const selected: string[] = [];
+  for (const dueDate of dates) {
+    if (remaining <= 0) break;
+    if (existing.has(dueDate)) continue;
+    remaining -= 1;
+    selected.push(dueDate);
+  }
+  return selected;
+}
+
 export function planMissingCommitmentPayments({
   commitments,
   dueDates,
@@ -43,15 +64,12 @@ export function planMissingCommitmentPayments({
       throughDate,
     });
 
-    let remaining =
-      commitment.duration_type === DurationType.AfterCount && commitment.end_after_count !== null
-        ? Math.max(0, commitment.end_after_count - existing.size)
-        : Number.POSITIVE_INFINITY;
+    const selected = selectNewDueDates(dates, existing, {
+      durationType: commitment.duration_type,
+      endAfterCount: commitment.end_after_count,
+    });
 
-    for (const dueDate of dates) {
-      if (remaining <= 0) break;
-      if (existing.has(dueDate)) continue;
-      remaining -= 1;
+    for (const dueDate of selected) {
       rows.push({
         id: createId(),
         commitment_id: commitment.id,

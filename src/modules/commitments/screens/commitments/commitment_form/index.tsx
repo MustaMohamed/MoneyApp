@@ -54,6 +54,7 @@ export function CommitmentFormHost(): React.ReactElement {
           key={state.sessionId}
           sessionId={state.sessionId}
           commitment={state.editingCommitment}
+          settledDueDates={state.editingSettledDueDates}
           onRegisterSubmit={registerSubmit}
           onSaved={handleSaved}
           onDeactivated={handleDeactivated}

@@ -20,7 +20,11 @@ import { jumpToTab } from '@/modules/navigation/utils/jump_to_tab';
 import { toLocalDateString } from '@/utils/format_date';
 import { useLocalDayChange } from '@/utils/use_local_day_change.hook';
 
-import { countSettledPayments, resolveCommitmentLifecycle } from '../../../domain/payment_state';
+import {
+  countSettledPayments,
+  isUnpaidPayment,
+  resolveCommitmentLifecycle,
+} from '../../../domain/payment_state';
 import { commitmentRepository } from '../../../repositories/commitment.repository';
 import { useCommitmentStore } from '../../../store/commitment.store';
 import { useCommitmentFormHostState } from '../../../store/commitment_form_host.state';
@@ -293,8 +297,11 @@ export function useCommitmentDetail() {
       stackedPrefix === STACKED_PREFIX
         ? () => leaveStackedSubtree(originTxId, originTxCopy)
         : () => router.dismissTo('/commitments');
-    useCommitmentFormHostState.getState().openEdit(commitment, { onSaved: reload, onDeactivated });
-  }, [commitment, stackedPrefix, originTxId, originTxCopy, reload]);
+    const settledDueDates = historyRows.filter((p) => !isUnpaidPayment(p)).map((p) => p.due_date);
+    useCommitmentFormHostState
+      .getState()
+      .openEdit(commitment, { onSaved: reload, onDeactivated }, settledDueDates);
+  }, [commitment, historyRows, stackedPrefix, originTxId, originTxCopy, reload]);
 
   const goBack = useCallback(() => {
     router.back();

@@ -2,8 +2,14 @@ import { useMemo } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 
 import { type RecurrencePeriod, RecurrencePreset } from '@/constants/enums';
+import { toLocalDateString } from '@/utils/format_date';
 
-import { pickRepeatsPreset, resolveRepeatsRowValue } from '../commitment_form.helpers';
+import {
+  type CommitmentFormSchedule,
+  pickRepeatsPreset,
+  resolveRepeatsRowValue,
+  resolveRepeatsTrack,
+} from '../commitment_form.helpers';
 import { type CommitmentFormValues, SET_OPTS } from '../commitment_form.shared';
 import { INITIAL_PICKER_ENTRY, useCommitmentFormBodyState } from './commitment_form_body.state';
 
@@ -11,6 +17,9 @@ import { INITIAL_PICKER_ENTRY, useCommitmentFormBodyState } from './commitment_f
 export function useRepeatsSheet(
   owner: string,
   form: Pick<UseFormReturn<CommitmentFormValues>, 'setValue'>,
+  schedule: CommitmentFormSchedule,
+  settledDueDates: readonly string[],
+  now: Date = new Date(),
 ) {
   const draft = useCommitmentFormBodyState(
     (s) => (s.entries[owner] ?? INITIAL_PICKER_ENTRY).repeatsDraft,
@@ -36,10 +45,24 @@ export function useRepeatsSheet(
     };
   }, [owner, form]);
 
+  const today = toLocalDateString(now);
+  const track = useMemo(
+    () =>
+      draft === undefined
+        ? undefined
+        : resolveRepeatsTrack(
+            { ...schedule, recurrenceEvery: draft.every, recurrencePeriod: draft.period },
+            settledDueDates,
+            today,
+          ),
+    [draft, schedule, settledDueDates, today],
+  );
+
   return {
     state: {
       draft,
       label: draft === undefined ? undefined : resolveRepeatsRowValue(draft.every, draft.period),
+      track,
       isCustom: draft?.preset === RecurrencePreset.Custom,
     },
     ...actions,
