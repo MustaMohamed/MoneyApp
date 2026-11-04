@@ -1,8 +1,9 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Radio, RadioGroup, Typography, cn } from 'heroui-native';
+import { RadioGroup, Typography, cn } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
+import { RadioOptionMark } from '@/components/ui/radio_option_row';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, Radius, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
@@ -102,7 +103,7 @@ export function CurrencyChoice({ selected, onSelect }: CurrencyChoiceProps) {
                   {option.consequence}
                 </Typography>
               </View>
-              <Radio />
+              <RadioOptionMark />
             </RadioGroup.Item>
           );
         })}

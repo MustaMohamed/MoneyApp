@@ -1,9 +1,10 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BottomSheetFlatList } from '@gorhom/bottom-sheet';
-import { Radio, RadioGroup } from 'heroui-native';
+import { RadioGroup } from 'heroui-native';
 import { useCallback, useMemo } from 'react';
 import { View } from 'react-native';
 
+import { RadioOptionRow } from '@/components/ui/radio_option_row';
 import { Sheet } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Currency } from '@/constants/enums';
@@ -79,15 +80,13 @@ export function BudgetPickerSheet(props: BudgetPickerSheetProps) {
             renderItem={({ item: budget }) => {
               const selected = props.selectedId === budget.id;
               return (
-                <RadioGroup.Item
+                <RadioOptionRow
                   value={budget.id}
                   testID={`budget-picker-row-${budget.id}`}
                   accessibilityLabel={Strings.addTxBudgetOptionAccessibility(
                     budget.name,
                     formatAmount(budget.limit_amount),
                   )}
-                  className="border-separator min-h-14 gap-3 border-b px-4 py-2.5"
-                  style={{ flexDirection: 'row', alignItems: 'center' }}
                 >
                   <View className="bg-default h-8 w-8 items-center justify-center rounded-md">
                     <MaterialCommunityIcons
@@ -111,8 +110,7 @@ export function BudgetPickerSheet(props: BudgetPickerSheetProps) {
                       {formatCurrencyAmount(budget.limit_amount, Currency.EGP)}
                     </Text>
                   </View>
-                  <Radio testID={`budget-picker-row-${budget.id}-selected`} />
-                </RadioGroup.Item>
+                </RadioOptionRow>
               );
             }}
           />

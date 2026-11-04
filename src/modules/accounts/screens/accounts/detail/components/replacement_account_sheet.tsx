@@ -1,8 +1,9 @@
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { Radio, RadioGroup } from 'heroui-native';
+import { RadioGroup } from 'heroui-native';
 import { View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
+import { RadioOptionRow } from '@/components/ui/radio_option_row';
 import { Sheet } from '@/components/ui/sheet';
 import { SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet.helpers';
 import { Text } from '@/components/ui/text';
@@ -122,16 +123,14 @@ export function ReplacementAccountSheet({
 
         <RadioGroup value={selectedId} onValueChange={onSelect} isDisabled={busy}>
           {options.map((item) => (
-            <RadioGroup.Item
+            <RadioOptionRow
               key={item.id}
               value={item.id}
               testID={`replacement-account-row-${item.id}`}
-              className="border-separator min-h-14 gap-3 border-b px-4 py-3"
-              style={{ flexDirection: 'row', alignItems: 'center' }}
+              density="roomy"
             >
               <AccountRowContent account={item} />
-              <Radio testID={`replacement-account-row-${item.id}-selected`} />
-            </RadioGroup.Item>
+            </RadioOptionRow>
           ))}
         </RadioGroup>
       </BottomSheetScrollView>
