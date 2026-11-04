@@ -21,6 +21,7 @@ jest.mock('@/components/ui/sheet_visibility.state', () => ({
 
 import { useToastClearanceState } from '@/components/ui/toast_clearance.state';
 import { Size, Spacing } from '@/constants/theme';
+import { NO_SETTLED_DUE_DATES } from '@/modules/commitments/screens/commitments/commitment_form.helpers';
 import { useCommitmentFormHostState } from '@/modules/commitments/store/commitment_form_host.state';
 import { useTabsLayout } from '@/modules/navigation/screens/tabs/tabs.hook';
 import { useTransactionFormState } from '@/modules/transactions/store/transaction_form_host.state';
@@ -74,7 +75,9 @@ describe('useTabsLayout', () => {
     const { result } = await renderHook(() => useTabsLayout());
 
     await act(() =>
-      useCommitmentFormHostState.getState().openEdit(makeTestCommitment({ id: 'c-1' })),
+      useCommitmentFormHostState
+        .getState()
+        .openEdit(makeTestCommitment({ id: 'c-1' }), NO_SETTLED_DUE_DATES),
     );
 
     expect(mockPush).not.toHaveBeenCalled();

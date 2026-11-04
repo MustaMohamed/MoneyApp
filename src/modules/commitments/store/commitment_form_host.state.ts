@@ -46,8 +46,8 @@ type CommitmentFormHostState = CommitmentFormHostStateShape & {
   openAdd: () => void;
   openEdit: (
     commitment: Commitment,
+    settledDueDates: readonly string[],
     landing?: CommitmentEditLanding,
-    settledDueDates?: readonly string[],
   ) => void;
   requestClose: () => boolean;
   completeSave: (sessionId: number, postCloseToast?: CommitmentFormPostCloseToast) => boolean;
@@ -93,7 +93,7 @@ export const useCommitmentFormHostState = createMoneyAppSelectors(
       }));
     },
 
-    openEdit: (commitment, landing, settledDueDates = NO_SETTLED_DUE_DATES) => {
+    openEdit: (commitment, settledDueDates, landing) => {
       if (get().phase !== 'closed') return;
       set((state) => ({
         phase: 'open',

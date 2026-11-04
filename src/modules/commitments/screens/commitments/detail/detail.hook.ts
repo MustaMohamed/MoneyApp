@@ -22,7 +22,7 @@ import { useLocalDayChange } from '@/utils/use_local_day_change.hook';
 
 import {
   countSettledPayments,
-  isUnpaidPayment,
+  listSettledDueDates,
   resolveCommitmentLifecycle,
 } from '../../../domain/payment_state';
 import { commitmentRepository } from '../../../repositories/commitment.repository';
@@ -173,6 +173,7 @@ export function useCommitmentDetail() {
     [historyRows, cycleId],
   );
   const settledCount = useMemo(() => countSettledPayments(historyRows), [historyRows]);
+  const settledDueDates = useMemo(() => listSettledDueDates(historyRows), [historyRows]);
   const lifecycle =
     commitment && today !== undefined
       ? resolveCommitmentLifecycle(commitment, settledCount, today)
@@ -297,11 +298,10 @@ export function useCommitmentDetail() {
       stackedPrefix === STACKED_PREFIX
         ? () => leaveStackedSubtree(originTxId, originTxCopy)
         : () => router.dismissTo('/commitments');
-    const settledDueDates = historyRows.filter((p) => !isUnpaidPayment(p)).map((p) => p.due_date);
     useCommitmentFormHostState
       .getState()
-      .openEdit(commitment, { onSaved: reload, onDeactivated }, settledDueDates);
-  }, [commitment, historyRows, stackedPrefix, originTxId, originTxCopy, reload]);
+      .openEdit(commitment, settledDueDates, { onSaved: reload, onDeactivated });
+  }, [commitment, settledDueDates, stackedPrefix, originTxId, originTxCopy, reload]);
 
   const goBack = useCallback(() => {
     router.back();

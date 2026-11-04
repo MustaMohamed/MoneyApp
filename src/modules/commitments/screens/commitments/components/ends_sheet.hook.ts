@@ -6,8 +6,7 @@ import type { DurationType } from '@/constants/enums';
 import {
   type CommitmentFormSchedule,
   applyEndsDraft,
-  resolveEndsRowValue,
-  resolveEndsSheetLine,
+  resolveEndsSheetPreview,
 } from '../commitment_form.helpers';
 import { type CommitmentFormValues, ENDS_AFTER_COUNT_MIN } from '../commitment_form.shared';
 import { INITIAL_PICKER_ENTRY, useCommitmentFormBodyState } from './commitment_form_body.state';
@@ -51,10 +50,7 @@ export function useEndsSheet(
       endAfterCount: draft.count,
       endDate: draft.date,
     };
-    return {
-      track: resolveEndsRowValue(staged, settledDueDates),
-      line: resolveEndsSheetLine(staged, settledDueDates),
-    };
+    return resolveEndsSheetPreview(staged, settledDueDates);
   }, [draft, schedule, settledDueDates]);
 
   return {

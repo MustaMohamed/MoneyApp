@@ -1,8 +1,8 @@
 import { AmountType, Currency, DurationType, RecurrencePeriod } from '@/constants/enums';
+import { selectNewDueDates } from '@/modules/commitments/domain/due_date_selection';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import {
   planMissingCommitmentPayments,
-  selectNewDueDates,
   type ActiveCommitmentDueDate,
 } from '@/modules/commitments/repositories/commitment_housekeeping.helpers';
 import { makeTestCommitment } from '@/test_helpers/commitment';
