@@ -11,7 +11,7 @@ import { Spacing } from '@/constants/theme';
 import { orderByRank } from '@/utils/rank_order';
 import { ms } from '@/utils/responsive';
 
-import { resolveRepeatsOptions } from '../commitment_form.helpers';
+import { type CommitmentFormSchedule, resolveRepeatsOptions } from '../commitment_form.helpers';
 import {
   type CommitmentFormValues,
   RECURRENCE_EVERY_MAX,
@@ -28,6 +28,8 @@ import { useRepeatsSheet } from './repeats_sheet.hook';
 interface RepeatsSheetProps {
   owner: string;
   form: UseFormReturn<CommitmentFormValues>;
+  schedule: CommitmentFormSchedule;
+  settledDueDates: readonly string[];
   isOpen: boolean;
   onClose: () => void;
 }
@@ -52,14 +54,21 @@ const REPEATS_UNITS: TabSegment<RecurrencePeriod>[] = orderByRank(REPEATS_UNIT_R
   (period) => ({ value: period, label: REPEATS_UNIT_LABELS[period] }),
 );
 
-export function RepeatsSheet({ owner, form, isOpen, onClose }: RepeatsSheetProps) {
+export function RepeatsSheet({
+  owner,
+  form,
+  schedule,
+  settledDueDates,
+  isOpen,
+  onClose,
+}: RepeatsSheetProps) {
   const {
-    state: { draft, label, isCustom },
+    state: { draft, track, isCustom },
     pickPreset,
     setEvery,
     setPeriod,
     done,
-  } = useRepeatsSheet(owner, form);
+  } = useRepeatsSheet(owner, form, schedule, settledDueDates);
   const { listHeight, triggerHitSlop } = resolveTypeTabsGeometry(useWindowDimensions().fontScale);
 
   return (
@@ -72,7 +81,7 @@ export function RepeatsSheet({ owner, form, isOpen, onClose }: RepeatsSheetProps
         <FormSheetFooter
           statusTestID="repeats-sheet-status"
           showsStatusTrack
-          footnote={label}
+          footnote={track}
           label={Strings.commitmentsDone}
           isLoading={false}
           onPress={done}
@@ -91,7 +100,7 @@ export function RepeatsSheet({ owner, form, isOpen, onClose }: RepeatsSheetProps
             <CommitmentChoiceBlock
               testID="repeats-custom"
               label={Strings.commitmentsRecurrenceEvery}
-              line={label}
+              line={track}
             >
               <View
                 style={{

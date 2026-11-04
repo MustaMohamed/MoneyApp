@@ -47,6 +47,13 @@ export function countSettledPayments(rows: readonly PaymentDates[]): number {
   return rows.filter((p) => !isUnpaidPayment(p)).length;
 }
 
+/** The due days of the paid and skipped rows, the ones an edit save keeps. */
+export function listSettledDueDates(
+  rows: readonly (PaymentDates & Pick<CommitmentPayment, 'due_date'>)[],
+): string[] {
+  return rows.filter((p) => !isUnpaidPayment(p)).map((p) => p.due_date);
+}
+
 /** The earlier of the month's first day and `today`: unpaid rows due before it carry into `yearMonth`. */
 export function carriedDueBound(yearMonth: string, today: string): string {
   const monthStart = `${yearMonth}-01`;

@@ -9,10 +9,13 @@ import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useAccountsById } from '@/modules/accounts/store/use_accounts_by_id.hook';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import {
+  type CommitmentFormSchedule,
   NO_ACCOUNT_CHIP_ID,
+  NO_SETTLED_DUE_DATES,
   applyCommitmentAmountText,
   applyEndsDraft,
   countCommitmentFormFaults,
+  countEndsThroughDate,
   parseCommitmentAmountText,
   pickRepeatsPreset,
   resolveAccountIdFromChip,
@@ -20,10 +23,14 @@ import {
   resolveCommitmentFirstPaymentFootnote,
   resolveCommitmentFormStatus,
   resolveCommitmentStripChips,
+  resolveEndsLastDueDate,
   resolveEndsOptions,
   resolveEndsRowValue,
+  resolveEndsSheetPreview,
+  resolveRepeatsNextDueDate,
   resolveRepeatsOptions,
   resolveRepeatsRowValue,
+  resolveRepeatsTrack,
   seedEndsDraft,
   seedRepeatsDraft,
   setCommitmentEndDate,
@@ -479,24 +486,229 @@ describe('seedEndsDraft (MA-277)', () => {
     };
 
     expect(seedEndsDraft(held).date).toBe(STARTS);
-    expect(resolveEndsRowValue(held.durationType, held.endAfterCount, held.endDate)).toBe(
-      'Until Mon 19 Oct 2026',
+    expect(
+      resolveEndsRowValue(
+        { ...held, recurrenceEvery: 1, recurrencePeriod: RecurrencePeriod.Months },
+        NO_SETTLED_DUE_DATES,
+      ),
+    ).toBe('On Mon 19 Oct 2026 · 0 payments');
+  });
+});
+
+// Starts Tue 20 Oct 2026, Every month, Never: the add sheet's schedule on its today.
+const FORM_SCHEDULE: CommitmentFormSchedule = {
+  startDate: '2026-10-20',
+  recurrenceEvery: 1,
+  recurrencePeriod: RecurrencePeriod.Months,
+  durationType: DurationType.Forever,
+  endAfterCount: undefined,
+  endDate: undefined,
+};
+const DAILY_FROM_2026: Partial<CommitmentFormSchedule> = {
+  startDate: '2026-01-01',
+  recurrencePeriod: RecurrencePeriod.Days,
+};
+const scheduleOf = (overrides: Partial<CommitmentFormSchedule>): CommitmentFormSchedule => ({
+  ...FORM_SCHEDULE,
+  ...overrides,
+});
+const endsAfter = (count: number | undefined): Partial<CommitmentFormSchedule> => ({
+  durationType: DurationType.AfterCount,
+  endAfterCount: count,
+});
+const endsOn = (endDate: string | undefined): Partial<CommitmentFormSchedule> => ({
+  durationType: DurationType.UntilDate,
+  endDate,
+});
+
+describe('resolveEndsRowValue (MA-280)', () => {
+  it.each<[string, Partial<CommitmentFormSchedule>, readonly string[], string]>([
+    ['Never', {}, NO_SETTLED_DUE_DATES, 'Never'],
+    ['After 12', endsAfter(12), NO_SETTLED_DUE_DATES, 'After 12 payments · last Mon 20 Sep 2027'],
+    ['After 1', endsAfter(1), NO_SETTLED_DUE_DATES, 'After 1 payment · last Tue 20 Oct 2026'],
+    [
+      'After 1,096 daily',
+      { ...DAILY_FROM_2026, ...endsAfter(1096) },
+      NO_SETTLED_DUE_DATES,
+      'After 1,096 payments · last Sun 31 Dec 2028',
+    ],
+    ['After with no count', endsAfter(undefined), NO_SETTLED_DUE_DATES, 'After N payments'],
+    [
+      'On 31 December',
+      endsOn('2026-12-31'),
+      NO_SETTLED_DUE_DATES,
+      'On Thu 31 Dec 2026 · 3 payments',
+    ],
+    [
+      'On a day earlier than Starts, on add',
+      endsOn('2026-10-19'),
+      NO_SETTLED_DUE_DATES,
+      'On Mon 19 Oct 2026 · 0 payments',
+    ],
+    [
+      'On a day earlier than Starts, on edit with one settled row through it',
+      endsOn('2026-10-19'),
+      ['2026-09-20'],
+      'On Mon 19 Oct 2026 · 1 payment',
+    ],
+    ['On with no date', endsOn(undefined), NO_SETTLED_DUE_DATES, 'Until date'],
+    ['On with an empty date', endsOn(''), NO_SETTLED_DUE_DATES, 'Until date'],
+  ])('reads %s', (_name, overrides, settled, label) => {
+    expect(resolveEndsRowValue(scheduleOf(overrides), settled)).toBe(label);
+  });
+});
+
+describe('resolveEndsSheetPreview line (MA-280)', () => {
+  it.each<[string, Partial<CommitmentFormSchedule>, string | undefined]>([
+    ['Never', {}, undefined],
+    ['After with no count', endsAfter(undefined), undefined],
+    ['On with an empty date', endsOn(''), undefined],
+    ['After 12', endsAfter(12), 'Last payment Mon 20 Sep 2027'],
+    ['On the Starts day', endsOn('2026-10-20'), '1 payment through Tue 20 Oct 2026'],
+    ['On 31 December', endsOn('2026-12-31'), '3 payments through Thu 31 Dec 2026'],
+    [
+      'On 31 December 2028, daily',
+      { ...DAILY_FROM_2026, ...endsOn('2028-12-31') },
+      '1,096 payments through Sun 31 Dec 2028',
+    ],
+  ])('reads %s', (_name, overrides, line) => {
+    expect(resolveEndsSheetPreview(scheduleOf(overrides), NO_SETTLED_DUE_DATES).line).toBe(line);
+  });
+});
+
+describe('resolveEndsLastDueDate (MA-280)', () => {
+  it.each<[string, Partial<CommitmentFormSchedule>, number, string]>([
+    ['12 monthly from 20 October (F3)', {}, 12, '2027-09-20'],
+    ['3 monthly from 31 January', { startDate: '2026-01-31' }, 3, '2026-03-31'],
+    [
+      '2 yearly from 29 February',
+      { startDate: '2028-02-29', recurrencePeriod: RecurrencePeriod.Years },
+      2,
+      '2029-02-28',
+    ],
+    ['4 monthly from a Starts in the past', { startDate: '2020-03-15' }, 4, '2020-06-15'],
+    ['12 monthly, ignoring a held On day', endsOn('2026-12-31'), 12, '2027-09-20'],
+    ['12 monthly with Every emptied', { recurrenceEvery: null }, 12, '2027-09-20'],
+  ])('reads %s', (_name, overrides, count, day) => {
+    expect(resolveEndsLastDueDate(scheduleOf(overrides), count, NO_SETTLED_DUE_DATES)).toBe(day);
+  });
+
+  it('on edit reads the latest settled day when the settled rows already reach the count', () => {
+    expect(resolveEndsLastDueDate(FORM_SCHEDULE, 1, ['2026-10-20', '2026-12-20'])).toBe(
+      '2026-12-20',
+    );
+  });
+
+  it('on edit reads a settled day past the last new day', () => {
+    expect(resolveEndsLastDueDate(FORM_SCHEDULE, 3, ['2026-10-20', '2027-03-20'])).toBe(
+      '2027-03-20',
+    );
+  });
+
+  it('on edit reads the last new day when it falls after every settled day', () => {
+    expect(resolveEndsLastDueDate(FORM_SCHEDULE, 4, ['2026-10-20', '2026-11-20'])).toBe(
+      '2027-01-20',
     );
   });
 });
 
-describe('resolveEndsRowValue (MA-255)', () => {
-  it.each([
-    [DurationType.Forever, undefined, undefined, 'Never'],
-    [DurationType.AfterCount, 1, undefined, 'After 1 payment'],
-    [DurationType.AfterCount, 3, undefined, 'After 3 payments'],
-    [DurationType.AfterCount, undefined, undefined, 'After N payments'],
-    [DurationType.UntilDate, undefined, '2026-10-20', 'Until Tue 20 Oct 2026'],
-    [DurationType.UntilDate, undefined, '2028-02-29', 'Until Tue 29 Feb 2028'],
-    [DurationType.UntilDate, undefined, undefined, 'Until date'],
-    [DurationType.UntilDate, undefined, '', 'Until date'],
-  ] as const)('reads %p with count %p and date %p as %p', (type, count, date, label) => {
-    expect(resolveEndsRowValue(type, count, date)).toBe(label);
+describe('countEndsThroughDate (MA-280)', () => {
+  it.each<[string, Partial<CommitmentFormSchedule>, string, number]>([
+    ['monthly from 20 October through 31 December, not F4 14', {}, '2026-12-31', 3],
+    ['daily from 1 January 2026 through 31 December 2028', DAILY_FROM_2026, '2028-12-31', 1096],
+    ['a day earlier than Starts, on add', {}, '2026-10-19', 0],
+    ['monthly from 31 January through 28 February', { startDate: '2026-01-31' }, '2026-02-28', 2],
+    [
+      'yearly from 29 February 2028 through 1 March 2029',
+      { startDate: '2028-02-29', recurrencePeriod: RecurrencePeriod.Years },
+      '2029-03-01',
+      2,
+    ],
+    ['monthly, ignoring a held After count', endsAfter(1), '2026-12-31', 3],
+  ])('counts %s', (_name, overrides, day, count) => {
+    expect(countEndsThroughDate(scheduleOf(overrides), day, NO_SETTLED_DUE_DATES)).toBe(count);
+  });
+
+  it('on edit counts the settled days through a day earlier than Starts', () => {
+    expect(
+      countEndsThroughDate(FORM_SCHEDULE, '2026-10-19', ['2026-08-20', '2026-09-20', '2026-11-20']),
+    ).toBe(2);
+  });
+
+  it('on edit counts a settled day on the schedule once', () => {
+    expect(countEndsThroughDate(FORM_SCHEDULE, '2026-12-31', ['2026-10-20', '2026-11-20'])).toBe(3);
+  });
+});
+
+describe('resolveRepeatsNextDueDate (MA-280)', () => {
+  const TODAY = '2026-10-20';
+
+  it.each<[string, Partial<CommitmentFormSchedule>, string, string | undefined]>([
+    ['monthly from today', {}, TODAY, '2026-11-20'],
+    [
+      'every 2 weeks from today',
+      { recurrenceEvery: 2, recurrencePeriod: RecurrencePeriod.Weeks },
+      TODAY,
+      '2026-11-03',
+    ],
+    ['monthly from a past 31 January', { startDate: '2026-01-31' }, TODAY, '2026-10-31'],
+    [
+      'yearly from 29 February 2028, the day after',
+      { startDate: '2028-02-29', recurrencePeriod: RecurrencePeriod.Years },
+      '2028-03-01',
+      '2029-02-28',
+    ],
+    ['After 1 from today', endsAfter(1), TODAY, undefined],
+    ['an end day earlier than Starts', endsOn('2026-10-19'), TODAY, undefined],
+    [
+      'daily Forever from 2020',
+      { startDate: '2020-01-01', recurrencePeriod: RecurrencePeriod.Days },
+      TODAY,
+      '2026-10-21',
+    ],
+    ['On with an empty date', endsOn(''), TODAY, '2026-11-20'],
+    ['monthly with Every emptied', { recurrenceEvery: null }, TODAY, '2026-11-20'],
+  ])('reads %s', (_name, overrides, today, day) => {
+    expect(resolveRepeatsNextDueDate(scheduleOf(overrides), NO_SETTLED_DUE_DATES, today)).toBe(day);
+  });
+
+  it('on edit passes over a settled next cycle', () => {
+    expect(resolveRepeatsNextDueDate(FORM_SCHEDULE, ['2026-11-20'], TODAY)).toBe('2026-12-20');
+  });
+
+  it('on edit reads nothing for After 2 with both rows settled', () => {
+    expect(
+      resolveRepeatsNextDueDate(scheduleOf(endsAfter(2)), ['2026-10-20', '2026-11-20'], TODAY),
+    ).toBeUndefined();
+  });
+});
+
+describe('resolveRepeatsTrack (MA-280)', () => {
+  const TODAY = '2026-10-20';
+
+  it.each<[string, Partial<CommitmentFormSchedule>, string, string]>([
+    ['Every month', {}, TODAY, 'Every month · next Fri 20 Nov'],
+    [
+      'Every 2 weeks',
+      { recurrenceEvery: 2, recurrencePeriod: RecurrencePeriod.Weeks },
+      TODAY,
+      'Every 2 weeks · next Tue 3 Nov',
+    ],
+    [
+      'Every month with the next day in the following year',
+      { startDate: '2026-12-20' },
+      '2026-12-25',
+      'Every month · next Wed 20 Jan 2027',
+    ],
+    ['Every month, After 1, with no day after today', endsAfter(1), TODAY, 'Every month'],
+  ])('reads %s', (_name, overrides, today, track) => {
+    expect(resolveRepeatsTrack(scheduleOf(overrides), NO_SETTLED_DUE_DATES, today)).toBe(track);
+  });
+
+  it('on edit names the cycle after a settled one', () => {
+    expect(resolveRepeatsTrack(FORM_SCHEDULE, ['2026-11-20'], TODAY)).toBe(
+      'Every month · next Sun 20 Dec',
+    );
   });
 });
 

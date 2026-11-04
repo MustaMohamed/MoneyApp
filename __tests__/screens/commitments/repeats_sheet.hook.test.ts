@@ -1,8 +1,13 @@
 import { act, renderHook } from '@testing-library/react-native';
+import { useMemo } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 
 import { RecurrencePeriod, RecurrencePreset } from '@/constants/enums';
-import { resolveRepeatsRowValue } from '@/modules/commitments/screens/commitments/commitment_form.helpers';
+import {
+  type CommitmentFormSchedule,
+  NO_SETTLED_DUE_DATES,
+  resolveRepeatsRowValue,
+} from '@/modules/commitments/screens/commitments/commitment_form.helpers';
 import {
   buildAddDefaults,
   type CommitmentFormValues,
@@ -11,22 +16,52 @@ import { useCommitmentFormBodyPickers } from '@/modules/commitments/screens/comm
 import { useCommitmentFormBodyState } from '@/modules/commitments/screens/commitments/components/commitment_form_body.state';
 import { useRepeatsSheet } from '@/modules/commitments/screens/commitments/components/repeats_sheet.hook';
 
-// The body as it composes the Repeats row and sheet: one form, one owner.
-function useRepeatsHarness() {
-  const form = useForm<CommitmentFormValues>({ defaultValues: buildAddDefaults() });
-  const pickers = useCommitmentFormBodyPickers();
-  const sheet = useRepeatsSheet(pickers.owner, form);
-  const [every, period] = useWatch({
-    control: form.control,
-    name: ['recurrenceEvery', 'recurrencePeriod'],
+// Starts on today, Tue 20 Oct 2026, read at local noon.
+const STARTS = '2026-10-20';
+const NOW = new Date(2026, 9, 20, 12);
+
+// The body as it composes the Repeats row and sheet: one form, one owner, one schedule from the watched fields.
+function useRepeatsHarness(settledDueDates: readonly string[]) {
+  const form = useForm<CommitmentFormValues>({
+    defaultValues: { ...buildAddDefaults(), startDate: STARTS },
   });
-  return { form, pickers, sheet, row: resolveRepeatsRowValue(every, period) };
+  const pickers = useCommitmentFormBodyPickers();
+  const [startDate, recurrenceEvery, recurrencePeriod, durationType, endAfterCount, endDate] =
+    useWatch({
+      control: form.control,
+      name: [
+        'startDate',
+        'recurrenceEvery',
+        'recurrencePeriod',
+        'durationType',
+        'endAfterCount',
+        'endDate',
+      ],
+    });
+  const schedule = useMemo<CommitmentFormSchedule>(
+    () => ({
+      startDate,
+      recurrenceEvery,
+      recurrencePeriod,
+      durationType,
+      endAfterCount,
+      endDate,
+    }),
+    [startDate, recurrenceEvery, recurrencePeriod, durationType, endAfterCount, endDate],
+  );
+  const sheet = useRepeatsSheet(pickers.owner, form, schedule, settledDueDates, NOW);
+  return {
+    form,
+    pickers,
+    sheet,
+    row: resolveRepeatsRowValue(recurrenceEvery, recurrencePeriod),
+  };
 }
 
 type Harness = { current: ReturnType<typeof useRepeatsHarness> };
 
-async function mount(): Promise<Harness> {
-  const { result } = await renderHook(() => useRepeatsHarness());
+async function mount(settledDueDates: readonly string[] = NO_SETTLED_DUE_DATES): Promise<Harness> {
+  const { result } = await renderHook(() => useRepeatsHarness(settledDueDates));
   return result;
 }
 
@@ -58,17 +93,17 @@ beforeEach(() => {
 });
 
 describe('useRepeatsSheet (MA-276)', () => {
-  it('opened on Every month lights Monthly, and Custom reads Every 2 months', async () => {
+  it('opened on Every month lights Monthly, and Custom reads Every 2 months with its next day', async () => {
     const result = await mount();
     expect(result.current.sheet.state.draft).toBeUndefined();
-    expect(result.current.sheet.state.label).toBeUndefined();
+    expect(result.current.sheet.state.track).toBeUndefined();
 
     await tapRow(result);
 
     expect(result.current.pickers.state.choiceSheet).toBe('repeats');
     expect(result.current.sheet.state).toEqual({
       draft: { preset: RecurrencePreset.Monthly, every: 1, period: RecurrencePeriod.Months },
-      label: 'Every month',
+      track: 'Every month · next Fri 20 Nov',
       isCustom: false,
     });
 
@@ -76,10 +111,32 @@ describe('useRepeatsSheet (MA-276)', () => {
 
     expect(result.current.sheet.state).toEqual({
       draft: { preset: RecurrencePreset.Custom, every: 2, period: RecurrencePeriod.Months },
-      label: 'Every 2 months',
+      track: 'Every 2 months · next Sun 20 Dec',
       isCustom: true,
     });
     expect(formCadence(result)).toEqual({ every: 1, period: RecurrencePeriod.Months });
+  });
+
+  it('Weekly reads Every week with the day 7 days after Starts, and after Done the label equals the row', async () => {
+    const result = await mount();
+    await tapRow(result);
+
+    await act(async () => result.current.sheet.pickPreset(RecurrencePreset.Weekly));
+
+    expect(result.current.sheet.state.track).toBe('Every week · next Tue 27 Oct');
+    const label = resolveRepeatsRowValue(1, RecurrencePeriod.Weeks);
+    await act(async () => result.current.sheet.done());
+
+    expect(result.current.row).toBe(label);
+    expect(result.current.row).toBe('Every week');
+  });
+
+  it('on edit, a settled next cycle moves the track to the cycle after it', async () => {
+    const result = await mount(['2026-11-20']);
+
+    await tapRow(result);
+
+    expect(result.current.sheet.state.track).toBe('Every month · next Sun 20 Dec');
   });
 
   it('a step to 3 then weeks reads Every 3 weeks', async () => {
@@ -90,7 +147,7 @@ describe('useRepeatsSheet (MA-276)', () => {
 
     expect(result.current.sheet.state).toEqual({
       draft: { preset: RecurrencePreset.Custom, every: 3, period: RecurrencePeriod.Weeks },
-      label: 'Every 3 weeks',
+      track: 'Every 3 weeks · next Tue 10 Nov',
       isCustom: true,
     });
   });
@@ -121,7 +178,7 @@ describe('useRepeatsSheet (MA-276)', () => {
 
     expect(result.current.sheet.state).toEqual({
       draft: { preset: RecurrencePreset.Monthly, every: 1, period: RecurrencePeriod.Months },
-      label: 'Every month',
+      track: 'Every month · next Fri 20 Nov',
       isCustom: false,
     });
   });

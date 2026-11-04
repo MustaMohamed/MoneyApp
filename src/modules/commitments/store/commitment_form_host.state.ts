@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
+import { NO_SETTLED_DUE_DATES } from '@/modules/commitments/screens/commitments/commitment_form.helpers';
 import { useAddCommitmentState } from '@/modules/commitments/screens/commitments/commitment_form/add_commitment.state';
 import {
   isAnyEditCommitmentSaving,
@@ -35,6 +36,7 @@ interface CommitmentFormHostStateShape {
   sessionId: number;
   mode: CommitmentFormMode | undefined;
   editingCommitment: Commitment | undefined;
+  editingSettledDueDates: readonly string[];
   landing: CommitmentEditLanding | undefined;
   footer: CommitmentFormFooterState;
   postCloseToast: CommitmentFormPostCloseToast | undefined;
@@ -42,7 +44,11 @@ interface CommitmentFormHostStateShape {
 
 type CommitmentFormHostState = CommitmentFormHostStateShape & {
   openAdd: () => void;
-  openEdit: (commitment: Commitment, landing?: CommitmentEditLanding) => void;
+  openEdit: (
+    commitment: Commitment,
+    settledDueDates: readonly string[],
+    landing?: CommitmentEditLanding,
+  ) => void;
   requestClose: () => boolean;
   completeSave: (sessionId: number, postCloseToast?: CommitmentFormPostCloseToast) => boolean;
   completeClose: (sessionId: number) => CommitmentFormPostCloseToast | undefined;
@@ -57,6 +63,7 @@ const INITIAL_STATE: CommitmentFormHostStateShape = {
   sessionId: 0,
   mode: undefined,
   editingCommitment: undefined,
+  editingSettledDueDates: NO_SETTLED_DUE_DATES,
   landing: undefined,
   footer: INITIAL_FOOTER,
   postCloseToast: undefined,
@@ -79,19 +86,21 @@ export const useCommitmentFormHostState = createMoneyAppSelectors(
         sessionId: state.sessionId + 1,
         mode: 'add',
         editingCommitment: undefined,
+        editingSettledDueDates: NO_SETTLED_DUE_DATES,
         landing: undefined,
         footer: INITIAL_FOOTER,
         postCloseToast: undefined,
       }));
     },
 
-    openEdit: (commitment, landing) => {
+    openEdit: (commitment, settledDueDates, landing) => {
       if (get().phase !== 'closed') return;
       set((state) => ({
         phase: 'open',
         sessionId: state.sessionId + 1,
         mode: 'edit',
         editingCommitment: commitment,
+        editingSettledDueDates: settledDueDates,
         landing,
         footer: INITIAL_FOOTER,
         postCloseToast: undefined,
@@ -120,6 +129,7 @@ export const useCommitmentFormHostState = createMoneyAppSelectors(
         phase: 'closed',
         mode: undefined,
         editingCommitment: undefined,
+        editingSettledDueDates: NO_SETTLED_DUE_DATES,
         landing: undefined,
         footer: INITIAL_FOOTER,
         postCloseToast: undefined,

@@ -17,15 +17,17 @@ const POST_CLOSE_TOAST_LABEL: Record<CommitmentFormPostCloseToast, string> = {
 
 export function useCommitmentFormHost() {
   const { toast } = useToast();
-  const { phase, sessionId, mode, editingCommitment, footer } = useCommitmentFormHostState(
-    useShallow((state) => ({
-      phase: state.phase,
-      sessionId: state.sessionId,
-      mode: state.mode,
-      editingCommitment: state.editingCommitment,
-      footer: state.footer,
-    })),
-  );
+  const { phase, sessionId, mode, editingCommitment, editingSettledDueDates, footer } =
+    useCommitmentFormHostState(
+      useShallow((state) => ({
+        phase: state.phase,
+        sessionId: state.sessionId,
+        mode: state.mode,
+        editingCommitment: state.editingCommitment,
+        editingSettledDueDates: state.editingSettledDueDates,
+        footer: state.footer,
+      })),
+    );
   const {
     state: session,
     registerSubmit,
@@ -67,6 +69,7 @@ export function useCommitmentFormHost() {
       sessionId,
       mode,
       editingCommitment,
+      editingSettledDueDates,
       title: mode === 'edit' ? Strings.commitmentsEditTitle : Strings.commitmentsAddTitle,
       isDismissable: session.isDismissable,
       saving: footer.saving,

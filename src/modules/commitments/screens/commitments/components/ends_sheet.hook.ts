@@ -3,7 +3,11 @@ import type { UseFormReturn } from 'react-hook-form';
 
 import type { DurationType } from '@/constants/enums';
 
-import { applyEndsDraft, resolveEndsRowValue } from '../commitment_form.helpers';
+import {
+  type CommitmentFormSchedule,
+  applyEndsDraft,
+  resolveEndsSheetPreview,
+} from '../commitment_form.helpers';
 import { type CommitmentFormValues, ENDS_AFTER_COUNT_MIN } from '../commitment_form.shared';
 import { INITIAL_PICKER_ENTRY, useCommitmentFormBodyState } from './commitment_form_body.state';
 
@@ -12,6 +16,8 @@ export function useEndsSheet(
   owner: string,
   form: Pick<UseFormReturn<CommitmentFormValues>, 'setValue' | 'trigger'>,
   isSubmitted: boolean,
+  schedule: CommitmentFormSchedule,
+  settledDueDates: readonly string[],
 ) {
   const draft = useCommitmentFormBodyState(
     (s) => (s.entries[owner] ?? INITIAL_PICKER_ENTRY).endsDraft,
@@ -36,12 +42,19 @@ export function useEndsSheet(
     };
   }, [owner, form, isSubmitted]);
 
+  const preview = useMemo(() => {
+    if (draft === undefined) return { track: undefined, line: undefined };
+    const staged: CommitmentFormSchedule = {
+      ...schedule,
+      durationType: draft.type,
+      endAfterCount: draft.count,
+      endDate: draft.date,
+    };
+    return resolveEndsSheetPreview(staged, settledDueDates);
+  }, [draft, schedule, settledDueDates]);
+
   return {
-    state: {
-      draft,
-      track:
-        draft === undefined ? undefined : resolveEndsRowValue(draft.type, draft.count, draft.date),
-    },
+    state: { draft, ...preview },
     ...actions,
   };
 }

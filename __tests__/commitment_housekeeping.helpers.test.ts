@@ -1,4 +1,5 @@
 import { AmountType, Currency, DurationType, RecurrencePeriod } from '@/constants/enums';
+import { selectNewDueDates } from '@/modules/commitments/domain/due_date_selection';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import {
   planMissingCommitmentPayments,
@@ -272,5 +273,68 @@ describe('planMissingCommitmentPayments — rows through the window end', () => 
     expect(rows.filter((row) => row.commitment_id === 'stopped')).toEqual([]);
     const running = rows.filter((row) => row.commitment_id === 'running');
     expect(running.at(-1)?.due_date).toBe('2030-12-31');
+  });
+});
+
+describe('selectNewDueDates (MA-280)', () => {
+  const DATES = [
+    '2026-01-20',
+    '2026-02-20',
+    '2026-03-20',
+    '2026-04-20',
+    '2026-05-20',
+    '2026-06-20',
+    '2026-07-20',
+  ];
+  const FOREVER = { durationType: DurationType.Forever, endAfterCount: null };
+
+  it('returns every date, in a new array, when none is held', () => {
+    const selected = selectNewDueDates(DATES, new Set(), FOREVER);
+
+    expect(selected).toEqual(DATES);
+    expect(selected).not.toBe(DATES);
+  });
+
+  it('skips a held date and keeps the order of the rest', () => {
+    expect(selectNewDueDates(DATES.slice(0, 3), new Set(['2026-02-20']), FOREVER)).toEqual([
+      '2026-01-20',
+      '2026-03-20',
+    ]);
+  });
+
+  it('takes 3 dates for After 5 holding 2, skipping the held ones', () => {
+    expect(
+      selectNewDueDates(DATES, new Set(['2026-01-20', '2026-03-20']), {
+        durationType: DurationType.AfterCount,
+        endAfterCount: 5,
+      }),
+    ).toEqual(['2026-02-20', '2026-04-20', '2026-05-20']);
+  });
+
+  it.each([
+    ['exactly N', ['2026-01-20', '2026-02-20']],
+    ['more than N', ['2026-01-20', '2026-02-20', '2025-12-20']],
+  ])('returns no date for After 2 holding %s dates', (_name, held) => {
+    expect(
+      selectNewDueDates(DATES, new Set(held), {
+        durationType: DurationType.AfterCount,
+        endAfterCount: 2,
+      }),
+    ).toEqual([]);
+  });
+
+  it('returns every date not held for After with no count', () => {
+    expect(
+      selectNewDueDates(DATES, new Set(['2026-04-20']), {
+        durationType: DurationType.AfterCount,
+        endAfterCount: null,
+      }),
+    ).toEqual(DATES.filter((date) => date !== '2026-04-20'));
+  });
+
+  it('ignores the count on Forever', () => {
+    expect(
+      selectNewDueDates(DATES, new Set(), { durationType: DurationType.Forever, endAfterCount: 1 }),
+    ).toEqual(DATES);
   });
 });

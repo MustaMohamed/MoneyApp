@@ -598,6 +598,40 @@ describe('useCommitmentDetail', () => {
     },
   );
 
+  it('hands the edit sheet the due dates of its paid and skipped rows only (MA-280)', async () => {
+    const paidMarch: CommitmentPayment = {
+      ...payment,
+      id: 'paid-mar',
+      due_date: '2026-03-01',
+      paid_date: '2026-03-02',
+      amount_paid: 5000,
+    };
+    const skippedApril: CommitmentPayment = {
+      ...payment,
+      id: 'skipped-apr',
+      due_date: '2026-04-01',
+      skipped_date: '2026-04-03',
+    };
+    const unpaidMay: CommitmentPayment = { ...payment, id: 'unpaid-may', due_date: '2026-05-01' };
+    commitmentsById = { [commitment.id]: commitment };
+    historyById = { [commitment.id]: [paidMarch, skippedApril, unpaidMay] };
+    mockParams = { id: commitment.id, cycle: unpaidMay.id };
+    const { result } = await renderHook(() => useCommitmentDetail());
+    await waitFor(() => expect(result.current.state.payment?.id).toBe(unpaidMay.id));
+
+    await act(async () => result.current.goToEdit());
+
+    expect(useCommitmentFormHostState.getState()).toMatchObject({
+      phase: 'open',
+      mode: 'edit',
+      editingCommitment: commitment,
+    });
+    expect(useCommitmentFormHostState.getState().editingSettledDueDates).toEqual([
+      '2026-03-01',
+      '2026-04-01',
+    ]);
+  });
+
   it('a deactivate from the stacked copy pops back to the stacked transaction it came from', async () => {
     mockPathname.current = '/stacked/commitments/commitment-1';
     mockParams.originTxId = 'tx-1';

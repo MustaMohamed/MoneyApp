@@ -1,5 +1,5 @@
-import { DurationType } from '@/constants/enums';
 import type { ActiveCommitmentDueDate } from '@/modules/commitments/database/commitment_payments';
+import { selectNewDueDates } from '@/modules/commitments/domain/due_date_selection';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import { computeDueDates } from '@/utils/compute_due_dates';
@@ -43,15 +43,12 @@ export function planMissingCommitmentPayments({
       throughDate,
     });
 
-    let remaining =
-      commitment.duration_type === DurationType.AfterCount && commitment.end_after_count !== null
-        ? Math.max(0, commitment.end_after_count - existing.size)
-        : Number.POSITIVE_INFINITY;
+    const selected = selectNewDueDates(dates, existing, {
+      durationType: commitment.duration_type,
+      endAfterCount: commitment.end_after_count,
+    });
 
-    for (const dueDate of dates) {
-      if (remaining <= 0) break;
-      if (existing.has(dueDate)) continue;
-      remaining -= 1;
+    for (const dueDate of selected) {
       rows.push({
         id: createId(),
         commitment_id: commitment.id,

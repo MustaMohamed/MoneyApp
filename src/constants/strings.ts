@@ -1119,6 +1119,16 @@ export const Strings = {
   commitmentsEndsUntilLabel: 'Last payment on or before',
   commitmentsEndsDateRow: 'Date',
   commitmentsEndsStepperUnit: (n: number) => (n === 1 ? 'payment' : 'payments'),
+  commitmentsEndsLastPayment: (day: string) => `Last payment ${day}`,
+  commitmentsEndsAfterPreviewOne: (day: string) => `After 1 payment · last ${day}`,
+  commitmentsEndsAfterPreviewMany: (count: string, day: string) =>
+    `After ${count} payments · last ${day}`,
+  commitmentsEndsThroughLineOne: (day: string) => `1 payment through ${day}`,
+  commitmentsEndsThroughLineMany: (count: string, day: string) =>
+    `${count} payments through ${day}`,
+  commitmentsEndsOnDatePreviewOne: (day: string) => `On ${day} · 1 payment`,
+  commitmentsEndsOnDatePreviewMany: (count: string, day: string) => `On ${day} · ${count} payments`,
+  commitmentsRepeatsNext: (label: string, day: string) => `${label} · next ${day}`,
   commitmentsSave: 'Save',
   commitmentsFirstPaymentDue: (day: string) => `First payment due ${day}.`,
   commitmentsEditScheduleFootnote: 'Upcoming payments follow the new schedule. Paid ones stay.',

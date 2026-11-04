@@ -1,3 +1,4 @@
+import { NO_SETTLED_DUE_DATES } from '@/modules/commitments/screens/commitments/commitment_form.helpers';
 import { useAddCommitmentState } from '@/modules/commitments/screens/commitments/commitment_form/add_commitment.state';
 import { useEditCommitmentState } from '@/modules/commitments/screens/commitments/commitment_form/edit_commitment.state';
 import { useCommitmentFormHostState } from '@/modules/commitments/store/commitment_form_host.state';
@@ -111,7 +112,7 @@ describe('useCommitmentFormHostState', () => {
       host().openAdd();
       closeCurrent();
 
-      host().openEdit(rent, landing);
+      host().openEdit(rent, NO_SETTLED_DUE_DATES, landing);
 
       expect(host()).toMatchObject({
         phase: 'open',
@@ -124,7 +125,7 @@ describe('useCommitmentFormHostState', () => {
     });
 
     it('opens an edit with no landing', () => {
-      host().openEdit(rent);
+      host().openEdit(rent, NO_SETTLED_DUE_DATES);
 
       expect(host()).toMatchObject({
         phase: 'open',
@@ -135,10 +136,47 @@ describe('useCommitmentFormHostState', () => {
       expect(host().landing).toBeUndefined();
     });
 
-    it('changes nothing on openEdit while an edit is open', () => {
-      host().openEdit(rent, landing);
+    describe('the settled due dates (MA-280)', () => {
+      it('holds none while closed', () => {
+        expect(host().editingSettledDueDates).toEqual([]);
+      });
 
-      host().openEdit(gym);
+      it('holds the settled due dates an edit opens with', () => {
+        host().openEdit(rent, ['2026-09-20'], landing);
+
+        expect(host().editingSettledDueDates).toEqual(['2026-09-20']);
+      });
+
+      it('holds none for an edit opened with no settled due dates', () => {
+        host().openEdit(rent, NO_SETTLED_DUE_DATES);
+
+        expect(host().editingSettledDueDates).toEqual([]);
+      });
+
+      it('holds none for an add opened after an edit with settled due dates', () => {
+        host().openEdit(rent, ['2026-09-20'], landing);
+        closeCurrent();
+
+        host().openAdd();
+
+        expect(host().editingSettledDueDates).toEqual([]);
+      });
+
+      it('holds none once an edit with settled due dates closes', () => {
+        host().openEdit(rent, ['2026-09-20'], landing);
+        expect(host().editingSettledDueDates).toEqual(['2026-09-20']);
+
+        closeCurrent();
+
+        expect(host().phase).toBe('closed');
+        expect(host().editingSettledDueDates).toEqual([]);
+      });
+    });
+
+    it('changes nothing on openEdit while an edit is open', () => {
+      host().openEdit(rent, NO_SETTLED_DUE_DATES, landing);
+
+      host().openEdit(gym, NO_SETTLED_DUE_DATES);
 
       expect(host()).toMatchObject({
         phase: 'open',
@@ -152,7 +190,7 @@ describe('useCommitmentFormHostState', () => {
     it('changes nothing on openEdit while an add is open', () => {
       host().openAdd();
 
-      host().openEdit(rent, landing);
+      host().openEdit(rent, NO_SETTLED_DUE_DATES, landing);
 
       expect(host()).toMatchObject({ phase: 'open', sessionId: 1, mode: 'add' });
       expect(host().editingCommitment).toBeUndefined();
@@ -160,10 +198,10 @@ describe('useCommitmentFormHostState', () => {
     });
 
     it('changes nothing on openEdit while closing', () => {
-      host().openEdit(rent, landing);
+      host().openEdit(rent, NO_SETTLED_DUE_DATES, landing);
       host().requestClose();
 
-      host().openEdit(gym);
+      host().openEdit(gym, NO_SETTLED_DUE_DATES);
 
       expect(host()).toMatchObject({
         phase: 'closing',
@@ -175,7 +213,7 @@ describe('useCommitmentFormHostState', () => {
     });
 
     it('opens an add after an edit with the edit commitment and landing cleared', () => {
-      host().openEdit(rent, landing);
+      host().openEdit(rent, NO_SETTLED_DUE_DATES, landing);
       closeCurrent();
 
       host().openAdd();
@@ -187,7 +225,7 @@ describe('useCommitmentFormHostState', () => {
     });
 
     it('refuses a close while an edit entry saves, and closes once it lands', () => {
-      host().openEdit(rent);
+      host().openEdit(rent, NO_SETTLED_DUE_DATES);
       useEditCommitmentState.getState().claim('owner-1');
       useEditCommitmentState.getState().setSaving('owner-1', true);
 
@@ -201,7 +239,7 @@ describe('useCommitmentFormHostState', () => {
     });
 
     it('refuses a close while the published footer saves', () => {
-      host().openEdit(rent);
+      host().openEdit(rent, NO_SETTLED_DUE_DATES);
       host().publishFooter(1, { saving: true });
 
       expect(host().requestClose()).toBe(false);
@@ -214,9 +252,9 @@ describe('useCommitmentFormHostState', () => {
     });
 
     it('writes a published footer for the current session only', () => {
-      host().openEdit(rent);
+      host().openEdit(rent, NO_SETTLED_DUE_DATES);
       closeCurrent();
-      host().openEdit(gym);
+      host().openEdit(gym, NO_SETTLED_DUE_DATES);
 
       host().publishFooter(1, { saving: true, errorMessage: 'stale' });
       expect(host().footer).toEqual({ saving: false });
@@ -226,7 +264,7 @@ describe('useCommitmentFormHostState', () => {
     });
 
     it('writes no published footer while closed', () => {
-      host().openEdit(rent);
+      host().openEdit(rent, NO_SETTLED_DUE_DATES);
       closeCurrent();
 
       host().publishFooter(1, { saving: true, errorMessage: 'late' });
@@ -236,7 +274,7 @@ describe('useCommitmentFormHostState', () => {
     });
 
     it('keeps the landing through a completed save', () => {
-      host().openEdit(rent, landing);
+      host().openEdit(rent, NO_SETTLED_DUE_DATES, landing);
 
       expect(host().completeSave(1)).toBe(true);
 
@@ -245,7 +283,7 @@ describe('useCommitmentFormHostState', () => {
     });
 
     it('clears the mode, the commitment, the landing and the footer on close, keeping the session id', () => {
-      host().openEdit(rent, landing);
+      host().openEdit(rent, NO_SETTLED_DUE_DATES, landing);
       host().publishFooter(1, { saving: false, errorMessage: 'Save failed' });
       host().requestClose();
 
@@ -268,7 +306,7 @@ describe('useCommitmentFormHostState', () => {
         host().requestClose();
         expect(host().completeClose(1)).toBeUndefined();
 
-        host().openEdit(rent);
+        host().openEdit(rent, NO_SETTLED_DUE_DATES);
         expect(host().completeSave(2, mark)).toBe(true);
 
         expect(host().completeClose(2)).toBe(mark);
