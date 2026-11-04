@@ -10,24 +10,32 @@ import {
 } from '@/modules/commitments/store/commitment_form_host.state';
 import { useFormSessionHost } from '@/utils/use_form_session.hook';
 
-const POST_CLOSE_TOAST_LABEL: Record<CommitmentFormPostCloseToast, string> = {
+const POST_CLOSE_TOAST_LABEL: Record<Exclude<CommitmentFormPostCloseToast, 'stopped'>, string> = {
   added: Strings.commitmentsAddedToast,
   updated: Strings.commitmentsUpdatedToast,
 };
 
 export function useCommitmentFormHost() {
   const { toast } = useToast();
-  const { phase, sessionId, mode, editingCommitment, editingSettledDueDates, footer } =
-    useCommitmentFormHostState(
-      useShallow((state) => ({
-        phase: state.phase,
-        sessionId: state.sessionId,
-        mode: state.mode,
-        editingCommitment: state.editingCommitment,
-        editingSettledDueDates: state.editingSettledDueDates,
-        footer: state.footer,
-      })),
-    );
+  const {
+    phase,
+    sessionId,
+    mode,
+    editingCommitment,
+    editingSettledDueDates,
+    editingStopCounts,
+    footer,
+  } = useCommitmentFormHostState(
+    useShallow((state) => ({
+      phase: state.phase,
+      sessionId: state.sessionId,
+      mode: state.mode,
+      editingCommitment: state.editingCommitment,
+      editingSettledDueDates: state.editingSettledDueDates,
+      editingStopCounts: state.editingStopCounts,
+      footer: state.footer,
+    })),
+  );
   const {
     state: session,
     registerSubmit,
@@ -47,18 +55,22 @@ export function useCommitmentFormHost() {
     [completeSave],
   );
 
-  const handleDeactivated = useCallback(
+  // The detail's exit waits for the sheet to close: its landing runs from `handleCloseComplete`.
+  const handleStopped = useCallback(
     (ownerSessionId: number) => {
-      const { landing } = useCommitmentFormHostState.getState();
-      if (!completeSave(ownerSessionId)) return;
-      landing?.onDeactivated?.();
+      completeSave(ownerSessionId, 'stopped');
     },
     [completeSave],
   );
 
   const handleCloseComplete = useCallback(() => {
+    const { landing } = useCommitmentFormHostState.getState();
     const postCloseToast = completeClose(sessionId);
     if (postCloseToast === undefined) return;
+    if (postCloseToast === 'stopped') {
+      landing?.onStopped?.();
+      return;
+    }
     toast.show({ label: POST_CLOSE_TOAST_LABEL[postCloseToast], variant: 'success' });
   }, [completeClose, sessionId, toast]);
 
@@ -70,6 +82,7 @@ export function useCommitmentFormHost() {
       mode,
       editingCommitment,
       editingSettledDueDates,
+      editingStopCounts,
       title: mode === 'edit' ? Strings.commitmentsEditTitle : Strings.commitmentsAddTitle,
       isDismissable: session.isDismissable,
       saving: footer.saving,
@@ -80,7 +93,7 @@ export function useCommitmentFormHost() {
     handleSave,
     handleOpenChange,
     handleSaved,
-    handleDeactivated,
+    handleStopped,
     handleCloseComplete,
   };
 }

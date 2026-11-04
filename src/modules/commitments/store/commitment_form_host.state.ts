@@ -1,5 +1,9 @@
 import { create } from 'zustand';
 
+import {
+  type CommitmentStopCounts,
+  NO_STOP_COUNTS,
+} from '@/modules/commitments/domain/payment_state';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import { NO_SETTLED_DUE_DATES } from '@/modules/commitments/screens/commitments/commitment_form.helpers';
 import { useAddCommitmentState } from '@/modules/commitments/screens/commitments/commitment_form/add_commitment.state';
@@ -18,11 +22,11 @@ type CommitmentFormPhase = FormSessionPhase;
 
 type CommitmentFormMode = 'add' | 'edit';
 
-export type CommitmentFormPostCloseToast = 'added' | 'updated';
+export type CommitmentFormPostCloseToast = 'added' | 'updated' | 'stopped';
 
 interface CommitmentEditLanding {
   onSaved?: () => void;
-  onDeactivated?: () => void;
+  onStopped?: () => void;
 }
 
 export interface CommitmentFormFooterState {
@@ -37,6 +41,7 @@ interface CommitmentFormHostStateShape {
   mode: CommitmentFormMode | undefined;
   editingCommitment: Commitment | undefined;
   editingSettledDueDates: readonly string[];
+  editingStopCounts: CommitmentStopCounts;
   landing: CommitmentEditLanding | undefined;
   footer: CommitmentFormFooterState;
   postCloseToast: CommitmentFormPostCloseToast | undefined;
@@ -48,6 +53,7 @@ type CommitmentFormHostState = CommitmentFormHostStateShape & {
     commitment: Commitment,
     settledDueDates: readonly string[],
     landing?: CommitmentEditLanding,
+    stopCounts?: CommitmentStopCounts,
   ) => void;
   requestClose: () => boolean;
   completeSave: (sessionId: number, postCloseToast?: CommitmentFormPostCloseToast) => boolean;
@@ -64,6 +70,7 @@ const INITIAL_STATE: CommitmentFormHostStateShape = {
   mode: undefined,
   editingCommitment: undefined,
   editingSettledDueDates: NO_SETTLED_DUE_DATES,
+  editingStopCounts: NO_STOP_COUNTS,
   landing: undefined,
   footer: INITIAL_FOOTER,
   postCloseToast: undefined,
@@ -87,13 +94,14 @@ export const useCommitmentFormHostState = createMoneyAppSelectors(
         mode: 'add',
         editingCommitment: undefined,
         editingSettledDueDates: NO_SETTLED_DUE_DATES,
+        editingStopCounts: NO_STOP_COUNTS,
         landing: undefined,
         footer: INITIAL_FOOTER,
         postCloseToast: undefined,
       }));
     },
 
-    openEdit: (commitment, settledDueDates, landing) => {
+    openEdit: (commitment, settledDueDates, landing, stopCounts = NO_STOP_COUNTS) => {
       if (get().phase !== 'closed') return;
       set((state) => ({
         phase: 'open',
@@ -101,6 +109,7 @@ export const useCommitmentFormHostState = createMoneyAppSelectors(
         mode: 'edit',
         editingCommitment: commitment,
         editingSettledDueDates: settledDueDates,
+        editingStopCounts: stopCounts,
         landing,
         footer: INITIAL_FOOTER,
         postCloseToast: undefined,
@@ -130,6 +139,7 @@ export const useCommitmentFormHostState = createMoneyAppSelectors(
         mode: undefined,
         editingCommitment: undefined,
         editingSettledDueDates: NO_SETTLED_DUE_DATES,
+        editingStopCounts: NO_STOP_COUNTS,
         landing: undefined,
         footer: INITIAL_FOOTER,
         postCloseToast: undefined,

@@ -47,6 +47,21 @@ export function countSettledPayments(rows: readonly PaymentDates[]): number {
   return rows.filter((p) => !isUnpaidPayment(p)).length;
 }
 
+/** The rows a Stop removes (unpaid) and keeps in history (paid); skipped rows stay but count in neither. */
+export interface CommitmentStopCounts {
+  unpaid: number;
+  paid: number;
+}
+
+export const NO_STOP_COUNTS: CommitmentStopCounts = Object.freeze({ unpaid: 0, paid: 0 });
+
+export function countStopPayments(rows: readonly PaymentDates[]): CommitmentStopCounts {
+  return {
+    unpaid: rows.filter(isUnpaidPayment).length,
+    paid: rows.filter((p) => isPaidPayment(p)).length,
+  };
+}
+
 /** The due days of the paid and skipped rows, the ones an edit save keeps. */
 export function listSettledDueDates(
   rows: readonly (PaymentDates & Pick<CommitmentPayment, 'due_date'>)[],

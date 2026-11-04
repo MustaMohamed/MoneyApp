@@ -21,7 +21,7 @@ export type { CommitmentFormValues };
 interface EditCommitmentOptions {
   commitment: Commitment;
   onSaved: () => void;
-  onDeactivated: () => void;
+  onStopped: () => void;
 }
 
 export function useEditCommitment(options: EditCommitmentOptions) {
@@ -32,13 +32,14 @@ export function useEditCommitment(options: EditCommitmentOptions) {
   const categories = useCategoryStore.useState.categories();
   const updateCommitment = useCommitmentStore.getState().updateCommitment;
   const deactivateCommitment = useCommitmentStore.getState().deactivateCommitment;
-  const { saving, saveError, deactivateDialogVisible } = useEditCommitmentState(
+  const { saving, saveError, stopDialogVisible, stopError } = useEditCommitmentState(
     useShallow((s) => s.entries[owner] ?? INITIAL_UI_ENTRY),
   );
   const claim = useEditCommitmentState.getState().claim;
   const setSaving = useEditCommitmentState.getState().setSaving;
   const setSaveError = useEditCommitmentState.getState().setSaveError;
-  const setDeactivateDialogVisible = useEditCommitmentState.getState().setDeactivateDialogVisible;
+  const setStopDialogVisible = useEditCommitmentState.getState().setStopDialogVisible;
+  const setStopError = useEditCommitmentState.getState().setStopError;
   const release = useEditCommitmentState.getState().release;
 
   const form = useZodForm(COMMITMENT_SCHEMA, {
@@ -90,42 +91,43 @@ export function useEditCommitment(options: EditCommitmentOptions) {
     await form.handleSubmit(onValid)();
   };
 
-  function handleDeactivate() {
-    setDeactivateDialogVisible(owner, true);
+  function openStopDialog() {
+    setStopError(owner, false);
+    setStopDialogVisible(owner, true);
   }
 
-  async function confirmDeactivate() {
+  async function confirmStop() {
     if (isSaving()) return;
+    setStopError(owner, false);
     setSaving(owner, true);
     try {
       await deactivateCommitment(commitment.id);
-      setDeactivateDialogVisible(owner, false);
-      options.onDeactivated();
+      setStopDialogVisible(owner, false);
+      options.onStopped();
     } catch {
-      // The sheet is a portal over the form, so it must close for the banner to show.
-      setDeactivateDialogVisible(owner, false);
-      setSaveError(owner, Strings.commitmentsSaveError);
+      setStopError(owner, true);
     } finally {
       setSaving(owner, false);
     }
   }
 
-  function cancelDeactivate() {
-    setDeactivateDialogVisible(owner, false);
+  function cancelStop() {
+    setStopDialogVisible(owner, false);
   }
 
   return {
     state: {
       saving,
       saveError,
-      deactivateDialogVisible,
+      stopDialogVisible,
+      stopError,
       categories,
       accounts,
     },
     form,
     onSubmit,
-    handleDeactivate,
-    confirmDeactivate,
-    cancelDeactivate,
+    openStopDialog,
+    confirmStop,
+    cancelStop,
   };
 }

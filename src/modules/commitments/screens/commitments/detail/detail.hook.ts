@@ -3,6 +3,8 @@ import { useCallback, useEffect, useId, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import type { DetailFact } from '@/components/ui/detail_fact_row.helpers';
+import { useToast } from '@/components/ui/toast';
+import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { lookupLeavesUnresolved } from '@/modules/accounts/store/account_lookup.helpers';
 import { useAccountsById } from '@/modules/accounts/store/use_accounts_by_id.hook';
@@ -22,6 +24,7 @@ import { useLocalDayChange } from '@/utils/use_local_day_change.hook';
 
 import {
   countSettledPayments,
+  countStopPayments,
   listSettledDueDates,
   resolveCommitmentLifecycle,
 } from '../../../domain/payment_state';
@@ -29,7 +32,9 @@ import { commitmentRepository } from '../../../repositories/commitment.repositor
 import { useCommitmentStore } from '../../../store/commitment.store';
 import { useCommitmentFormHostState } from '../../../store/commitment_form_host.state';
 import { useCommitmentsScreenState } from '../commitments.state';
+import { useSkipWithUndo } from '../skip_with_undo.hook';
 import { usePaySheetState } from './components/pay_sheet.state';
+import { resolveSkipConfirmBody } from './components/skip_confirm_dialog.helpers';
 import {
   buildCommitmentCycleCard,
   buildCommitmentDetailFacts,
@@ -83,6 +88,9 @@ export function useCommitmentDetail() {
 
   const payments = useCommitmentStore((s) => s.payments);
   const storeSkipPayment = useCommitmentStore.getState().skipPayment;
+  const storeDeactivateCommitment = useCommitmentStore.getState().deactivateCommitment;
+  const { toast } = useToast();
+  const { showSkippedToast } = useSkipWithUndo();
   const categories = useCategoryStore.useState.categories();
   const accountRead = useAccountsById();
   const { accountsById } = accountRead;
@@ -96,8 +104,18 @@ export function useCommitmentDetail() {
   );
   const loadingCycleHint = cycle === undefined ? undefined : payments.find((p) => p.id === cycle);
 
-  const { activeId, status, refreshError, reloadKey, skipConfirmVisible, skipBusy, skipError } =
-    useCommitmentDetailState(useShallow((s) => s.entries[owner] ?? INITIAL_UI_ENTRY));
+  const {
+    activeId,
+    status,
+    refreshError,
+    reloadKey,
+    skipConfirmVisible,
+    skipBusy,
+    skipError,
+    stopConfirmVisible,
+    stopBusy,
+    stopError,
+  } = useCommitmentDetailState(useShallow((s) => s.entries[owner] ?? INITIAL_UI_ENTRY));
   const beginLoad = useCommitmentDetailState.getState().beginLoad;
   const resolve = useCommitmentDetailState.getState().resolve;
   const failLoad = useCommitmentDetailState.getState().failLoad;
@@ -105,6 +123,9 @@ export function useCommitmentDetail() {
   const setSkipConfirmVisible = useCommitmentDetailState.getState().setSkipConfirmVisible;
   const setSkipBusy = useCommitmentDetailState.getState().setSkipBusy;
   const setSkipError = useCommitmentDetailState.getState().setSkipError;
+  const setStopConfirmVisible = useCommitmentDetailState.getState().setStopConfirmVisible;
+  const setStopBusy = useCommitmentDetailState.getState().setStopBusy;
+  const setStopError = useCommitmentDetailState.getState().setStopError;
   const releaseUi = useCommitmentDetailState.getState().release;
 
   const entry = useCommitmentDetailStore(useShallow((s) => s.entries[owner] ?? INITIAL_DATA_ENTRY));
@@ -174,6 +195,15 @@ export function useCommitmentDetail() {
   );
   const settledCount = useMemo(() => countSettledPayments(historyRows), [historyRows]);
   const settledDueDates = useMemo(() => listSettledDueDates(historyRows), [historyRows]);
+  // Over the overlaid rows, so a pay that lands before the Stop counts as paid.
+  const stopCounts = useMemo(() => countStopPayments(historyRows), [historyRows]);
+  const skipConfirmBody = useMemo(
+    () =>
+      payment && commitment && today !== undefined
+        ? resolveSkipConfirmBody({ payment, commitment, today })
+        : '',
+    [payment, commitment, today],
+  );
   const lifecycle =
     commitment && today !== undefined
       ? resolveCommitmentLifecycle(commitment, settledCount, today)
@@ -266,7 +296,7 @@ export function useCommitmentDetail() {
   }, [owner]);
 
   const skipPayment = useCallback(async () => {
-    if (!payment) return;
+    if (!payment || !commitment) return;
     setSkipError(owner, false);
     setSkipBusy(owner, true);
     try {
@@ -275,10 +305,21 @@ export function useCommitmentDetail() {
     } catch (err) {
       console.error('[commitmentDetail] skipPayment failed', err);
       setSkipError(owner, true);
+      return;
     } finally {
       setSkipBusy(owner, false);
     }
-  }, [payment, storeSkipPayment, owner, setSkipConfirmVisible, setSkipBusy, setSkipError]);
+    showSkippedToast(payment.id, commitment.name);
+  }, [
+    payment,
+    commitment,
+    storeSkipPayment,
+    owner,
+    setSkipConfirmVisible,
+    setSkipBusy,
+    setSkipError,
+    showSkippedToast,
+  ]);
 
   const confirmSkip = useCallback(() => {
     setSkipError(owner, false);
@@ -289,19 +330,66 @@ export function useCommitmentDetail() {
     setSkipConfirmVisible(owner, false);
   }, [owner, setSkipConfirmVisible]);
 
+  // Dismisses to where Back lands, never replaces, then toasts on that screen.
+  const finishStop = useCallback(
+    (name: string) => {
+      if (stackedPrefix === STACKED_PREFIX) leaveStackedSubtree(originTxId, originTxCopy);
+      else router.dismissTo('/commitments');
+      toast.show({ label: Strings.commitmentsStoppedToast(name), variant: 'success' });
+    },
+    [stackedPrefix, originTxId, originTxCopy, toast],
+  );
+
+  const confirmStop = useCallback(() => {
+    setStopError(owner, false);
+    setStopConfirmVisible(owner, true);
+  }, [owner, setStopConfirmVisible, setStopError]);
+
+  const cancelStop = useCallback(() => {
+    setStopConfirmVisible(owner, false);
+  }, [owner, setStopConfirmVisible]);
+
+  const stopCommitment = useCallback(async (): Promise<void> => {
+    if (!commitment) return;
+    // Read off the store: two taps in one frame both see the render's `stopBusy` as false.
+    if (useCommitmentDetailState.getState().entries[owner]?.stopBusy === true) return;
+    setStopError(owner, false);
+    setStopBusy(owner, true);
+    try {
+      await storeDeactivateCommitment(commitment.id);
+      setStopConfirmVisible(owner, false);
+    } catch (err) {
+      console.error('[commitmentDetail] stopCommitment failed', err);
+      setStopError(owner, true);
+      return;
+    } finally {
+      setStopBusy(owner, false);
+    }
+    finishStop(commitment.name);
+  }, [
+    commitment,
+    owner,
+    storeDeactivateCommitment,
+    setStopConfirmVisible,
+    setStopBusy,
+    setStopError,
+    finishStop,
+  ]);
+
   const reload = useCallback(() => bumpReload(owner), [bumpReload, owner]);
   useLocalDayChange(reload);
 
   const goToEdit = useCallback(() => {
     if (!commitment) return;
-    const onDeactivated =
-      stackedPrefix === STACKED_PREFIX
-        ? () => leaveStackedSubtree(originTxId, originTxCopy)
-        : () => router.dismissTo('/commitments');
     useCommitmentFormHostState
       .getState()
-      .openEdit(commitment, settledDueDates, { onSaved: reload, onDeactivated });
-  }, [commitment, settledDueDates, stackedPrefix, originTxId, originTxCopy, reload]);
+      .openEdit(
+        commitment,
+        settledDueDates,
+        { onSaved: reload, onStopped: () => finishStop(commitment.name) },
+        stopCounts,
+      );
+  }, [commitment, settledDueDates, stopCounts, reload, finishStop]);
 
   const goBack = useCallback(() => {
     router.back();
@@ -342,11 +430,19 @@ export function useCommitmentDetail() {
       skipConfirmVisible,
       skipBusy,
       skipError,
+      skipConfirmBody,
+      stopConfirmVisible,
+      stopBusy,
+      stopError,
+      stopCounts,
     },
     openPaySheet,
     skipPayment,
     confirmSkip,
     cancelSkip,
+    confirmStop,
+    cancelStop,
+    stopCommitment,
     reload,
     goToEdit,
     goBack,
