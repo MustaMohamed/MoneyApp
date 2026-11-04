@@ -1,5 +1,8 @@
-import { RecurrencePeriod, RecurrencePreset } from '@/constants/enums';
-import type { RepeatsDraft } from '@/modules/commitments/screens/commitments/commitment_form.shared';
+import { DurationType, RecurrencePeriod, RecurrencePreset } from '@/constants/enums';
+import type {
+  EndsDraft,
+  RepeatsDraft,
+} from '@/modules/commitments/screens/commitments/commitment_form.shared';
 import {
   INITIAL_PICKER_ENTRY,
   useCommitmentFormBodyState,
@@ -21,12 +24,15 @@ const customDraft: RepeatsDraft = {
   every: 3,
   period: RecurrencePeriod.Weeks,
 };
+const afterDraft: EndsDraft = { type: DurationType.AfterCount, count: 12, date: '2026-12-31' };
+const untilDraft: EndsDraft = { type: DurationType.UntilDate, count: 12, date: '2027-03-15' };
 
 // Every write except `claim`, the begin action; each must refuse an owner with no entry.
 const guardedWrites: ((owner: string) => void)[] = [
   (owner) => useCommitmentFormBodyState.getState().setCategoryPickerVisible(owner, true),
-  (owner) => useCommitmentFormBodyState.getState().setShowEndDatePicker(owner, true),
-  (owner) => useCommitmentFormBodyState.getState().setChoiceSheet(owner, 'ends'),
+  (owner) => useCommitmentFormBodyState.getState().closeChoiceSheet(owner),
+  (owner) => useCommitmentFormBodyState.getState().openEndsSheet(owner, afterDraft),
+  (owner) => useCommitmentFormBodyState.getState().setEndsDraft(owner, untilDraft),
   (owner) => useCommitmentFormBodyState.getState().openRepeatsSheet(owner, monthlyDraft),
   (owner) => useCommitmentFormBodyState.getState().setRepeatsDraft(owner, customDraft),
 ];
@@ -36,14 +42,14 @@ describe('useCommitmentFormBodyState', () => {
     expect(useCommitmentFormBodyState.getState().entries).toEqual({});
   });
 
-  it('claim opens a copy entry with every picker, date picker and choice sheet hidden, and no Repeats draft', () => {
+  it('claim opens a copy entry with every picker and choice sheet hidden, and no Repeats or Ends draft', () => {
     useCommitmentFormBodyState.getState().claim('owner-a');
 
     expect(entryOf('owner-a')).toStrictEqual({
       categoryPickerVisible: false,
-      showEndDatePicker: false,
       choiceSheet: undefined,
       repeatsDraft: undefined,
+      endsDraft: undefined,
     });
   });
 
@@ -71,9 +77,49 @@ describe('useCommitmentFormBodyState', () => {
     useCommitmentFormBodyState.getState().claim('owner-a');
     useCommitmentFormBodyState.getState().openRepeatsSheet('owner-a', customDraft);
 
-    useCommitmentFormBodyState.getState().setChoiceSheet('owner-a', undefined);
+    useCommitmentFormBodyState.getState().closeChoiceSheet('owner-a');
 
     expect(entryOf('owner-a')).toMatchObject({ choiceSheet: undefined, repeatsDraft: customDraft });
+  });
+
+  it('openEndsSheet opens the Ends sheet and holds its draft in one write (MA-277)', () => {
+    useCommitmentFormBodyState.getState().claim('owner-a');
+    const listener = jest.fn();
+    const unsubscribe = useCommitmentFormBodyState.subscribe(listener);
+
+    useCommitmentFormBodyState.getState().openEndsSheet('owner-a', afterDraft);
+    unsubscribe();
+
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(entryOf('owner-a')).toMatchObject({ choiceSheet: 'ends', endsDraft: afterDraft });
+  });
+
+  it('setEndsDraft replaces the draft and keeps the Ends sheet open (MA-277)', () => {
+    useCommitmentFormBodyState.getState().claim('owner-a');
+    useCommitmentFormBodyState.getState().openEndsSheet('owner-a', afterDraft);
+
+    useCommitmentFormBodyState.getState().setEndsDraft('owner-a', untilDraft);
+
+    expect(entryOf('owner-a')).toMatchObject({ choiceSheet: 'ends', endsDraft: untilDraft });
+  });
+
+  it('closing the choice sheet keeps the Ends draft through the close (MA-277)', () => {
+    useCommitmentFormBodyState.getState().claim('owner-a');
+    useCommitmentFormBodyState.getState().openEndsSheet('owner-a', afterDraft);
+
+    useCommitmentFormBodyState.getState().closeChoiceSheet('owner-a');
+
+    expect(entryOf('owner-a')).toMatchObject({ choiceSheet: undefined, endsDraft: afterDraft });
+  });
+
+  it('a draft write on an entry that holds no draft writes nothing (MA-277)', () => {
+    useCommitmentFormBodyState.getState().claim('owner-a');
+    const before = useCommitmentFormBodyState.getState().entries;
+
+    useCommitmentFormBodyState.getState().setEndsDraft('owner-a', untilDraft);
+    useCommitmentFormBodyState.getState().setRepeatsDraft('owner-a', (d) => d);
+
+    expect(useCommitmentFormBodyState.getState().entries).toBe(before);
   });
 
   it('claim on a copy that already owns an entry keeps it', () => {
@@ -97,9 +143,9 @@ describe('useCommitmentFormBodyState', () => {
     }
     expect(entryOf('owner-b')).toStrictEqual({
       categoryPickerVisible: true,
-      showEndDatePicker: true,
       choiceSheet: 'repeats',
       repeatsDraft: customDraft,
+      endsDraft: untilDraft,
     });
   });
 
@@ -127,7 +173,7 @@ describe('useCommitmentFormBodyState', () => {
 
   it('claim after release opens the copy again, from the initial entry', () => {
     useCommitmentFormBodyState.getState().claim('owner-a');
-    useCommitmentFormBodyState.getState().setShowEndDatePicker('owner-a', true);
+    useCommitmentFormBodyState.getState().openEndsSheet('owner-a', afterDraft);
     useCommitmentFormBodyState.getState().release('owner-a');
 
     useCommitmentFormBodyState.getState().claim('owner-a');

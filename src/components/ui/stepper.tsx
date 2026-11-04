@@ -3,7 +3,8 @@ import { View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Radius, Size, TouchSize, Type, lineHeightFor } from '@/constants/theme';
+import { Radius, Size, Spacing, TouchSize, Type, lineHeightFor } from '@/constants/theme';
+import { formatAmount } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
 import { STEPPER_VALUE_MIN_WIDTH, resolveStepperEnds } from './stepper.helpers';
@@ -14,6 +15,7 @@ interface StepperProps {
   max?: number;
   onChange: (next: number) => void;
   testID?: string;
+  unit?: string;
 }
 
 interface StepperButtonProps {
@@ -53,7 +55,14 @@ function StepperButton({
 }
 
 /** No HeroUI primitive fits: a count between a decrease and an increase button, held to the caller's floor and optional ceiling. */
-export function Stepper({ value, min, max, onChange, testID }: StepperProps): React.ReactElement {
+export function Stepper({
+  value,
+  min,
+  max,
+  onChange,
+  testID,
+  unit,
+}: StepperProps): React.ReactElement {
   const { canDecrease, canIncrease } = resolveStepperEnds(value, min, max);
   const partID = (part: string) => (testID === undefined ? undefined : `${testID}-${part}`);
   return (
@@ -85,7 +94,7 @@ export function Stepper({ value, min, max, onChange, testID }: StepperProps): Re
           lineHeight: lineHeightFor(Type.subhead),
         }}
       >
-        {value}
+        {formatAmount(value)}
       </Text>
       <StepperButton
         testID={partID('increase')}
@@ -94,6 +103,20 @@ export function Stepper({ value, min, max, onChange, testID }: StepperProps): Re
         isDisabled={!canIncrease}
         onPress={() => onChange(value + 1)}
       />
+      {unit === undefined ? null : (
+        <Text
+          testID={partID('unit')}
+          className="font-inter text-content-secondary"
+          style={{
+            fontSize: Type.meta,
+            lineHeight: lineHeightFor(Type.meta),
+            paddingLeft: Spacing.xxs,
+            paddingRight: Spacing.sm,
+          }}
+        >
+          {unit}
+        </Text>
+      )}
     </View>
   );
 }

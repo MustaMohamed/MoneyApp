@@ -25,6 +25,9 @@ import { buildRecurrenceLabel } from '../../utils/recurrence_label';
 import {
   COMMITMENT_AMOUNT_REFUSES_ZERO,
   type CommitmentFormValues,
+  ENDS_AFTER_COUNT_MIN,
+  ENDS_AFTER_START_COUNT,
+  type EndsDraft,
   PRESET_MAP,
   REPEATS_CUSTOM_START_EVERY,
   type RepeatsDraft,
@@ -104,13 +107,6 @@ export function applyCommitmentAmountText(
   }
 }
 
-/** A whole-number input's typed text as its field value: `null` once emptied, since `Controller` reads an `undefined` field back as its default; `undefined` for text that is not a number. */
-export function parseWholeNumberInput(text: string): number | null | undefined {
-  if (text === '') return null;
-  const n = parseInt(text, 10);
-  return isNaN(n) ? undefined : n;
-}
-
 export function resolveRepeatsRowValue(every: number, period: RecurrencePeriod): string {
   return buildRecurrenceLabel({ recurrence_every: every, recurrence_period: period });
 }
@@ -149,6 +145,51 @@ export function resolveRepeatsOptions(): { value: RecurrencePreset; label: strin
   });
 }
 
+const ENDS_OPTION_RANK = {
+  [DurationType.Forever]: 1,
+  [DurationType.AfterCount]: 2,
+  [DurationType.UntilDate]: 3,
+} satisfies Record<DurationType, number>;
+
+const ENDS_OPTION_LABELS: Record<DurationType, string> = {
+  [DurationType.Forever]: Strings.commitmentsEndsOptionNever,
+  [DurationType.AfterCount]: Strings.commitmentsEndsOptionAfterCount,
+  [DurationType.UntilDate]: Strings.commitmentsEndsOptionUntilDate,
+};
+
+export function resolveEndsOptions(): { value: DurationType; label: string }[] {
+  return orderByRank(ENDS_OPTION_RANK).map((type) => ({
+    value: type,
+    label: ENDS_OPTION_LABELS[type],
+  }));
+}
+
+/** The Ends sheet opens on the form's choice; a day earlier than Starts opens at Starts, while the row keeps the stored day. */
+export function seedEndsDraft(
+  values: Pick<CommitmentFormValues, 'durationType' | 'endAfterCount' | 'endDate' | 'startDate'>,
+): EndsDraft {
+  const { durationType, endAfterCount, endDate, startDate } = values;
+  const count =
+    typeof endAfterCount === 'number' && endAfterCount >= ENDS_AFTER_COUNT_MIN
+      ? endAfterCount
+      : ENDS_AFTER_START_COUNT;
+  let date = `${startDate.slice(0, 4)}-12-31`;
+  if (endDate) date = endDate < startDate ? startDate : endDate;
+  return { type: durationType, count, date };
+}
+
+/** Done writes the chosen type and its own field; the other type's field stays as held, since both saves null it. */
+export function applyEndsDraft(
+  form: Pick<UseFormReturn<CommitmentFormValues>, 'setValue' | 'trigger'>,
+  draft: EndsDraft,
+  isSubmitted: boolean,
+): void {
+  form.setValue('durationType', draft.type, SET_OPTS);
+  if (draft.type === DurationType.AfterCount) form.setValue('endAfterCount', draft.count, SET_OPTS);
+  if (draft.type === DurationType.UntilDate) setCommitmentEndDate(form, draft.date, isSubmitted);
+  if (isSubmitted) void form.trigger(['endAfterCount', 'endDate']);
+}
+
 /** The Ends row reads `Never` from its own key, and otherwise as the detail's Ends fact, so a missing count or date reads the incomplete label. */
 export function resolveEndsRowValue(
   durationType: DurationType,
@@ -180,23 +221,6 @@ export function setCommitmentEndDate(
   isSubmitted: boolean,
 ): void {
   form.setValue('endDate', next, { shouldDirty: true, shouldValidate: isSubmitted });
-}
-
-/** `endDate` has no `Controller`, so `resetField` keeps its value and its error: once a Save ran, an Ends choice re-reads it, unless Until holds no day yet. */
-export function setCommitmentDurationType(
-  form: Pick<
-    UseFormReturn<CommitmentFormValues>,
-    'setValue' | 'resetField' | 'trigger' | 'getValues'
-  >,
-  type: DurationType,
-  isSubmitted: boolean,
-): void {
-  form.setValue('durationType', type, SET_OPTS);
-  if (type !== DurationType.UntilDate) form.resetField('endDate', { defaultValue: undefined });
-  if (type !== DurationType.AfterCount)
-    form.resetField('endAfterCount', { defaultValue: undefined });
-  if (isSubmitted && (type !== DurationType.UntilDate || form.getValues('endDate')))
-    void form.trigger('endDate');
 }
 
 export function resolveCommitmentFirstPaymentFootnote(

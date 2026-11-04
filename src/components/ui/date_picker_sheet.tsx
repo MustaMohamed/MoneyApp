@@ -14,6 +14,7 @@ interface DatePickerSheetProps {
   title: string;
   value: Date;
   maximumDate?: Date;
+  minimumDate?: Date;
   onValueChange: (event: DateTimePickerChangeEvent, date: Date) => void;
   onCancel: () => void;
   onDone: () => void;
@@ -60,6 +61,7 @@ export function DatePickerSheet(props: DatePickerSheetProps): React.ReactElement
           display="spinner"
           themeVariant="dark"
           maximumDate={props.maximumDate}
+          minimumDate={props.minimumDate}
           onValueChange={props.onValueChange}
         />
       </View>

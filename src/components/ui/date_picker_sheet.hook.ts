@@ -15,7 +15,7 @@ export function useDateRowPicker(
   ownerId: string,
   value: string,
   onChange: (next: string) => void,
-  { capsAtToday }: { capsAtToday: boolean },
+  { capsAtToday, minimumDate }: { capsAtToday: boolean; minimumDate?: string },
 ) {
   const { activeOwnerId, isOpen, isIosMounted, showAndroidPicker, draftDate } =
     useDatePickerSheetState(
@@ -78,6 +78,7 @@ export function useDateRowPicker(
       showAndroidPicker: ownsPicker && showAndroidPicker,
       pickerDate: toPickerDate(ownsPicker && draftDate ? draftDate : value),
       maximumDate: capsAtToday ? new Date() : undefined,
+      minimumDate: minimumDate === undefined ? undefined : new Date(`${minimumDate}T00:00:00`),
     },
     open,
     selectIos,

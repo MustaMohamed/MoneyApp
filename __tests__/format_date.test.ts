@@ -1,6 +1,5 @@
 import {
   formatShortDate,
-  formatLongDate,
   formatMonthYear,
   formatShortWeekdayDate,
   formatWeekdayDate,
@@ -17,18 +16,6 @@ describe('formatShortDate', () => {
   });
   it('formats December (boundary high)', () => {
     expect(formatShortDate('2025-12-31')).toBe('Dec 31');
-  });
-});
-
-describe('formatLongDate', () => {
-  it('formats a typical date', () => {
-    expect(formatLongDate('2025-11-09')).toBe('November 9, 2025');
-  });
-  it('formats January', () => {
-    expect(formatLongDate('2025-01-01')).toBe('January 1, 2025');
-  });
-  it('formats December', () => {
-    expect(formatLongDate('2025-12-31')).toBe('December 31, 2025');
   });
 });
 

@@ -182,6 +182,30 @@ describe('transaction date picker', () => {
     expect(uncapped.getByTestId('date-picker-android').props.maximumDate).toBeUndefined();
   });
 
+  it('MA-277: floors the Android picker at the local start of the row minimum day, and leaves it unfloored without one', async () => {
+    setPlatform('android');
+    const floored = await render(
+      <DateRow
+        ownerId="ends-1"
+        value="2026-12-31"
+        onChange={jest.fn()}
+        capsAtToday={false}
+        minimumDate="2026-10-20"
+      />,
+    );
+    await fireEvent.press(floored.getByTestId('date-row'));
+    expect(floored.getByTestId('date-picker-android').props.minimumDate).toEqual(
+      new Date(2026, 9, 20, 0, 0, 0, 0),
+    );
+    await floored.unmount();
+
+    const unfloored = await render(
+      <DateRow ownerId="add-1" value="2026-07-10" onChange={jest.fn()} />,
+    );
+    await fireEvent.press(unfloored.getByTestId('date-row'));
+    expect(unfloored.getByTestId('date-picker-android').props.minimumDate).toBeUndefined();
+  });
+
   // datetimepicker reports Android cancel on `onDismiss()`, not `onChange({ type: 'dismissed' })`.
   it('closes the Android picker on dismiss without applying a date', async () => {
     setPlatform('android');
