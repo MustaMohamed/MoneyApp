@@ -135,6 +135,43 @@ describe('useCommitmentFormHostState', () => {
       expect(host().landing).toBeUndefined();
     });
 
+    describe('the settled due dates (MA-280)', () => {
+      it('holds none while closed', () => {
+        expect(host().editingSettledDueDates).toEqual([]);
+      });
+
+      it('holds the settled due dates an edit opens with', () => {
+        host().openEdit(rent, landing, ['2026-09-20']);
+
+        expect(host().editingSettledDueDates).toEqual(['2026-09-20']);
+      });
+
+      it('holds none for an edit opened with no settled due dates', () => {
+        host().openEdit(rent);
+
+        expect(host().editingSettledDueDates).toEqual([]);
+      });
+
+      it('holds none for an add opened after an edit with settled due dates', () => {
+        host().openEdit(rent, landing, ['2026-09-20']);
+        closeCurrent();
+
+        host().openAdd();
+
+        expect(host().editingSettledDueDates).toEqual([]);
+      });
+
+      it('holds none once an edit with settled due dates closes', () => {
+        host().openEdit(rent, landing, ['2026-09-20']);
+        expect(host().editingSettledDueDates).toEqual(['2026-09-20']);
+
+        closeCurrent();
+
+        expect(host().phase).toBe('closed');
+        expect(host().editingSettledDueDates).toEqual([]);
+      });
+    });
+
     it('changes nothing on openEdit while an edit is open', () => {
       host().openEdit(rent, landing);
 

@@ -237,6 +237,19 @@ describe('useCommitmentFormHost', () => {
     expect(result.current.state.title).toBe('Edit commitment');
   });
 
+  it('mirrors the settled due dates the host holds for an edit, and none after it closes (MA-280)', async () => {
+    const { result } = await renderHook(() => useCommitmentFormHost());
+    expect(result.current.state.editingSettledDueDates).toEqual([]);
+
+    await act(() => host().openEdit(rent, undefined, ['2026-08-20', '2026-09-20']));
+
+    expect(result.current.state.editingSettledDueDates).toEqual(['2026-08-20', '2026-09-20']);
+
+    await closeUnsaved(result);
+
+    expect(result.current.state.editingSettledDueDates).toEqual([]);
+  });
+
   it('reads saving, the track error line and its footnote from the footer the session publishes', async () => {
     const { result } = await renderHook(() => useCommitmentFormHost());
     await act(() => host().openAdd());
