@@ -24,6 +24,7 @@ import { formatDisplayAmount } from '@/utils/format_amount';
 import { MIN_MONEY_AMOUNT } from '@/utils/money';
 import { formatStoredMoneyText, parseRequiredMoneyText } from '@/utils/money_text';
 import { parseDecimalText, parsePositiveDecimal, parseRateText } from '@/utils/parse_decimal';
+import { useLocalToday } from '@/utils/use_local_today.hook';
 import { setTypedDecimal, useZodForm } from '@/utils/use_zod_form.hook';
 
 import type { Commitment } from '../../../../entities/commitment.entity';
@@ -401,8 +402,10 @@ export function usePaySheet(
     () => resolveAccountStripChips(accounts, accountId),
     [accounts, accountId],
   );
+  // `today` is the sheet's `openedOn` and seeds the form; the preview follows the local day while visible.
+  const previewToday = useLocalToday(today, visible);
   const trackFootnote =
-    commitment === undefined || today === undefined
+    commitment === undefined || previewToday === undefined
       ? undefined
       : resolvePayTrackFootnote({
           amountType: commitment.amount_type,
@@ -414,16 +417,15 @@ export function usePaySheet(
           commitmentCurrency: commitment.currency,
           preview: preview.writePreview,
           paidDate,
-          today,
+          today: previewToday,
         });
-  // `today` is the sheet's `openedOn`, so a Pay moves neither the tag nor the distance until the next open.
   const dueDate = payment?.due_date;
   const cycleLine = useMemo(
     () =>
-      dueDate === undefined || today === undefined
+      dueDate === undefined || previewToday === undefined
         ? undefined
-        : resolvePayCycleLine(dueDate, today),
-    [dueDate, today],
+        : resolvePayCycleLine(dueDate, previewToday),
+    [dueDate, previewToday],
   );
 
   return {

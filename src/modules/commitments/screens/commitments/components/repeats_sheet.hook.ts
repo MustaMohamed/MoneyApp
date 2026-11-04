@@ -3,6 +3,7 @@ import type { UseFormReturn } from 'react-hook-form';
 
 import { type RecurrencePeriod, RecurrencePreset } from '@/constants/enums';
 import { toLocalDateString } from '@/utils/format_date';
+import { useLocalToday } from '@/utils/use_local_today.hook';
 
 import {
   type CommitmentFormSchedule,
@@ -44,7 +45,7 @@ export function useRepeatsSheet(
     };
   }, [owner, form]);
 
-  const today = toLocalDateString(now);
+  const today = useLocalToday(toLocalDateString(now), true);
   const track = useMemo(
     () =>
       draft === undefined
