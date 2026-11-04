@@ -40,6 +40,9 @@ type DetailParams = {
 const mockGetById = jest.fn();
 const mockGetPaymentsByCommitment = jest.fn();
 const mockSkipPayment = jest.fn();
+const mockUndoSkip = jest.fn();
+const mockDeactivateCommitment = jest.fn();
+const mockToast = { show: jest.fn() };
 const mockLoadAccountLookup = jest.fn<Promise<void>, [string[]]>();
 const mockNavigationDispatch = jest.fn();
 const mockPathname = { current: '/commitments/commitment-1' };
@@ -73,6 +76,11 @@ jest.mock('expo-router', () => ({
 }));
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
   useCommitmentStore: jest.fn(),
+  isPaymentInTransition: () => false,
+}));
+// The real wrapper's `toast.anim.ts` pulls reanimated, which does not load here.
+jest.mock('@/components/ui/toast', () => ({
+  useToast: () => ({ toast: mockToast, isToastVisible: false }),
 }));
 jest.mock('@/modules/accounts/store/account.store', () => ({
   EMPTY_ACCOUNTS: [],
@@ -99,6 +107,8 @@ function setup() {
     commitments: storeCommitments,
     payments: paymentsState,
     skipPayment: mockSkipPayment,
+    undoSkip: mockUndoSkip,
+    deactivateCommitment: mockDeactivateCommitment,
   }));
   attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
     accounts: [],
@@ -178,6 +188,8 @@ beforeEach(() => {
   mockGetById.mockImplementation(async (id: string) => commitmentsById[id]);
   mockGetPaymentsByCommitment.mockImplementation(async (id: string) => historyById[id] ?? []);
   mockSkipPayment.mockResolvedValue(undefined);
+  mockUndoSkip.mockResolvedValue(undefined);
+  mockDeactivateCommitment.mockResolvedValue(undefined);
   useCommitmentDetailStore.getState().reset();
   useCommitmentDetailState.getState().reset();
   usePaySheetState.getState().reset();
@@ -185,9 +197,9 @@ beforeEach(() => {
   setup();
 });
 
-type LandingKey = 'onSaved' | 'onDeactivated';
+type LandingKey = 'onSaved' | 'onStopped';
 
-// What the host runs once a save or a deactivate settles: close the session, then its landing.
+// What the host runs once a save or a Stop settles: close the session, then its landing.
 function runHostLanding(key: LandingKey): void {
   const { sessionId, landing } = useCommitmentFormHostState.getState();
   if (!useCommitmentFormHostState.getState().completeSave(sessionId)) {
@@ -537,15 +549,49 @@ describe('useCommitmentDetail', () => {
     expect(result.current.state.viewState).toBe('ready');
   });
 
-  it('opens the edit sheet from the tabbed copy, whose deactivate lands on the list', async () => {
+  it('opens the edit sheet from the tabbed copy, whose Stop lands on the list and toasts there', async () => {
     await openEditFromReadyDetail();
     expectNoNavigation();
 
-    runHostLanding('onDeactivated');
+    runHostLanding('onStopped');
 
     expect(router.dismissTo).toHaveBeenCalledTimes(1);
     expect(router.dismissTo).toHaveBeenCalledWith('/commitments');
     expect(router.push).not.toHaveBeenCalled();
+    expect(mockToast.show).toHaveBeenCalledTimes(1);
+    expect(mockToast.show).toHaveBeenCalledWith({ label: 'Rent stopped', variant: 'success' });
+    expect(jest.mocked(router.dismissTo).mock.invocationCallOrder[0]).toBeLessThan(
+      mockToast.show.mock.invocationCallOrder[0],
+    );
+  });
+
+  it('hands the edit sheet the stop counts of the rows it holds', async () => {
+    const paidMarch: CommitmentPayment = {
+      ...payment,
+      id: 'paid-mar',
+      due_date: '2026-03-01',
+      paid_date: '2026-03-02',
+      amount_paid: 5000,
+    };
+    const skippedApril: CommitmentPayment = {
+      ...payment,
+      id: 'skipped-apr',
+      due_date: '2026-04-01',
+      skipped_date: '2026-04-03',
+    };
+    const unpaidMay: CommitmentPayment = { ...payment, id: 'unpaid-may', due_date: '2026-05-01' };
+    commitmentsById = { [commitment.id]: commitment };
+    historyById = { [commitment.id]: [paidMarch, skippedApril, unpaidMay] };
+    mockParams = { id: commitment.id, cycle: unpaidMay.id };
+    const { result } = await renderHook(() => useCommitmentDetail());
+    await waitFor(() => expect(result.current.state.payment?.id).toBe(unpaidMay.id));
+
+    await act(async () => result.current.goToEdit());
+
+    expect(useCommitmentFormHostState.getState().editingStopCounts).toEqual({
+      unpaid: 1,
+      paid: 1,
+    });
   });
 
   it('a save from the tabbed copy stays, and re-reads onto the regenerated row of the held due date', async () => {
@@ -630,46 +676,6 @@ describe('useCommitmentDetail', () => {
       '2026-03-01',
       '2026-04-01',
     ]);
-  });
-
-  it('a deactivate from the stacked copy pops back to the stacked transaction it came from', async () => {
-    mockPathname.current = '/stacked/commitments/commitment-1';
-    mockParams.originTxId = 'tx-1';
-    await openEditFromReadyDetail();
-    expectNoNavigation();
-
-    runHostLanding('onDeactivated');
-
-    expect(router.dismissTo).toHaveBeenCalledWith('/stacked/transactions/detail/tx-1');
-    expect(router.dismissAll).not.toHaveBeenCalled();
-    expect(router.back).not.toHaveBeenCalled();
-    expect(router.push).not.toHaveBeenCalled();
-  });
-
-  it('a deactivate from a stacked copy opened on a tabbed transaction pops every screen above the tabs', async () => {
-    mockPathname.current = '/stacked/commitments/commitment-1';
-    mockParams = { id: 'commitment-1', cycle: 'pay-1', originTxId: 'tx-1', originTxCopy: 'tabbed' };
-    await openEditFromReadyDetail();
-    expectNoNavigation();
-
-    runHostLanding('onDeactivated');
-
-    expect(router.dismissAll).toHaveBeenCalledTimes(1);
-    expect(router.dismissTo).not.toHaveBeenCalled();
-    expect(router.push).not.toHaveBeenCalled();
-  });
-
-  it('a deactivate from a stacked copy with no origin steps back once', async () => {
-    mockPathname.current = '/stacked/commitments/commitment-1';
-    await openEditFromReadyDetail();
-    expectNoNavigation();
-
-    runHostLanding('onDeactivated');
-
-    expect(router.back).toHaveBeenCalledTimes(1);
-    expect(router.dismissTo).not.toHaveBeenCalled();
-    expect(router.dismissAll).not.toHaveBeenCalled();
-    expect(router.push).not.toHaveBeenCalled();
   });
 
   it('holds the tabbed edges while a stacked screen sits focused above it', async () => {
@@ -900,7 +906,7 @@ describe('useCommitmentDetail', () => {
     expect(result.current.state.payment?.id).toBe(payment.id);
   });
 
-  it('a failed skip keeps the sheet open with its error, and a retry that lands closes it', async () => {
+  it('a failed skip keeps the dialog open with its error and no toast, and a retry that lands closes it and toasts', async () => {
     seedRent();
     paymentsState = [payment];
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -921,6 +927,7 @@ describe('useCommitmentDetail', () => {
     expect(result.current.state.skipBusy).toBe(false);
     expect(result.current.state.allPayments).toEqual(rentHistory);
     expect(mockGetPaymentsByCommitment).toHaveBeenCalledTimes(1);
+    expect(mockToast.show).not.toHaveBeenCalled();
 
     const pendingSkip = deferred<void>();
     mockSkipPayment.mockReturnValueOnce(pendingSkip.promise);
@@ -940,6 +947,7 @@ describe('useCommitmentDetail', () => {
     expect(result.current.state.skipConfirmVisible).toBe(false);
     expect(result.current.state.skipBusy).toBe(false);
     expect(result.current.state.skipError).toBe(false);
+    expect(mockToast.show).toHaveBeenCalledTimes(1);
     consoleSpy.mockRestore();
   });
 });
@@ -1657,5 +1665,206 @@ describe('useCommitmentDetail goToAllPayments (MA-213)', () => {
 
     expectNoNavigation();
     expect(useCommitmentsScreenState.getState().appliedFilters).toEqual(EMPTY_COMMITMENT_FILTERS);
+  });
+});
+
+async function renderReadyRent() {
+  seedRent();
+  paymentsState = [payment];
+  const hook = await renderHook(() => useCommitmentDetail());
+  await waitFor(() => expect(hook.result.current.state.viewState).toBe('ready'));
+  return hook;
+}
+
+type ToastArgs = {
+  label: string;
+  variant: string;
+  actionLabel?: string;
+  onActionPress?: () => void;
+};
+
+describe('useCommitmentDetail Skip dialog and toast (MA-224)', () => {
+  it('a landed skip hides the dialog and shows one skipped toast with Undo', async () => {
+    const { result } = await renderReadyRent();
+    await act(async () => result.current.confirmSkip());
+
+    await act(async () => {
+      await result.current.skipPayment();
+    });
+
+    expect(mockSkipPayment).toHaveBeenCalledWith(payment.id);
+    expect(result.current.state.skipConfirmVisible).toBe(false);
+    expect(mockToast.show).toHaveBeenCalledTimes(1);
+    expect(mockToast.show).toHaveBeenCalledWith(
+      expect.objectContaining({ label: 'Rent skipped', variant: 'success', actionLabel: 'Undo' }),
+    );
+  });
+
+  it('the skipped toast Undo runs the store undoSkip with the skipped payment id', async () => {
+    const { result } = await renderReadyRent();
+    await act(async () => result.current.confirmSkip());
+    await act(async () => {
+      await result.current.skipPayment();
+    });
+    expect(mockToast.show).toHaveBeenCalledTimes(1);
+    const [toastArgs] = mockToast.show.mock.calls[0] as [ToastArgs];
+
+    await act(async () => toastArgs.onActionPress?.());
+
+    expect(mockUndoSkip).toHaveBeenCalledTimes(1);
+    expect(mockUndoSkip).toHaveBeenCalledWith(payment.id);
+  });
+
+  it('reads the Skip dialog body for the held cycle', async () => {
+    jest.useFakeTimers().setSystemTime(new Date(2026, 4, 8, 10));
+    try {
+      const { result } = await renderReadyRent();
+
+      expect(result.current.state.skipConfirmBody).toBe(
+        "Rent · Fri 1 May · 5,000 EGP won't count toward May. The commitment keeps going.",
+      );
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+});
+
+describe('useCommitmentDetail Stop (MA-224)', () => {
+  async function confirmAndStop(result: { current: ReturnType<typeof useCommitmentDetail> }) {
+    await act(async () => result.current.confirmStop());
+    expect(result.current.state.stopConfirmVisible).toBe(true);
+    await act(async () => {
+      await result.current.stopCommitment();
+    });
+  }
+
+  it('counts the unpaid rows Stop removes and the paid rows it keeps, a skipped row in neither', async () => {
+    const paidMarch: CommitmentPayment = {
+      ...payment,
+      id: 'paid-mar',
+      due_date: '2026-03-01',
+      paid_date: '2026-03-02',
+      amount_paid: 5000,
+    };
+    const skippedApril: CommitmentPayment = {
+      ...payment,
+      id: 'skipped-apr',
+      due_date: '2026-04-01',
+      skipped_date: '2026-04-03',
+    };
+    const unpaidMay: CommitmentPayment = { ...payment, id: 'unpaid-may', due_date: '2026-05-01' };
+    const unpaidJune: CommitmentPayment = { ...payment, id: 'unpaid-jun', due_date: '2026-06-01' };
+    commitmentsById = { [commitment.id]: commitment };
+    historyById = { [commitment.id]: [paidMarch, skippedApril, unpaidMay, unpaidJune] };
+    mockParams = { id: commitment.id, cycle: unpaidMay.id };
+
+    const { result } = await renderHook(() => useCommitmentDetail());
+    await waitFor(() => expect(result.current.state.payment?.id).toBe(unpaidMay.id));
+
+    expect(result.current.state.stopCounts).toEqual({ unpaid: 2, paid: 1 });
+  });
+
+  it('a landed Stop on the tabbed copy writes once, closes to the list, then toasts there', async () => {
+    const { result } = await renderReadyRent();
+
+    await confirmAndStop(result);
+
+    expect(mockDeactivateCommitment).toHaveBeenCalledTimes(1);
+    expect(mockDeactivateCommitment).toHaveBeenCalledWith(commitment.id);
+    expect(router.dismissTo).toHaveBeenCalledTimes(1);
+    expect(router.dismissTo).toHaveBeenCalledWith('/commitments');
+    expect(router.back).not.toHaveBeenCalled();
+    expect(router.dismissAll).not.toHaveBeenCalled();
+    expect(mockToast.show).toHaveBeenCalledTimes(1);
+    expect(mockToast.show).toHaveBeenCalledWith({ label: 'Rent stopped', variant: 'success' });
+    const dismissOrder = jest.mocked(router.dismissTo).mock.invocationCallOrder[0];
+    expect(mockDeactivateCommitment.mock.invocationCallOrder[0]).toBeLessThan(dismissOrder);
+    expect(dismissOrder).toBeLessThan(mockToast.show.mock.invocationCallOrder[0]);
+    expect(result.current.state.stopConfirmVisible).toBe(false);
+    expect(result.current.state.stopBusy).toBe(false);
+  });
+
+  it('a landed Stop from the stacked copy pops back to the stacked transaction it came from', async () => {
+    mockPathname.current = '/stacked/commitments/commitment-1';
+    mockParams.originTxId = 'tx-1';
+    const { result } = await renderReadyRent();
+
+    await confirmAndStop(result);
+
+    expect(router.dismissTo).toHaveBeenCalledWith('/stacked/transactions/detail/tx-1');
+    expect(router.dismissAll).not.toHaveBeenCalled();
+    expect(router.back).not.toHaveBeenCalled();
+    expect(router.push).not.toHaveBeenCalled();
+    expect(mockToast.show).toHaveBeenCalledWith({ label: 'Rent stopped', variant: 'success' });
+  });
+
+  it('a landed Stop from a stacked copy opened on a tabbed transaction pops every screen above the tabs', async () => {
+    mockPathname.current = '/stacked/commitments/commitment-1';
+    mockParams = { id: 'commitment-1', cycle: 'pay-1', originTxId: 'tx-1', originTxCopy: 'tabbed' };
+    const { result } = await renderReadyRent();
+
+    await confirmAndStop(result);
+
+    expect(router.dismissAll).toHaveBeenCalledTimes(1);
+    expect(router.dismissTo).not.toHaveBeenCalled();
+    expect(router.push).not.toHaveBeenCalled();
+    expect(mockToast.show).toHaveBeenCalledWith({ label: 'Rent stopped', variant: 'success' });
+  });
+
+  it('a landed Stop from a stacked copy with no origin steps back once', async () => {
+    mockPathname.current = '/stacked/commitments/commitment-1';
+    const { result } = await renderReadyRent();
+
+    await confirmAndStop(result);
+
+    expect(router.back).toHaveBeenCalledTimes(1);
+    expect(router.dismissTo).not.toHaveBeenCalled();
+    expect(router.dismissAll).not.toHaveBeenCalled();
+    expect(router.push).not.toHaveBeenCalled();
+    expect(mockToast.show).toHaveBeenCalledWith({ label: 'Rent stopped', variant: 'success' });
+  });
+
+  it('a failed Stop navigates nowhere, shows no toast and keeps the dialog open with its error', async () => {
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const stopError = new Error('stop failed');
+    mockDeactivateCommitment.mockRejectedValueOnce(stopError);
+    const { result } = await renderReadyRent();
+
+    await confirmAndStop(result);
+
+    expectNoNavigation();
+    expect(mockToast.show).not.toHaveBeenCalled();
+    expect(result.current.state.stopConfirmVisible).toBe(true);
+    expect(result.current.state.stopError).toBe(true);
+    expect(result.current.state.stopBusy).toBe(false);
+    expect(consoleSpy).toHaveBeenCalledWith('[commitmentDetail] stopCommitment failed', stopError);
+    consoleSpy.mockRestore();
+  });
+
+  it('a second Stop while the first is pending writes once', async () => {
+    const pendingStop = deferred<void>();
+    mockDeactivateCommitment.mockReturnValueOnce(pendingStop.promise);
+    const { result } = await renderReadyRent();
+    await act(async () => result.current.confirmStop());
+    let first: Promise<void> = Promise.resolve();
+    let second: Promise<void> = Promise.resolve();
+
+    await act(async () => {
+      first = result.current.stopCommitment();
+      second = result.current.stopCommitment();
+    });
+
+    expect(result.current.state.stopBusy).toBe(true);
+    expect(mockDeactivateCommitment).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      pendingStop.resolve();
+      await first;
+      await second;
+    });
+
+    expect(mockDeactivateCommitment).toHaveBeenCalledTimes(1);
+    expect(router.dismissTo).toHaveBeenCalledTimes(1);
+    expect(mockToast.show).toHaveBeenCalledTimes(1);
   });
 });

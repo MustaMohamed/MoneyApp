@@ -1,3 +1,4 @@
+import { NO_STOP_COUNTS } from '@/modules/commitments/domain/payment_state';
 import { NO_SETTLED_DUE_DATES } from '@/modules/commitments/screens/commitments/commitment_form.helpers';
 import { useAddCommitmentState } from '@/modules/commitments/screens/commitments/commitment_form/add_commitment.state';
 import { useEditCommitmentState } from '@/modules/commitments/screens/commitments/commitment_form/edit_commitment.state';
@@ -100,8 +101,8 @@ describe('useCommitmentFormHostState', () => {
 
   describe('edit sessions', () => {
     const onSaved = jest.fn();
-    const onDeactivated = jest.fn();
-    const landing = { onSaved, onDeactivated };
+    const onStopped = jest.fn();
+    const landing = { onSaved, onStopped };
 
     function closeCurrent(): void {
       host().requestClose();
@@ -170,6 +171,30 @@ describe('useCommitmentFormHostState', () => {
 
         expect(host().phase).toBe('closed');
         expect(host().editingSettledDueDates).toEqual([]);
+      });
+    });
+
+    describe('the stop counts (MA-224)', () => {
+      it('holds the stop counts an edit opens with', () => {
+        host().openEdit(rent, NO_SETTLED_DUE_DATES, landing, { unpaid: 3, paid: 9 });
+
+        expect(host().editingStopCounts).toEqual({ unpaid: 3, paid: 9 });
+      });
+
+      it('holds the empty counts for an edit opened with none', () => {
+        host().openEdit(rent, NO_SETTLED_DUE_DATES, landing);
+
+        expect(host().editingStopCounts).toEqual({ unpaid: 0, paid: 0 });
+        expect(host().editingStopCounts).toBe(NO_STOP_COUNTS);
+      });
+
+      it('holds the empty counts once an edit with stop counts closes', () => {
+        host().openEdit(rent, NO_SETTLED_DUE_DATES, landing, { unpaid: 3, paid: 9 });
+
+        closeCurrent();
+
+        expect(host().phase).toBe('closed');
+        expect(host().editingStopCounts).toEqual({ unpaid: 0, paid: 0 });
       });
     });
 
@@ -313,6 +338,15 @@ describe('useCommitmentFormHostState', () => {
         expect(host().completeClose(2)).toBeUndefined();
       },
     );
+
+    it('returns the stopped mark once from an edit closed by a Stop, and drops its counts', () => {
+      host().openEdit(rent, NO_SETTLED_DUE_DATES, undefined, { unpaid: 1, paid: 0 });
+      expect(host().completeSave(1, 'stopped')).toBe(true);
+
+      expect(host().completeClose(1)).toBe('stopped');
+      expect(host().completeClose(1)).toBeUndefined();
+      expect(host().editingStopCounts).toEqual({ unpaid: 0, paid: 0 });
+    });
 
     it('takes no mark from a refused save, answers a stale session with none, and keeps it for its own', () => {
       host().openAdd();

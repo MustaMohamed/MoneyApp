@@ -326,35 +326,41 @@ describe('useCommitmentFormHost', () => {
     expect(host().phase).toBe('closing');
   });
 
-  describe('a landed save or deactivate', () => {
+  describe('a landed save or Stop', () => {
     const onSaved = jest.fn();
-    const onDeactivated = jest.fn();
+    const onStopped = jest.fn();
 
     beforeEach(() => {
       onSaved.mockReset();
-      onDeactivated.mockReset();
+      onStopped.mockReset();
     });
 
     it('closes on a save and runs only the onSaved of its landing', async () => {
       const { result } = await renderHook(() => useCommitmentFormHost());
-      await act(() => host().openEdit(rent, NO_SETTLED_DUE_DATES, { onSaved, onDeactivated }));
+      await act(() => host().openEdit(rent, NO_SETTLED_DUE_DATES, { onSaved, onStopped }));
 
       await act(() => result.current.handleSaved(host().sessionId));
 
       expect(host().phase).toBe('closing');
       expect(onSaved).toHaveBeenCalledTimes(1);
-      expect(onDeactivated).not.toHaveBeenCalled();
+      expect(onStopped).not.toHaveBeenCalled();
     });
 
-    it('closes on a deactivate and runs only the onDeactivated of its landing', async () => {
+    it('closes on a Stop and runs only the onStopped of its landing, once the sheet has closed, with no toast of its own', async () => {
       const { result } = await renderHook(() => useCommitmentFormHost());
-      await act(() => host().openEdit(rent, NO_SETTLED_DUE_DATES, { onSaved, onDeactivated }));
+      await act(() => host().openEdit(rent, NO_SETTLED_DUE_DATES, { onSaved, onStopped }));
 
-      await act(() => result.current.handleDeactivated(host().sessionId));
+      await act(() => result.current.handleStopped(host().sessionId));
 
       expect(host().phase).toBe('closing');
-      expect(onDeactivated).toHaveBeenCalledTimes(1);
+      expect(onStopped).not.toHaveBeenCalled();
+
+      await act(() => result.current.handleCloseComplete());
+
+      expect(host().phase).toBe('closed');
+      expect(onStopped).toHaveBeenCalledTimes(1);
       expect(onSaved).not.toHaveBeenCalled();
+      expect(mockToast.show).not.toHaveBeenCalled();
     });
 
     it('closes on a save from a session opened with no landing', async () => {
@@ -366,24 +372,25 @@ describe('useCommitmentFormHost', () => {
       expect(host().phase).toBe('closing');
     });
 
-    it.each(['handleSaved', 'handleDeactivated'] as const)(
+    it.each(['handleSaved', 'handleStopped'] as const)(
       '%s from an older session neither closes the sheet nor runs a landing',
       async (handler) => {
-        const olderLanding = { onSaved: jest.fn(), onDeactivated: jest.fn() };
+        const olderLanding = { onSaved: jest.fn(), onStopped: jest.fn() };
         const { result } = await renderHook(() => useCommitmentFormHost());
         await act(() => host().openEdit(rent, NO_SETTLED_DUE_DATES, olderLanding));
         const olderSession = host().sessionId;
         await closeUnsaved(result);
-        await act(() => host().openEdit(gym, NO_SETTLED_DUE_DATES, { onSaved, onDeactivated }));
+        await act(() => host().openEdit(gym, NO_SETTLED_DUE_DATES, { onSaved, onStopped }));
 
         await act(() => result.current[handler](olderSession));
+        await act(() => result.current.handleCloseComplete());
 
         expect(host().phase).toBe('open');
         expect(host().editingCommitment).toBe(gym);
         expect(onSaved).not.toHaveBeenCalled();
-        expect(onDeactivated).not.toHaveBeenCalled();
+        expect(onStopped).not.toHaveBeenCalled();
         expect(olderLanding.onSaved).not.toHaveBeenCalled();
-        expect(olderLanding.onDeactivated).not.toHaveBeenCalled();
+        expect(olderLanding.onStopped).not.toHaveBeenCalled();
       },
     );
   });
@@ -411,7 +418,7 @@ describe('useCommitmentFormHost', () => {
     it('shows nothing after a Stop or an unsaved close, and one after the next saved edit', async () => {
       const { result } = await renderHook(() => useCommitmentFormHost());
       await act(() => host().openEdit(rent, NO_SETTLED_DUE_DATES));
-      await act(() => result.current.handleDeactivated(host().sessionId));
+      await act(() => result.current.handleStopped(host().sessionId));
       await act(() => result.current.handleCloseComplete());
 
       expect(host().phase).toBe('closed');

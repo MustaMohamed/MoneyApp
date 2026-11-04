@@ -20,7 +20,7 @@ import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 import { holdStillTypingDecimal } from '@/utils/use_zod_form.hook';
 
 const onSaved = jest.fn();
-const onDeactivated = jest.fn();
+const onStopped = jest.fn();
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
@@ -82,7 +82,7 @@ function setup() {
 }
 
 function mount(opened: Commitment = commitment) {
-  return renderHook(() => useEditCommitment({ commitment: opened, onSaved, onDeactivated }));
+  return renderHook(() => useEditCommitment({ commitment: opened, onSaved, onStopped }));
 }
 
 type Hook = Awaited<ReturnType<typeof mount>>;
@@ -132,7 +132,7 @@ describe('useEditCommitment', () => {
     expect(result.current.state.saving).toBe(false);
   });
 
-  it('a save writes once and calls onSaved, not onDeactivated', async () => {
+  it('a save writes once and calls onSaved, not onStopped', async () => {
     const { result } = await mount();
 
     await act(async () => {
@@ -142,24 +142,24 @@ describe('useEditCommitment', () => {
     expect(updateCommitmentMock).toHaveBeenCalledTimes(1);
     expect(updateCommitmentMock).toHaveBeenCalledWith('com-1', expect.anything());
     expect(onSaved).toHaveBeenCalledTimes(1);
-    expect(onDeactivated).not.toHaveBeenCalled();
+    expect(onStopped).not.toHaveBeenCalled();
     expect(result.current.state.saveError).toBeUndefined();
   });
 
-  it('a confirmed deactivate calls onDeactivated and hides the confirm', async () => {
+  it('a confirmed Stop calls onStopped and hides the dialog', async () => {
     const { result } = await mount();
-    await act(async () => result.current.handleDeactivate());
-    expect(result.current.state.deactivateDialogVisible).toBe(true);
+    await act(async () => result.current.openStopDialog());
+    expect(result.current.state.stopDialogVisible).toBe(true);
 
     await act(async () => {
-      await result.current.confirmDeactivate();
+      await result.current.confirmStop();
     });
 
     expect(deactivateCommitmentMock).toHaveBeenCalledTimes(1);
     expect(deactivateCommitmentMock).toHaveBeenCalledWith('com-1');
-    expect(onDeactivated).toHaveBeenCalledTimes(1);
+    expect(onStopped).toHaveBeenCalledTimes(1);
     expect(onSaved).not.toHaveBeenCalled();
-    expect(result.current.state.deactivateDialogVisible).toBe(false);
+    expect(result.current.state.stopDialogVisible).toBe(false);
   });
 
   it('a failed save sets the save error and calls neither landing', async () => {
@@ -173,23 +173,24 @@ describe('useEditCommitment', () => {
     expect(result.current.state.saveError).toBe(Strings.commitmentsSaveError);
     expect(result.current.state.saving).toBe(false);
     expect(onSaved).not.toHaveBeenCalled();
-    expect(onDeactivated).not.toHaveBeenCalled();
+    expect(onStopped).not.toHaveBeenCalled();
   });
 
-  it('a failed deactivate sets the save error, hides the confirm and calls neither landing', async () => {
+  it('a failed Stop keeps the dialog open with its error, sets no save error and calls neither landing', async () => {
     deactivateCommitmentMock.mockRejectedValueOnce(new Error('deactivate failed'));
     const { result } = await mount();
-    await act(async () => result.current.handleDeactivate());
+    await act(async () => result.current.openStopDialog());
 
     await act(async () => {
-      await result.current.confirmDeactivate();
+      await result.current.confirmStop();
     });
 
-    expect(result.current.state.saveError).toBe(Strings.commitmentsSaveError);
-    expect(result.current.state.deactivateDialogVisible).toBe(false);
+    expect(result.current.state.saveError).toBeUndefined();
+    expect(result.current.state.stopDialogVisible).toBe(true);
+    expect(result.current.state.stopError).toBe(true);
     expect(result.current.state.saving).toBe(false);
     expect(onSaved).not.toHaveBeenCalled();
-    expect(onDeactivated).not.toHaveBeenCalled();
+    expect(onStopped).not.toHaveBeenCalled();
   });
 
   describe('MA-115 a half-typed amount after a refused Save', () => {
@@ -214,7 +215,7 @@ describe('useEditCommitment', () => {
     }
 
     function useEditWithAmountField() {
-      const hook = useEditCommitment({ commitment, onSaved, onDeactivated });
+      const hook = useEditCommitment({ commitment, onSaved, onStopped });
       const { field } = useController({ control: hook.form.control, name: 'amount' });
       return { ...hook, field };
     }
@@ -303,10 +304,10 @@ describe('useEditCommitment', () => {
     expect(lower.result.current.state.saveError).toBe(Strings.commitmentsSaveError);
     expect(upper.result.current.state.saveError).toBeUndefined();
 
-    await act(async () => upper.result.current.handleDeactivate());
+    await act(async () => upper.result.current.openStopDialog());
 
-    expect(upper.result.current.state.deactivateDialogVisible).toBe(true);
-    expect(lower.result.current.state.deactivateDialogVisible).toBe(false);
+    expect(upper.result.current.state.stopDialogVisible).toBe(true);
+    expect(lower.result.current.state.stopDialogVisible).toBe(false);
   });
 
   it('an unmounted copy releases only its own entry', async () => {
@@ -350,14 +351,14 @@ describe('useEditCommitment', () => {
     expect(entries()).toEqual({});
   });
 
-  it('a deactivate that resolves after its copy unmounts writes nothing back', async () => {
+  it('a Stop that resolves after its copy unmounts writes nothing back', async () => {
     const pendingDeactivate = deferred<void>();
     deactivateCommitmentMock.mockReturnValue(pendingDeactivate.promise);
     const copy = await mount();
     let deactivating: Promise<void> | undefined;
 
     await act(async () => {
-      deactivating = copy.result.current.confirmDeactivate();
+      deactivating = copy.result.current.confirmStop();
     });
     expect(deactivateCommitmentMock).toHaveBeenCalled();
 
@@ -370,22 +371,24 @@ describe('useEditCommitment', () => {
     expect(entries()).toEqual({});
   });
 
-  it('a failed deactivate closes the confirm and shows the banner on the copy that confirmed only', async () => {
+  it('a failed Stop keeps the dialog open with its error on the copy that confirmed only', async () => {
     deactivateCommitmentMock.mockRejectedValueOnce(new Error('deactivate failed'));
     const { lower, upper, upperOwner } = await mountTwoCopies();
-    await act(async () => lower.result.current.handleDeactivate());
+    await act(async () => lower.result.current.openStopDialog());
     const before = entries()[upperOwner];
 
     await act(async () => {
-      await lower.result.current.confirmDeactivate();
+      await lower.result.current.confirmStop();
     });
 
-    expect(lower.result.current.state.deactivateDialogVisible).toBe(false);
-    expect(lower.result.current.state.saveError).toBe(Strings.commitmentsSaveError);
+    expect(lower.result.current.state.stopDialogVisible).toBe(true);
+    expect(lower.result.current.state.stopError).toBe(true);
+    expect(lower.result.current.state.saveError).toBeUndefined();
     expect(lower.result.current.state.saving).toBe(false);
     expect(entries()[upperOwner]).toBe(before);
     expect(upper.result.current.state.saveError).toBeUndefined();
-    expect(onDeactivated).not.toHaveBeenCalled();
+    expect(upper.result.current.state.stopError).toBe(false);
+    expect(onStopped).not.toHaveBeenCalled();
   });
 
   describe('MA-188 a save in flight', () => {
@@ -407,13 +410,13 @@ describe('useEditCommitment', () => {
       await settle(inFlight, () => pending.resolve());
     });
 
-    it('a Confirm while a save is in flight does not deactivate', async () => {
+    it('a Stop confirmed while a save is in flight does not deactivate', async () => {
       const hook = await mount();
       const { pending, inFlight } = await startSave(hook);
 
-      await act(async () => hook.result.current.handleDeactivate());
+      await act(async () => hook.result.current.openStopDialog());
       await act(async () => {
-        await hook.result.current.confirmDeactivate();
+        await hook.result.current.confirmStop();
       });
 
       expect(deactivateCommitmentMock).not.toHaveBeenCalled();
@@ -443,15 +446,15 @@ describe('useEditCommitment', () => {
 
     it('a Stop deactivates that id', async () => {
       const { result } = await mount(second);
-      await act(async () => result.current.handleDeactivate());
+      await act(async () => result.current.openStopDialog());
 
       await act(async () => {
-        await result.current.confirmDeactivate();
+        await result.current.confirmStop();
       });
 
       expect(deactivateCommitmentMock).toHaveBeenCalledTimes(1);
       expect(deactivateCommitmentMock).toHaveBeenCalledWith('com-2');
-      expect(onDeactivated).toHaveBeenCalledTimes(1);
+      expect(onStopped).toHaveBeenCalledTimes(1);
     });
   });
 });

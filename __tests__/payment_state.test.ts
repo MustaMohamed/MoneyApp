@@ -1,6 +1,8 @@
 import { CommitmentPaymentStatus, DurationType } from '@/constants/enums';
 import {
+  NO_STOP_COUNTS,
   carriedDueBound,
+  countStopPayments,
   generationWindowEnd,
   isDueInMonth,
   isPaidPayment,
@@ -88,6 +90,26 @@ describe('payment predicates', () => {
     expect(isUnpaidPayment(dates())).toBe(true);
     expect(isUnpaidPayment(dates({ paid_date: '2026-10-01' }))).toBe(false);
     expect(isUnpaidPayment(dates({ skipped_date: '2026-10-01' }))).toBe(false);
+  });
+});
+
+describe('countStopPayments', () => {
+  it('counts the unpaid rows Stop removes and the paid rows it keeps, a skipped row in neither', () => {
+    const rows = [
+      dates({ due_date: '2026-09-30' }),
+      dates({ due_date: '2026-10-31' }),
+      dates({ due_date: '2026-08-31', paid_date: '2026-08-31' }),
+      dates({ due_date: '2026-07-31', paid_date: '2026-07-30', skipped_date: '2026-07-29' }),
+      dates({ due_date: '2026-06-30', skipped_date: '2026-06-30' }),
+    ];
+
+    expect(countStopPayments(rows)).toEqual({ unpaid: 2, paid: 2 });
+  });
+
+  it('counts nothing over no rows, the frozen empty counts', () => {
+    expect(countStopPayments([])).toEqual({ unpaid: 0, paid: 0 });
+    expect(NO_STOP_COUNTS).toEqual({ unpaid: 0, paid: 0 });
+    expect(Object.isFrozen(NO_STOP_COUNTS)).toBe(true);
   });
 });
 
