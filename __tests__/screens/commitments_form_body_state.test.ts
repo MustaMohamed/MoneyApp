@@ -112,6 +112,16 @@ describe('useCommitmentFormBodyState', () => {
     expect(entryOf('owner-a')).toMatchObject({ choiceSheet: undefined, endsDraft: afterDraft });
   });
 
+  it('a draft write on an entry that holds no draft writes nothing (MA-277)', () => {
+    useCommitmentFormBodyState.getState().claim('owner-a');
+    const before = useCommitmentFormBodyState.getState().entries;
+
+    useCommitmentFormBodyState.getState().setEndsDraft('owner-a', untilDraft);
+    useCommitmentFormBodyState.getState().setRepeatsDraft('owner-a', (d) => d);
+
+    expect(useCommitmentFormBodyState.getState().entries).toBe(before);
+  });
+
   it('claim on a copy that already owns an entry keeps it', () => {
     useCommitmentFormBodyState.getState().claim('owner-a');
     useCommitmentFormBodyState.getState().setCategoryPickerVisible('owner-a', true);
