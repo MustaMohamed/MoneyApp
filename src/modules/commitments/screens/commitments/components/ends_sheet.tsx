@@ -1,8 +1,8 @@
 import { useId } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
-import { View } from 'react-native';
 
 import { DateRow } from '@/components/ui/date_row';
+import { FormFactCell } from '@/components/ui/form_fact_cell';
 import { FormSheetFooter } from '@/components/ui/form_sheet_footer';
 import { ListCard } from '@/components/ui/list_card';
 import { Stepper } from '@/components/ui/stepper';
@@ -84,9 +84,8 @@ export function EndsSheet({
           ) : null}
           {draft.type === DurationType.UntilDate ? (
             <CommitmentChoiceBlock testID="ends-date" label={Strings.commitmentsEndsUntilLabel}>
-              {/* One row, no `FormFactCell`: its bottom hairline would double the card's own edge. */}
               <ListCard>
-                <View className="px-4">
+                <FormFactCell divider={false}>
                   <DateRow
                     ownerId={dateOwnerId}
                     value={draft.date}
@@ -98,7 +97,7 @@ export function EndsSheet({
                     capsAtToday={false}
                     minimumDate={startDate}
                   />
-                </View>
+                </FormFactCell>
               </ListCard>
             </CommitmentChoiceBlock>
           ) : null}

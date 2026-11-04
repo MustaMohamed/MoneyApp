@@ -10,7 +10,7 @@ import { Text } from '@/components/ui/text';
 import { LetterSpacing, Radius, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 
 import {
-  COMMITMENT_FORM_PICKER_GAP,
+  COMMITMENT_CHOICE_SHEET_PADDING_TOP,
   resolveCommitmentChoiceSheetSizing,
 } from './commitment_form.geometry';
 
@@ -39,7 +39,7 @@ export function CommitmentChoiceSheet({
       testID={testID}
       style={{
         paddingHorizontal: Spacing.md,
-        paddingTop: COMMITMENT_FORM_PICKER_GAP,
+        paddingTop: COMMITMENT_CHOICE_SHEET_PADDING_TOP,
         paddingBottom: Spacing.xl,
       }}
     >

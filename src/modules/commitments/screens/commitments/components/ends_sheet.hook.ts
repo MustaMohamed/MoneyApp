@@ -4,11 +4,7 @@ import type { UseFormReturn } from 'react-hook-form';
 import type { DurationType } from '@/constants/enums';
 
 import { applyEndsDraft, resolveEndsRowValue } from '../commitment_form.helpers';
-import {
-  type CommitmentFormValues,
-  ENDS_AFTER_COUNT_MIN,
-  type EndsDraft,
-} from '../commitment_form.shared';
+import { type CommitmentFormValues, ENDS_AFTER_COUNT_MIN } from '../commitment_form.shared';
 import { INITIAL_PICKER_ENTRY, useCommitmentFormBodyState } from './commitment_form_body.state';
 
 /** The Ends sheet stages its choice in the owner's entry; only Done writes it to the form. */
@@ -24,17 +20,12 @@ export function useEndsSheet(
   const actions = useMemo(() => {
     const entryOf = () =>
       useCommitmentFormBodyState.getState().entries[owner] ?? INITIAL_PICKER_ENTRY;
-    const stage = (next: (current: EndsDraft) => EndsDraft) => {
-      const current = entryOf().endsDraft;
-      if (current !== undefined) {
-        useCommitmentFormBodyState.getState().setEndsDraft(owner, next(current));
-      }
-    };
+    const { setEndsDraft } = useCommitmentFormBodyState.getState();
     return {
-      pickType: (type: DurationType) => stage((d) => ({ ...d, type })),
+      pickType: (type: DurationType) => setEndsDraft(owner, (d) => ({ ...d, type })),
       setCount: (count: number) =>
-        stage((d) => ({ ...d, count: Math.max(count, ENDS_AFTER_COUNT_MIN) })),
-      setDate: (date: string) => stage((d) => ({ ...d, date })),
+        setEndsDraft(owner, (d) => ({ ...d, count: Math.max(count, ENDS_AFTER_COUNT_MIN) })),
+      setDate: (date: string) => setEndsDraft(owner, (d) => ({ ...d, date })),
       // A Done that lands after the close, or a second tap, finds the sheet shut and writes nothing.
       done: () => {
         const entry = entryOf();

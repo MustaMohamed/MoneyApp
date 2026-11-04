@@ -1,7 +1,7 @@
 import type { SheetSize } from '@/components/ui/sheet.helpers';
 
 // The choice sheets' top padding, above their option rows, unscaled CSS px.
-export const COMMITMENT_FORM_PICKER_GAP = 8;
+export const COMMITMENT_CHOICE_SHEET_PADDING_TOP = 8;
 
 /** A choice sheet with a footer scrolls above font scale 1, where its content can pass the screen. */
 export const COMMITMENT_CHOICE_SHEET_SCROLL_SIZE: SheetSize = 'xxl';
