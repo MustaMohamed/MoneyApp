@@ -272,6 +272,7 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
                 label={Strings.commitmentsFieldDuration}
                 accessibilityHint={endsFault}
                 value={endsRowValue}
+                wrapsValue
                 suffix={chevron}
               />
             </FormFactCell>
