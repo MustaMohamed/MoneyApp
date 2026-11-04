@@ -26,7 +26,7 @@ import {
   resolveEndsLastDueDate,
   resolveEndsOptions,
   resolveEndsRowValue,
-  resolveEndsSheetLine,
+  resolveEndsSheetPreview,
   resolveRepeatsNextDueDate,
   resolveRepeatsOptions,
   resolveRepeatsRowValue,
@@ -558,7 +558,7 @@ describe('resolveEndsRowValue (MA-280)', () => {
   });
 });
 
-describe('resolveEndsSheetLine (MA-280)', () => {
+describe('resolveEndsSheetPreview line (MA-280)', () => {
   it.each<[string, Partial<CommitmentFormSchedule>, string | undefined]>([
     ['Never', {}, undefined],
     ['After with no count', endsAfter(undefined), undefined],
@@ -572,7 +572,7 @@ describe('resolveEndsSheetLine (MA-280)', () => {
       '1,096 payments through Sun 31 Dec 2028',
     ],
   ])('reads %s', (_name, overrides, line) => {
-    expect(resolveEndsSheetLine(scheduleOf(overrides), NO_SETTLED_DUE_DATES)).toBe(line);
+    expect(resolveEndsSheetPreview(scheduleOf(overrides), NO_SETTLED_DUE_DATES).line).toBe(line);
   });
 });
 

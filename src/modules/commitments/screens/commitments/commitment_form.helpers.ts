@@ -192,9 +192,11 @@ export function applyEndsDraft(
   if (isSubmitted) void form.trigger(['endAfterCount', 'endDate']);
 }
 
-type EndsPreview =
-  | { type: DurationType.AfterCount; count: number; day: string }
-  | { type: DurationType.UntilDate; count: number; day: string };
+type EndsPreview = {
+  type: DurationType.AfterCount | DurationType.UntilDate;
+  count: number;
+  day: string;
+};
 
 /** The count and day the chosen Ends type previews; nothing for Never or an incomplete count or date. */
 function resolveEndsPreview(
@@ -272,14 +274,6 @@ export function resolveEndsRowValue(
   settledDueDates: readonly string[],
 ): string {
   return formatEndsRowValue(schedule, resolveEndsPreview(schedule, settledDueDates));
-}
-
-/** The line under the Ends sheet's chosen block; nothing for Never or an incomplete count or date. */
-export function resolveEndsSheetLine(
-  schedule: CommitmentFormSchedule,
-  settledDueDates: readonly string[],
-): string | undefined {
-  return formatEndsSheetLine(resolveEndsPreview(schedule, settledDueDates));
 }
 
 /** The Ends sheet's track and line from one read of the staged schedule. */

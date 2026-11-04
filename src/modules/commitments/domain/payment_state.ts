@@ -49,7 +49,7 @@ export function countSettledPayments(rows: readonly PaymentDates[]): number {
 
 /** The due days of the paid and skipped rows, the ones an edit save keeps. */
 export function listSettledDueDates(
-  rows: readonly Pick<CommitmentPayment, 'due_date' | 'paid_date' | 'skipped_date'>[],
+  rows: readonly (PaymentDates & Pick<CommitmentPayment, 'due_date'>)[],
 ): string[] {
   return rows.filter((p) => !isUnpaidPayment(p)).map((p) => p.due_date);
 }
