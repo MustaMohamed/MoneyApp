@@ -7,7 +7,7 @@ import { ListCard } from '@/components/ui/list_card';
 import { Sheet } from '@/components/ui/sheet';
 import { SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet.helpers';
 import { Text } from '@/components/ui/text';
-import { Spacing, Type, lineHeightFor } from '@/constants/theme';
+import { LetterSpacing, Radius, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 
 import {
   COMMITMENT_FORM_PICKER_GAP,
@@ -57,7 +57,6 @@ export function CommitmentChoiceSheet({
       scrollable={sizing.scrollable}
       size={sizing.size}
       footer={footer}
-      blursInputOnClose
     >
       {sizing.scrollable ? (
         <BottomSheetScrollView
@@ -127,5 +126,60 @@ export function CommitmentChoiceOptions<T extends string>({
         ))}
       </RadioGroup>
     </ListCard>
+  );
+}
+
+interface CommitmentChoiceBlockProps {
+  testID: string;
+  label: string;
+  line?: string;
+  children: ReactNode;
+}
+
+/** The bordered box under the option rows that holds a choice's own controls, under its overline. */
+export function CommitmentChoiceBlock({
+  testID,
+  label,
+  line,
+  children,
+}: CommitmentChoiceBlockProps): React.ReactElement {
+  return (
+    <View
+      testID={testID}
+      className="bg-background border-separator"
+      style={{
+        marginTop: Spacing.sm,
+        paddingVertical: Spacing.sm,
+        paddingHorizontal: Spacing.md,
+        borderWidth: Size.hairline,
+        borderRadius: Radius.lg,
+      }}
+    >
+      <Text
+        className="font-inter-semibold text-muted uppercase"
+        style={{
+          marginBottom: Spacing.xs,
+          fontSize: Type.overline,
+          lineHeight: lineHeightFor(Type.overline),
+          letterSpacing: LetterSpacing.eyebrow,
+        }}
+      >
+        {label}
+      </Text>
+      {children}
+      {line === undefined ? null : (
+        <Text
+          testID={`${testID}-line`}
+          className="font-inter text-muted"
+          style={{
+            marginTop: Spacing.xs,
+            fontSize: Type.caption,
+            lineHeight: lineHeightFor(Type.caption),
+          }}
+        >
+          {line}
+        </Text>
+      )}
+    </View>
   );
 }

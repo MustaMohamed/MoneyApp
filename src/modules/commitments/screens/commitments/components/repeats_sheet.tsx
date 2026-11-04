@@ -5,10 +5,9 @@ import { resolveTypeTabsGeometry } from '@/components/ui/form_sheet.geometry';
 import { FormSheetFooter } from '@/components/ui/form_sheet_footer';
 import { Stepper } from '@/components/ui/stepper';
 import { SegmentedTabs, type TabSegment } from '@/components/ui/tabs';
-import { Text } from '@/components/ui/text';
 import { RecurrencePeriod, type RecurrencePreset } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { LetterSpacing, Radius, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { orderByRank } from '@/utils/rank_order';
 import { ms } from '@/utils/responsive';
 
@@ -18,7 +17,11 @@ import {
   RECURRENCE_EVERY_MAX,
   RECURRENCE_EVERY_MIN,
 } from '../commitment_form.shared';
-import { CommitmentChoiceOptions, CommitmentChoiceSheet } from './commitment_choice_sheet';
+import {
+  CommitmentChoiceBlock,
+  CommitmentChoiceOptions,
+  CommitmentChoiceSheet,
+} from './commitment_choice_sheet';
 import { REPEATS_UNIT_MIN_WIDTH } from './commitment_form.geometry';
 import { useRepeatsSheet } from './repeats_sheet.hook';
 
@@ -85,28 +88,11 @@ export function RepeatsSheet({ owner, form, isOpen, onClose }: RepeatsSheetProps
             testIDPrefix="repeats-option"
           />
           {isCustom ? (
-            <View
+            <CommitmentChoiceBlock
               testID="repeats-custom"
-              className="bg-background border-separator"
-              style={{
-                marginTop: Spacing.sm,
-                paddingVertical: Spacing.sm,
-                paddingHorizontal: Spacing.md,
-                borderWidth: Size.hairline,
-                borderRadius: Radius.lg,
-              }}
+              label={Strings.commitmentsRecurrenceEvery}
+              line={label}
             >
-              <Text
-                className="font-inter-semibold text-muted uppercase"
-                style={{
-                  marginBottom: Spacing.xs,
-                  fontSize: Type.overline,
-                  lineHeight: lineHeightFor(Type.overline),
-                  letterSpacing: LetterSpacing.eyebrow,
-                }}
-              >
-                {Strings.commitmentsRecurrenceEvery}
-              </Text>
               <View
                 style={{
                   flexDirection: 'row',
@@ -140,18 +126,7 @@ export function RepeatsSheet({ owner, form, isOpen, onClose }: RepeatsSheetProps
                   />
                 </View>
               </View>
-              <Text
-                testID="repeats-custom-line"
-                className="font-inter text-muted"
-                style={{
-                  marginTop: Spacing.xs,
-                  fontSize: Type.caption,
-                  lineHeight: lineHeightFor(Type.caption),
-                }}
-              >
-                {label}
-              </Text>
-            </View>
+            </CommitmentChoiceBlock>
           ) : null}
         </>
       )}

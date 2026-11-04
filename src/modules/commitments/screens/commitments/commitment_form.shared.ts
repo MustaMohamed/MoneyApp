@@ -1,4 +1,3 @@
-import type { BlurEvent } from 'react-native';
 import { z } from 'zod';
 
 import {
@@ -25,6 +24,16 @@ export interface RepeatsDraft {
   preset: RecurrencePreset;
   every: number;
   period: RecurrencePeriod;
+}
+
+export const ENDS_AFTER_START_COUNT = 12;
+export const ENDS_AFTER_COUNT_MIN = 1;
+
+/** The Ends sheet's staged choice, which only Done writes to the form; each type keeps its own count and day. */
+export interface EndsDraft {
+  type: DurationType;
+  count: number;
+  date: string;
 }
 
 /** Save refuses an amount of `0`, so the still-typing hold holds a zero-so-far text. */
@@ -153,15 +162,4 @@ export function detectPreset(every: number, period: RecurrencePeriod): Recurrenc
   if (every === 1 && period === RecurrencePeriod.Weeks) return RecurrencePreset.Weekly;
   if (every === 1 && period === RecurrencePeriod.Years) return RecurrencePreset.Annually;
   return RecurrencePreset.Custom;
-}
-
-/** The sheet keyboard blur, then the form field's own. */
-export function composeFieldBlur(
-  onSheetBlur: (event: BlurEvent) => void,
-  onFieldBlur: () => void,
-): (event: BlurEvent) => void {
-  return (event) => {
-    onSheetBlur(event);
-    onFieldBlur();
-  };
 }

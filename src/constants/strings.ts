@@ -1108,13 +1108,17 @@ export const Strings = {
   commitmentsRepeatsUnitMonths: 'months',
   commitmentsRepeatsUnitYears: 'years',
   commitmentsRepeatsUnitA11y: 'Repeat unit',
-  commitmentsDurationForever: 'Forever',
   commitmentsDurationAfterCount: 'After N payments',
   commitmentsDurationUntilDate: 'Until date',
   commitmentsEndsNever: 'Never',
   commitmentsEndsRowNever: 'Never',
   commitmentsDurationStopAfter: 'Stop after',
-  commitmentsDurationPayments: 'payments',
+  commitmentsEndsOptionNever: 'Never',
+  commitmentsEndsOptionAfterCount: 'After a number of payments',
+  commitmentsEndsOptionUntilDate: 'On a date',
+  commitmentsEndsUntilLabel: 'Last payment on or before',
+  commitmentsEndsDateRow: 'Date',
+  commitmentsEndsStepperUnit: (n: number) => (n === 1 ? 'payment' : 'payments'),
   commitmentsSave: 'Save',
   commitmentsFirstPaymentDue: (day: string) => `First payment due ${day}.`,
   commitmentsEditScheduleFootnote: 'Upcoming payments follow the new schedule. Paid ones stay.',
@@ -1138,8 +1142,6 @@ export const Strings = {
 
   // Commitments: placeholders
   commitmentsNamePlaceholder: 'Rent',
-  commitmentDateInputFormat: 'YYYY-MM-DD',
-  commitmentsAfterCountPlaceholder: '0',
 
   // Commitments: C4 Detail
   commitmentsDetailRepeats: 'Repeats',

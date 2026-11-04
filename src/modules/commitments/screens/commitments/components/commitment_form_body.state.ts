@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import { withEntry, withoutEntry, type KeyedEntries } from '@/utils/keyed_entries';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
-import type { RepeatsDraft } from '../commitment_form.shared';
+import type { EndsDraft, RepeatsDraft } from '../commitment_form.shared';
 
 export type CommitmentChoiceSheetKind = 'repeats' | 'ends';
 
@@ -12,6 +12,7 @@ interface CommitmentFormBodyPickerEntry {
   showEndDatePicker: boolean;
   choiceSheet: CommitmentChoiceSheetKind | undefined;
   repeatsDraft: RepeatsDraft | undefined;
+  endsDraft: EndsDraft | undefined;
 }
 
 type CommitmentFormBodyStateShape = KeyedEntries<CommitmentFormBodyPickerEntry>;
@@ -20,10 +21,9 @@ type CommitmentFormBodyState = CommitmentFormBodyStateShape & {
   claim: (owner: string) => void;
   setCategoryPickerVisible: (owner: string, v: boolean) => void;
   setShowEndDatePicker: (owner: string, v: boolean) => void;
-  setChoiceSheet: (
-    owner: string,
-    sheet: Exclude<CommitmentChoiceSheetKind, 'repeats'> | undefined,
-  ) => void;
+  closeChoiceSheet: (owner: string) => void;
+  openEndsSheet: (owner: string, draft: EndsDraft) => void;
+  setEndsDraft: (owner: string, draft: EndsDraft) => void;
   openRepeatsSheet: (owner: string, draft: RepeatsDraft) => void;
   setRepeatsDraft: (owner: string, draft: RepeatsDraft) => void;
   release: (owner: string) => void;
@@ -35,6 +35,7 @@ export const INITIAL_PICKER_ENTRY: CommitmentFormBodyPickerEntry = Object.freeze
   showEndDatePicker: false,
   choiceSheet: undefined,
   repeatsDraft: undefined,
+  endsDraft: undefined,
 });
 
 const initialState = (): CommitmentFormBodyStateShape => ({ entries: {} });
@@ -57,8 +58,11 @@ export const useCommitmentFormBodyState = createMoneyAppSelectors(
         ),
       setCategoryPickerVisible: (owner, v) => updateEntry(owner, { categoryPickerVisible: v }),
       setShowEndDatePicker: (owner, v) => updateEntry(owner, { showEndDatePicker: v }),
-      // A close keeps the draft, so the Repeats body holds through the close animation.
-      setChoiceSheet: (owner, sheet) => updateEntry(owner, { choiceSheet: sheet }),
+      // A close keeps both drafts, so the sheet's body holds through the close animation.
+      closeChoiceSheet: (owner) => updateEntry(owner, { choiceSheet: undefined }),
+      openEndsSheet: (owner, draft) =>
+        updateEntry(owner, { choiceSheet: 'ends', endsDraft: draft }),
+      setEndsDraft: (owner, draft) => updateEntry(owner, { endsDraft: draft }),
       openRepeatsSheet: (owner, draft) =>
         updateEntry(owner, { choiceSheet: 'repeats', repeatsDraft: draft }),
       setRepeatsDraft: (owner, draft) => updateEntry(owner, { repeatsDraft: draft }),

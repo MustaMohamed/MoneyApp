@@ -25,6 +25,9 @@ import { buildRecurrenceLabel } from '../../utils/recurrence_label';
 import {
   COMMITMENT_AMOUNT_REFUSES_ZERO,
   type CommitmentFormValues,
+  ENDS_AFTER_COUNT_MIN,
+  ENDS_AFTER_START_COUNT,
+  type EndsDraft,
   PRESET_MAP,
   REPEATS_CUSTOM_START_EVERY,
   type RepeatsDraft,
@@ -147,6 +150,51 @@ export function resolveRepeatsOptions(): { value: RecurrencePreset; label: strin
           : resolveRepeatsRowValue(mapped.every, mapped.period),
     };
   });
+}
+
+const ENDS_OPTION_RANK = {
+  [DurationType.Forever]: 1,
+  [DurationType.AfterCount]: 2,
+  [DurationType.UntilDate]: 3,
+} satisfies Record<DurationType, number>;
+
+const ENDS_OPTION_LABELS: Record<DurationType, string> = {
+  [DurationType.Forever]: Strings.commitmentsEndsOptionNever,
+  [DurationType.AfterCount]: Strings.commitmentsEndsOptionAfterCount,
+  [DurationType.UntilDate]: Strings.commitmentsEndsOptionUntilDate,
+};
+
+export function resolveEndsOptions(): { value: DurationType; label: string }[] {
+  return orderByRank(ENDS_OPTION_RANK).map((type) => ({
+    value: type,
+    label: ENDS_OPTION_LABELS[type],
+  }));
+}
+
+/** The Ends sheet opens on the form's choice; a day earlier than Starts opens at Starts, while the row keeps the stored day. */
+export function seedEndsDraft(
+  values: Pick<CommitmentFormValues, 'durationType' | 'endAfterCount' | 'endDate' | 'startDate'>,
+): EndsDraft {
+  const { durationType, endAfterCount, endDate, startDate } = values;
+  const count =
+    typeof endAfterCount === 'number' && endAfterCount >= ENDS_AFTER_COUNT_MIN
+      ? endAfterCount
+      : ENDS_AFTER_START_COUNT;
+  let date = `${startDate.slice(0, 4)}-12-31`;
+  if (endDate) date = endDate < startDate ? startDate : endDate;
+  return { type: durationType, count, date };
+}
+
+/** Done writes the chosen type and its own field; the other type's field stays as held, since both saves null it. */
+export function applyEndsDraft(
+  form: Pick<UseFormReturn<CommitmentFormValues>, 'setValue' | 'trigger'>,
+  draft: EndsDraft,
+  isSubmitted: boolean,
+): void {
+  form.setValue('durationType', draft.type, SET_OPTS);
+  if (draft.type === DurationType.AfterCount) form.setValue('endAfterCount', draft.count, SET_OPTS);
+  if (draft.type === DurationType.UntilDate) setCommitmentEndDate(form, draft.date, isSubmitted);
+  if (isSubmitted) void form.trigger(['endAfterCount', 'endDate']);
 }
 
 /** The Ends row reads `Never` from its own key, and otherwise as the detail's Ends fact, so a missing count or date reads the incomplete label. */

@@ -15,14 +15,11 @@ import { toLocalDateString } from '@/utils/format_date';
 import {
   resolveCommitmentFirstPaymentFootnote,
   resolveCommitmentFormStatus,
+  seedEndsDraft,
   seedRepeatsDraft,
 } from '../commitment_form.helpers';
 import type { CommitmentFormValues } from '../commitment_form.shared';
-import {
-  type CommitmentChoiceSheetKind,
-  INITIAL_PICKER_ENTRY,
-  useCommitmentFormBodyState,
-} from './commitment_form_body.state';
+import { INITIAL_PICKER_ENTRY, useCommitmentFormBodyState } from './commitment_form_body.state';
 
 const BODY_FAULT_FIELDS = [
   'name',
@@ -62,12 +59,16 @@ export function useCommitmentFormBodyPickers() {
     return {
       setCategoryPickerVisible: (v: boolean) => state.setCategoryPickerVisible(owner, v),
       setShowEndDatePicker: (v: boolean) => state.setShowEndDatePicker(owner, v),
-      // Repeats opens only through `openRepeatsSheet`, which seeds its draft.
-      setChoiceSheet: (sheet: Exclude<CommitmentChoiceSheetKind, 'repeats'> | undefined) =>
-        state.setChoiceSheet(owner, sheet),
-      // The row tap re-seeds the draft from the form, since a close without Done keeps the last one.
+      closeChoiceSheet: () => state.closeChoiceSheet(owner),
+      // A row tap re-seeds its draft from the form, since a close without Done keeps the last one.
       openRepeatsSheet: (every: number, period: RecurrencePeriod) =>
         state.openRepeatsSheet(owner, seedRepeatsDraft(every, period)),
+      openEndsSheet: (
+        values: Pick<
+          CommitmentFormValues,
+          'durationType' | 'endAfterCount' | 'endDate' | 'startDate'
+        >,
+      ) => state.openEndsSheet(owner, seedEndsDraft(values)),
     };
   }, [owner]);
 

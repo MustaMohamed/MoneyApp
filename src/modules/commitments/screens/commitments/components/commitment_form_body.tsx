@@ -28,20 +28,17 @@ import {
   resolveCommitmentStripChips,
   resolveEndsRowValue,
   resolveRepeatsRowValue,
-  setCommitmentDurationType,
-  setCommitmentEndDate,
   setCommitmentStartDate,
 } from '../commitment_form.helpers';
 import { type CommitmentFormValues, SET_OPTS } from '../commitment_form.shared';
 import { CommitmentAmountHero } from './commitment_amount_hero';
-import { CommitmentChoiceSheet } from './commitment_choice_sheet';
 import {
   resolveCommitmentFormStripError,
   useCommitmentFormBodyFaults,
   useCommitmentFormBodyPickers,
   useCommitmentFormStripAccounts,
 } from './commitment_form_body.hook';
-import { DurationPicker } from './duration_picker';
+import { EndsSheet } from './ends_sheet';
 import { RepeatsSheet } from './repeats_sheet';
 
 interface CommitmentFormBodyProps {
@@ -102,11 +99,11 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
 
   const {
     owner,
-    state: { categoryPickerVisible, showEndDatePicker, choiceSheet },
+    state: { categoryPickerVisible, choiceSheet },
     setCategoryPickerVisible,
-    setShowEndDatePicker,
-    setChoiceSheet,
+    closeChoiceSheet,
     openRepeatsSheet,
+    openEndsSheet,
   } = useCommitmentFormBodyPickers();
 
   const { faults: errors, isSubmitted } = useCommitmentFormBodyFaults(form);
@@ -243,7 +240,7 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
               <FormPickerRow
                 testID="ends-row"
                 divider={false}
-                onPress={() => setChoiceSheet('ends')}
+                onPress={() => openEndsSheet({ durationType, endAfterCount, endDate, startDate })}
                 disabled={locked}
                 label={Strings.commitmentsFieldDuration}
                 accessibilityHint={endsFault}
@@ -298,23 +295,16 @@ export function CommitmentFormBody(props: CommitmentFormBodyProps) {
         owner={owner}
         form={form}
         isOpen={choiceSheet === 'repeats'}
-        onClose={() => setChoiceSheet(undefined)}
+        onClose={closeChoiceSheet}
       />
-      <CommitmentChoiceSheet
+      <EndsSheet
+        owner={owner}
+        form={form}
+        startDate={startDate}
+        isSubmitted={isSubmitted}
         isOpen={choiceSheet === 'ends'}
-        title={Strings.commitmentsFieldDuration}
-        testID="ends-sheet"
-        onClose={() => setChoiceSheet(undefined)}
-      >
-        <DurationPicker
-          form={form}
-          durationType={durationType}
-          onDurationTypeChange={(type) => setCommitmentDurationType(form, type, isSubmitted)}
-          onEndDateChange={(next) => setCommitmentEndDate(form, next, isSubmitted)}
-          showEndDatePicker={showEndDatePicker}
-          setShowEndDatePicker={setShowEndDatePicker}
-        />
-      </CommitmentChoiceSheet>
+        onClose={closeChoiceSheet}
+      />
     </>
   );
 }

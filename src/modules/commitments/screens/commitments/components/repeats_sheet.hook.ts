@@ -35,7 +35,7 @@ export function useRepeatsSheet(
         if (entry.choiceSheet !== 'repeats' || entry.repeatsDraft === undefined) return;
         form.setValue('recurrenceEvery', entry.repeatsDraft.every, SET_OPTS);
         form.setValue('recurrencePeriod', entry.repeatsDraft.period, SET_OPTS);
-        useCommitmentFormBodyState.getState().setChoiceSheet(owner, undefined);
+        useCommitmentFormBodyState.getState().closeChoiceSheet(owner);
       },
     };
   }, [owner, form]);

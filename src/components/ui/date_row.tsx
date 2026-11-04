@@ -20,6 +20,7 @@ interface Props {
   testID?: string;
   pickerTitle?: string;
   capsAtToday?: boolean;
+  minimumDate?: string; // YYYY-MM-DD
   disabled?: boolean;
 }
 
@@ -32,9 +33,10 @@ export function DateRow({
   testID = 'date-row',
   pickerTitle = Strings.addTxDatePickerTitle,
   capsAtToday = true,
+  minimumDate,
   disabled,
 }: Props): React.ReactElement {
-  const picker = useDateRowPicker(ownerId, value, onChange, { capsAtToday });
+  const picker = useDateRowPicker(ownerId, value, onChange, { capsAtToday, minimumDate });
   const formatted = formatWeekdayDate(value);
 
   return (
@@ -59,6 +61,7 @@ export function DateRow({
           mode="date"
           display="default"
           maximumDate={picker.state.maximumDate}
+          minimumDate={picker.state.minimumDate}
           onValueChange={picker.selectAndroid}
           onDismiss={picker.dismissAndroid}
         />
@@ -70,6 +73,7 @@ export function DateRow({
           title={pickerTitle}
           value={picker.state.pickerDate}
           maximumDate={picker.state.maximumDate}
+          minimumDate={picker.state.minimumDate}
           onValueChange={picker.selectIos}
           onCancel={picker.cancelIos}
           onDone={picker.commitIos}
