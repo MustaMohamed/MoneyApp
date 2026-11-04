@@ -96,7 +96,6 @@ describe('useRepeatsSheet (MA-276)', () => {
   it('opened on Every month lights Monthly, and Custom reads Every 2 months with its next day', async () => {
     const result = await mount();
     expect(result.current.sheet.state.draft).toBeUndefined();
-    expect(result.current.sheet.state.label).toBeUndefined();
     expect(result.current.sheet.state.track).toBeUndefined();
 
     await tapRow(result);
@@ -104,7 +103,6 @@ describe('useRepeatsSheet (MA-276)', () => {
     expect(result.current.pickers.state.choiceSheet).toBe('repeats');
     expect(result.current.sheet.state).toEqual({
       draft: { preset: RecurrencePreset.Monthly, every: 1, period: RecurrencePeriod.Months },
-      label: 'Every month',
       track: 'Every month · next Fri 20 Nov',
       isCustom: false,
     });
@@ -113,7 +111,6 @@ describe('useRepeatsSheet (MA-276)', () => {
 
     expect(result.current.sheet.state).toEqual({
       draft: { preset: RecurrencePreset.Custom, every: 2, period: RecurrencePeriod.Months },
-      label: 'Every 2 months',
       track: 'Every 2 months · next Sun 20 Dec',
       isCustom: true,
     });
@@ -127,7 +124,7 @@ describe('useRepeatsSheet (MA-276)', () => {
     await act(async () => result.current.sheet.pickPreset(RecurrencePreset.Weekly));
 
     expect(result.current.sheet.state.track).toBe('Every week · next Tue 27 Oct');
-    const label = result.current.sheet.state.label;
+    const label = resolveRepeatsRowValue(1, RecurrencePeriod.Weeks);
     await act(async () => result.current.sheet.done());
 
     expect(result.current.row).toBe(label);
@@ -150,7 +147,6 @@ describe('useRepeatsSheet (MA-276)', () => {
 
     expect(result.current.sheet.state).toEqual({
       draft: { preset: RecurrencePreset.Custom, every: 3, period: RecurrencePeriod.Weeks },
-      label: 'Every 3 weeks',
       track: 'Every 3 weeks · next Tue 10 Nov',
       isCustom: true,
     });
@@ -182,7 +178,6 @@ describe('useRepeatsSheet (MA-276)', () => {
 
     expect(result.current.sheet.state).toEqual({
       draft: { preset: RecurrencePreset.Monthly, every: 1, period: RecurrencePeriod.Months },
-      label: 'Every month',
       track: 'Every month · next Fri 20 Nov',
       isCustom: false,
     });

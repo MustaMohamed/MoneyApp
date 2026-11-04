@@ -7,7 +7,6 @@ import { toLocalDateString } from '@/utils/format_date';
 import {
   type CommitmentFormSchedule,
   pickRepeatsPreset,
-  resolveRepeatsRowValue,
   resolveRepeatsTrack,
 } from '../commitment_form.helpers';
 import { type CommitmentFormValues, SET_OPTS } from '../commitment_form.shared';
@@ -61,7 +60,6 @@ export function useRepeatsSheet(
   return {
     state: {
       draft,
-      label: draft === undefined ? undefined : resolveRepeatsRowValue(draft.every, draft.period),
       track,
       isCustom: draft?.preset === RecurrencePreset.Custom,
     },
