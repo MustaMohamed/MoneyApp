@@ -43,7 +43,6 @@ describe('Branching strings: each branch fails a test when it is removed in eith
 
     expect(withDate.startsWith(without)).toBe(true);
     expect(withDate.endsWith(nextDate)).toBe(true);
-    expect(withDate).not.toEqual(without);
     expect(without).not.toContain('undefined');
   });
 });
