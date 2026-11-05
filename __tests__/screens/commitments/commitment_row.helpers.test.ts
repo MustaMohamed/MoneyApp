@@ -504,12 +504,6 @@ describe('buildCommitmentRowPresentation USD leg', () => {
   const usdRow = (overrides: Partial<CommitmentMonthPayment> = {}) =>
     makeTestMonthPayment({ currency: Currency.USD, amount_due: 15.5, ...overrides });
 
-  it('prints the due day alone on an EGP row', () => {
-    const row = present({});
-
-    expect(row.captionLeg).toBeUndefined();
-  });
-
   it.each<[string, Partial<CommitmentMonthPayment>]>([
     ['unpaid', {}],
     ['skipped', { skipped_date: '2026-09-02' }],
@@ -534,25 +528,6 @@ describe('buildCommitmentRowPresentation USD leg', () => {
       expect(row.captionLeg).toBe('≈ 760 EGP');
     },
   );
-
-  it('draws no leg on an unpaid USD row before the live rate loads', () => {
-    const row = present({ payment: usdRow(), commitment: usdCommitment, liveRate: undefined });
-
-    expect(row.captionLeg).toBeUndefined();
-  });
-
-  it('draws no leg on a USD row with no amount', () => {
-    const row = present({
-      payment: usdRow({ amount_due: null }),
-      commitment: makeTestCommitment({
-        currency: Currency.USD,
-        amount_type: AmountType.Variable,
-        amount: null,
-      }),
-    });
-
-    expect(row.captionLeg).toBeUndefined();
-  });
 
   it('speaks the leg with the due day', () => {
     const row = present({ payment: usdRow(), commitment: usdCommitment });

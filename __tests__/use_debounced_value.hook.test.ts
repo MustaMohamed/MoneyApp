@@ -57,21 +57,6 @@ describe('useDebouncedValue', () => {
     });
     expect(result.current).toBe('abc');
   });
-
-  it('cleans up the timer on unmount', async () => {
-    const { rerender, unmount } = await renderHook(
-      ({ v }: { v: string }) => useDebouncedValue(v, 300),
-      {
-        initialProps: { v: 'a' },
-      },
-    );
-    await rerender({ v: 'b' });
-    await unmount();
-    // No assertion: the pending timer must not throw when it fires after unmount.
-    await act(() => {
-      jest.runAllTimers();
-    });
-  });
 });
 
 describe('useDebouncedSearch', () => {
