@@ -1885,7 +1885,7 @@ describe('commitment store rows signal', () => {
     expect(rowsVersion(store)).toBeGreaterThan(before);
   });
 
-  it('after reset, the next landed pass moves rowsVersion once and a second pass that day moves none', async () => {
+  it('after reset, a failed pass moves none, the next landed pass moves once, and a covered read that day runs no pass and moves none', async () => {
     const repository = makeRepository();
     const store = createCommitmentStore(repository);
     await store.getState().ensureHousekeepingCurrent(DAY_ONE);
