@@ -88,6 +88,7 @@ export function useCommitmentDetail() {
   const navigation = useNavigation();
 
   const payments = useCommitmentStore((s) => s.payments);
+  const rowsVersion = useCommitmentStore((s) => s.rowsVersion);
   const storeSkipPayment = useCommitmentStore.getState().skipPayment;
   const { toast } = useToast();
   const { showSkippedToast } = useSkipWithUndo();
@@ -121,7 +122,7 @@ export function useCommitmentDetail() {
   const releasePaySheet = usePaySheetState.getState().release;
   const paySheetToday = usePaySheetState((s) => s.entries[owner]?.openedOn);
 
-  // `payments` is the refresh trigger: every store publish re-reads the detail in place.
+  // `rowsVersion` is the refresh trigger: a move re-reads the detail in place.
   useEffect(() => {
     if (!commitmentId) return;
     let cancelled = false;
@@ -159,7 +160,7 @@ export function useCommitmentDetail() {
     return () => {
       cancelled = true;
     };
-  }, [commitmentId, cycle, payments, reloadKey, owner, beginLoad, resolve, failLoad, setDetail]);
+  }, [commitmentId, cycle, rowsVersion, reloadKey, owner, beginLoad, resolve, failLoad, setDetail]);
 
   useEffect(() => {
     return () => {
@@ -347,10 +348,10 @@ export function useCommitmentDetail() {
       .openEdit(
         commitment,
         settledDueDates,
-        { onSaved: reload, onStopped: () => finishStop(commitment.name) },
+        { onStopped: () => finishStop(commitment.name) },
         stopCounts,
       );
-  }, [commitment, settledDueDates, stopCounts, reload, finishStop]);
+  }, [commitment, settledDueDates, stopCounts, finishStop]);
 
   const goBack = useCallback(() => {
     router.back();

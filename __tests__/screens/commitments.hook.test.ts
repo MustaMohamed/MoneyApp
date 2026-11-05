@@ -292,6 +292,7 @@ function setup({
   rowsLoadErrorId = undefined,
   transitioningPaymentIds = [],
   payTarget = undefined,
+  rowsVersion = 0,
 }: {
   selectedMonth?: string;
   commitments?: Commitment[];
@@ -316,6 +317,7 @@ function setup({
   rowsLoadErrorId?: string;
   transitioningPaymentIds?: string[];
   payTarget?: CommitmentPayTarget;
+  rowsVersion?: number;
 } = {}) {
   attachMockSelectorStore(useCommitmentsScreenStore as unknown as jest.Mock, () => ({
     rowsRead,
@@ -341,6 +343,7 @@ function setup({
     ensureMonthAggregate: ensureMonthAggregateMock,
     transitioningPaymentIds,
     skipPayment: skipPaymentMock,
+    rowsVersion,
   }));
   attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
     accounts,
@@ -2149,7 +2152,7 @@ describe('useCommitments commitment dimension (MA-213)', () => {
     expect(result.current.state.floatingAlert).toBe('list');
   });
 
-  it('reads the rows once per payments publish', async () => {
+  it('reads the rows once per rowsVersion change and none on a payments publish', async () => {
     setup({ ...month(), appliedFilters: FILTERED, rowsRead: READ });
     const hook = await renderHook(() => useCommitments());
     expect(loadCommitmentRowsMock).toHaveBeenCalledTimes(1);
@@ -2160,7 +2163,249 @@ describe('useCommitments commitment dimension (MA-213)', () => {
 
     setup({ ...month(), payments: [...MONTH_ROWS], appliedFilters: FILTERED, rowsRead: READ });
     await hook.rerender({});
+    expect(loadCommitmentRowsMock).toHaveBeenCalledTimes(1);
+
+    setup({
+      ...month(),
+      payments: [...MONTH_ROWS],
+      appliedFilters: FILTERED,
+      rowsRead: READ,
+      rowsVersion: 1,
+    });
+    await hook.rerender({});
     expect(loadCommitmentRowsMock).toHaveBeenCalledTimes(2);
+    expect(loadCommitmentRowsMock).toHaveBeenLastCalledWith('rent');
+  });
+
+  it('reads no rows on a month swipe that moves no rowsVersion', async () => {
+    setup({ ...month(), appliedFilters: FILTERED, rowsRead: READ });
+    const hook = await renderHook(() => useCommitments());
+    expect(loadCommitmentRowsMock).toHaveBeenCalledTimes(1);
+
+    setup({
+      ...month(),
+      selectedMonth: '2026-06',
+      loadedMonth: '2026-06',
+      payments: [...MONTH_ROWS],
+      monthAggregate: aggregateOf('2026-06'),
+      appliedFilters: FILTERED,
+      rowsRead: READ,
+    });
+    await hook.rerender({});
+
+    expect(loadCommitmentRowsMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('reads the rows once on a pull to refresh, after the month read settles', async () => {
+    setup({ ...month(), appliedFilters: FILTERED, rowsRead: READ });
+    const hook = await renderHook(() => useCommitments());
+    expect(loadCommitmentRowsMock).toHaveBeenCalledTimes(1);
+    const monthRead = deferred<void>();
+    loadMonthSnapshotMock.mockReturnValueOnce(monthRead.promise);
+
+    let refresh: Promise<void> | undefined;
+    await act(async () => {
+      refresh = hook.result.current.onRefresh();
+      await Promise.resolve();
+    });
+    setup({
+      ...month(),
+      payments: [...MONTH_ROWS],
+      appliedFilters: FILTERED,
+      rowsRead: READ,
+      rowsVersion: 1,
+    });
+    await hook.rerender({});
+    expect(loadCommitmentRowsMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      monthRead.resolve();
+      await refresh;
+    });
+
+    expect(loadCommitmentRowsMock).toHaveBeenCalledTimes(2);
+    expect(loadCommitmentRowsMock).toHaveBeenLastCalledWith('rent');
+  });
+
+  it('keeps the refresh spinner up until the one rows read lands', async () => {
+    setup({ ...month(), appliedFilters: FILTERED, rowsRead: READ });
+    const hook = await renderHook(() => useCommitments());
+    const rowsReads: Array<ReturnType<typeof deferred<void>>> = [];
+    loadCommitmentRowsMock.mockImplementation(() => {
+      const read = deferred<void>();
+      rowsReads.push(read);
+      return read.promise;
+    });
+    const monthRead = deferred<void>();
+    loadMonthSnapshotMock.mockReturnValueOnce(monthRead.promise);
+
+    let refresh: Promise<void> | undefined;
+    await act(async () => {
+      refresh = hook.result.current.onRefresh();
+      await Promise.resolve();
+    });
+    setup({
+      ...month(),
+      payments: [...MONTH_ROWS],
+      appliedFilters: FILTERED,
+      rowsRead: READ,
+      rowsVersion: 1,
+    });
+    await hook.rerender({});
+    await act(async () => {
+      monthRead.resolve();
+      for (let index = 0; index < 8; index += 1) await Promise.resolve();
+    });
+    expect(rowsReads.length).toBeGreaterThan(0);
+
+    await act(async () => {
+      rowsReads.slice(0, -1).forEach((read) => read.resolve());
+      for (let index = 0; index < 8; index += 1) await Promise.resolve();
+    });
+    expect(setRefreshingMock).not.toHaveBeenCalledWith(false);
+
+    await act(async () => {
+      rowsReads.at(-1)?.resolve();
+      await refresh;
+    });
+    expect(rowsReads).toHaveLength(1);
+    expect(setRefreshingMock).toHaveBeenLastCalledWith(false);
+  });
+
+  it('Try again on held rows after a failed month read reads the rows once, after the month reads', async () => {
+    setup({ ...month(), appliedFilters: FILTERED, rowsRead: READ, loadError: true });
+    const hook = await renderHook(() => useCommitments());
+    loadCommitmentRowsMock.mockClear();
+    const monthRead = deferred<void>();
+    loadMonthSnapshotMock.mockReturnValueOnce(monthRead.promise);
+
+    let retry: Promise<void> | undefined;
+    await act(async () => {
+      retry = hook.result.current.retryLoad();
+      await Promise.resolve();
+    });
+    setup({
+      ...month(),
+      appliedFilters: FILTERED,
+      rowsRead: READ,
+      loadError: true,
+      rowsVersion: 1,
+    });
+    await hook.rerender({});
+    expect(loadCommitmentRowsMock).not.toHaveBeenCalled();
+
+    await act(async () => {
+      monthRead.reject(new Error('month read failed'));
+      await retry;
+    });
+
+    expect(loadCommitmentRowsMock).toHaveBeenCalledTimes(1);
+    expect(loadCommitmentRowsMock).toHaveBeenCalledWith('rent');
+  });
+
+  it('reads the rows once on a rowsVersion move after a refresh has settled', async () => {
+    setup({ ...month(), appliedFilters: FILTERED, rowsRead: READ });
+    const hook = await renderHook(() => useCommitments());
+    await act(async () => {
+      await hook.result.current.onRefresh();
+    });
+    loadCommitmentRowsMock.mockClear();
+
+    setup({ ...month(), appliedFilters: FILTERED, rowsRead: READ, rowsVersion: 1 });
+    await hook.rerender({});
+
+    expect(loadCommitmentRowsMock).toHaveBeenCalledTimes(1);
+    expect(loadCommitmentRowsMock).toHaveBeenCalledWith('rent');
+  });
+
+  it('reads the rows once more when rowsVersion moves during a refresh’s rows read', async () => {
+    setup({ ...month(), appliedFilters: FILTERED, rowsRead: READ });
+    const hook = await renderHook(() => useCommitments());
+    loadCommitmentRowsMock.mockClear();
+    const rowsRead = deferred<void>();
+    loadCommitmentRowsMock.mockReturnValueOnce(rowsRead.promise);
+
+    let refresh: Promise<void> | undefined;
+    await act(async () => {
+      refresh = hook.result.current.onRefresh();
+      for (let index = 0; index < 8; index += 1) await Promise.resolve();
+    });
+    expect(loadCommitmentRowsMock).toHaveBeenCalledTimes(1);
+
+    setup({ ...month(), appliedFilters: FILTERED, rowsRead: READ, rowsVersion: 1 });
+    await hook.rerender({});
+    expect(loadCommitmentRowsMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      rowsRead.resolve();
+      await refresh;
+    });
+
+    expect(loadCommitmentRowsMock).toHaveBeenCalledTimes(2);
+    expect(loadCommitmentRowsMock).toHaveBeenLastCalledWith('rent');
+  });
+
+  it('reads no rows on a rowsVersion move while a second overlapping refresh is in flight', async () => {
+    setup({ ...month(), appliedFilters: FILTERED, rowsRead: READ });
+    const hook = await renderHook(() => useCommitments());
+    const firstMonth = deferred<void>();
+    const secondMonth = deferred<void>();
+    loadMonthSnapshotMock
+      .mockReturnValueOnce(firstMonth.promise)
+      .mockReturnValueOnce(secondMonth.promise);
+
+    let first: Promise<void> | undefined;
+    let second: Promise<void> | undefined;
+    await act(async () => {
+      first = hook.result.current.onRefresh();
+      second = hook.result.current.onRefresh();
+      await Promise.resolve();
+    });
+    await act(async () => {
+      firstMonth.resolve();
+      await first;
+    });
+    loadCommitmentRowsMock.mockClear();
+
+    setup({ ...month(), appliedFilters: FILTERED, rowsRead: READ, rowsVersion: 1 });
+    await hook.rerender({});
+    expect(loadCommitmentRowsMock).not.toHaveBeenCalled();
+
+    await act(async () => {
+      secondMonth.resolve();
+      await second;
+    });
+    expect(loadCommitmentRowsMock).toHaveBeenCalledTimes(1);
+    expect(loadCommitmentRowsMock).toHaveBeenCalledWith('rent');
+  });
+
+  it('a refresh reads no rows for a commitment the filter left during its month reads', async () => {
+    setup({ ...month(), appliedFilters: FILTERED, rowsRead: READ });
+    const hook = await renderHook(() => useCommitments());
+    const monthRead = deferred<void>();
+    loadMonthSnapshotMock.mockReturnValueOnce(monthRead.promise);
+
+    let refresh: Promise<void> | undefined;
+    await act(async () => {
+      refresh = hook.result.current.onRefresh();
+      await Promise.resolve();
+    });
+    const callsBeforeMove = loadCommitmentRowsMock.mock.calls.length;
+    setup({
+      ...month(),
+      appliedFilters: { ...EMPTY_COMMITMENT_FILTERS, commitmentId: 'gym' },
+      rowsRead: READ,
+    });
+    await hook.rerender({});
+
+    await act(async () => {
+      monthRead.resolve();
+      await refresh;
+    });
+
+    const callsAfterMove = loadCommitmentRowsMock.mock.calls.slice(callsBeforeMove);
+    expect(callsAfterMove).toEqual([['gym']]);
+    expect(loadCommitmentRowsMock).toHaveBeenLastCalledWith('gym');
   });
 
   it('returns to the month’s rows when the dimension clears', async () => {

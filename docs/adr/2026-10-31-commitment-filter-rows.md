@@ -3,7 +3,7 @@
 - **Date:** 2026-10-31
 - **Status:** accepted
 - **Ticket:** MA-213, under #777
-- **Applies to:** `src/modules/commitments/screens/commitments/commitments.store.ts`, `src/modules/commitments/screens/commitments/commitments.helpers.ts`, `src/modules/commitments/screens/commitments/commitments.hook.ts`, `src/components/ui/search_tally.tsx`, `src/components/ui/search_tally.helpers.ts`
+- **Applies to:** `src/modules/commitments/screens/commitments/commitments.store.ts`, `src/modules/commitments/screens/commitments/commitments.helpers.ts`, `src/modules/commitments/screens/commitments/commitments.hook.ts`, `src/components/ui/search_tally.tsx`, `src/components/ui/search_tally.helpers.ts`, `src/modules/commitments/store/commitment.store.ts`, `src/modules/commitments/screens/commitments/detail/detail.hook.ts`
 
 See all on a commitment's detail, and the Commitments section of the filter sheet, narrow the list to one commitment across every month. The month snapshot cannot serve that list: it holds one month's rows, and it omits a stopped commitment with no row in that month. This record states what the list sums while that dimension is set, why the hero does not follow, and how the tally names the commitment.
 
@@ -19,7 +19,7 @@ The hero and the month row keep their month aggregate and selected month while t
 
 ## 3. The rows live in the screen store
 
-`commitments.store.ts` holds one read, keyed by commitment id, under a request guard, so a stale load never overwrites a newer one. The list's `payments` publish is the trigger, as on the detail, so a Pay, a Skip or a month reload re-reads the rows with no spinner and one publication per load. No focus loader is added. A failed read of the held id keeps the held rows and floats the refresh error. A failed first read shows the list's first-load error, and a failed month read alone leaves the row skeletons up until the rows land. This read follows `payments`, so a staleness gate on the month's focus reload in `commitments.hook.ts` gates it too.
+`commitments.store.ts` holds one read, keyed by commitment id, under a request guard, so a stale load never overwrites a newer one. The commitments data store's `rowsVersion` triggers the read on the list and on the detail, with no spinner and one publication per load. It moves once per own write, when that write's follow-up housekeeping pass settles, and at once on a write from another store. It also moves when a pass runs for a new local day or past the widest window generated that day. Setting the filter, a pull to refresh and Try again read the rows directly, and a refresh awaits that read after its month reads settle. A focus or a month swipe that moves no signal reads no rows, and no focus loader is added. A failed read of the held id keeps the held rows and floats the refresh error. A failed first read shows the list's first-load error, and a failed month read alone leaves the row skeletons up until the rows land.
 
 ## 4. The name is the tally's lead
 

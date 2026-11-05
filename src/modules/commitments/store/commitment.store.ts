@@ -41,6 +41,8 @@ interface CommitmentStoreState {
   today: string | undefined;
   loadError: boolean;
   generation: number;
+  /** Moves only when the stored rows can have changed: a write, a new local day, a wider window. */
+  rowsVersion: number;
   monthAggregate: { key: string; aggregate: CommitmentMonthAggregate } | undefined;
   /** The key whose latest aggregate load failed; a success for that key clears it. */
   monthAggregateErrorKey: string | undefined;
@@ -88,7 +90,7 @@ function shareInFlight<T>(
   return request;
 }
 
-function initialState(generation = 0): CommitmentStoreState {
+function initialState(generation = 0, rowsVersion = 0): CommitmentStoreState {
   return {
     commitments: [],
     payments: [],
@@ -100,6 +102,7 @@ function initialState(generation = 0): CommitmentStoreState {
     today: undefined,
     loadError: false,
     generation,
+    rowsVersion,
     monthAggregate: undefined,
     monthAggregateErrorKey: undefined,
   };
@@ -116,6 +119,10 @@ export function createCommitmentStore(
   let housekeepingCoverage:
     | { today: string; generation: number; throughDate: string; requestId: number }
     | undefined;
+  // The newest data generation whose change `rowsVersion` has published.
+  let signalledGeneration = 0;
+  // The widest pass landed on the newest local day in `signalledGeneration`.
+  let rowsExtent: { today: string; throughDate: string } | undefined;
   let latestSnapshotRequest = 0;
   let latestRequestedMonth: string | undefined;
   let latestAggregateRequest = 0;
@@ -183,6 +190,30 @@ export function createCommitmentStore(
         set({ generation: dataGeneration });
       };
 
+      const bumpRowsVersion = () => set((state) => ({ rowsVersion: state.rowsVersion + 1 }));
+
+      const signalPassSettled = (
+        today: string,
+        generation: number,
+        throughDate: string,
+        landed: boolean,
+      ): void => {
+        if (generation !== dataGeneration) return;
+        if (generation > signalledGeneration) {
+          signalledGeneration = generation;
+          rowsExtent = landed ? { today, throughDate } : undefined;
+          bumpRowsVersion();
+        } else if (
+          landed &&
+          (rowsExtent === undefined ||
+            today > rowsExtent.today ||
+            (today === rowsExtent.today && throughDate > rowsExtent.throughDate))
+        ) {
+          rowsExtent = { today, throughDate };
+          bumpRowsVersion();
+        }
+      };
+
       const reloadMonthAggregate = () => {
         if (latestAggregateScope === undefined) return;
         void get().loadMonthAggregate(get().selectedMonth, latestAggregateScope.accountId);
@@ -227,7 +258,13 @@ export function createCommitmentStore(
           if (isHousekeepingCovered(today, generation, throughDate)) return;
 
           const requestId = ++latestHousekeepingRequest;
-          await getHousekeepingRequest(today, generation, throughDate, now);
+          try {
+            await getHousekeepingRequest(today, generation, throughDate, now);
+          } catch (error) {
+            signalPassSettled(today, generation, throughDate, false);
+            throw error;
+          }
+          signalPassSettled(today, generation, throughDate, true);
           if (generation !== dataGeneration) return;
           if (isHousekeepingCovered(today, generation, throughDate)) return;
           const held = housekeepingCoverage;
@@ -327,7 +364,12 @@ export function createCommitmentStore(
           await get().loadMonthSnapshot(yearMonth);
         },
 
-        announceExternalWrite: invalidateData,
+        announceExternalWrite: () => {
+          invalidateData();
+          // No pass follows until a focus, so the write signals at once.
+          signalledGeneration = dataGeneration;
+          bumpRowsVersion();
+        },
 
         addCommitment: async (data) => {
           try {
@@ -452,6 +494,8 @@ export function createCommitmentStore(
         reset: () => {
           dataGeneration += 1;
           housekeepingCoverage = undefined;
+          signalledGeneration = dataGeneration;
+          rowsExtent = undefined;
           latestSnapshotRequest += 1;
           latestRequestedMonth = undefined;
           latestAggregateRequest += 1;
@@ -461,7 +505,7 @@ export function createCommitmentStore(
           inFlightHousekeeping.clear();
           inFlightSnapshots.clear();
           inFlightAggregates.clear();
-          set(initialState(dataGeneration));
+          set(initialState(dataGeneration, get().rowsVersion + 1));
         },
       };
     }),

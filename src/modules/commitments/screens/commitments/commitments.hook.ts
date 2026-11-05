@@ -66,6 +66,7 @@ export function useCommitments() {
     loadError,
     monthAggregate,
     monthAggregateErrorKey,
+    rowsVersion,
   } = useCommitmentStore(
     useShallow((s) => ({
       commitments: s.commitments,
@@ -78,6 +79,7 @@ export function useCommitments() {
       loadError: s.loadError,
       monthAggregate: s.monthAggregate,
       monthAggregateErrorKey: s.monthAggregateErrorKey,
+      rowsVersion: s.rowsVersion,
     })),
   );
   const setSelectedMonth = useCommitmentStore.getState().setSelectedMonth;
@@ -125,6 +127,8 @@ export function useCommitments() {
   const loadCommitmentRows = useCommitmentsScreenStore.getState().loadCommitmentRows;
   const resetCommitmentRows = useCommitmentsScreenStore.getState().reset;
   const listRef = useRef<SectionList<CommitmentMonthPayment, CommitmentsSection>>(null);
+  const refreshesInFlightRef = useRef(0);
+  const rowsReadForRef = useRef<string | undefined>(undefined);
 
   const { effectiveFilters, accountChips, toggleAccountChip } = useAccountChipFilter(
     appliedFilters,
@@ -165,11 +169,17 @@ export function useCommitments() {
     ],
   );
 
-  // `payments` is the refresh trigger: every store publish re-reads the commitment's rows in place.
+  // `rowsVersion` is the refresh trigger; a refresh in flight reads the same commitment's rows itself.
   useEffect(() => {
-    if (commitmentId === undefined) resetCommitmentRows();
-    else void loadCommitmentRows(commitmentId);
-  }, [commitmentId, payments, loadCommitmentRows, resetCommitmentRows]);
+    if (commitmentId === undefined) {
+      rowsReadForRef.current = undefined;
+      resetCommitmentRows();
+      return;
+    }
+    if (refreshesInFlightRef.current > 0 && rowsReadForRef.current === commitmentId) return;
+    rowsReadForRef.current = commitmentId;
+    void loadCommitmentRows(commitmentId);
+  }, [commitmentId, rowsVersion, loadCommitmentRows, resetCommitmentRows]);
 
   // A seed writes a fresh filter, so a See all on the held commitment opens at the top as well.
   const listTopTrigger = commitmentId === undefined ? undefined : appliedFilters;
@@ -343,14 +353,24 @@ export function useCommitments() {
   );
 
   const readSelectedMonth = useCallback(async () => {
+    refreshesInFlightRef.current += 1;
     try {
-      await Promise.all([
+      // The store owns loadError; the rows read follows the month passes, which can write rows.
+      await Promise.allSettled([
         loadMonthSnapshot(selectedMonth),
         loadMonthAggregate(selectedMonth, heroAccountId),
-        commitmentId === undefined ? undefined : loadCommitmentRows(commitmentId),
       ]);
-    } catch {
-      // The store owns loadError; event boundaries contain the rejected operation.
+      // A filter moved during the month reads has started its own rows read.
+      if (commitmentId !== undefined && rowsReadForRef.current === commitmentId) {
+        const heldVersion = useCommitmentStore.getState().rowsVersion;
+        await loadCommitmentRows(commitmentId);
+        // The effect skipped a move that landed during this read, so it is read once more here.
+        const moved = useCommitmentStore.getState().rowsVersion !== heldVersion;
+        if (moved && rowsReadForRef.current === commitmentId)
+          await loadCommitmentRows(commitmentId);
+      }
+    } finally {
+      refreshesInFlightRef.current -= 1;
     }
   }, [
     loadMonthSnapshot,

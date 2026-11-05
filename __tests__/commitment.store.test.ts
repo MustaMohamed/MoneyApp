@@ -146,6 +146,7 @@ describe('commitment store snapshot ownership', () => {
       loadedMonth: undefined,
       loadError: false,
       generation: 0,
+      rowsVersion: 0,
       transitioningPaymentIds: [],
     });
   });
@@ -1570,8 +1571,8 @@ describe('commitment store focus gate', () => {
 
     expect(repository.getMonthSnapshot).toHaveBeenCalledTimes(1);
     expect(repository.getMonthAggregate).toHaveBeenCalledTimes(1);
-    // One for the rows and one for the figures.
-    expect(published).toHaveBeenCalledTimes(2);
+    // One for the cold pass's rowsVersion move, one for the rows and one for the figures.
+    expect(published).toHaveBeenCalledTimes(3);
   });
 
   it('re-queries at the next ensure after a failed forced snapshot read', async () => {
@@ -1700,5 +1701,208 @@ describe('commitment store focus gate', () => {
     unsubscribe();
 
     expect(published).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('commitment store rows signal', () => {
+  const DECEMBER = '2026-12';
+  type Store = ReturnType<typeof createCommitmentStore>;
+  type Write = [string, (store: Store) => Promise<unknown>, CommitmentMonthPayment[]];
+
+  const skippedRow = payment({ skipped_date: MAY_8 });
+  const WRITES: Write[] = [
+    ['markAsPaid', (store) => store.getState().markAsPaid('payment', paymentDetails), [payment()]],
+    ['skipPayment', (store) => store.getState().skipPayment('payment', DAY_ONE), [payment()]],
+    ['undoSkip', (store) => store.getState().undoSkip('payment', DAY_ONE), [skippedRow]],
+    ['addCommitment', (store) => store.getState().addCommitment(newInput), [payment()]],
+    [
+      'updateCommitment',
+      (store) => store.getState().updateCommitment('commitment', updateInput, DAY_ONE),
+      [payment()],
+    ],
+    [
+      'deactivateCommitment',
+      (store) => store.getState().deactivateCommitment('commitment'),
+      [payment()],
+    ],
+  ];
+
+  let consoleSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    jest.useFakeTimers().setSystemTime(DAY_ONE);
+    consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+    consoleSpy.mockRestore();
+  });
+
+  function rowsVersion(store: Store): number {
+    return store.getState().rowsVersion;
+  }
+
+  async function landedStore(
+    rows: CommitmentMonthPayment[] = [payment()],
+    overrides: Partial<ICommitmentRepository> = {},
+  ) {
+    const repository = makeRepository({
+      getMonthSnapshot: jest.fn().mockResolvedValue(snapshot(MAY, [commitment()], rows)),
+      getMonthAggregate: jest.fn().mockResolvedValue(makeTestMonthAggregate()),
+      ...overrides,
+    });
+    const store = createCommitmentStore(repository);
+    store.setState({ selectedMonth: MAY });
+    await store.getState().loadMonthSnapshot(MAY, DAY_ONE);
+    await store.getState().loadMonthAggregate(MAY, undefined, DAY_ONE);
+    await flushMicrotasks();
+    return { repository, store };
+  }
+
+  it.each(WRITES)(
+    '%s moves rowsVersion once, when its follow-up pass settles',
+    async (_name, write, rows) => {
+      const { repository, store } = await landedStore(rows);
+      const before = rowsVersion(store);
+      const pass = deferred<void>();
+      (repository.runHousekeeping as jest.Mock).mockReset().mockReturnValue(pass.promise);
+
+      const action = write(store);
+      await flushMicrotasks();
+      expect(repository.runHousekeeping).toHaveBeenCalledTimes(1);
+      expect(rowsVersion(store)).toBe(before);
+
+      pass.resolve();
+      await action;
+      await flushMicrotasks();
+
+      expect(rowsVersion(store)).toBe(before + 1);
+    },
+  );
+
+  it('moves rowsVersion once when the follow-up pass rejects', async () => {
+    const { repository, store } = await landedStore();
+    const before = rowsVersion(store);
+    (repository.runHousekeeping as jest.Mock)
+      .mockReset()
+      .mockRejectedValue(new Error('pass failed'));
+
+    await store.getState().markAsPaid('payment', paymentDetails);
+    await flushMicrotasks();
+
+    expect(rowsVersion(store)).toBe(before + 1);
+  });
+
+  it('moves rowsVersion at once on announceExternalWrite, and the next pass that day moves none', async () => {
+    const { repository, store } = await landedStore();
+    const before = rowsVersion(store);
+
+    store.getState().announceExternalWrite();
+    expect(rowsVersion(store)).toBe(before + 1);
+
+    await store.getState().loadMonthSnapshot(MAY, DAY_ONE);
+    await flushMicrotasks();
+
+    expect(repository.runHousekeeping).toHaveBeenCalledTimes(2);
+    expect(rowsVersion(store)).toBe(before + 1);
+  });
+
+  it('moves rowsVersion once for two passes of one day, and once more for a new local day', async () => {
+    const store = createCommitmentStore(makeRepository());
+    const before = rowsVersion(store);
+
+    await store.getState().ensureHousekeepingCurrent(DAY_ONE);
+    await store.getState().ensureHousekeepingCurrent(DAY_ONE);
+    expect(rowsVersion(store)).toBe(before + 1);
+
+    await store.getState().ensureHousekeepingCurrent(DAY_TWO);
+    expect(rowsVersion(store)).toBe(before + 2);
+  });
+
+  it('moves rowsVersion once for a pass past the day’s window, and none for a month inside it', async () => {
+    const repository = makeRepository();
+    const store = createCommitmentStore(repository);
+    await store.getState().ensureHousekeepingCurrent(DAY_ONE);
+    const before = rowsVersion(store);
+
+    await store.getState().loadMonthSnapshot(DECEMBER, DAY_ONE);
+    expect(rowsVersion(store)).toBe(before + 1);
+
+    await store.getState().loadMonthSnapshot('2026-06', DAY_ONE);
+    expect(rowsVersion(store)).toBe(before + 1);
+    expect(repository.runHousekeeping).toHaveBeenCalledTimes(2);
+  });
+
+  it('a pass that settles after a second write moves nothing, and the second write’s pass moves once', async () => {
+    const { repository, store } = await landedStore();
+    const before = rowsVersion(store);
+    const firstPass = deferred<void>();
+    const secondPass = deferred<void>();
+    (repository.runHousekeeping as jest.Mock)
+      .mockReset()
+      .mockReturnValueOnce(firstPass.promise)
+      .mockReturnValueOnce(secondPass.promise);
+
+    const first = store.getState().addCommitment(newInput);
+    await flushMicrotasks();
+    const second = store.getState().addCommitment({ ...newInput, name: 'Second commitment' });
+    await flushMicrotasks();
+    expect(repository.runHousekeeping).toHaveBeenCalledTimes(2);
+
+    firstPass.resolve();
+    await flushMicrotasks();
+    expect(rowsVersion(store)).toBe(before);
+
+    secondPass.resolve();
+    await Promise.all([first, second]);
+    await flushMicrotasks();
+    expect(rowsVersion(store)).toBe(before + 1);
+  });
+
+  it('after a write, a pass past the window that write’s pass covered moves once more', async () => {
+    const { store } = await landedStore();
+    await store.getState().loadMonthSnapshot(DECEMBER, DAY_ONE);
+    store.setState({ selectedMonth: MAY });
+    const before = rowsVersion(store);
+
+    await store.getState().addCommitment(newInput);
+    await flushMicrotasks();
+    expect(rowsVersion(store)).toBe(before + 1);
+
+    await store.getState().loadMonthSnapshot(DECEMBER, DAY_ONE);
+    await flushMicrotasks();
+    expect(rowsVersion(store)).toBe(before + 2);
+  });
+
+  it('reset never moves rowsVersion back', async () => {
+    const store = createCommitmentStore(makeRepository());
+    await store.getState().ensureHousekeepingCurrent(DAY_ONE);
+    const before = rowsVersion(store);
+
+    store.getState().reset();
+
+    expect(rowsVersion(store)).toBeGreaterThan(before);
+  });
+
+  it('after reset, a failed pass moves none, the next landed pass moves once, and a covered read that day runs no pass and moves none', async () => {
+    const repository = makeRepository();
+    const store = createCommitmentStore(repository);
+    await store.getState().ensureHousekeepingCurrent(DAY_ONE);
+    store.getState().reset();
+    const before = rowsVersion(store);
+    (repository.runHousekeeping as jest.Mock).mockRejectedValueOnce(new Error('pass failed'));
+
+    await expect(store.getState().ensureHousekeepingCurrent(DAY_ONE)).rejects.toThrow(
+      'pass failed',
+    );
+    expect(rowsVersion(store)).toBe(before);
+
+    await store.getState().ensureHousekeepingCurrent(DAY_ONE);
+    expect(rowsVersion(store)).toBe(before + 1);
+
+    await store.getState().loadMonthSnapshot('2026-06', DAY_ONE);
+    expect(repository.runHousekeeping).toHaveBeenCalledTimes(3);
+    expect(rowsVersion(store)).toBe(before + 1);
   });
 });
