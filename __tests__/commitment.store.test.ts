@@ -1571,8 +1571,8 @@ describe('commitment store focus gate', () => {
 
     expect(repository.getMonthSnapshot).toHaveBeenCalledTimes(1);
     expect(repository.getMonthAggregate).toHaveBeenCalledTimes(1);
-    // One for the rows and one for the figures.
-    expect(published).toHaveBeenCalledTimes(2);
+    // One for the cold pass's rowsVersion move, one for the rows and one for the figures.
+    expect(published).toHaveBeenCalledTimes(3);
   });
 
   it('re-queries at the next ensure after a failed forced snapshot read', async () => {
