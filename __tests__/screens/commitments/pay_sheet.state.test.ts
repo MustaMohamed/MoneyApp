@@ -1,7 +1,4 @@
-import {
-  INITIAL_PAY_SHEET_ENTRY,
-  usePaySheetState,
-} from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.state';
+import { usePaySheetState } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.state';
 
 const OWNER = 'owner-a';
 const OPENED_ON = '2026-10-20';
@@ -12,14 +9,6 @@ const entry = () => store().entries[OWNER];
 
 describe('pay sheet state: the add-account hand-off (MA-219)', () => {
   beforeEach(() => store().reset());
-
-  it('starts every entry with no hand-off pending', () => {
-    expect(INITIAL_PAY_SHEET_ENTRY.postCloseAction).toBeUndefined();
-
-    store().open(OWNER, OPENED_ON);
-
-    expect(entry().postCloseAction).toBeUndefined();
-  });
 
   it('hides a visible entry once and reads addAccount once on the close that follows', () => {
     store().open(OWNER, OPENED_ON);

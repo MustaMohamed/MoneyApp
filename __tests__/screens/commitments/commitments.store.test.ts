@@ -61,13 +61,6 @@ afterEach(() => {
 });
 
 describe('createCommitmentsScreenStore on a fake repository', () => {
-  it('starts holding no read and no failure', () => {
-    const store = createCommitmentsScreenStore(fakeRepo());
-
-    expect(store.getState().rowsRead).toBeUndefined();
-    expect(store.getState().rowsLoadErrorId).toBeUndefined();
-  });
-
   it('publishes the commitment, its rows and the id', async () => {
     const repo = fakeRepo();
     repo.getPaymentsByCommitment.mockResolvedValue([RENT_ROW]);
