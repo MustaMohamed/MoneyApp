@@ -3,6 +3,7 @@ import { View } from 'react-native';
 
 import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
+import { DetailDangerButton } from '@/components/ui/detail_danger_button';
 import { DetailRowsCard } from '@/components/ui/detail_rows_card';
 import { FactRow } from '@/components/ui/fact_row';
 import { HeaderTextAction } from '@/components/ui/header_text_action';
@@ -182,10 +183,7 @@ export default function AccountDetailScreen() {
             />
           </Box>
           <Box style={{ flex: 1 }}>
-            <Button
-              variant="secondary"
-              flat
-              tone="danger"
+            <DetailDangerButton
               icon="archive-outline"
               label={Strings.accountDetailArchive}
               onPress={() => setArchiveVisible(true)}
