@@ -1,6 +1,6 @@
 # Invariant list
 
-/boundaries' code scout and its lock read this list, and /issue-review's S3 checks locked Rules against it. The lock writes, and S3's delta proposes, each line the work meets as one Rule, in one shape: the line's invariant, the screens it binds, and on a `grep` line every hit as a `path:line` site. `<files>` in a command means the files the work touches. A ticket that adds a line here carries CLAUDE.md critical trigger 2 in its Rules.
+/boundaries' code scout and its lock read this list, and /issue-review's S3 checks locked Rules against it. The lock writes, and S3's delta proposes, each numbered line the work meets as one Rule, in one shape: the numbered line's invariant, the screens it binds, and on a `grep` line every hit as a `path:line` site. `<files>` in a command means the files the work touches. A ticket that adds a line here carries CLAUDE.md critical trigger 2 in its Rules.
 
 Marks: `device` is proven on the emulator, `grep` carries the command that lists its sites, and `test` names the jest suite that computes it.
 
@@ -14,3 +14,13 @@ Marks: `device` is proven on the emulator, `grep` carries the command that lists
 8. With a field focused, the field and the sheet's footer sit above the keyboard top, and the sheet closes on every path its features file names, the close proven by the screenshot. `device` · `.claude/rules/ui.md` § Bottom sheets, the keyboard-aware and `liftsAboveKeyboard` bullets · `.claude/skills/emulator-verify/SKILL.md`, the paragraph on `mqa bounds` keeping a closed sheet's nodes.
 9. A shared current-item slot with two writers is keyed by its owner or scoped to its screen, and a cache whose value is the same for every reader is keyed by id. `grep` · `.claude/rules/state.md` rule 5, `docs/adr/2026-09-15-account-lookup-keyed-by-id.md` §1 · `git grep -nE "from '(@/|\.\./)[^']*\.(store|state)'" -- <files> | grep -v ':import type '` lists each store or state a touched file imports by an alias or a `../` path. A multi-line import, a type-only one included, shows on its `} from` line, so check its opening line. A store or state imported by a `./` path, from the importer's own folder or a folder below it, does not appear.
 10. Every async write sets an error the UI renders. `grep` · `.claude/rules/review.md` class 1 · `git grep -nE -A2 'catch( \([^)]*\))? \{|\.catch\(|(^|[^A-Za-z0-9_.])void [A-Za-z_.(]' -- <files>` shows each `catch` block, each `.catch(` handler and each `void`, with the two lines after it, so a comment-only body is visible.
+
+## Commitments count, 2026-11-05
+
+The lines under this heading are figures from MA-230's count of the commitments milestone and bind no Rule. The [count page](https://claude.ai/artifact/1zwaD47DrwDtkk974A9z2h) names each ticket by issue number and family, counted by the 2026-10-21 close audit's method and family table.
+
+- Font scale 2.0: 3 (transactions 18)
+- Android ellipsis: 0 (transactions 2)
+- Sheet and keyboard: 1 (transactions 4)
+- Contrast: 0 (transactions 2)
+- Came back after a fix, any family: 3 (transactions 10)
