@@ -3,6 +3,7 @@ import type { UseFormReturn } from 'react-hook-form';
 
 import { type RecurrencePeriod, RecurrencePreset } from '@/constants/enums';
 import { toLocalDateString } from '@/utils/format_date';
+import { useLocalToday } from '@/utils/use_local_today.hook';
 
 import {
   type CommitmentFormSchedule,
@@ -18,7 +19,6 @@ export function useRepeatsSheet(
   form: Pick<UseFormReturn<CommitmentFormValues>, 'setValue'>,
   schedule: CommitmentFormSchedule,
   settledDueDates: readonly string[],
-  now: Date = new Date(),
 ) {
   const draft = useCommitmentFormBodyState(
     (s) => (s.entries[owner] ?? INITIAL_PICKER_ENTRY).repeatsDraft,
@@ -44,7 +44,7 @@ export function useRepeatsSheet(
     };
   }, [owner, form]);
 
-  const today = toLocalDateString(now);
+  const today = useLocalToday(toLocalDateString(new Date()), true);
   const track = useMemo(
     () =>
       draft === undefined

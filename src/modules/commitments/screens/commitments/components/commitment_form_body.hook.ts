@@ -11,6 +11,7 @@ import {
 } from '@/modules/accounts/store/account_lookup.helpers';
 import { useAccountsById } from '@/modules/accounts/store/use_accounts_by_id.hook';
 import { toLocalDateString } from '@/utils/format_date';
+import { useLocalToday } from '@/utils/use_local_today.hook';
 
 import {
   resolveCommitmentFirstPaymentFootnote,
@@ -134,7 +135,6 @@ export function useCommitmentFormStatus(
 
 export function useCommitmentFirstPaymentFootnote(
   form: UseFormReturn<CommitmentFormValues>,
-  now: Date = new Date(),
 ): string | undefined {
   const [startDate, recurrenceEvery, recurrencePeriod, durationType, endAfterCount, endDate] =
     useWatch({
@@ -148,8 +148,9 @@ export function useCommitmentFirstPaymentFootnote(
         'endDate',
       ],
     });
+  const today = useLocalToday(toLocalDateString(new Date()), true);
   return resolveCommitmentFirstPaymentFootnote(
     { startDate, recurrenceEvery, recurrencePeriod, durationType, endAfterCount, endDate },
-    toLocalDateString(now),
+    today,
   );
 }
