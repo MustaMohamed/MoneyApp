@@ -22,6 +22,7 @@ The `.store.ts` vs `.state.ts` split: `.store.ts` = data (form drafts, selection
 3. **Error field is mandatory** — every async write path sets a store/state error field the UI renders. A comment-only `catch {}` or a `void handler()` that discards the rejection leaves the user staring at a silent failure (audit H14/M42 class — the single most repeated defect family).
 4. **One coherent publication per load** — compose the snapshot, then publish once; no loading → partial → final intermediate states that cause render storms.
 5. **Single-owner lookups** — a shared "current item" slot with two independent writers silently cross-clobbers (audit L27). Key the slot by owner or scope it per screen.
+6. **Local day boundary.** A preview that shows a figure derived from today recomputes when the local day changes while its screen or sheet stays open: it reads the day through `useLocalToday` or `useLocalDayChange`, never a `new Date()` taken once at mount (`docs/adr/2026-10-21-derived-payment-state.md:18`).
 
 ## Misc
 

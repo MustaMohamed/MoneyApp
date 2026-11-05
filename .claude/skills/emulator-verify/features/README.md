@@ -17,7 +17,7 @@ On the accounts redesign (#378) the render lens ran a median 99 messages per tic
 
 ## File shape
 
-Four sections, in this order: `Reach it` (route, user path, deep link), `States` (table: state, frame, force, proof), `Outbound` (every action that leaves the screen and where Back lands), `Gotchas`. Force and proof stay in the `States` table, and a proof cell holds assertions only: no ticket ids, history or reasons. Frames are the canvas ids from `~/.ship/MoneyApp/canvas/README.md`, except in a feature file whose header names another canvas, which takes its frame ids from that canvas; the artboard source is the measurement, the PNG is the look.
+Four sections, in this order: `Reach it` (route, user path, deep link), `States` (table: state, frame, force, proof), `Outbound` (every action that leaves the screen and where Back lands), `Gotchas`. Force and proof stay in the `States` table, and a proof cell holds assertions only: no ticket ids, history or reasons. Frames are the canvas ids from `~/.ship/MoneyApp/canvas/README.md`, except in a feature file whose header names another canvas, which takes its frame ids from that canvas; the artboard source is the measurement, the PNG is the look. A frame is read with its `undrawn` lines in `~/.ship/MoneyApp/canvas/rulings.md` applied, per `.claude/skills/ship/references/merge.md` § Write-back.
 
 ## Files
 

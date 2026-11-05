@@ -169,7 +169,7 @@ Phase 2 findings pool into one triage (phase 3): CI and Non-goals read first, de
 The conductor settles a dispute, and an ambiguous verification, by the first of these that answers it:
 
 1. The ticket text.
-2. The frame in `~/.ship/MoneyApp/canvas/`, for layout, geometry and colour.
+2. The frame in `~/.ship/MoneyApp/canvas/`, for layout, geometry and colour, read with its `undrawn` lines in `~/.ship/MoneyApp/canvas/rulings.md` applied ([references/merge.md](references/merge.md) § Write-back).
 3. The shipped convention, for glyphs, icons and number formats.
 4. The smallest change.
 

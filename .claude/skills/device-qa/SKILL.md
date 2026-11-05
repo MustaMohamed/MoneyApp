@@ -14,6 +14,7 @@ Device QA is the user's pass when an epic or module closes, critical trigger 8: 
 1. **Scope it:** list the screens the merged PRs of the epic's or module's closed tickets changed, plus the *always-run* checks below. Build from `main` in the primary checkout.
 2. **Assemble the checklist:** relevant area matrices + always-run checks. Present it to the user as a numbered list they can walk top-to-bottom.
 3. **Record the result:** a `## Device QA` comment on the epic's issue (`gh issue comment <n> --body-file -`), per item: pass / fail (with what was seen) / skipped. A failed item is listed in the comment; nothing routes back to an implementer. (Older passes live in `docs/superpowers/qa/` and `docs/scopes/`; both are frozen history.)
+4. **Redraw the ruled frames:** after the record, redraw every frame with an `undrawn` line in `~/.ship/MoneyApp/canvas/rulings.md`, republish each canvas that changed, refresh its local copy under `~/.ship/MoneyApp/canvas/` where one exists, and rewrite each line's `undrawn` as `drawn <yyyy-mm-dd>`. `/ship` writes the lines, `.claude/skills/ship/references/merge.md` § Write-back.
 
 ## Always-run checks (every QA pass, ~2 min)
 
