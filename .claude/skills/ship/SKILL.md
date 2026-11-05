@@ -14,7 +14,7 @@ Delivery of one leaf task from Planned to Awaiting Human with a merge summary, o
 
 **Lease check.** The Entry check of [queue § Lease](../queue/SKILL.md) runs on `<n>` as soon as it is known. When it passes, write the lease at once, before step 1 resumes or step 2 acts: `skill=ship`, `worktree=` the implementation worktree when it exists, else the primary checkout, keeping `task=` when the lease is the run's own.
 
-1. **Resume** when `~/.ship/MoneyApp/MA-XXX/state.md` exists. First `bash scripts/board.sh questions <n>`: while it prints a record, the run stops there, dispatches nothing, parks nothing and replies `Next: /queue asks`. With none open and the ticket back from Blocked, write `issue.md` again from the issue, as Setup does, before the next dispatch. Then read `state.md`, announce phase, branch, PR and any open loop, take the call count from the `conductor:` line with the highest run total (§ Conductor budget), load that phase's file, continue. Never redo a completed phase.
+1. **Resume** when `~/.ship/MoneyApp/MA-XXX/state.md` exists. First `bash scripts/board.sh questions <n>`: while it prints a record, the run stops there, dispatches nothing, parks nothing and replies `Next: /queue asks`. With none open and the ticket back from Blocked, write `issue.md` again from the issue, as Setup does, before the next dispatch. Then read `state.md`, announce phase, branch, PR and any open loop, load that phase's file, continue. Never redo a completed phase.
 2. Otherwise `bash scripts/board.sh get <n>`:
    - **Planned** → phase 1.
    - **Ready For Development** with no sub-issues → the ticket has no plan: reply `Next: /prep <n>` and run nothing.
@@ -65,11 +65,7 @@ Load `references/<phase>.md` on entering a phase. The file is the method; this t
 | 4 | Re-check | one fresh re-checker per pushed fix | | all fixed, no new findings; cap 4 cycles with phase 3 |
 | 5 | Merge summary | conductor removes the plan file and writes the summary; the human merges | Awaiting Human; In Review on a change the user asks for, below the cap of § Fix loop | summary sent; a typed run then watches the merge and cleans |
 
-A phase with nothing to do is recorded as vacuous (`P4: vacuous, no fixes`), never skipped silently. There is no fast lane and no mode: one ticket, one branch, one PR.
-
-## Conductor budget
-
-The conductor's budget is 70 tool calls a run, and every call it makes counts: dispatches, reads, Skill calls, `state.md` writes. Entry and Setup count into P1, and a resume's entry into the phase it resumes. At the end of each phase the conductor writes `conductor: <run total> / 70 · P<k> <calls in this phase>` as its own Log line, in the same write that completes the phase's Log line. P3 and P4 repeat per cycle, so each writes it at the end of each cycle's visit, after that cycle's Log line (`P3 c<n>:`), which names the cycle; the phase figure counts that visit's calls. Phase 5 writes it just before the merge summary ([references/merge.md](references/merge.md)), and a park writes it under `## Parked`, after its record lines. The last `conductor:` line is the one with the highest run total, since the total only grows: `## Parked` sits below `## Log`, so a park's line can sit below a later, higher Log line. A resumed run continues the run total from that line, and the phase figure too when the line names the phase it resumes; otherwise the phase figure starts at 0, and with no `conductor:` line both do. Once the total passes 70, each later line ends `· over in P<j>`, `<j>` the phase in which it passed, and the run continues: nothing parks a run for its count. Over the first ten commitments tickets after MA-225 and MA-226 merged, the median run made 126.5 tool calls in its own transcript against the 70, of which its last `conductor:` line counted 114; the median run also made 107 requests and 70.5 Bash calls; the table is at https://claude.ai/artifact/QDwwKgQiJzQ74TbDCTdFiw.
+A phase with nothing to do is recorded as vacuous (`P4: vacuous, no fixes`), never skipped silently. There is no fast lane and no mode: one ticket, one branch, one PR. The reason, from the commitments close audit: a fix line costs 101k tokens, 1.2 times a feature line, and 2 of 14 fix tickets sat under 60 lines.
 
 ## Artifacts
 
@@ -83,7 +79,8 @@ state.md                         # phase state, one Log line per phase, written 
 findings/cycle-<n>.md            # each triage's consolidated list, what the re-check verifies against
 findings/<role>-<sha>[-<k>].md   # each dispatch's report, references/returns.md
 findings/chain-<sha>.log         # the implementer's parity chain output
-findings/render/                 # render pass and render lens screenshots
+findings/render/                 # render pass and render lens screenshots, and the invariant pass's bounds dumps
+features/<screen>.md             # the conductor's cut of each features file, emulator-verify/features/README.md § The rule
 ```
 
 Anything a later phase consumes lives in a file, not in conductor context.
@@ -109,10 +106,8 @@ cycle: <0-4>
 - <date> screens: <features file>, …
 - <date> invariants: holds | <screen>: <node>[, …][ · unread <k>]
 - <date> unwalked: <features file>
-- <date> conductor: 21 / 70 · P1 21
 - <date> P2: pushed <sha>, PR <url> · correctness 0 / quality 2 / render 1 / code-review 3 (medium), CI green
 - <date> P3 c1: findings written · fix dispatched · fix pushed <sha>
-- <date> conductor: 47 / 70 · P3 12
 
 ## Decisions
 <!-- one line when the decision is made; phase 5 reads every line -->
@@ -127,7 +122,7 @@ cycle: <0-4>
 - <label> → <ruling> (<date>), settled by <ticket text | frame | shipped convention | smallest change>, <why in one line>
 ```
 
-Each phase, and in P3 and P4 each cycle's visit, takes one Log line, written when the phase's dispatch goes and completed when it ends, facts only: SHAs, verdicts, counts, decisions. The REBUILD, `not probed after amend`, `screens:`, `invariants:` and `unwalked:` lines ([references/implement.md](references/implement.md) → Build logged, Amend logged, Unwalked logged, Exit), the `change triaged` lines ([references/merge.md](references/merge.md) → A change after the summary), each dispatch's `budget:` line and the `conductor:` lines stay their own lines. The file stays under 15 KB.
+Each phase, and in P3 and P4 each cycle's visit, takes one Log line, written when the phase's dispatch goes and completed when it ends, facts only: SHAs, verdicts, counts, decisions. The REBUILD, `not probed after amend`, `screens:`, `invariants:` and `unwalked:` lines ([references/implement.md](references/implement.md) → Build logged, Amend logged, Unwalked logged, Exit), the `change triaged` lines ([references/merge.md](references/merge.md) → A change after the summary) and each dispatch's `budget:` line stay their own lines. The file stays under 15 KB.
 
 **Resume inside a phase** (its Log line not completed) reads the rest from the commits, `git log --oneline origin/main..HEAD | tail -20`, the unpushed ones, `git log --oneline origin/<branch>..HEAD | tail -20`, the tree, `git status --short | tail -20`, and `findings/cycle-<cycle>.md` in P3 or P4. Unpushed commits → push and re-point the review worktree, then continue; uncommitted edits → the discard in `references/implement.md` → Re-entry, then re-dispatch the last dispatch.
 
@@ -193,7 +188,7 @@ A park runs in this order:
 1. `bash scripts/board.sh get <n>` gives the column the record's `Left:` names.
 2. One record per question per [question-record.md](../issue-review/references/question-record.md), `Asked by:` naming `ship` and the phase, posted with `gh issue comment <n> --body "$RECORD"` after its restatement check.
 3. `bash scripts/board.sh status <n> Blocked`.
-4. One line per record under `state.md` → `## Parked`: the record URL, the case, and the miss or `none`; then the `conductor:` line of § Conductor budget.
+4. One line per record under `state.md` → `## Parked`: the record URL, the case, and the miss or `none`.
 5. Release the lease, [queue § Lease](../queue/SKILL.md).
 6. Reply with the record URLs and `Next: /queue asks`, and end the run.
 

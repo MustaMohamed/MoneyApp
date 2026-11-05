@@ -97,8 +97,8 @@ The conductor opens a report only on these: gaps and `over budget` from the plan
 
    ```bash
    P=<worktree>/.work/MA-XXX/plan.md
-   grep -cE '^### [0-9]+\.' "$P"                                                         # steps, over 8 trims
-   grep -oE 'expected diff: ~?[0-9]+' "$P" | head -1 | grep -oE '[0-9]+'                    # over 400 trims; no figure trims too
+   grep -cE '^### [0-9]+\.' "$P"                                                                     # steps, over 8 trims
+   grep -oE 'expected diff: ~?[0-9]+' "$P" | head -1 | grep -oE '[0-9]+' | awk '{print $1 * 1.25}'   # over 400 trims; no figure (no output) trims too
    ```
 
    `--amend` runs the same counts on the amended plan. Over any line, the amendment is refused: the planner is re-dispatched to amend without the added scope, and that scope becomes its own ticket, through `/tickets` or, from `/ship`, a triage deferral. The branch and its commits stay.
@@ -114,11 +114,11 @@ The conductor opens a report only on these: gaps and `over budget` from the plan
 
    The plan commit is the branch's first commit, so every review reads the plan beside the code it produced. It never reaches main: `/ship` removes the file in its last commit before the merge, and the PR's head ref keeps the plan commit reachable. When `/ship` has to rebase the branch it re-comments the new blob URL.
 
-8. **Reply.** Branch, plan URL, the step count and expected diff from step 7's two counts, the planner's self-assessment paragraph verbatim, read from the plan with `sed -n '/^## Self-assessment/,$p' <worktree>/.work/MA-XXX/plan.md`, each probed state's result from the probe's verdict line and any refusal from its report's `refusal` range, or `no probe`, review rounds, and `Next: /ship <n>`. The probe's verdict line also gives the `<s> of <m> states` of step 7's `Plan:` comment. A ticket parked at step 4 or 6 replies with its record URLs and `Next: /queue asks`. Called from `/ship`: no reply; ship continues.
+8. **Reply.** Branch, plan URL, from step 7's two counts the step count, the header's `expected diff` and the counted figure, `expected diff` × 1.25, the planner's self-assessment paragraph verbatim, read from the plan with `sed -n '/^## Self-assessment/,$p' <worktree>/.work/MA-XXX/plan.md`, each probed state's result from the probe's verdict line and any refusal from its report's `refusal` range, or `no probe`, review rounds, and `Next: /ship <n>`. The probe's verdict line also gives the `<s> of <m> states` of step 7's `Plan:` comment. A ticket parked at step 4 or 6 replies with its record URLs and `Next: /queue asks`. Called from `/ship`: no reply; ship continues.
 
 ## Rules
 
 - The plan is a file on the branch, nowhere else: not in an issue comment beyond the one-line pointer, not in this conversation, not on main.
-- A plan that names more than 8 steps, more than ~400 changed lines outside tests and generated files, or serves more than one product outcome outside a § Floor bundle, is a gap ("sized past one PR"), not a plan, and no ruling makes it one; the definition is `.claude/skills/tickets/references/splitting.md` § Size gate, counted at `/tickets` and `/issue-review` before any ticket reaches here. `/tickets` is the only skill that cuts a ticket into children; a plan over the gate here is trimmed at its one seam, or at the seam the user chose among two or more, and the remainder is a sibling at Defined (step 4). The conductor checks the first two mechanically before the commit; the reviewer is not the last line. A trim names, in the comment, the files the ticket's `Size:` line missed, and each one is a miss at `/issue-review`.
+- A plan that names more than 8 steps, more than ~400 changed lines outside tests and generated files, which is the header's `expected diff` × 1.25 as step 7 counts it, or serves more than one product outcome outside a § Floor bundle, is a gap ("sized past one PR"), not a plan, and no ruling makes it one; the definition is `.claude/skills/tickets/references/splitting.md` § Size gate, counted at `/tickets` and `/issue-review` before any ticket reaches here. `/tickets` is the only skill that cuts a ticket into children; a plan over the gate here is trimmed at its one seam, or at the seam the user chose among two or more, and the remainder is a sibling at Defined (step 4). The conductor checks the first two mechanically before the commit; the reviewer is not the last line. A trim names, in the comment, the files the ticket's `Size:` line missed, and each one is a miss at `/issue-review`.
 - The planner names files and symbols it opened; a guessed path is a finding at review and a defect at delivery.
 - One planner, one reviewer per round. No panel; the ticket standard already bounds the size a panel was for.

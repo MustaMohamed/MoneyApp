@@ -37,6 +37,7 @@ One paragraph. What we want to achieve by this task and what it unlocks.
 - Grep: <command> · <count> sites. On a class ticket only, never in Acceptance: the command that lists its sites and what it returned. A class ticket also has one Acceptance line per site in outcome words, and one Screen checks row per screen state a site changes, `none` only when no site changes what a screen shows.
 - Consumes: the contract this task takes from a sibling ticket, and the ticket that ships it; or `none`.
 - Produces: the contract this task hands a sibling ticket, and the ticket that reads it; or `none`.
+- Reuse: the parent epic's Reuse row, copied, for each screen this task owns: screen, shared pieces, path, owner; or `none`.
 - Size: <k> files outside tests, ~<n> lines, at <sha>: <paths>. Always the last bullet, the list counted per `splitting.md` § Size gate; `/issue-review` recounts it and `/prep` trims a ticket whose list was short. No section other than Context holds a bullet starting `Size:`.
 ```
 

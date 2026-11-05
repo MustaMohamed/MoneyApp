@@ -15,11 +15,11 @@
 - One outcome per task. Two outcomes are two tasks, except a bundle under § Floor.
 - A task is one PR, per § Size gate below. A bigger one is cut again here, or, the user's choice at stop 1, created at Todo for its own `/tickets` run later. Keeping it whole is not a choice.
 - A chain's first link stands alone. A chain whose first link nobody can use is a layer cut and `/issue-review` rejects it.
-- Preludes are the one allowed non-user-visible task: a migration or data layer a later task needs, isolated because it carries sign-off or data-loss risk. A prelude names the task that consumes it. MA-020 is one.
+- Preludes are the one allowed non-user-visible task: a migration or data layer a later task needs, isolated because it carries sign-off or data-loss risk, or a shared piece one screen must change before another screen's task can take it, the owner its epic's Reuse row names. A prelude names the task that consumes it. MA-020 is one.
 
 ## Size gate
 
-One PR is a counted thing, and every step counts it the same way: `/tickets` on each candidate task before the split is shown, `/issue-review` on each body with one sizer per leaf that counts from LSP references as the planner does, `/prep`'s planner and reviewer on the plan, `/ship` whenever scope is added after the plan. A task fits when this holds:
+One PR is a counted thing, and every step counts it the same way except `/prep`: `/tickets` on each candidate task before the split is shown, `/issue-review` on each body with one sizer per leaf that counts from LSP references as the planner does, `/ship` whenever scope is added after the plan. `/prep`'s planner, its reviewer and its step 7 hold the plan's `expected diff` × 1.25 against ~400. A task fits when this holds:
 
 - at most ~400 changed lines outside tests; the implementer writes about 2.5 times that once tests are in (MA-039: 558 lines outside tests, 936 in tests)
 
@@ -31,7 +31,7 @@ Tests are `__tests__/`, `__mocks__/`, `src/test_helpers/` and `jest.setup.js`. G
 
 **The gate is hard.** No step waives it and no ruling does: not a reviewer, not the conductor, not the user in the session. More scope than the gate holds is another ticket. A plan past the gate is trimmed at a seam even when the extra lines were ruled in, and scope added at `/ship` (a ruling, a note that is another ticket's Acceptance, a ticket folded in) is recounted with the plan's figure; over the gate, the addition leaves the PR as its own ticket. The three PRs that went around the gate were the three costliest `/ship` runs of 71 merged 09-06 to 09-26: #422 planned at ~540, #575 at ~620 by ruling, #580 planned at ~265 and delivered at 866 lines after two tickets were folded in at review. Each cost 154M to 176M against ~86M from the size fit, and the three spawned 8 follow-up tickets.
 
-**400 is a planned figure.** Delivered lines run 1.35 times the plan at the median and 1.64 times at p75 across 56 plans, so a plan at ~400 ships about 540 lines, under the ~700 where ship cost per line turns up (111k per line at 400 to 699 delivered, 168k past 700). A delivered PR past 400 from a plan within the gate is the gate working; the planned figure is the one never exceeded.
+**400 is a planned figure.** Delivered lines ran 1.25 times the plan at the median over the 51 commitments tickets, so `/prep` counts a plan at 1.25 times its `expected diff`, and a plan that passes at ~320 ships about 400 lines. Ship cost per line turns up past ~700 delivered: 111k per line at 400 to 699, 168k past 700.
 
 The file list is built from the body, never taken from it. Every file Context names as changing, plus every file a Rule or an Acceptance line implies, each named by path:
 
