@@ -2,6 +2,7 @@ import React from 'react';
 import { View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
+import { DetailDangerButton } from '@/components/ui/detail_danger_button';
 import { DetailEditButton } from '@/components/ui/detail_edit_button';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
@@ -42,10 +43,7 @@ function ActionRowContent(props: Props): React.ReactElement {
             <DetailEditButton onPress={props.onEdit} />
           </View>
           <View style={{ flex: 1 }}>
-            <Button
-              variant="secondary"
-              flat
-              tone="danger"
+            <DetailDangerButton
               icon="trash-can-outline"
               label={Strings.detailDeleteButton}
               onPress={props.onDelete}

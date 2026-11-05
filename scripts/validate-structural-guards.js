@@ -291,6 +291,17 @@ const NAMED_ROWS = [
   },
   {
     files: [
+      `${COMMITMENTS}/detail/components/detail_actions.tsx`,
+      `${TRANSACTIONS}/detail/components/action_row.tsx`,
+      `${ACCOUNTS}/screens/accounts/detail/index.tsx`,
+    ],
+    banned: [/tone=\{?\s*['"]danger['"]\s*\}?/],
+    rule: 'draws its own danger button; render `DetailDangerButton`',
+    required: [tag('DetailDangerButton')],
+    needs: 'the detail action row draws its danger half through `DetailDangerButton`',
+  },
+  {
+    files: [
       DASHBOARD_INDEX,
       BUDGET_INDEX,
       TRANSACTIONS_INDEX,

@@ -1,6 +1,6 @@
 import { View } from 'react-native';
 
-import { Button } from '@/components/ui/button';
+import { DetailDangerButton } from '@/components/ui/detail_danger_button';
 import { DetailEditButton } from '@/components/ui/detail_edit_button';
 import { Strings } from '@/constants/strings';
 
@@ -17,14 +17,7 @@ export function CommitmentDetailActions({ onEdit, onStop }: Props): React.ReactE
           <DetailEditButton onPress={onEdit} />
         </View>
         <View style={{ flex: 1 }}>
-          <Button
-            variant="secondary"
-            flat
-            tone="danger"
-            icon="close"
-            label={Strings.commitmentsDetailStop}
-            onPress={onStop}
-          />
+          <DetailDangerButton icon="close" label={Strings.commitmentsDetailStop} onPress={onStop} />
         </View>
       </View>
     </View>

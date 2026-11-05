@@ -22,6 +22,9 @@ const CATEGORY_DETAIL_SKELETON = `${BUDGET}/category_detail/components/category_
 const BUDGET_INDEX = `${BUDGET}/index.tsx`;
 const TRANSACTIONS_INDEX = `${TRANSACTIONS}/index.tsx`;
 const DETAIL_INDEX = `${TRANSACTIONS}/detail/index.tsx`;
+const COMMITMENT_DETAIL_ACTIONS = `${COMMITMENTS}/detail/components/detail_actions.tsx`;
+const TRANSACTION_ACTION_ROW = `${TRANSACTIONS}/detail/components/action_row.tsx`;
+const ACCOUNT_DETAIL_INDEX = 'src/modules/accounts/screens/accounts/detail/index.tsx';
 const BUDGET_PICKER = `${TRANSACTIONS}/transaction_form/components/budget_picker_sheet.tsx`;
 const COMMITMENTS_INDEX = `${COMMITMENTS}/index.tsx`;
 const DASHBOARD_INDEX = 'src/modules/dashboard/screens/dashboard/index.tsx';
@@ -402,6 +405,30 @@ const BANNED: BannedSeed[] = [
     text: "import { seeded } from '@/utils/money';",
     token: '@/utils/money',
   },
+  {
+    guard: 'a danger button drawn inline in the commitment detail actions',
+    target: COMMITMENT_DETAIL_ACTIONS,
+    text: '<Button variant="secondary" flat tone="danger" />',
+    token: 'tone="danger"',
+  },
+  {
+    guard: 'a danger button drawn inline in the transaction detail action row',
+    target: TRANSACTION_ACTION_ROW,
+    text: '<Button variant="secondary" flat tone="danger" />',
+    token: 'tone="danger"',
+  },
+  {
+    guard: 'a danger button drawn inline in the account detail screen',
+    target: ACCOUNT_DETAIL_INDEX,
+    text: '<Button variant="secondary" flat tone="danger" />',
+    token: 'tone="danger"',
+  },
+  {
+    guard: 'a danger button with a braced tone in the commitment detail actions',
+    target: COMMITMENT_DETAIL_ACTIONS,
+    text: `<Button variant="secondary" flat tone={'danger'} />`,
+    token: "tone={'danger'}",
+  },
 ];
 
 function withoutTag(rel: string, tag: string, where: string): RequiredSeed {
@@ -469,6 +496,9 @@ const REQUIRED: RequiredSeed[] = [
   withoutKeptView(FIELD_MESSAGE_RAIL, 'the account form field message rail'),
   withoutKeptView(ACCOUNT_COLOR_SHEET, 'the account colour sheet'),
   withoutKeptView(STATUS_TRACK, 'the footer status line'),
+  withoutTag(COMMITMENT_DETAIL_ACTIONS, 'DetailDangerButton', 'the commitment detail actions'),
+  withoutTag(TRANSACTION_ACTION_ROW, 'DetailDangerButton', 'the transaction detail action row'),
+  withoutTag(ACCOUNT_DETAIL_INDEX, 'DetailDangerButton', 'the account detail screen'),
 ];
 
 const DELETED_PATHS = [
