@@ -24,7 +24,7 @@ One paragraph. What we want to achieve by this task and what it unlocks.
 - One row per screen state the change alters, `<features file> · <state> · <risk>`, or `none`. The file is a name under `.claude/skills/emulator-verify/features/`; the state is a name from its States table, or a name followed by `new`; the row copies nothing else from that file. The risk names each condition the state meets, in these words, else `none`: a new component, a height that is not a whole number of dp, a font scale above 1.0, a swipe or a drag, a clipped or rounded container. The `device` lines of the invariant list, `.claude/skills/boundaries/references/invariants.md`, take no row: the invariant pass of `.claude/skills/emulator-verify/features/README.md` proves them on every screen the PR touches, at implement and at the battery, and a `large font` row stays for the task's own states. A migration ticket has one row, the upgraded database opening on the first screen. `/tickets` and `/boundaries` write `none`; `/issue-review` writes the rows. A class ticket's rows, in the shape of Context's `Grep:` bullet, come from the family check at /ship triage or from S3b's rewrite at review.
 
 ## Decisions
-- One line per answer to a question on this task, or a line copied unchanged from the parent's Decisions, `<yyyy-mm-dd> · <question> · <option chosen> · <who chose> · <step>`; or `none`.
+- One line per answer to a question on this task, or a line copied unchanged from the parent's Decisions, `<yyyy-mm-dd> · <question> · <option chosen> · <who chose> · <step>`; or a line `/ship` writes for a decision taken as built, `<yyyy-mm-dd> · <decision> · as built · <who> · /ship`, per `.claude/skills/ship/references/merge.md` § Write-back; or `none`.
 
 ## Links
 - Designs, attachments, the epic; or `none`.
@@ -37,6 +37,7 @@ One paragraph. What we want to achieve by this task and what it unlocks.
 - Grep: <command> · <count> sites. On a class ticket only, never in Acceptance: the command that lists its sites and what it returned. A class ticket also has one Acceptance line per site in outcome words, and one Screen checks row per screen state a site changes, `none` only when no site changes what a screen shows.
 - Consumes: the contract this task takes from a sibling ticket, and the ticket that ships it; or `none`.
 - Produces: the contract this task hands a sibling ticket, and the ticket that reads it; or `none`.
+- Reuse: the parent epic's Reuse row, copied, for each screen this task owns: screen, shared pieces, path, owner; or `none`.
 - Size: <k> files outside tests, ~<n> lines, at <sha>: <paths>. Always the last bullet, the list counted per `splitting.md` § Size gate; `/issue-review` recounts it and `/prep` trims a ticket whose list was short. No section other than Context holds a bullet starting `Size:`.
 ```
 

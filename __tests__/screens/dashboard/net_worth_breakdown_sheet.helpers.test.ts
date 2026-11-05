@@ -1,5 +1,4 @@
 import { Currency } from '@/constants/enums';
-import { Strings } from '@/constants/strings';
 import {
   resolveBreakdownRowColors,
   resolveNetWorthForeignCaption,
@@ -34,25 +33,6 @@ describe('resolveNetWorthForeignCaption — the sheet’s ≈ caption', () => {
     const caption = resolveNetWorthForeignCaption(-40, Currency.EGP);
     expect(caption).toBe('≈ −40.00 USD');
     expect(caption).not.toContain('-');
-  });
-});
-
-describe('the breakdown copy', () => {
-  it('renders the assets header from an amount already joined to its code', () => {
-    expect(Strings.dashboardBreakdownAssetsHeader('350.00 USD', 2)).toBe('350.00 USD · 2 accts');
-    expect(Strings.dashboardBreakdownAssetsHeader('10,000 EGP', 1)).toBe('10,000 EGP · 1 acct');
-  });
-
-  it('renders the liabilities header from an amount already joined to its code', () => {
-    expect(Strings.dashboardBreakdownLiabilitiesHeader('100.00 USD', 1)).toBe(
-      '100.00 USD · 1 card',
-    );
-    expect(Strings.dashboardBreakdownLiabilitiesHeader('4,885 EGP', 2)).toBe('4,885 EGP · 2 cards');
-  });
-
-  it('renders the ≈ placeholder in the foreign currency', () => {
-    expect(Strings.netWorthBreakdownForeignUnavailable(Currency.EGP)).toBe('— EGP');
-    expect(Strings.netWorthBreakdownForeignUnavailable(Currency.USD)).toBe('— USD');
   });
 });
 

@@ -27,7 +27,7 @@ The user asking for a visual on a no row gets one.
 - Everything the columns share is drawn identically; each part that differs gets a dashed outline in one highlight colour. Two mockups that differ only in fill colour read as identical at a glance (MA-098).
 - Draw the state where the options diverge most: the edge month, the error after Save, the accounts still loading at mount, the drag in progress. Add the resting state beside it when that is what the user sees most.
 - Under each drawing, a table with one row per differing part, a Today column and one column per option, plus a cost row where they differ (lines, a canvas frame to add, a rule to change).
-- A question about a designed screen takes its colours, sizes and copy from the frame in `~/.ship/MoneyApp/canvas/`. Otherwise one line under the title says the colours and names are placeholders.
+- A question about a designed screen takes its colours, sizes and copy from the frame in `~/.ship/MoneyApp/canvas/`, with the `undrawn` lines of `~/.ship/MoneyApp/canvas/rulings.md` applied per `.claude/skills/ship/references/merge.md` § Write-back. Otherwise one line under the title says the colours and names are placeholders.
 - An HTML page is inline CSS and SVG only, no external requests.
 
 ## The GIF

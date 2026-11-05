@@ -22,21 +22,21 @@ A fix loop after this point (a change the user asks for, § A change after the s
 The run ends in this order:
 
 1. CI, re-read now, by the jq line of [returns.md](returns.md). Red below the cap of [SKILL.md](../SKILL.md) → Fix loop routes back through phase 3, and nothing below runs. At the cap, the red check is an item 1 finding and the steps below run.
-2. `bash scripts/board.sh status <n> "Awaiting Human"`.
-3. Phase 5's `conductor:` line, [SKILL.md](../SKILL.md) → Conductor budget, written to `state.md`; then the merge summary below, written to `~/.ship/MoneyApp/queue/ship-<n>-summary.md` by every run, typed or unattended.
+2. § Write-back, then `bash scripts/board.sh status <n> "Awaiting Human"`.
+3. The merge summary below, written to `~/.ship/MoneyApp/queue/ship-<n>-summary.md` by every run, typed or unattended.
 4. The PR body completed: `pr.md` keeps its three lines from phase 2 and gains the summary file's content from its item 1 on, the PR URL line left out; then `gh pr edit <pr-url> --body-file ~/.ship/MoneyApp/MA-XXX/pr.md`. The body is the PR's own record, read after `state.md` is gone; the summary file stays, the queue's measure reads it.
 5. Item 7's screenshots, sent with `SendUserFile`.
 6. An unattended run removes its lease, [queue § Lease](../../queue/SKILL.md), and writes its log line, [queue column.md](../../queue/references/column.md) § Log.
 7. The summary as the run's last message.
 
-Nothing is posted on the issue or the PR beyond the body edit of step 4. No run merges, approves a review or turns on auto-merge.
+Nothing is posted on the issue or the PR beyond the PR body edit of step 4 and the ticket body edit of § Write-back. No run merges, approves a review or turns on auto-merge.
 
 The summary is headed by the PR URL, then ten items in this order, each written `none` when empty except item 10, whose heading and table header row are always written. Every item reads a file, so a session that did not run the battery can write it.
 
 1. Findings `not fixed` at the cap of [SKILL.md](../SKILL.md) → Fix loop, each with its `path:line`.
 2. Decisions that reached "smallest change": the `state.md` → `## Decisions` lines whose who reads `conductor, smallest change`, each with its cost if wrong.
 3. The header Flags, verbatim, and the `REBUILD` line from `state.md` → Log.
-4. CI as step 1 read it: green, or a non-green check explained. The commits after the last re-check, the plan removal with its `--stat` and anything else, named; never present an unreviewed head as reviewed. Each lens whose `state.md` line reads `LSP: not used`. Last, the `state.md` `conductor:` line with the highest run total, from `conductor:` on, verbatim.
+4. CI as step 1 read it: green, or a non-green check explained. The commits after the last re-check, the plan removal with its `--stat` and anything else, named; never present an unreviewed head as reviewed. Each lens whose `state.md` line reads `LSP: not used`. Last, the size flag: the `Delivered:` line of `node .claude/skills/ship/scripts/pr_size.mjs <pr>`, flagged `over 400` with `planned ~<n>` from the plan header beside it when its lines outside tests pass 400, and `none` otherwise.
 5. What was built, one line per Acceptance line.
 6. Every other decision, under the heading `## Decisions the ticket or plan did not state`: a table with the columns Decision, Who, Cost if wrong, copy decisions first. It reads the `state.md` → `## Decisions` lines item 2 does not hold, and this run's `## Adjudications` lines that items 2 and 9 do not already hold, less those settled by `ticket text`.
 7. One screenshot per `Screen checks` row of `issue.md` on a body that has the section, else per screen the plan's Screens section lists, from `findings/render/`; then each state `state.md` → Log records as not probed; then each `unwalked:` Log line's screen; then the unread count, each when its line carries one: of the phase 1 `invariants:` Log line, the pass over every walked screen; of each later `invariants:` Log line, a fix cycle's included, with the cycle it came from; and of the render lens on the P2 Log line.
@@ -54,6 +54,13 @@ until gh pr view <pr-url> --json state --jq .state | grep -qE 'MERGED|CLOSED' ||
 `MERGED` starts the post-merge list. `CLOSED` without `mergedAt` is a closed PR, not a merge: stop and report. `OPEN` means `asks` printed above 0: § A change after the summary.
 
 An unattended run ends at step 7 with no watch. `/queue` runs § After the merge on its next pass.
+
+## Write-back
+
+Step 2 of § Present for merge runs it, before the move to Awaiting Human. Every line is checked before it is written, so a resumed phase 5 writes nothing twice.
+
+1. **Decisions.** Each row item 6 reads becomes one line under the ticket body's `## Decisions`: `<yyyy-mm-dd> · <Decision> · as built · <Who> · /ship`. The first line written replaces the section's `none`, and a row whose Decision the section already holds is skipped. A body with no `## Decisions` gets nothing. No written line starts `Delivered: `, the prefix step 2 of § After the merge keys on. One read, `gh issue view <n> --json body --jq .body > ~/.ship/MoneyApp/MA-XXX/body.md`, the edit in that file, and one write, `gh issue edit <n> --body-file ~/.ship/MoneyApp/MA-XXX/body.md`.
+2. **Rulings.** Each line item 1 writes that changes what a frame shows adds one line to `~/.ship/MoneyApp/canvas/rulings.md`, created when absent: `- <yyyy-mm-dd> · <canvas> · <frame id> · <ruling> · MA-XXX (#<n>) · undrawn`. A line the file already holds for this ticket and frame is skipped. An `undrawn` line overrides its frame for every step that reads the frame, until device QA redraws the frame and rewrites `undrawn` as `drawn <yyyy-mm-dd>` (`.claude/skills/device-qa/SKILL.md` step 4). When two `undrawn` lines on one frame differ, the later date wins. A /ship run publishes no Artifact and redraws no frame.
 
 ## A change after the summary
 
@@ -82,8 +89,8 @@ Run CLAUDE.md's post-merge list, "After I merge a PR", and one more step at the 
 
 ## Checklist
 
-- [ ] Ten items in order, `none` where empty, item 4 carrying the `conductor:` line with the highest run total, item 10's heading and table header row written; CI read after the last push
-- [ ] Summary in `~/.ship/MoneyApp/queue/ship-<n>-summary.md`, PR body completed with the summary, screenshots sent, summary the last message; nothing else posted on the issue or the PR
+- [ ] Ten items in order, `none` where empty, item 4 ending in the size flag, item 10's heading and table header row written; CI read after the last push
+- [ ] Summary in `~/.ship/MoneyApp/queue/ship-<n>-summary.md`, PR body completed with the summary, screenshots sent, summary the last message; § Write-back run before Awaiting Human, and nothing else posted on the issue or the PR
 - [ ] Plan removed from the branch before the summary; `git ls-tree origin/main .work` prints nothing after the merge
 - [ ] Merge verified by URL; issue closed; Done and `promote` run
 - [ ] `state.md` final line before teardown; worktrees, branch, prune; `npm ci` if the lockfile moved

@@ -2,7 +2,7 @@
 
 /boundaries' code scout and its lock read this list, and /issue-review's S3 checks locked Rules against it. The lock writes, and S3's delta proposes, each numbered line the work meets as one Rule, in one shape: the numbered line's invariant, the screens it binds, and on a `grep` line every hit as a `path:line` site. `<files>` in a command means the files the work touches. A ticket that adds a line here carries CLAUDE.md critical trigger 2 in its Rules.
 
-Marks: `device` is proven on the emulator, `grep` carries the command that lists its sites, and `test` names the jest suite that computes it.
+Marks: `device` is proven on the emulator, `grep` carries the command that lists its sites, and `test` names the jest suite that computes it. A line carries one mark or two.
 
 1. A name is non-blank. `test` · business rule 9 · suites `__tests__/add_account.schema.test.ts`, `__tests__/screens/settings/categories/add_edit_category_schema.test.ts` and `__tests__/commitment_form_shared.test.ts`.
 2. A name is unique where a business rule says so, which rule 8 does for accounts. `test` · business rule 8 · suite `__tests__/account_name_taken.test.ts`.
@@ -14,6 +14,7 @@ Marks: `device` is proven on the emulator, `grep` carries the command that lists
 8. With a field focused, the field and the sheet's footer sit above the keyboard top, and the sheet closes on every path its features file names, the close proven by the screenshot. `device` · `.claude/rules/ui.md` § Bottom sheets, the keyboard-aware and `liftsAboveKeyboard` bullets · `.claude/skills/emulator-verify/SKILL.md`, the paragraph on `mqa bounds` keeping a closed sheet's nodes.
 9. A shared current-item slot with two writers is keyed by its owner or scoped to its screen, and a cache whose value is the same for every reader is keyed by id. `grep` · `.claude/rules/state.md` rule 5, `docs/adr/2026-09-15-account-lookup-keyed-by-id.md` §1 · `git grep -nE "from '(@/|\.\./)[^']*\.(store|state)'" -- <files> | grep -v ':import type '` lists each store or state a touched file imports by an alias or a `../` path. A multi-line import, a type-only one included, shows on its `} from` line, so check its opening line. A store or state imported by a `./` path, from the importer's own folder or a folder below it, does not appear.
 10. Every async write sets an error the UI renders. `grep` · `.claude/rules/review.md` class 1 · `git grep -nE -A2 'catch( \([^)]*\))? \{|\.catch\(|(^|[^A-Za-z0-9_.])void [A-Za-z_.(]' -- <files>` shows each `catch` block, each `.catch(` handler and each `void`, with the two lines after it, so a comment-only body is visible.
+11. A preview that shows a figure derived from today recomputes when the local day changes while its screen or sheet stays open. `grep` `test` · `.claude/rules/state.md` rule 6 · `git grep -nE 'new Date\(\)|toLocalDateString\(' -- <files>` lists each read of the current date or the local date string; each hit reads the day through `useLocalToday` (`src/utils/use_local_today.hook.ts`) or `useLocalDayChange` (`src/utils/use_local_day_change.hook.ts`), or is a write-time stamp · suites `__tests__/use_local_today.hook.test.ts` and `__tests__/use_local_day_change.hook.test.ts`, plus a midnight case in the hook suite of any preview a ticket adds, as `__tests__/screens/commitments_pay_sheet.hook.test.ts:2057` does.
 
 ## Commitments count, 2026-11-05
 

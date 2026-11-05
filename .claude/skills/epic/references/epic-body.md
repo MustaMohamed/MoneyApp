@@ -1,6 +1,6 @@
 # Epic body standard
 
-The body of an epic issue. `/epic` writes Goal and Building only, with no lock line. `/boundaries` rewrites all six sections and adds the lock line. After the lock only `/issue-review` edits the body, and only until `/tickets` runs; once tickets exist a correction is a comment on the epic plus a Rules edit on the owning ticket. If a decision is not in this body, it was not decided.
+The body of an epic issue. `/epic` writes Goal and Building only, with no lock line. `/boundaries` rewrites all seven sections and adds the lock line. After the lock only `/issue-review` edits the body, and only until `/tickets` runs; once tickets exist a correction is a comment on the epic plus a Rules edit on the owning ticket. If a decision is not in this body, it was not decided.
 
 ```markdown
 Scope locked <YYYY-MM-DD>
@@ -10,6 +10,13 @@ One paragraph. What this feature is and why now.
 
 ## Building
 - One bullet per capability, plain language.
+
+## Reuse
+One row per screen the epic builds or changes; or `none` for an epic with no shared piece. Owner is a Building line, or a prelude ticket that changes the piece first.
+
+| Screen | Shared pieces | Path | Owner |
+|---|---|---|---|
+| <screen> | <piece> | <path> | <Building line or prelude ticket> |
 
 ## Not building
 - One bullet per exclusion.
