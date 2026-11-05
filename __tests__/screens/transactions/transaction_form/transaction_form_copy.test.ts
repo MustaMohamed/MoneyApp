@@ -16,7 +16,7 @@ describe('MA-105 footer status track copy', () => {
   });
 });
 
-describe('MA-106 saved toast and prerequisite state copy', () => {
+describe('MA-106 form data failure copy', () => {
   it('keeps no string that still reads Could not load the accounts and categories', () => {
     const stale = Object.entries(Strings).filter(
       ([, value]) =>
@@ -27,7 +27,7 @@ describe('MA-106 saved toast and prerequisite state copy', () => {
   });
 });
 
-describe('MA-097 budget lookup copy and the approved failure strings', () => {
+describe('MA-097 budget lookup failure copy', () => {
   it('keeps no string that still reads the old budget lookup failure or its retry', () => {
     const stale = Object.entries(Strings).filter(
       ([, value]) =>
