@@ -10,6 +10,7 @@ import { resolvePayButtonLabel } from '@/modules/commitments/screens/commitments
 import { usePaySheetState } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.state';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
+import { pinDate } from '@/test_helpers/clock';
 import {
   makeTestCommitment,
   makeTestPayment,
@@ -157,6 +158,15 @@ const PAID_AMOUNTS = makeTestPaymentAmounts({
 });
 const mockMarkAsPaid = jest.fn().mockResolvedValue(PAID_AMOUNTS);
 let suiteAccounts: Account[] = [payAccount];
+
+// Pins `new Date()` alone at TODAY, so a visible sheet's day check reads the today passed in; the timers stay real.
+beforeEach(() => {
+  pinDate(new Date(2026, 9, 20, 12));
+});
+
+afterEach(() => {
+  jest.useRealTimers();
+});
 
 beforeEach(() => {
   jest.clearAllMocks();

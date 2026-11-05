@@ -2,6 +2,7 @@ import { act, renderHook } from '@testing-library/react-native';
 import { AppState, type AppStateStatus } from 'react-native';
 
 import { useLocalDayChange } from '@/utils/use_local_day_change.hook';
+import { useLocalToday } from '@/utils/use_local_today.hook';
 
 let mockFocused = true;
 
@@ -161,5 +162,78 @@ describe('useLocalDayChange', () => {
 
     expect(armedDayTimers()).toBe(0);
     expect(changeListeners.size).toBe(0);
+  });
+});
+
+describe('shared with useLocalToday (MA-250)', () => {
+  it('runs one day timer and one listener for both, and moves both at the midnight', async () => {
+    jest.setSystemTime(new Date(2026, 9, 31, 12));
+    const onDayChange = jest.fn();
+    await renderHook(() => useLocalDayChange(onDayChange));
+    const sheet = await renderHook(() => useLocalToday('2026-10-31', true));
+    expect(armedDayTimers()).toBe(1);
+    expect(changeListeners.size).toBe(1);
+
+    await advanceTo(new Date(2026, 10, 1, 0, 0, 1));
+
+    expect(onDayChange).toHaveBeenCalledTimes(1);
+    expect(sheet.result.current).toBe('2026-11-01');
+  });
+
+  it('moves the sheet while the route is blurred, and fires the route once at the refocus', async () => {
+    jest.setSystemTime(new Date(2026, 9, 31, 12));
+    const onDayChange = jest.fn();
+    const route = await renderHook(() => useLocalDayChange(onDayChange));
+    const sheet = await renderHook(() => useLocalToday('2026-10-31', true));
+
+    mockFocused = false;
+    await route.rerender({});
+    await advanceTo(new Date(2026, 10, 1, 0, 0, 1));
+    expect(onDayChange).not.toHaveBeenCalled();
+    expect(sheet.result.current).toBe('2026-11-01');
+
+    mockFocused = true;
+    await route.rerender({});
+    expect(onDayChange).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the day timer and the listener until the last of the two unmounts', async () => {
+    jest.setSystemTime(new Date(2026, 9, 31, 12));
+    const route = await renderHook(() => useLocalDayChange(jest.fn()));
+    const sheet = await renderHook(() => useLocalToday('2026-10-31', true));
+
+    await route.unmount();
+    expect(armedDayTimers()).toBe(1);
+    expect(changeListeners.size).toBe(1);
+
+    await sheet.unmount();
+    expect(armedDayTimers()).toBe(0);
+    expect(changeListeners.size).toBe(0);
+  });
+
+  it('rebuilds the midnight delay from the wall clock when the route mounts beside an open sheet', async () => {
+    jest.setSystemTime(new Date(2026, 9, 31, 20));
+    const sheet = await renderHook(() => useLocalToday('2026-10-31', true));
+    jest.setSystemTime(new Date(2026, 9, 31, 23, 10));
+    const onDayChange = jest.fn();
+    await renderHook(() => useLocalDayChange(onDayChange));
+
+    await advanceTo(new Date(2026, 10, 1, 0, 0, 1));
+
+    expect(onDayChange).toHaveBeenCalledTimes(1);
+    expect(sheet.result.current).toBe('2026-11-01');
+  });
+
+  it('keeps a due day timer when the route mounts past the midnight it waits for', async () => {
+    jest.setSystemTime(new Date(2026, 9, 31, 12));
+    const sheet = await renderHook(() => useLocalToday('2026-10-31', true));
+    jest.setSystemTime(new Date(2026, 10, 1, 0, 0, 1));
+    await renderHook(() => useLocalDayChange(jest.fn()));
+
+    await act(async () => {
+      jest.advanceTimersByTime(12 * 60 * 60_000);
+    });
+
+    expect(sheet.result.current).toBe('2026-11-01');
   });
 });

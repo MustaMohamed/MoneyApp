@@ -1,5 +1,6 @@
 import { act, renderHook } from '@testing-library/react-native';
 import { useController } from 'react-hook-form';
+import { AppState } from 'react-native';
 
 import type { AccountStripChip } from '@/components/ui/form_sheet.helpers';
 import { AccountType, DurationType, RecurrencePeriod, RecurrencePreset } from '@/constants/enums';
@@ -51,6 +52,7 @@ import {
 } from '@/modules/commitments/screens/commitments/components/commitment_form_body.hook';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { resolveHollowGraphiteTile } from '@/modules/transactions/components/transaction_row.helpers';
+import { pinDate } from '@/test_helpers/clock';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 import { makeTestAccount } from '@/test_helpers/transaction';
 
@@ -1135,13 +1137,22 @@ describe('useCommitmentFormBodyFaults (MA-255)', () => {
   describe('the status track (MA-256)', () => {
     const NOW = new Date(2026, 9, 31);
 
+    // Pins `new Date()` alone, so a day read at mount sees NOW and the timers stay real.
+    beforeEach(() => {
+      pinDate(NOW);
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
     function useAddWithFooter(saveError: string | undefined) {
       const hook = useAddWithBodyFaults();
       return {
         ...hook,
         lookup: useAccountsById(),
         status: useCommitmentFormStatus(hook.form, saveError),
-        footnote: useCommitmentFirstPaymentFootnote(hook.form, NOW),
+        footnote: useCommitmentFirstPaymentFootnote(hook.form),
       };
     }
 
@@ -1238,6 +1249,34 @@ describe('useCommitmentFormBodyFaults (MA-255)', () => {
       });
 
       expect(result.current.status).toBe(Strings.commitmentsSaveError);
+    });
+
+    describe('across the local midnight that starts a new year (MA-250)', () => {
+      const MINUTE_BEFORE = new Date(2026, 11, 31, 23, 59);
+
+      beforeEach(() => {
+        jest.useFakeTimers({ now: MINUTE_BEFORE });
+        (AppState as { currentState: string }).currentState = 'active';
+      });
+
+      it.each([
+        ['2026-12-31', 'First payment due Thu 31 Dec.', 'First payment due Thu 31 Dec 2026.'],
+        ['2027-01-01', 'First payment due Fri 1 Jan 2027.', 'First payment due Fri 1 Jan.'],
+      ])(
+        'Starts %s reads its year against the new today with no input',
+        async (starts, before, after) => {
+          const result = await mountFooter();
+          await act(async () => result.current.form.setValue('startDate', starts));
+          expect(result.current.footnote).toBe(before);
+
+          await act(async () => {
+            jest.advanceTimersByTime(2 * 60_000);
+          });
+
+          expect(result.current.footnote).toBe(after);
+          expect(result.current.form.getValues('startDate')).toBe(starts);
+        },
+      );
     });
   });
 });
