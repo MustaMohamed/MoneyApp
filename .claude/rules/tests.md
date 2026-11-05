@@ -11,6 +11,7 @@ paths:
 - **A test that mocks the thing it claims to verify is vacuous.** An atomicity test routes `BEGIN IMMEDIATE`/`COMMIT`/`ROLLBACK` to the real db, either by bridging `execAsync` or by mocking the client helper (`withWriteTransactionAsync`, `withExclusiveWriteTransactionAsync`) with the real mapping, never with a pass-through mock — a pass-through still passes with the rollback deleted (audit M33).
 - **SQL is tested against a real engine.** Bridge better-sqlite3 `:memory:` into the mocked expo-sqlite surface via `@/test_helpers/sqlite`; never hand-stub query results for repository or query tests.
 - **Assert behavior, not source text.** Returned values, thrown error *types*, and database row state after the operation — not exact Tailwind classes or file contents (audit M35: 12 suites broke on no-op refactors and passed on real bugs).
+- **No copy mirrors.** No test compares a `Strings` value, a member or a call of one, alone or inside an object or array literal, with a literal of its own text by `toBe` or `toEqual`. A mirror block is deleted whole, and a block that also asserts something else loses only the mirror assertion; the pruning rule below, replace the assertion or keep the test and say why, does not apply to a mirror.
 - **Time is an input, never `new Date()`.** Fixed ISO strings; month-end (day 31 in a 30-day month) and leap-year cases are required for any date arithmetic.
 - Migration suites: at least one must drive the real `runMigrations(db)`, not `MIGRATIONS.map(m => m.up).join()` (audit H11).
 

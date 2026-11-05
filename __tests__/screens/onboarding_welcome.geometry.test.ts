@@ -47,7 +47,6 @@ describe('N1 currency row — the zero-shift contract', () => {
 describe('N1 headline announcement — Done-when, pinned here because the AVD has no TalkBack', () => {
   it('announces "Finally clear." once, as a heading', () => {
     const a11y = resolveDisplayHeadlineA11y(Strings.n1HeadlineLine2);
-    expect(Strings.n1HeadlineLine2).toBe('Finally clear.');
     expect(a11y.container.accessibilityRole).toBe('header');
     expect(a11y.container.accessibilityLabel).toBe('Finally clear.');
     expect(a11y.graphic.importantForAccessibility).toBe('no-hide-descendants');

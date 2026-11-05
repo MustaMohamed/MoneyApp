@@ -137,17 +137,3 @@ describe('load-error titles — initial and refresh stay distinct where a screen
     );
   });
 });
-
-describe('commitments list failure copy (MA-214)', () => {
-  it('ships the first-load and refresh failures byte-exact', () => {
-    expect({
-      title: Strings.commitmentsLoadError,
-      description: Strings.commitmentsLoadErrorDescription,
-      refresh: Strings.commitmentsRefreshError,
-    }).toEqual({
-      title: "Couldn't load your commitments.",
-      description: 'Something went wrong reading your data. Your commitments are still there.',
-      refresh: "Couldn't refresh your commitments.",
-    });
-  });
-});

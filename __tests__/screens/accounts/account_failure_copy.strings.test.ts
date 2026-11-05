@@ -45,28 +45,6 @@ function readsOldVoice(text: string): boolean {
   return /^Could not/.test(text) || text.includes('Please try again') || /^Retry\b/.test(text);
 }
 
-describe('account detail failure copy (MA-201)', () => {
-  it('ships the balance review confirm failure byte-exact', () => {
-    expect(Strings.accountBalanceReviewError).toBe(
-      "Couldn't confirm this balance. Nothing was changed.",
-    );
-  });
-
-  it('ships the adjust balance save failure byte-exact', () => {
-    expect(Strings.adjustBalanceSaveError).toBe(
-      "Couldn't save this balance. Nothing was changed. Try again.",
-    );
-  });
-});
-
-describe('pay sheet failure copy (MA-219)', () => {
-  it('ships the failed pay write byte-exact', () => {
-    expect(Strings.commitmentsPayError).toBe(
-      "Couldn't save this payment. Nothing was changed. Try again.",
-    );
-  });
-});
-
 describe('the accounts failure keys speak the accounts voice (MA-201)', () => {
   it.each(ACCOUNTS_FAILURE_KEYS)(
     '%s opens with no Could not, asks no Please try again, reads no Retry',

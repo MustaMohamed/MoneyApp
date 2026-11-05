@@ -76,10 +76,6 @@ describe('resolveAccountName', () => {
     expect(resolveAccountName(undefined)).toBe(Strings.unknownAccount);
   });
 
-  it('ships "Unnamed account" byte-exact', () => {
-    expect(Strings.unnamedAccount).toBe('Unnamed account');
-  });
-
   it('keeps the three fallbacks distinct', () => {
     expect(Strings.deletedAccount).not.toBe(Strings.unknownAccount);
     expect(Strings.unnamedAccount).not.toBe(Strings.unknownAccount);
