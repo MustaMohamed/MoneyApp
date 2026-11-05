@@ -9,11 +9,13 @@ import { useZodForm } from '@/utils/use_zod_form.hook';
 
 import type { Commitment } from '../../../entities/commitment.entity';
 import { useCommitmentStore } from '../../../store/commitment.store';
+import { useCommitmentStopState } from '../../../store/commitment_stop.state';
 import {
   COMMITMENT_SCHEMA,
   type CommitmentFormValues,
   buildEditDefaults,
 } from '../commitment_form.shared';
+import { useCommitmentStop } from '../commitment_stop.hook';
 import { INITIAL_UI_ENTRY, useEditCommitmentState } from './edit_commitment.state';
 
 export type { CommitmentFormValues };
@@ -21,7 +23,7 @@ export type { CommitmentFormValues };
 interface EditCommitmentOptions {
   commitment: Commitment;
   onSaved: () => void;
-  onDeactivated: () => void;
+  onStopped: () => void;
 }
 
 export function useEditCommitment(options: EditCommitmentOptions) {
@@ -31,14 +33,12 @@ export function useEditCommitment(options: EditCommitmentOptions) {
   const accounts = useAccountStore((s) => s.accounts);
   const categories = useCategoryStore.useState.categories();
   const updateCommitment = useCommitmentStore.getState().updateCommitment;
-  const deactivateCommitment = useCommitmentStore.getState().deactivateCommitment;
-  const { saving, saveError, deactivateDialogVisible } = useEditCommitmentState(
+  const { saving, saveError } = useEditCommitmentState(
     useShallow((s) => s.entries[owner] ?? INITIAL_UI_ENTRY),
   );
   const claim = useEditCommitmentState.getState().claim;
   const setSaving = useEditCommitmentState.getState().setSaving;
   const setSaveError = useEditCommitmentState.getState().setSaveError;
-  const setDeactivateDialogVisible = useEditCommitmentState.getState().setDeactivateDialogVisible;
   const release = useEditCommitmentState.getState().release;
 
   const form = useZodForm(COMMITMENT_SCHEMA, {
@@ -48,7 +48,10 @@ export function useEditCommitment(options: EditCommitmentOptions) {
   });
 
   // Read off the store: two taps in one frame both see the render's `saving` as false.
-  const isSaving = (): boolean => useEditCommitmentState.getState().entries[owner]?.saving === true;
+  const isSaving = (): boolean =>
+    useEditCommitmentState.getState().entries[owner]?.saving === true ||
+    useCommitmentStopState.getState().entries[owner]?.busy === true;
+  const stop = useCommitmentStop(owner, commitment.id, options.onStopped);
 
   useEffect(() => {
     claim(owner);
@@ -90,42 +93,25 @@ export function useEditCommitment(options: EditCommitmentOptions) {
     await form.handleSubmit(onValid)();
   };
 
-  function handleDeactivate() {
-    setDeactivateDialogVisible(owner, true);
-  }
-
-  async function confirmDeactivate() {
+  async function stopCommitment(): Promise<void> {
     if (isSaving()) return;
-    setSaving(owner, true);
-    try {
-      await deactivateCommitment(commitment.id);
-      setDeactivateDialogVisible(owner, false);
-      options.onDeactivated();
-    } catch {
-      // The sheet is a portal over the form, so it must close for the banner to show.
-      setDeactivateDialogVisible(owner, false);
-      setSaveError(owner, Strings.commitmentsSaveError);
-    } finally {
-      setSaving(owner, false);
-    }
-  }
-
-  function cancelDeactivate() {
-    setDeactivateDialogVisible(owner, false);
+    await stop.stopCommitment();
   }
 
   return {
     state: {
       saving,
       saveError,
-      deactivateDialogVisible,
+      stopDialogVisible: stop.state.isOpen,
+      stopBusy: stop.state.busy,
+      stopError: stop.state.failed,
       categories,
       accounts,
     },
     form,
     onSubmit,
-    handleDeactivate,
-    confirmDeactivate,
-    cancelDeactivate,
+    openStopDialog: stop.openStopDialog,
+    stopCommitment,
+    cancelStop: stop.cancelStop,
   };
 }

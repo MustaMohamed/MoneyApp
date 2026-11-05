@@ -13,7 +13,7 @@ export function CommitmentFormHost(): React.ReactElement {
     handleSave,
     handleOpenChange,
     handleSaved,
-    handleDeactivated,
+    handleStopped,
     handleCloseComplete,
   } = useCommitmentFormHost();
 
@@ -55,9 +55,10 @@ export function CommitmentFormHost(): React.ReactElement {
           sessionId={state.sessionId}
           commitment={state.editingCommitment}
           settledDueDates={state.editingSettledDueDates}
+          stopCounts={state.editingStopCounts}
           onRegisterSubmit={registerSubmit}
           onSaved={handleSaved}
-          onDeactivated={handleDeactivated}
+          onStopped={handleStopped}
         />
       ) : null}
     </Sheet>

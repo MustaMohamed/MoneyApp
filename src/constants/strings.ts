@@ -223,7 +223,7 @@ export const Strings = {
   fabAddAccessibility: 'Add',
   fabMenuAddTransaction: 'Add Transaction',
   fabMenuAddAccount: 'Add Account',
-  fabMenuAddCommitment: 'Add Commitment',
+  fabMenuAddCommitment: 'Add commitment',
 
   // Dashboard (U2): account card info rows
   cardLimitLabel: 'Limit',
@@ -1075,11 +1075,6 @@ export const Strings = {
     count === 1 ? `${status}, 1 payment` : `${status}, ${count} payments`,
   commitmentsHeroCounterUnavailableA11y: (status: string) => `${status}, —`,
 
-  // Commitments: Empty state
-  commitmentsEmptyTitle: 'No commitments yet',
-  commitmentsEmptySub: 'Add rent, subscriptions, or any regular payment',
-  commitmentsEmptyCta: 'Add Commitment',
-
   // Commitments: C2 Add / C3 Edit
   commitmentsAddTitle: 'Add commitment',
   commitmentsEditTitle: 'Edit commitment',
@@ -1087,7 +1082,6 @@ export const Strings = {
   commitmentsFieldCurrency: 'Currency',
   commitmentsFieldCategory: 'Category',
   commitmentsFieldRecurrence: 'Repeats',
-  commitmentsFieldCustomRecurrence: 'Custom Recurrence',
   commitmentsFieldStartDate: 'Starts',
   commitmentsFieldDuration: 'Ends',
   commitmentsFieldNotes: 'Note',
@@ -1134,7 +1128,6 @@ export const Strings = {
   commitmentsEditScheduleFootnote: 'Upcoming payments follow the new schedule. Paid ones stay.',
   commitmentsAddedToast: 'Commitment added',
   commitmentsUpdatedToast: 'Commitment updated',
-  commitmentsOptional: '(optional)',
   commitmentsDone: 'Done',
 
   // Commitments: validation errors
@@ -1182,10 +1175,11 @@ export const Strings = {
   commitmentsCyclePaidLine: (distance: string) => `paid · ${distance}`,
   commitmentsCycleSkippedLine: (distance: string) => `skipped · ${distance}`,
   commitmentsSkipConfirmTitle: 'Skip this payment?',
-  commitmentsSkipConfirmBody:
-    'This payment will be marked as skipped and excluded from your totals.',
+  commitmentsSkipConfirmBody: (name: string, day: string, amount: string, month: string) =>
+    `${name} · ${day} · ${amount} won't count toward ${month}. The commitment keeps going.`,
   commitmentsSkipConfirmCancel: 'Cancel',
-  commitmentsSkipConfirmConfirm: 'Skip Payment',
+  commitmentsSkipConfirmConfirm: 'Skip',
+  commitmentsSkipConfirmBusy: 'Skipping…',
   commitmentsSkipError: "Couldn't skip this payment. Nothing was changed.",
   commitmentsPaidToast: (name: string, amount: string) => `${name} paid · ${amount}`,
   commitmentsSkippedToast: (name: string) => `${name} skipped`,
@@ -1227,13 +1221,20 @@ export const Strings = {
   // this is the save-time fallback for whatever still reaches save after that check passed.
   commitmentsPayErrDestinationTooSmall: 'Too small to convert at this rate',
 
-  // Commitments: Deactivate
+  // Commitments: Stop
   commitmentsStopLink: 'Stop this commitment',
-  commitmentsDeactivateTitle: 'Deactivate this commitment?',
-  commitmentsDeactivateBody:
-    'It will be removed from your list. Past payment records are preserved.',
-  commitmentsDeactivateCancel: 'Cancel',
-  commitmentsDeactivateConfirm: 'Deactivate',
+  commitmentsStopConfirmTitle: (name: string) => `Stop ${name}?`,
+  commitmentsStopConfirmUnpaidOne: 'Its 1 unpaid payment is removed.',
+  commitmentsStopConfirmUnpaidMany: (count: string) => `Its ${count} unpaid payments are removed.`,
+  commitmentsStopConfirmPaidOne: 'The 1 paid one stays in your history.',
+  commitmentsStopConfirmPaidMany: (count: string) => `The ${count} paid ones stay in your history.`,
+  commitmentsStopConfirmNothingCharged: 'Nothing is charged.',
+  commitmentsStopConfirmCancel: 'Cancel',
+  commitmentsStopConfirmConfirm: 'Stop',
+  commitmentsStopConfirmBusy: 'Stopping…',
+  commitmentsStopError: "Couldn't stop this commitment. Nothing was changed.",
+  commitmentsDetailStop: 'Stop',
+  commitmentsStoppedToast: (name: string) => `${name} stopped`,
   commitmentsPayError: "Couldn't save this payment. Nothing was changed. Try again.",
 
   // Commitments: status badges

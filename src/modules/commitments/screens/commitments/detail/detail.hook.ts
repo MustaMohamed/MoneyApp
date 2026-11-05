@@ -3,6 +3,8 @@ import { useCallback, useEffect, useId, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import type { DetailFact } from '@/components/ui/detail_fact_row.helpers';
+import { useToast } from '@/components/ui/toast';
+import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { lookupLeavesUnresolved } from '@/modules/accounts/store/account_lookup.helpers';
 import { useAccountsById } from '@/modules/accounts/store/use_accounts_by_id.hook';
@@ -22,14 +24,18 @@ import { useLocalDayChange } from '@/utils/use_local_day_change.hook';
 
 import {
   countSettledPayments,
+  countStopPayments,
   listSettledDueDates,
   resolveCommitmentLifecycle,
 } from '../../../domain/payment_state';
 import { commitmentRepository } from '../../../repositories/commitment.repository';
 import { useCommitmentStore } from '../../../store/commitment.store';
 import { useCommitmentFormHostState } from '../../../store/commitment_form_host.state';
+import { useCommitmentStop } from '../commitment_stop.hook';
 import { useCommitmentsScreenState } from '../commitments.state';
+import { useSkipWithUndo } from '../skip_with_undo.hook';
 import { usePaySheetState } from './components/pay_sheet.state';
+import { resolveSkipConfirmBody } from './components/skip_confirm_dialog.helpers';
 import {
   buildCommitmentCycleCard,
   buildCommitmentDetailFacts,
@@ -83,6 +89,8 @@ export function useCommitmentDetail() {
 
   const payments = useCommitmentStore((s) => s.payments);
   const storeSkipPayment = useCommitmentStore.getState().skipPayment;
+  const { toast } = useToast();
+  const { showSkippedToast } = useSkipWithUndo();
   const categories = useCategoryStore.useState.categories();
   const accountRead = useAccountsById();
   const { accountsById } = accountRead;
@@ -174,6 +182,15 @@ export function useCommitmentDetail() {
   );
   const settledCount = useMemo(() => countSettledPayments(historyRows), [historyRows]);
   const settledDueDates = useMemo(() => listSettledDueDates(historyRows), [historyRows]);
+  // Over the overlaid rows, so a pay that lands before the Stop counts as paid.
+  const stopCounts = useMemo(() => countStopPayments(historyRows), [historyRows]);
+  const skipConfirmBody = useMemo(
+    () =>
+      payment && commitment && today !== undefined
+        ? resolveSkipConfirmBody({ payment, commitment, today })
+        : '',
+    [payment, commitment, today],
+  );
   const lifecycle =
     commitment && today !== undefined
       ? resolveCommitmentLifecycle(commitment, settledCount, today)
@@ -266,7 +283,9 @@ export function useCommitmentDetail() {
   }, [owner]);
 
   const skipPayment = useCallback(async () => {
-    if (!payment) return;
+    if (!payment || !commitment) return;
+    // Read off the store: two taps in one frame both see the render's `skipBusy` as false.
+    if (useCommitmentDetailState.getState().entries[owner]?.skipBusy === true) return;
     setSkipError(owner, false);
     setSkipBusy(owner, true);
     try {
@@ -275,10 +294,21 @@ export function useCommitmentDetail() {
     } catch (err) {
       console.error('[commitmentDetail] skipPayment failed', err);
       setSkipError(owner, true);
+      return;
     } finally {
       setSkipBusy(owner, false);
     }
-  }, [payment, storeSkipPayment, owner, setSkipConfirmVisible, setSkipBusy, setSkipError]);
+    showSkippedToast(payment.id, commitment.name);
+  }, [
+    payment,
+    commitment,
+    storeSkipPayment,
+    owner,
+    setSkipConfirmVisible,
+    setSkipBusy,
+    setSkipError,
+    showSkippedToast,
+  ]);
 
   const confirmSkip = useCallback(() => {
     setSkipError(owner, false);
@@ -289,19 +319,38 @@ export function useCommitmentDetail() {
     setSkipConfirmVisible(owner, false);
   }, [owner, setSkipConfirmVisible]);
 
+  // Dismisses to where Back lands, never replaces, then toasts on that screen.
+  const finishStop = useCallback(
+    (name: string) => {
+      // The edit sheet's landing runs at its close-complete, after this copy may have gone.
+      if (!(owner in useCommitmentDetailState.getState().entries)) return;
+      if (stackedPrefix === STACKED_PREFIX) leaveStackedSubtree(originTxId, originTxCopy);
+      else router.dismissTo('/commitments');
+      toast.show({ label: Strings.commitmentsStoppedToast(name), variant: 'success' });
+    },
+    [owner, stackedPrefix, originTxId, originTxCopy, toast],
+  );
+
+  const commitmentName = commitment?.name;
+  const onStopped = useCallback(() => {
+    if (commitmentName !== undefined) finishStop(commitmentName);
+  }, [commitmentName, finishStop]);
+  const stop = useCommitmentStop(owner, commitment?.id, onStopped);
+
   const reload = useCallback(() => bumpReload(owner), [bumpReload, owner]);
   useLocalDayChange(reload);
 
   const goToEdit = useCallback(() => {
     if (!commitment) return;
-    const onDeactivated =
-      stackedPrefix === STACKED_PREFIX
-        ? () => leaveStackedSubtree(originTxId, originTxCopy)
-        : () => router.dismissTo('/commitments');
     useCommitmentFormHostState
       .getState()
-      .openEdit(commitment, settledDueDates, { onSaved: reload, onDeactivated });
-  }, [commitment, settledDueDates, stackedPrefix, originTxId, originTxCopy, reload]);
+      .openEdit(
+        commitment,
+        settledDueDates,
+        { onSaved: reload, onStopped: () => finishStop(commitment.name) },
+        stopCounts,
+      );
+  }, [commitment, settledDueDates, stopCounts, reload, finishStop]);
 
   const goBack = useCallback(() => {
     router.back();
@@ -342,11 +391,19 @@ export function useCommitmentDetail() {
       skipConfirmVisible,
       skipBusy,
       skipError,
+      skipConfirmBody,
+      stopConfirmVisible: stop.state.isOpen,
+      stopBusy: stop.state.busy,
+      stopError: stop.state.failed,
+      stopCounts,
     },
     openPaySheet,
     skipPayment,
     confirmSkip,
     cancelSkip,
+    openStopDialog: stop.openStopDialog,
+    cancelStop: stop.cancelStop,
+    stopCommitment: stop.stopCommitment,
     reload,
     goToEdit,
     goBack,

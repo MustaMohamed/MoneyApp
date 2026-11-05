@@ -69,21 +69,23 @@ export function resolveDisplayAmount(
   return { amount, showTilde: isVariable && !isPaid };
 }
 
-/** The display amount's text and its spoken label: `~` before an estimate, `~` alone with none, `—` with no amount. */
+/** The display amount's text, its printed form with the code, and its spoken label: `~` before an estimate, `~` alone with none, `—` with no amount. */
 export function composeCommitmentAmount(
   display: DisplayAmount,
   currency: Currency,
   code: string,
-): { text: string; spoken: string } {
+): { text: string; withCode: string; spoken: string } {
   const { amount, showTilde } = display;
   if (amount === undefined) {
     return showTilde
       ? {
           text: Strings.commitmentRowNoEstimate,
+          withCode: Strings.commitmentRowNoEstimate,
           spoken: Strings.commitmentRowNoEstimateLabel(code),
         }
       : {
           text: Strings.commitmentRowUnavailable,
+          withCode: Strings.commitmentRowUnavailable,
           spoken: Strings.commitmentRowUnavailableLabel(code),
         };
   }
@@ -91,9 +93,10 @@ export function composeCommitmentAmount(
   return showTilde
     ? {
         text: Strings.commitmentRowEstimate(text),
+        withCode: Strings.commitmentRowEstimate(withCode),
         spoken: Strings.commitmentRowEstimate(withCode),
       }
-    : { text, spoken: withCode };
+    : { text, withCode, spoken: withCode };
 }
 
 export function formatCommitmentAmount(

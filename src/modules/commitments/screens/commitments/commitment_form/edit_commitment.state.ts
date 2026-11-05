@@ -6,7 +6,6 @@ import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 interface EditCommitmentUiEntry {
   saving: boolean;
   saveError?: string;
-  deactivateDialogVisible: boolean;
 }
 
 type EditCommitmentStateShape = KeyedEntries<EditCommitmentUiEntry>;
@@ -15,7 +14,6 @@ type EditCommitmentState = EditCommitmentStateShape & {
   claim: (owner: string) => void;
   setSaving: (owner: string, v: boolean) => void;
   setSaveError: (owner: string, message?: string) => void;
-  setDeactivateDialogVisible: (owner: string, v: boolean) => void;
   release: (owner: string) => void;
   reset: () => void;
 };
@@ -23,7 +21,6 @@ type EditCommitmentState = EditCommitmentStateShape & {
 export const INITIAL_UI_ENTRY: EditCommitmentUiEntry = Object.freeze({
   saving: false,
   saveError: undefined,
-  deactivateDialogVisible: false,
 });
 
 export function isAnyEditCommitmentSaving(state: EditCommitmentStateShape): boolean {
@@ -50,7 +47,6 @@ export const useEditCommitmentState = createMoneyAppSelectors(
         ),
       setSaving: (owner, v) => updateEntry(owner, { saving: v }),
       setSaveError: (owner, message) => updateEntry(owner, { saveError: message }),
-      setDeactivateDialogVisible: (owner, v) => updateEntry(owner, { deactivateDialogVisible: v }),
       release: (owner) => set((state) => withoutEntry(state, owner)),
       reset: () => set(initialState()),
     };

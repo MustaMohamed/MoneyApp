@@ -7,13 +7,14 @@ import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { StackHeader } from '@/components/ui/stack_header';
 import { Strings } from '@/constants/strings';
 
+import { StopConfirmDialog } from '../components/stop_confirm_dialog';
 import { CurrentCycleCard } from './components/current_cycle_card';
 import { CommitmentDetailActions } from './components/detail_actions';
 import { CommitmentDetailSkeleton } from './components/detail_skeleton';
 import { DetailsCard } from './components/details_card';
 import { PaySheet } from './components/pay_sheet';
 import { PaymentHistory } from './components/payment_history';
-import { SkipConfirmSheet } from './components/skip_confirm_sheet';
+import { SkipConfirmDialog } from './components/skip_confirm_dialog';
 import { heroEntering } from './detail.anim';
 import {
   COMMITMENT_DETAIL_LOAD_ERROR_COPY,
@@ -27,6 +28,9 @@ export default function CommitmentDetailScreen() {
     confirmSkip,
     skipPayment,
     cancelSkip,
+    openStopDialog,
+    cancelStop,
+    stopCommitment,
     reload,
     openPaySheet,
     goToEdit,
@@ -91,7 +95,9 @@ export default function CommitmentDetailScreen() {
           <DetailsCard facts={state.facts} />
           <DetailNoteCard note={state.commitment.notes} testID="commitment-detail-note-card" />
           <PaymentHistory rows={state.paymentRows} onSeeAll={goToAllPayments} />
-          {state.showsEdit ? <CommitmentDetailActions onEdit={goToEdit} /> : null}
+          {state.showsEdit ? (
+            <CommitmentDetailActions onEdit={goToEdit} onStop={openStopDialog} />
+          ) : null}
         </ScreenScroll>
       ) : null}
 
@@ -111,12 +117,23 @@ export default function CommitmentDetailScreen() {
         today={state.paySheetToday}
       />
 
-      <SkipConfirmSheet
+      <SkipConfirmDialog
         isOpen={state.skipConfirmVisible}
+        body={state.skipConfirmBody}
         busy={state.skipBusy}
         errorMessage={state.skipError ? Strings.commitmentsSkipError : undefined}
         onCancel={cancelSkip}
         onConfirm={() => void skipPayment()}
+      />
+
+      <StopConfirmDialog
+        isOpen={state.stopConfirmVisible}
+        name={state.commitment?.name ?? ''}
+        counts={state.stopCounts}
+        busy={state.stopBusy}
+        errorMessage={state.stopError ? Strings.commitmentsStopError : undefined}
+        onCancel={cancelStop}
+        onConfirm={() => void stopCommitment()}
       />
     </Screen>
   );

@@ -1,7 +1,9 @@
+import { NO_STOP_COUNTS } from '@/modules/commitments/domain/payment_state';
 import { NO_SETTLED_DUE_DATES } from '@/modules/commitments/screens/commitments/commitment_form.helpers';
 import { useAddCommitmentState } from '@/modules/commitments/screens/commitments/commitment_form/add_commitment.state';
 import { useEditCommitmentState } from '@/modules/commitments/screens/commitments/commitment_form/edit_commitment.state';
 import { useCommitmentFormHostState } from '@/modules/commitments/store/commitment_form_host.state';
+import { useCommitmentStopState } from '@/modules/commitments/store/commitment_stop.state';
 import { makeTestCommitment } from '@/test_helpers/commitment';
 
 const host = () => useCommitmentFormHostState.getState();
@@ -14,6 +16,7 @@ describe('useCommitmentFormHostState', () => {
     host().reset();
     useAddCommitmentState.getState().reset();
     useEditCommitmentState.getState().reset();
+    useCommitmentStopState.getState().reset();
   });
 
   it('opens the add sheet from closed as session 1', () => {
@@ -100,8 +103,8 @@ describe('useCommitmentFormHostState', () => {
 
   describe('edit sessions', () => {
     const onSaved = jest.fn();
-    const onDeactivated = jest.fn();
-    const landing = { onSaved, onDeactivated };
+    const onStopped = jest.fn();
+    const landing = { onSaved, onStopped };
 
     function closeCurrent(): void {
       host().requestClose();
@@ -112,7 +115,7 @@ describe('useCommitmentFormHostState', () => {
       host().openAdd();
       closeCurrent();
 
-      host().openEdit(rent, NO_SETTLED_DUE_DATES, landing);
+      host().openEdit(rent, NO_SETTLED_DUE_DATES, landing, NO_STOP_COUNTS);
 
       expect(host()).toMatchObject({
         phase: 'open',
@@ -125,7 +128,7 @@ describe('useCommitmentFormHostState', () => {
     });
 
     it('opens an edit with no landing', () => {
-      host().openEdit(rent, NO_SETTLED_DUE_DATES);
+      host().openEdit(rent, NO_SETTLED_DUE_DATES, undefined, NO_STOP_COUNTS);
 
       expect(host()).toMatchObject({
         phase: 'open',
@@ -142,19 +145,19 @@ describe('useCommitmentFormHostState', () => {
       });
 
       it('holds the settled due dates an edit opens with', () => {
-        host().openEdit(rent, ['2026-09-20'], landing);
+        host().openEdit(rent, ['2026-09-20'], landing, NO_STOP_COUNTS);
 
         expect(host().editingSettledDueDates).toEqual(['2026-09-20']);
       });
 
       it('holds none for an edit opened with no settled due dates', () => {
-        host().openEdit(rent, NO_SETTLED_DUE_DATES);
+        host().openEdit(rent, NO_SETTLED_DUE_DATES, undefined, NO_STOP_COUNTS);
 
         expect(host().editingSettledDueDates).toEqual([]);
       });
 
       it('holds none for an add opened after an edit with settled due dates', () => {
-        host().openEdit(rent, ['2026-09-20'], landing);
+        host().openEdit(rent, ['2026-09-20'], landing, NO_STOP_COUNTS);
         closeCurrent();
 
         host().openAdd();
@@ -163,7 +166,7 @@ describe('useCommitmentFormHostState', () => {
       });
 
       it('holds none once an edit with settled due dates closes', () => {
-        host().openEdit(rent, ['2026-09-20'], landing);
+        host().openEdit(rent, ['2026-09-20'], landing, NO_STOP_COUNTS);
         expect(host().editingSettledDueDates).toEqual(['2026-09-20']);
 
         closeCurrent();
@@ -173,10 +176,34 @@ describe('useCommitmentFormHostState', () => {
       });
     });
 
-    it('changes nothing on openEdit while an edit is open', () => {
-      host().openEdit(rent, NO_SETTLED_DUE_DATES, landing);
+    describe('the stop counts (MA-224)', () => {
+      it('holds the stop counts an edit opens with', () => {
+        host().openEdit(rent, NO_SETTLED_DUE_DATES, landing, { unpaid: 3, paid: 9 });
 
-      host().openEdit(gym, NO_SETTLED_DUE_DATES);
+        expect(host().editingStopCounts).toEqual({ unpaid: 3, paid: 9 });
+      });
+
+      it('holds the empty counts for an edit opened with none', () => {
+        host().openEdit(rent, NO_SETTLED_DUE_DATES, landing, NO_STOP_COUNTS);
+
+        expect(host().editingStopCounts).toEqual({ unpaid: 0, paid: 0 });
+        expect(host().editingStopCounts).toBe(NO_STOP_COUNTS);
+      });
+
+      it('holds the empty counts once an edit with stop counts closes', () => {
+        host().openEdit(rent, NO_SETTLED_DUE_DATES, landing, { unpaid: 3, paid: 9 });
+
+        closeCurrent();
+
+        expect(host().phase).toBe('closed');
+        expect(host().editingStopCounts).toEqual({ unpaid: 0, paid: 0 });
+      });
+    });
+
+    it('changes nothing on openEdit while an edit is open', () => {
+      host().openEdit(rent, NO_SETTLED_DUE_DATES, landing, NO_STOP_COUNTS);
+
+      host().openEdit(gym, NO_SETTLED_DUE_DATES, undefined, NO_STOP_COUNTS);
 
       expect(host()).toMatchObject({
         phase: 'open',
@@ -190,7 +217,7 @@ describe('useCommitmentFormHostState', () => {
     it('changes nothing on openEdit while an add is open', () => {
       host().openAdd();
 
-      host().openEdit(rent, NO_SETTLED_DUE_DATES, landing);
+      host().openEdit(rent, NO_SETTLED_DUE_DATES, landing, NO_STOP_COUNTS);
 
       expect(host()).toMatchObject({ phase: 'open', sessionId: 1, mode: 'add' });
       expect(host().editingCommitment).toBeUndefined();
@@ -198,10 +225,10 @@ describe('useCommitmentFormHostState', () => {
     });
 
     it('changes nothing on openEdit while closing', () => {
-      host().openEdit(rent, NO_SETTLED_DUE_DATES, landing);
+      host().openEdit(rent, NO_SETTLED_DUE_DATES, landing, NO_STOP_COUNTS);
       host().requestClose();
 
-      host().openEdit(gym, NO_SETTLED_DUE_DATES);
+      host().openEdit(gym, NO_SETTLED_DUE_DATES, undefined, NO_STOP_COUNTS);
 
       expect(host()).toMatchObject({
         phase: 'closing',
@@ -213,7 +240,7 @@ describe('useCommitmentFormHostState', () => {
     });
 
     it('opens an add after an edit with the edit commitment and landing cleared', () => {
-      host().openEdit(rent, NO_SETTLED_DUE_DATES, landing);
+      host().openEdit(rent, NO_SETTLED_DUE_DATES, landing, NO_STOP_COUNTS);
       closeCurrent();
 
       host().openAdd();
@@ -225,7 +252,7 @@ describe('useCommitmentFormHostState', () => {
     });
 
     it('refuses a close while an edit entry saves, and closes once it lands', () => {
-      host().openEdit(rent, NO_SETTLED_DUE_DATES);
+      host().openEdit(rent, NO_SETTLED_DUE_DATES, undefined, NO_STOP_COUNTS);
       useEditCommitmentState.getState().claim('owner-1');
       useEditCommitmentState.getState().setSaving('owner-1', true);
 
@@ -238,8 +265,21 @@ describe('useCommitmentFormHostState', () => {
       expect(host().phase).toBe('closing');
     });
 
+    it('refuses a close while an edit Stop writes, and closes once it lands (MA-224)', () => {
+      host().openEdit(rent, NO_SETTLED_DUE_DATES, undefined, NO_STOP_COUNTS);
+      useCommitmentStopState.getState().begin('owner-1');
+
+      expect(host().requestClose()).toBe(false);
+      expect(host().phase).toBe('open');
+
+      useCommitmentStopState.getState().succeed('owner-1');
+
+      expect(host().requestClose()).toBe(true);
+      expect(host().phase).toBe('closing');
+    });
+
     it('refuses a close while the published footer saves', () => {
-      host().openEdit(rent, NO_SETTLED_DUE_DATES);
+      host().openEdit(rent, NO_SETTLED_DUE_DATES, undefined, NO_STOP_COUNTS);
       host().publishFooter(1, { saving: true });
 
       expect(host().requestClose()).toBe(false);
@@ -252,9 +292,9 @@ describe('useCommitmentFormHostState', () => {
     });
 
     it('writes a published footer for the current session only', () => {
-      host().openEdit(rent, NO_SETTLED_DUE_DATES);
+      host().openEdit(rent, NO_SETTLED_DUE_DATES, undefined, NO_STOP_COUNTS);
       closeCurrent();
-      host().openEdit(gym, NO_SETTLED_DUE_DATES);
+      host().openEdit(gym, NO_SETTLED_DUE_DATES, undefined, NO_STOP_COUNTS);
 
       host().publishFooter(1, { saving: true, errorMessage: 'stale' });
       expect(host().footer).toEqual({ saving: false });
@@ -264,7 +304,7 @@ describe('useCommitmentFormHostState', () => {
     });
 
     it('writes no published footer while closed', () => {
-      host().openEdit(rent, NO_SETTLED_DUE_DATES);
+      host().openEdit(rent, NO_SETTLED_DUE_DATES, undefined, NO_STOP_COUNTS);
       closeCurrent();
 
       host().publishFooter(1, { saving: true, errorMessage: 'late' });
@@ -274,7 +314,7 @@ describe('useCommitmentFormHostState', () => {
     });
 
     it('keeps the landing through a completed save', () => {
-      host().openEdit(rent, NO_SETTLED_DUE_DATES, landing);
+      host().openEdit(rent, NO_SETTLED_DUE_DATES, landing, NO_STOP_COUNTS);
 
       expect(host().completeSave(1)).toBe(true);
 
@@ -283,7 +323,7 @@ describe('useCommitmentFormHostState', () => {
     });
 
     it('clears the mode, the commitment, the landing and the footer on close, keeping the session id', () => {
-      host().openEdit(rent, NO_SETTLED_DUE_DATES, landing);
+      host().openEdit(rent, NO_SETTLED_DUE_DATES, landing, NO_STOP_COUNTS);
       host().publishFooter(1, { saving: false, errorMessage: 'Save failed' });
       host().requestClose();
 
@@ -306,13 +346,22 @@ describe('useCommitmentFormHostState', () => {
         host().requestClose();
         expect(host().completeClose(1)).toBeUndefined();
 
-        host().openEdit(rent, NO_SETTLED_DUE_DATES);
+        host().openEdit(rent, NO_SETTLED_DUE_DATES, undefined, NO_STOP_COUNTS);
         expect(host().completeSave(2, mark)).toBe(true);
 
         expect(host().completeClose(2)).toBe(mark);
         expect(host().completeClose(2)).toBeUndefined();
       },
     );
+
+    it('returns the stopped mark once from an edit closed by a Stop, and drops its counts', () => {
+      host().openEdit(rent, NO_SETTLED_DUE_DATES, undefined, { unpaid: 1, paid: 0 });
+      expect(host().completeSave(1, 'stopped')).toBe(true);
+
+      expect(host().completeClose(1)).toBe('stopped');
+      expect(host().completeClose(1)).toBeUndefined();
+      expect(host().editingStopCounts).toEqual({ unpaid: 0, paid: 0 });
+    });
 
     it('takes no mark from a refused save, answers a stale session with none, and keeps it for its own', () => {
       host().openAdd();
