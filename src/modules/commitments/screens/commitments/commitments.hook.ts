@@ -360,7 +360,10 @@ export function useCommitments() {
         loadMonthSnapshot(selectedMonth),
         loadMonthAggregate(selectedMonth, heroAccountId),
       ]);
-      if (commitmentId !== undefined) await loadCommitmentRows(commitmentId);
+      // A filter moved during the month reads has started its own rows read.
+      if (commitmentId !== undefined && rowsReadForRef.current === commitmentId) {
+        await loadCommitmentRows(commitmentId);
+      }
     } finally {
       refreshingRowsRef.current = false;
     }
