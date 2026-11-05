@@ -190,6 +190,8 @@ export function createCommitmentStore(
         set({ generation: dataGeneration });
       };
 
+      const bumpRowsVersion = () => set((state) => ({ rowsVersion: state.rowsVersion + 1 }));
+
       const signalPassSettled = (
         today: string,
         generation: number,
@@ -197,10 +199,10 @@ export function createCommitmentStore(
         landed: boolean,
       ): void => {
         if (generation !== dataGeneration) return;
-        else if (generation > signalledGeneration) {
+        if (generation > signalledGeneration) {
           signalledGeneration = generation;
           rowsExtent = landed ? { today, throughDate } : undefined;
-          set((state) => ({ rowsVersion: state.rowsVersion + 1 }));
+          bumpRowsVersion();
         } else if (
           landed &&
           (rowsExtent === undefined ||
@@ -208,7 +210,7 @@ export function createCommitmentStore(
             (today === rowsExtent.today && throughDate > rowsExtent.throughDate))
         ) {
           rowsExtent = { today, throughDate };
-          set((state) => ({ rowsVersion: state.rowsVersion + 1 }));
+          bumpRowsVersion();
         }
       };
 
@@ -366,7 +368,7 @@ export function createCommitmentStore(
           invalidateData();
           // No pass follows until a focus, so the write signals at once.
           signalledGeneration = dataGeneration;
-          set((state) => ({ rowsVersion: state.rowsVersion + 1 }));
+          bumpRowsVersion();
         },
 
         addCommitment: async (data) => {
@@ -492,6 +494,8 @@ export function createCommitmentStore(
         reset: () => {
           dataGeneration += 1;
           housekeepingCoverage = undefined;
+          signalledGeneration = dataGeneration;
+          rowsExtent = undefined;
           latestSnapshotRequest += 1;
           latestRequestedMonth = undefined;
           latestAggregateRequest += 1;

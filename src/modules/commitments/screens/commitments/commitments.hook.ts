@@ -127,7 +127,7 @@ export function useCommitments() {
   const loadCommitmentRows = useCommitmentsScreenStore.getState().loadCommitmentRows;
   const resetCommitmentRows = useCommitmentsScreenStore.getState().reset;
   const listRef = useRef<SectionList<CommitmentMonthPayment, CommitmentsSection>>(null);
-  const refreshingRowsRef = useRef(false);
+  const refreshesInFlightRef = useRef(0);
   const rowsReadForRef = useRef<string | undefined>(undefined);
 
   const { effectiveFilters, accountChips, toggleAccountChip } = useAccountChipFilter(
@@ -176,7 +176,7 @@ export function useCommitments() {
       resetCommitmentRows();
       return;
     }
-    if (refreshingRowsRef.current && rowsReadForRef.current === commitmentId) return;
+    if (refreshesInFlightRef.current > 0 && rowsReadForRef.current === commitmentId) return;
     rowsReadForRef.current = commitmentId;
     void loadCommitmentRows(commitmentId);
   }, [commitmentId, rowsVersion, loadCommitmentRows, resetCommitmentRows]);
@@ -353,7 +353,7 @@ export function useCommitments() {
   );
 
   const readSelectedMonth = useCallback(async () => {
-    refreshingRowsRef.current = true;
+    refreshesInFlightRef.current += 1;
     try {
       // The store owns loadError; the rows read follows the month passes, which can write rows.
       await Promise.allSettled([
@@ -362,10 +362,15 @@ export function useCommitments() {
       ]);
       // A filter moved during the month reads has started its own rows read.
       if (commitmentId !== undefined && rowsReadForRef.current === commitmentId) {
+        const heldVersion = useCommitmentStore.getState().rowsVersion;
         await loadCommitmentRows(commitmentId);
+        // The effect skipped a move that landed during this read, so it is read once more here.
+        const moved = useCommitmentStore.getState().rowsVersion !== heldVersion;
+        if (moved && rowsReadForRef.current === commitmentId)
+          await loadCommitmentRows(commitmentId);
       }
     } finally {
-      refreshingRowsRef.current = false;
+      refreshesInFlightRef.current -= 1;
     }
   }, [
     loadMonthSnapshot,

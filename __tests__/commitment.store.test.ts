@@ -1884,4 +1884,25 @@ describe('commitment store rows signal', () => {
 
     expect(rowsVersion(store)).toBeGreaterThan(before);
   });
+
+  it('after reset, the next landed pass moves rowsVersion once and a second pass that day moves none', async () => {
+    const repository = makeRepository();
+    const store = createCommitmentStore(repository);
+    await store.getState().ensureHousekeepingCurrent(DAY_ONE);
+    store.getState().reset();
+    const before = rowsVersion(store);
+    (repository.runHousekeeping as jest.Mock).mockRejectedValueOnce(new Error('pass failed'));
+
+    await expect(store.getState().ensureHousekeepingCurrent(DAY_ONE)).rejects.toThrow(
+      'pass failed',
+    );
+    expect(rowsVersion(store)).toBe(before);
+
+    await store.getState().ensureHousekeepingCurrent(DAY_ONE);
+    expect(rowsVersion(store)).toBe(before + 1);
+
+    await store.getState().loadMonthSnapshot('2026-06', DAY_ONE);
+    expect(repository.runHousekeeping).toHaveBeenCalledTimes(3);
+    expect(rowsVersion(store)).toBe(before + 1);
+  });
 });
