@@ -17,6 +17,7 @@ import {
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { TransactionAmountError } from '@/modules/transactions/domain/transaction_amounts';
+import { pinDate } from '@/test_helpers/clock';
 import {
   makeTestCommitment,
   makeTestPayment,
@@ -208,25 +209,7 @@ describe('usePaySheet', () => {
 
   // Pins `new Date()` alone at TODAY, so a visible sheet's day check reads the today passed in; the timers stay real.
   beforeEach(() => {
-    jest.useFakeTimers({
-      now: new Date(2026, 9, 20, 12),
-      doNotFake: [
-        'hrtime',
-        'nextTick',
-        'performance',
-        'queueMicrotask',
-        'requestAnimationFrame',
-        'cancelAnimationFrame',
-        'requestIdleCallback',
-        'cancelIdleCallback',
-        'setImmediate',
-        'clearImmediate',
-        'setInterval',
-        'clearInterval',
-        'setTimeout',
-        'clearTimeout',
-      ],
-    });
+    pinDate(new Date(2026, 9, 20, 12));
   });
 
   afterEach(() => {
@@ -2056,6 +2039,20 @@ describe('usePaySheet', () => {
           jest.advanceTimersByTime(2 * 60_000);
         });
       }
+
+      it('keeps the moved line on the render after the close', async () => {
+        const { result, rerender } = await openAt(new Date(2026, 9, 31, 23, 59), '2026-10-31', {
+          ...duePayment,
+          due_date: '2026-10-31',
+        });
+        await passMidnight();
+        expect(result.current.state.cycleLine?.distance).toBe('1 day late');
+
+        paySheetStateInner = { ...paySheetStateInner, visible: false };
+        await act(() => rerender(undefined));
+
+        expect(result.current.state.cycleLine?.distance).toBe('1 day late');
+      });
 
       it('moves the distance by a day after the midnight with no input, and keeps the Overdue tag', async () => {
         const { result } = await openAt(new Date(2026, 9, 31, 23, 59), '2026-10-31');

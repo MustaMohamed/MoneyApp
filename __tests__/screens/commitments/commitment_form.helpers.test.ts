@@ -52,6 +52,7 @@ import {
 } from '@/modules/commitments/screens/commitments/components/commitment_form_body.hook';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { resolveHollowGraphiteTile } from '@/modules/transactions/components/transaction_row.helpers';
+import { pinDate } from '@/test_helpers/clock';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 import { makeTestAccount } from '@/test_helpers/transaction';
 
@@ -1138,44 +1139,26 @@ describe('useCommitmentFormBodyFaults (MA-255)', () => {
 
     // Pins `new Date()` alone, so a day read at mount sees NOW and the timers stay real.
     beforeEach(() => {
-      jest.useFakeTimers({
-        now: NOW,
-        doNotFake: [
-          'hrtime',
-          'nextTick',
-          'performance',
-          'queueMicrotask',
-          'requestAnimationFrame',
-          'cancelAnimationFrame',
-          'requestIdleCallback',
-          'cancelIdleCallback',
-          'setImmediate',
-          'clearImmediate',
-          'setInterval',
-          'clearInterval',
-          'setTimeout',
-          'clearTimeout',
-        ],
-      });
+      pinDate(NOW);
     });
 
     afterEach(() => {
       jest.useRealTimers();
     });
 
-    function useAddWithFooter(saveError: string | undefined, now: Date) {
+    function useAddWithFooter(saveError: string | undefined) {
       const hook = useAddWithBodyFaults();
       return {
         ...hook,
         lookup: useAccountsById(),
         status: useCommitmentFormStatus(hook.form, saveError),
-        footnote: useCommitmentFirstPaymentFootnote(hook.form, now),
+        footnote: useCommitmentFirstPaymentFootnote(hook.form),
       };
     }
 
-    async function mountFooter(saveError?: string, now: Date = NOW) {
+    async function mountFooter(saveError?: string) {
       const hook = await renderHook(
-        (props: { saveError: string | undefined }) => useAddWithFooter(props.saveError, now),
+        (props: { saveError: string | undefined }) => useAddWithFooter(props.saveError),
         { initialProps: { saveError } },
       );
       await act(async () => {
@@ -1282,7 +1265,7 @@ describe('useCommitmentFormBodyFaults (MA-255)', () => {
       ])(
         'Starts %s reads its year against the new today with no input',
         async (starts, before, after) => {
-          const result = await mountFooter(undefined, MINUTE_BEFORE);
+          const result = await mountFooter();
           await act(async () => result.current.form.setValue('startDate', starts));
           expect(result.current.footnote).toBe(before);
 

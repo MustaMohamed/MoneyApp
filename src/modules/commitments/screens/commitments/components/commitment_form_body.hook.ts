@@ -135,7 +135,6 @@ export function useCommitmentFormStatus(
 
 export function useCommitmentFirstPaymentFootnote(
   form: UseFormReturn<CommitmentFormValues>,
-  now: Date = new Date(),
 ): string | undefined {
   const [startDate, recurrenceEvery, recurrencePeriod, durationType, endAfterCount, endDate] =
     useWatch({
@@ -149,7 +148,7 @@ export function useCommitmentFirstPaymentFootnote(
         'endDate',
       ],
     });
-  const today = useLocalToday(toLocalDateString(now), true);
+  const today = useLocalToday(toLocalDateString(new Date()), true);
   return resolveCommitmentFirstPaymentFootnote(
     { startDate, recurrenceEvery, recurrencePeriod, durationType, endAfterCount, endDate },
     today,

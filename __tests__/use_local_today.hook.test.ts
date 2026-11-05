@@ -1,25 +1,16 @@
 import { act, renderHook } from '@testing-library/react-native';
 import { useEffect } from 'react';
-import { AppState, type AppStateStatus } from 'react-native';
 
+import { advanceTo, mockAppStateListeners } from '@/test_helpers/clock';
 import { useLocalToday } from '@/utils/use_local_today.hook';
 
-type ChangeListener = (status: AppStateStatus) => void;
 type Props = { seed: string | undefined; active: boolean };
 
 const MINUTE_MS = 60_000;
-const changeListeners = new Set<ChangeListener>();
+let appState: ReturnType<typeof mockAppStateListeners>;
+let changeListeners: ReturnType<typeof mockAppStateListeners>['listeners'];
 let setTimeoutSpy: jest.SpyInstance;
 let clearTimeoutSpy: jest.SpyInstance;
-
-function setAppState(status: AppStateStatus) {
-  (AppState as { currentState: AppStateStatus }).currentState = status;
-}
-
-function emitAppState(status: AppStateStatus) {
-  setAppState(status);
-  for (const listener of [...changeListeners]) listener(status);
-}
 
 // React's own short timers share the fake clock, so only a timer set past a minute is the day timer.
 function armedDayTimers() {
@@ -28,12 +19,6 @@ function armedDayTimers() {
     ([, delay], index) =>
       (delay ?? 0) > MINUTE_MS && !cleared.includes(setTimeoutSpy.mock.results[index].value),
   ).length;
-}
-
-async function advanceTo(moment: Date) {
-  await act(async () => {
-    jest.advanceTimersByTime(moment.getTime() - Date.now());
-  });
 }
 
 async function mountToday(seed: string | undefined, active = true) {
@@ -56,13 +41,8 @@ beforeEach(() => {
   jest.useFakeTimers();
   setTimeoutSpy = jest.spyOn(globalThis, 'setTimeout');
   clearTimeoutSpy = jest.spyOn(globalThis, 'clearTimeout');
-  changeListeners.clear();
-  setAppState('active');
-  jest.spyOn(AppState, 'addEventListener').mockImplementation((_type, listener) => {
-    const changeListener = listener as ChangeListener;
-    changeListeners.add(changeListener);
-    return { remove: () => changeListeners.delete(changeListener) };
-  });
+  appState = mockAppStateListeners();
+  changeListeners = appState.listeners;
 });
 
 afterEach(() => {
@@ -118,11 +98,11 @@ describe('useLocalToday (MA-250)', () => {
     jest.setSystemTime(new Date(2026, 9, 31, 23));
     const { result } = await mountToday('2026-10-31');
 
-    setAppState('background');
+    appState.setState('background');
     await advanceTo(new Date(2026, 10, 1, 0, 0, 1));
     expect(result.current).toBe('2026-10-31');
 
-    await act(async () => emitAppState('active'));
+    await act(async () => appState.emit('active'));
     expect(result.current).toBe('2026-11-01');
   });
 
@@ -141,9 +121,9 @@ describe('useLocalToday (MA-250)', () => {
     jest.setSystemTime(new Date(2026, 10, 1, 9));
     const { result } = await mountToday('2026-11-01');
 
-    await act(async () => emitAppState('background'));
+    await act(async () => appState.emit('background'));
     jest.setSystemTime(new Date(2026, 9, 31, 9));
-    await act(async () => emitAppState('active'));
+    await act(async () => appState.emit('active'));
 
     expect(result.current).toBe('2026-10-31');
   });
@@ -173,6 +153,17 @@ describe('useLocalToday (MA-250)', () => {
     const { result } = await mountToday('2026-10-31');
 
     expect(result.current).toBe('2026-11-01');
+  });
+
+  it('keeps the moved day once inactive with the same seed', async () => {
+    jest.setSystemTime(new Date(2026, 9, 31, 23, 59));
+    const hook = await mountToday('2026-10-31');
+    await advanceTo(new Date(2026, 10, 1, 0, 0, 1));
+    expect(hook.result.current).toBe('2026-11-01');
+
+    await hook.rerender({ seed: '2026-10-31', active: false });
+
+    expect(hook.result.current).toBe('2026-11-01');
   });
 
   it('returns undefined for an undefined seed', async () => {

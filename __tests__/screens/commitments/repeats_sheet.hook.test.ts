@@ -1,7 +1,6 @@
 import { act, renderHook } from '@testing-library/react-native';
 import { useMemo } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
-import { AppState, type AppStateStatus } from 'react-native';
 
 import { DurationType, RecurrencePeriod, RecurrencePreset } from '@/constants/enums';
 import {
@@ -16,13 +15,14 @@ import {
 import { useCommitmentFormBodyPickers } from '@/modules/commitments/screens/commitments/components/commitment_form_body.hook';
 import { useCommitmentFormBodyState } from '@/modules/commitments/screens/commitments/components/commitment_form_body.state';
 import { useRepeatsSheet } from '@/modules/commitments/screens/commitments/components/repeats_sheet.hook';
+import { advanceTo, mockAppStateListeners, pinDate } from '@/test_helpers/clock';
 
 // Starts on today, Tue 20 Oct 2026, read at local noon.
 const STARTS = '2026-10-20';
 const NOW = new Date(2026, 9, 20, 12);
 
 // The body as it composes the Repeats row and sheet: one form, one owner, one schedule from the watched fields.
-function useRepeatsHarness(settledDueDates: readonly string[], now: Date, starts: string) {
+function useRepeatsHarness(settledDueDates: readonly string[], starts: string) {
   const form = useForm<CommitmentFormValues>({
     defaultValues: { ...buildAddDefaults(), startDate: starts },
   });
@@ -50,7 +50,7 @@ function useRepeatsHarness(settledDueDates: readonly string[], now: Date, starts
     }),
     [startDate, recurrenceEvery, recurrencePeriod, durationType, endAfterCount, endDate],
   );
-  const sheet = useRepeatsSheet(pickers.owner, form, schedule, settledDueDates, now);
+  const sheet = useRepeatsSheet(pickers.owner, form, schedule, settledDueDates);
   return {
     form,
     pickers,
@@ -63,10 +63,9 @@ type Harness = { current: ReturnType<typeof useRepeatsHarness> };
 
 async function mount(
   settledDueDates: readonly string[] = NO_SETTLED_DUE_DATES,
-  now: Date = NOW,
   starts: string = STARTS,
 ): Promise<Harness> {
-  const { result } = await renderHook(() => useRepeatsHarness(settledDueDates, now, starts));
+  const { result } = await renderHook(() => useRepeatsHarness(settledDueDates, starts));
   return result;
 }
 
@@ -92,29 +91,6 @@ const formCadence = (result: Harness) => ({
   every: result.current.form.getValues('recurrenceEvery'),
   period: result.current.form.getValues('recurrencePeriod'),
 });
-
-// Pins `new Date()` alone, so a day read at mount sees the harness's day and the timers stay real.
-function pinDate(now: Date) {
-  jest.useFakeTimers({
-    now,
-    doNotFake: [
-      'hrtime',
-      'nextTick',
-      'performance',
-      'queueMicrotask',
-      'requestAnimationFrame',
-      'cancelAnimationFrame',
-      'requestIdleCallback',
-      'cancelIdleCallback',
-      'setImmediate',
-      'clearImmediate',
-      'setInterval',
-      'clearInterval',
-      'setTimeout',
-      'clearTimeout',
-    ],
-  });
-}
 
 beforeEach(() => {
   pinDate(NOW);
@@ -231,18 +207,7 @@ describe('useRepeatsSheet (MA-276)', () => {
 });
 
 describe('across local midnight (MA-250)', () => {
-  type ChangeListener = (status: AppStateStatus) => void;
-  const changeListeners = new Set<ChangeListener>();
-
-  function setAppState(status: AppStateStatus) {
-    (AppState as { currentState: AppStateStatus }).currentState = status;
-  }
-
-  async function advanceTo(moment: Date) {
-    await act(async () => {
-      jest.advanceTimersByTime(moment.getTime() - Date.now());
-    });
-  }
+  let appState: ReturnType<typeof mockAppStateListeners>;
 
   // Custom at every 1 in days, staged with no Done, so each day is a due day.
   async function stageEveryDay(result: Harness) {
@@ -254,17 +219,11 @@ describe('across local midnight (MA-250)', () => {
 
   async function mountAt(minuteBefore: Date, starts: string, settled = NO_SETTLED_DUE_DATES) {
     jest.useFakeTimers({ now: minuteBefore });
-    return mount(settled, minuteBefore, starts);
+    return mount(settled, starts);
   }
 
   beforeEach(() => {
-    changeListeners.clear();
-    setAppState('active');
-    jest.spyOn(AppState, 'addEventListener').mockImplementation((_type, listener) => {
-      const changeListener = listener as ChangeListener;
-      changeListeners.add(changeListener);
-      return { remove: () => changeListeners.delete(changeListener) };
-    });
+    appState = mockAppStateListeners();
   });
 
   afterEach(() => {
@@ -323,13 +282,12 @@ describe('across local midnight (MA-250)', () => {
     const result = await mountAt(minuteBefore, '2026-10-31');
     await stageEveryDay(result);
 
-    setAppState('background');
+    appState.setState('background');
     await advanceTo(new Date(2026, 10, 1, 0, 1));
     expect(result.current.sheet.state.track).toBe('Every day · next Sun 1 Nov');
 
     await act(async () => {
-      setAppState('active');
-      for (const listener of [...changeListeners]) listener('active');
+      appState.emit('active');
     });
 
     expect(result.current.sheet.state.track).toBe('Every day · next Mon 2 Nov');

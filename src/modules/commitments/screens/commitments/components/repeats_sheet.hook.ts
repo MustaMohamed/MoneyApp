@@ -19,7 +19,6 @@ export function useRepeatsSheet(
   form: Pick<UseFormReturn<CommitmentFormValues>, 'setValue'>,
   schedule: CommitmentFormSchedule,
   settledDueDates: readonly string[],
-  now: Date = new Date(),
 ) {
   const draft = useCommitmentFormBodyState(
     (s) => (s.entries[owner] ?? INITIAL_PICKER_ENTRY).repeatsDraft,
@@ -45,7 +44,7 @@ export function useRepeatsSheet(
     };
   }, [owner, form]);
 
-  const today = useLocalToday(toLocalDateString(now), true);
+  const today = useLocalToday(toLocalDateString(new Date()), true);
   const track = useMemo(
     () =>
       draft === undefined
