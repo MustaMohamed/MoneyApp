@@ -56,6 +56,7 @@ const mockUseParams = (): DetailParams => useContext(mockParamsContext) ?? mockP
 const TODAY = '2026-05-08';
 
 let paymentsState: CommitmentPayment[] = [];
+let rowsVersionState = 0;
 let commitmentsById: Record<string, Commitment> = {};
 let historyById: Record<string, CommitmentPayment[]> = {};
 let storeCommitments: Commitment[] = [];
@@ -106,6 +107,7 @@ function setup() {
   attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
     commitments: storeCommitments,
     payments: paymentsState,
+    rowsVersion: rowsVersionState,
     skipPayment: mockSkipPayment,
     undoSkip: mockUndoSkip,
     deactivateCommitment: mockDeactivateCommitment,
@@ -177,6 +179,7 @@ beforeEach(() => {
   mockNavigatorState.current = TAB_STACK;
   mockParams = { id: 'commitment-1', cycle: 'pay-1' };
   paymentsState = [];
+  rowsVersionState = 0;
   commitmentsById = {};
   historyById = {};
   storeCommitments = [];
@@ -215,10 +218,11 @@ function expectNoNavigation(): void {
   expect(router.dismissAll).not.toHaveBeenCalled();
 }
 
-async function openEditFromReadyDetail(): Promise<void> {
+async function openEditFromReadyDetail() {
   seedRent();
   paymentsState = [payment];
-  const { result } = await renderHook(() => useCommitmentDetail());
+  const hook = await renderHook(() => useCommitmentDetail());
+  const { result } = hook;
   await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
 
   await act(async () => result.current.goToEdit());
@@ -228,6 +232,7 @@ async function openEditFromReadyDetail(): Promise<void> {
     mode: 'edit',
     editingCommitment: commitment,
   });
+  return hook;
 }
 
 function renderRecording(seen: string[]) {
@@ -542,6 +547,7 @@ describe('useCommitmentDetail', () => {
 
     historyById = { [commitment.id]: [paidApril, newMay, newJune] };
     paymentsState = [newMay];
+    rowsVersionState += 1;
     await rerender({});
 
     await waitFor(() => expect(mockGetPaymentsByCommitment).toHaveBeenCalledTimes(2));
@@ -603,30 +609,79 @@ describe('useCommitmentDetail', () => {
     historyById = { [commitment.id]: [oldMay, oldJune] };
     paymentsState = [oldMay];
     mockParams = { id: commitment.id, cycle: 'old-jun' };
-    const { result } = await renderHook(() => useCommitmentDetail());
+    const { result, rerender } = await renderHook(() => useCommitmentDetail());
     await waitFor(() => expect(result.current.state.payment?.id).toBe('old-jun'));
     await act(async () => result.current.goToEdit());
     mockGetPaymentsByCommitment.mockClear();
 
     historyById = { [commitment.id]: [newMay, newJune] };
+    paymentsState = [newMay];
+    rowsVersionState += 1;
+    await rerender({});
     await act(async () => runHostLanding('onSaved'));
 
     expectNoNavigation();
-    await waitFor(() => expect(mockGetPaymentsByCommitment).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(result.current.state.payment?.id).toBe('new-jun'));
     expect(result.current.state.viewState).toBe('ready');
+    expect(mockGetPaymentsByCommitment).toHaveBeenCalledTimes(1);
   });
 
   it('a save from the stacked copy stays on the stacked detail and re-reads it', async () => {
     mockPathname.current = '/stacked/commitments/commitment-1';
     mockParams.originTxId = 'tx-1';
-    await openEditFromReadyDetail();
+    const { rerender } = await openEditFromReadyDetail();
     mockGetPaymentsByCommitment.mockClear();
 
+    paymentsState = [{ ...payment }];
+    rowsVersionState += 1;
+    await rerender({});
     await act(async () => runHostLanding('onSaved'));
 
     expectNoNavigation();
     await waitFor(() => expect(mockGetPaymentsByCommitment).toHaveBeenCalledTimes(1));
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(mockGetPaymentsByCommitment).toHaveBeenCalledTimes(1);
+  });
+
+  it('a payments publish alone re-reads nothing', async () => {
+    seedRent();
+    paymentsState = [payment];
+    const { result, rerender } = await renderHook(() => useCommitmentDetail());
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+    mockGetPaymentsByCommitment.mockClear();
+    mockGetById.mockClear();
+
+    paymentsState = [{ ...payment }];
+    await rerender({});
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect(mockGetPaymentsByCommitment).not.toHaveBeenCalled();
+    expect(mockGetById).not.toHaveBeenCalled();
+  });
+
+  it('a Pay publish with one rowsVersion move re-reads once', async () => {
+    seedRent();
+    paymentsState = [payment];
+    const paidRow: CommitmentPayment = { ...payment, paid_date: TODAY, amount_paid: 5000 };
+    const { result, rerender } = await renderHook(() => useCommitmentDetail());
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+    mockGetPaymentsByCommitment.mockClear();
+
+    paymentsState = [paidRow];
+    await rerender({});
+    paymentsState = [{ ...paidRow }];
+    rowsVersionState += 1;
+    await rerender({});
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect(mockGetPaymentsByCommitment).toHaveBeenCalledTimes(1);
+    expect(mockGetPaymentsByCommitment).toHaveBeenCalledWith(commitment.id);
   });
 
   it.each([
@@ -736,6 +791,7 @@ describe('useCommitmentDetail', () => {
     );
 
     paymentsState = [{ ...payment, skipped_date: TODAY }];
+    rowsVersionState += 1;
     await rerender({});
 
     await waitFor(() => expect(mockGetPaymentsByCommitment).toHaveBeenCalledTimes(2));
@@ -766,6 +822,7 @@ describe('useCommitmentDetail', () => {
     const seenBeforePublish = seen.length;
 
     paymentsState = [{ ...payment }];
+    rowsVersionState += 1;
     await rerender({});
 
     await waitFor(() => expect(mockGetPaymentsByCommitment).toHaveBeenCalledTimes(2));
@@ -798,6 +855,7 @@ describe('useCommitmentDetail', () => {
     await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
 
     paymentsState = [{ ...payment }];
+    rowsVersionState += 1;
     await rerender({});
     await waitFor(() => expect(result.current.state.viewState).toBe('refreshErrorWithData'));
     expect(result.current.state.allPayments).toEqual(rentHistory);
@@ -827,6 +885,7 @@ describe('useCommitmentDetail', () => {
     const owner = result.current.state.owner;
 
     paymentsState = [{ ...payment }, otherPayment];
+    rowsVersionState += 1;
     await rerender({});
     await waitFor(() => expect(mockGetPaymentsByCommitment).toHaveBeenCalledTimes(2));
 
@@ -876,6 +935,7 @@ describe('useCommitmentDetail', () => {
     await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
 
     paymentsState = [{ ...payment, paid_date: TODAY }];
+    rowsVersionState += 1;
     await rerender({});
     await waitFor(() => expect(mockGetPaymentsByCommitment).toHaveBeenCalledTimes(2));
 
@@ -898,6 +958,7 @@ describe('useCommitmentDetail', () => {
     expect(result.current.state.cycleCard?.statusLabel).not.toBe(Strings.commitmentsStatusPaid);
 
     paymentsState = [paidRow];
+    rowsVersionState += 1;
     await rerender({});
 
     await waitFor(() =>
@@ -1402,6 +1463,7 @@ describe('useCommitmentDetail lifecycle (MA-266)', () => {
 
       historyById = { [commitment.id]: [settledRow] };
       paymentsState = [settledRow];
+      rowsVersionState += 1;
       await rerender({});
 
       await waitFor(() => expect(mockGetPaymentsByCommitment).toHaveBeenCalledTimes(2));
@@ -1478,6 +1540,7 @@ describe('useCommitmentDetail lifecycle (MA-266)', () => {
 
     historyById = { [commitment.id]: [firstSkipped, secondPaid] };
     paymentsState = [secondPaid];
+    rowsVersionState += 1;
     await rerender({});
 
     await waitFor(() => expect(mockGetPaymentsByCommitment).toHaveBeenCalledTimes(2));
