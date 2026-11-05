@@ -14,6 +14,7 @@ import {
 import { useEditCommitment } from '@/modules/commitments/screens/commitments/commitment_form/edit_commitment.hook';
 import { useEditCommitmentState } from '@/modules/commitments/screens/commitments/commitment_form/edit_commitment.state';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
+import { useCommitmentStopState } from '@/modules/commitments/store/commitment_stop.state';
 import { makeTestCommitment } from '@/test_helpers/commitment';
 import { deferred } from '@/test_helpers/deferred';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
@@ -369,6 +370,8 @@ describe('useEditCommitment', () => {
     });
 
     expect(entries()).toEqual({});
+    expect(useCommitmentStopState.getState().entries).toEqual({});
+    expect(onStopped).not.toHaveBeenCalled();
   });
 
   it('a failed Stop keeps the dialog open with its error on the copy that confirmed only', async () => {

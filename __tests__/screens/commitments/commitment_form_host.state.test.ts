@@ -3,6 +3,7 @@ import { NO_SETTLED_DUE_DATES } from '@/modules/commitments/screens/commitments/
 import { useAddCommitmentState } from '@/modules/commitments/screens/commitments/commitment_form/add_commitment.state';
 import { useEditCommitmentState } from '@/modules/commitments/screens/commitments/commitment_form/edit_commitment.state';
 import { useCommitmentFormHostState } from '@/modules/commitments/store/commitment_form_host.state';
+import { useCommitmentStopState } from '@/modules/commitments/store/commitment_stop.state';
 import { makeTestCommitment } from '@/test_helpers/commitment';
 
 const host = () => useCommitmentFormHostState.getState();
@@ -15,6 +16,7 @@ describe('useCommitmentFormHostState', () => {
     host().reset();
     useAddCommitmentState.getState().reset();
     useEditCommitmentState.getState().reset();
+    useCommitmentStopState.getState().reset();
   });
 
   it('opens the add sheet from closed as session 1', () => {
@@ -258,6 +260,19 @@ describe('useCommitmentFormHostState', () => {
       expect(host().phase).toBe('open');
 
       useEditCommitmentState.getState().setSaving('owner-1', false);
+
+      expect(host().requestClose()).toBe(true);
+      expect(host().phase).toBe('closing');
+    });
+
+    it('refuses a close while an edit Stop writes, and closes once it lands (MA-224)', () => {
+      host().openEdit(rent, NO_SETTLED_DUE_DATES, undefined, NO_STOP_COUNTS);
+      useCommitmentStopState.getState().begin('owner-1');
+
+      expect(host().requestClose()).toBe(false);
+      expect(host().phase).toBe('open');
+
+      useCommitmentStopState.getState().succeed('owner-1');
 
       expect(host().requestClose()).toBe(true);
       expect(host().phase).toBe('closing');

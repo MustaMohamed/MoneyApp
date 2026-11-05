@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 
 import { useCommitmentStore } from '../../store/commitment.store';
-import { INITIAL_STOP_ENTRY, useCommitmentStopState } from './commitment_stop.state';
+import { INITIAL_STOP_ENTRY, useCommitmentStopState } from '../../store/commitment_stop.state';
 
 /** The Stop write the detail and the edit sheet share; `onStopped` runs once the write lands. */
 export function useCommitmentStop(

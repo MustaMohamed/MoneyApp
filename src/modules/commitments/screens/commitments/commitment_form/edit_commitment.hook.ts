@@ -9,13 +9,13 @@ import { useZodForm } from '@/utils/use_zod_form.hook';
 
 import type { Commitment } from '../../../entities/commitment.entity';
 import { useCommitmentStore } from '../../../store/commitment.store';
+import { useCommitmentStopState } from '../../../store/commitment_stop.state';
 import {
   COMMITMENT_SCHEMA,
   type CommitmentFormValues,
   buildEditDefaults,
 } from '../commitment_form.shared';
 import { useCommitmentStop } from '../commitment_stop.hook';
-import { useCommitmentStopState } from '../commitment_stop.state';
 import { INITIAL_UI_ENTRY, useEditCommitmentState } from './edit_commitment.state';
 
 export type { CommitmentFormValues };

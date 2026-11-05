@@ -2,7 +2,7 @@ import {
   INITIAL_STOP_ENTRY,
   isAnyCommitmentStopBusy,
   useCommitmentStopState,
-} from '@/modules/commitments/screens/commitments/commitment_stop.state';
+} from '@/modules/commitments/store/commitment_stop.state';
 
 beforeEach(() => {
   useCommitmentStopState.getState().reset();

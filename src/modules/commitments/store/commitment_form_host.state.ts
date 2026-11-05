@@ -14,7 +14,7 @@ import {
 import {
   isAnyCommitmentStopBusy,
   useCommitmentStopState,
-} from '@/modules/commitments/screens/commitments/commitment_stop.state';
+} from '@/modules/commitments/store/commitment_stop.state';
 import {
   type FormSessionHostSource,
   type FormSessionPhase,
