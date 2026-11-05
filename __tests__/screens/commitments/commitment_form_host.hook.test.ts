@@ -1,6 +1,7 @@
 import { act, renderHook } from '@testing-library/react-native';
 
 import { Strings } from '@/constants/strings';
+import { NO_STOP_COUNTS } from '@/modules/commitments/domain/payment_state';
 import { NO_SETTLED_DUE_DATES } from '@/modules/commitments/screens/commitments/commitment_form.helpers';
 import { useAddCommitmentState } from '@/modules/commitments/screens/commitments/commitment_form/add_commitment.state';
 import { useCommitmentFormHost } from '@/modules/commitments/screens/commitments/commitment_form/commitment_form_host.hook';
@@ -149,7 +150,7 @@ describe('useCommitmentFormHost', () => {
 
   it('calls nothing on a Save while an edit entry saves and the footer has not caught up', async () => {
     const { result } = await renderHook(() => useCommitmentFormHost());
-    await act(() => host().openEdit(rent, NO_SETTLED_DUE_DATES));
+    await act(() => host().openEdit(rent, NO_SETTLED_DUE_DATES, undefined, NO_STOP_COUNTS));
     const submit = makeSubmit();
     await register(result, host().sessionId, submit);
     await act(() => {
@@ -229,7 +230,7 @@ describe('useCommitmentFormHost', () => {
   it('titles an edit session with the edit title and holds the commitment it was opened for', async () => {
     const { result } = await renderHook(() => useCommitmentFormHost());
 
-    await act(() => host().openEdit(rent, NO_SETTLED_DUE_DATES));
+    await act(() => host().openEdit(rent, NO_SETTLED_DUE_DATES, undefined, NO_STOP_COUNTS));
 
     expect(result.current.state.isOpen).toBe(true);
     expect(result.current.state.hasSession).toBe(true);
@@ -242,7 +243,7 @@ describe('useCommitmentFormHost', () => {
     const { result } = await renderHook(() => useCommitmentFormHost());
     expect(result.current.state.editingSettledDueDates).toEqual([]);
 
-    await act(() => host().openEdit(rent, ['2026-08-20', '2026-09-20']));
+    await act(() => host().openEdit(rent, ['2026-08-20', '2026-09-20'], undefined, NO_STOP_COUNTS));
 
     expect(result.current.state.editingSettledDueDates).toEqual(['2026-08-20', '2026-09-20']);
 
@@ -303,7 +304,7 @@ describe('useCommitmentFormHost', () => {
 
   it('follows the edit state for dismissal, back and a close request in edit mode', async () => {
     const { result } = await renderHook(() => useCommitmentFormHost());
-    await act(() => host().openEdit(rent, NO_SETTLED_DUE_DATES));
+    await act(() => host().openEdit(rent, NO_SETTLED_DUE_DATES, undefined, NO_STOP_COUNTS));
     expect(result.current.state.isDismissable).toBe(true);
 
     await act(() => {
@@ -337,7 +338,9 @@ describe('useCommitmentFormHost', () => {
 
     it('closes on a save and runs only the onSaved of its landing', async () => {
       const { result } = await renderHook(() => useCommitmentFormHost());
-      await act(() => host().openEdit(rent, NO_SETTLED_DUE_DATES, { onSaved, onStopped }));
+      await act(() =>
+        host().openEdit(rent, NO_SETTLED_DUE_DATES, { onSaved, onStopped }, NO_STOP_COUNTS),
+      );
 
       await act(() => result.current.handleSaved(host().sessionId));
 
@@ -348,7 +351,9 @@ describe('useCommitmentFormHost', () => {
 
     it('closes on a Stop and runs only the onStopped of its landing, once the sheet has closed, with no toast of its own', async () => {
       const { result } = await renderHook(() => useCommitmentFormHost());
-      await act(() => host().openEdit(rent, NO_SETTLED_DUE_DATES, { onSaved, onStopped }));
+      await act(() =>
+        host().openEdit(rent, NO_SETTLED_DUE_DATES, { onSaved, onStopped }, NO_STOP_COUNTS),
+      );
 
       await act(() => result.current.handleStopped(host().sessionId));
 
@@ -365,7 +370,7 @@ describe('useCommitmentFormHost', () => {
 
     it('closes on a save from a session opened with no landing', async () => {
       const { result } = await renderHook(() => useCommitmentFormHost());
-      await act(() => host().openEdit(rent, NO_SETTLED_DUE_DATES));
+      await act(() => host().openEdit(rent, NO_SETTLED_DUE_DATES, undefined, NO_STOP_COUNTS));
 
       await act(() => result.current.handleSaved(host().sessionId));
 
@@ -377,10 +382,12 @@ describe('useCommitmentFormHost', () => {
       async (handler) => {
         const olderLanding = { onSaved: jest.fn(), onStopped: jest.fn() };
         const { result } = await renderHook(() => useCommitmentFormHost());
-        await act(() => host().openEdit(rent, NO_SETTLED_DUE_DATES, olderLanding));
+        await act(() => host().openEdit(rent, NO_SETTLED_DUE_DATES, olderLanding, NO_STOP_COUNTS));
         const olderSession = host().sessionId;
         await closeUnsaved(result);
-        await act(() => host().openEdit(gym, NO_SETTLED_DUE_DATES, { onSaved, onStopped }));
+        await act(() =>
+          host().openEdit(gym, NO_SETTLED_DUE_DATES, { onSaved, onStopped }, NO_STOP_COUNTS),
+        );
 
         await act(() => result.current[handler](olderSession));
         await act(() => result.current.handleCloseComplete());
@@ -398,7 +405,10 @@ describe('useCommitmentFormHost', () => {
   describe('the saved toast (MA-256)', () => {
     it.each([
       ['Commitment added', () => host().openAdd()],
-      ['Commitment updated', () => host().openEdit(rent, NO_SETTLED_DUE_DATES)],
+      [
+        'Commitment updated',
+        () => host().openEdit(rent, NO_SETTLED_DUE_DATES, undefined, NO_STOP_COUNTS),
+      ],
     ])('shows %s once, after the sheet has closed', async (label, open) => {
       const { result } = await renderHook(() => useCommitmentFormHost());
       await act(open);
@@ -417,19 +427,19 @@ describe('useCommitmentFormHost', () => {
 
     it('shows nothing after a Stop or an unsaved close, and one after the next saved edit', async () => {
       const { result } = await renderHook(() => useCommitmentFormHost());
-      await act(() => host().openEdit(rent, NO_SETTLED_DUE_DATES));
+      await act(() => host().openEdit(rent, NO_SETTLED_DUE_DATES, undefined, NO_STOP_COUNTS));
       await act(() => result.current.handleStopped(host().sessionId));
       await act(() => result.current.handleCloseComplete());
 
       expect(host().phase).toBe('closed');
       expect(mockToast.show).not.toHaveBeenCalled();
 
-      await act(() => host().openEdit(rent, NO_SETTLED_DUE_DATES));
+      await act(() => host().openEdit(rent, NO_SETTLED_DUE_DATES, undefined, NO_STOP_COUNTS));
       await closeUnsaved(result);
 
       expect(mockToast.show).not.toHaveBeenCalled();
 
-      await act(() => host().openEdit(rent, NO_SETTLED_DUE_DATES));
+      await act(() => host().openEdit(rent, NO_SETTLED_DUE_DATES, undefined, NO_STOP_COUNTS));
       await act(() => result.current.handleSaved(host().sessionId));
       await act(() => result.current.handleCloseComplete());
 

@@ -11,7 +11,7 @@ interface Props {
   name: string;
   counts: CommitmentStopCounts;
   busy: boolean;
-  failed: boolean;
+  errorMessage?: string;
   onCancel: () => void;
   onConfirm: () => void;
 }
@@ -21,7 +21,7 @@ export function StopConfirmDialog({
   name,
   counts,
   busy,
-  failed,
+  errorMessage,
   onCancel,
   onConfirm,
 }: Props): React.ReactElement {
@@ -37,7 +37,7 @@ export function StopConfirmDialog({
       cancelLabel={Strings.commitmentsStopConfirmCancel}
       onConfirm={onConfirm}
       onCancel={onCancel}
-      errorMessage={failed ? Strings.commitmentsStopError : undefined}
+      errorMessage={errorMessage}
     />
   );
 }

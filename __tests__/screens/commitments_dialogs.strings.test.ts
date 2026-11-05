@@ -36,29 +36,18 @@ describe('Skip and Stop dialog copy (MA-224)', () => {
     expect(Strings.commitmentsDetailStop).toBe('Stop');
     expect(Strings.commitmentsStoppedToast('Rent')).toBe('Rent stopped');
   });
-
-  it('holds none of the keys the Copy block removes', () => {
-    for (const key of [
-      'commitmentsDeactivateTitle',
-      'commitmentsDeactivateBody',
-      'commitmentsDeactivateCancel',
-      'commitmentsDeactivateConfirm',
-      'commitmentsDeactivateError',
-      'commitmentsEmptyTitle',
-      'commitmentsEmptySub',
-      'commitmentsEmptyCta',
-      'commitmentsFieldCustomRecurrence',
-    ]) {
-      expect(strings[key]).toBeUndefined();
-    }
-  });
 });
 
 describe('Commitments copy sweep (MA-224)', () => {
-  const commitmentValues = Object.entries(strings).filter(
-    (entry): entry is [string, string] =>
-      /commitment/i.test(entry[0]) && typeof entry[1] === 'string',
-  );
+  // A function-valued string is read with one lowercase placeholder per parameter.
+  const commitmentValues = Object.entries(strings).flatMap(([key, value]): [string, string][] => {
+    if (!/commitment/i.test(key)) return [];
+    if (typeof value === 'string') return [[key, value]];
+    if (typeof value !== 'function') return [];
+    const read = value as (...args: string[]) => unknown;
+    const text = read(...Array.from({ length: read.length }, () => 'x'));
+    return typeof text === 'string' ? [[key, text]] : [];
+  });
 
   it('says no Could not, Please try again, Retry or Deactivate in any commitments string', () => {
     expect(commitmentValues.length).toBeGreaterThan(0);

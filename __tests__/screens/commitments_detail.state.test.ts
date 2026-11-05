@@ -19,9 +19,6 @@ const COLD_ENTRY = {
   skipConfirmVisible: false,
   skipBusy: false,
   skipError: false,
-  stopConfirmVisible: false,
-  stopBusy: false,
-  stopError: false,
 };
 
 describe('useCommitmentDetailState', () => {
@@ -146,34 +143,6 @@ describe('useCommitmentDetailState', () => {
     expect(entryOf('owner-b')).toBe(before);
   });
 
-  it('setStopConfirmVisible, setStopBusy and setStopError write only that copy stop outcome', () => {
-    useCommitmentDetailState.getState().beginLoad('owner-a', 'commitment-1', false);
-    useCommitmentDetailState.getState().beginLoad('owner-b', 'commitment-2', false);
-    const before = entryOf('owner-b');
-
-    useCommitmentDetailState.getState().setStopConfirmVisible('owner-a', true);
-    useCommitmentDetailState.getState().setStopBusy('owner-a', true);
-    useCommitmentDetailState.getState().setStopError('owner-a', true);
-
-    expect(entryOf('owner-a')).toMatchObject({
-      stopConfirmVisible: true,
-      stopBusy: true,
-      stopError: true,
-    });
-    expect(entryOf('owner-b')).toBe(before);
-  });
-
-  it('the stop setters on a copy that never loaded write nothing', () => {
-    useCommitmentDetailState.getState().beginLoad('owner-a', 'commitment-1', false);
-    const before = useCommitmentDetailState.getState().entries;
-
-    useCommitmentDetailState.getState().setStopConfirmVisible('owner-b', true);
-    useCommitmentDetailState.getState().setStopBusy('owner-b', true);
-    useCommitmentDetailState.getState().setStopError('owner-b', true);
-
-    expect(useCommitmentDetailState.getState().entries).toBe(before);
-  });
-
   it('setSkipConfirmVisible on a copy that never loaded writes nothing', () => {
     useCommitmentDetailState.getState().beginLoad('owner-a', 'commitment-1', false);
     const before = useCommitmentDetailState.getState().entries;
@@ -196,9 +165,6 @@ describe('useCommitmentDetailState', () => {
       (owner) => store.setSkipConfirmVisible(owner, false),
       (owner) => store.setSkipBusy(owner, true),
       (owner) => store.setSkipError(owner, true),
-      (owner) => store.setStopConfirmVisible(owner, true),
-      (owner) => store.setStopBusy(owner, true),
-      (owner) => store.setStopError(owner, true),
     ];
 
     for (const write of guardedWrites) {

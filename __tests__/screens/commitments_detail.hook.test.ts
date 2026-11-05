@@ -1729,9 +1729,39 @@ describe('useCommitmentDetail Skip dialog and toast (MA-224)', () => {
   });
 });
 
+describe('useCommitmentDetail Skip double tap (MA-224)', () => {
+  it('a second skip while the first is pending writes once and shows no error', async () => {
+    const pendingSkip = deferred<void>();
+    mockSkipPayment.mockReturnValueOnce(pendingSkip.promise);
+    const { result } = await renderReadyRent();
+    await act(async () => result.current.confirmSkip());
+    let first: Promise<void> = Promise.resolve();
+    let second: Promise<void> = Promise.resolve();
+
+    await act(async () => {
+      first = result.current.skipPayment();
+      second = result.current.skipPayment();
+    });
+
+    expect(mockSkipPayment).toHaveBeenCalledTimes(1);
+    expect(result.current.state.skipBusy).toBe(true);
+    expect(result.current.state.skipError).toBe(false);
+
+    await act(async () => {
+      pendingSkip.resolve();
+      await first;
+      await second;
+    });
+
+    expect(mockSkipPayment).toHaveBeenCalledTimes(1);
+    expect(result.current.state.skipBusy).toBe(false);
+    expect(result.current.state.skipError).toBe(false);
+  });
+});
+
 describe('useCommitmentDetail Stop (MA-224)', () => {
   async function confirmAndStop(result: { current: ReturnType<typeof useCommitmentDetail> }) {
-    await act(async () => result.current.confirmStop());
+    await act(async () => result.current.openStopDialog());
     expect(result.current.state.stopConfirmVisible).toBe(true);
     await act(async () => {
       await result.current.stopCommitment();
@@ -1837,7 +1867,7 @@ describe('useCommitmentDetail Stop (MA-224)', () => {
     expect(result.current.state.stopConfirmVisible).toBe(true);
     expect(result.current.state.stopError).toBe(true);
     expect(result.current.state.stopBusy).toBe(false);
-    expect(consoleSpy).toHaveBeenCalledWith('[commitmentDetail] stopCommitment failed', stopError);
+    expect(consoleSpy).toHaveBeenCalledWith('[commitmentStop] stopCommitment failed', stopError);
     consoleSpy.mockRestore();
   });
 
@@ -1845,7 +1875,7 @@ describe('useCommitmentDetail Stop (MA-224)', () => {
     const pendingStop = deferred<void>();
     mockDeactivateCommitment.mockReturnValueOnce(pendingStop.promise);
     const { result } = await renderReadyRent();
-    await act(async () => result.current.confirmStop());
+    await act(async () => result.current.openStopDialog());
     let first: Promise<void> = Promise.resolve();
     let second: Promise<void> = Promise.resolve();
 

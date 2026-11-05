@@ -12,6 +12,10 @@ import {
   useEditCommitmentState,
 } from '@/modules/commitments/screens/commitments/commitment_form/edit_commitment.state';
 import {
+  isAnyCommitmentStopBusy,
+  useCommitmentStopState,
+} from '@/modules/commitments/screens/commitments/commitment_stop.state';
+import {
   type FormSessionHostSource,
   type FormSessionPhase,
   subscribeToAll,
@@ -22,7 +26,7 @@ type CommitmentFormPhase = FormSessionPhase;
 
 type CommitmentFormMode = 'add' | 'edit';
 
-export type CommitmentFormPostCloseToast = 'added' | 'updated' | 'stopped';
+export type CommitmentFormCloseOutcome = 'added' | 'updated' | 'stopped';
 
 interface CommitmentEditLanding {
   onSaved?: () => void;
@@ -44,7 +48,7 @@ interface CommitmentFormHostStateShape {
   editingStopCounts: CommitmentStopCounts;
   landing: CommitmentEditLanding | undefined;
   footer: CommitmentFormFooterState;
-  postCloseToast: CommitmentFormPostCloseToast | undefined;
+  closeOutcome: CommitmentFormCloseOutcome | undefined;
 }
 
 type CommitmentFormHostState = CommitmentFormHostStateShape & {
@@ -52,12 +56,12 @@ type CommitmentFormHostState = CommitmentFormHostStateShape & {
   openEdit: (
     commitment: Commitment,
     settledDueDates: readonly string[],
-    landing?: CommitmentEditLanding,
-    stopCounts?: CommitmentStopCounts,
+    landing: CommitmentEditLanding | undefined,
+    stopCounts: CommitmentStopCounts,
   ) => void;
   requestClose: () => boolean;
-  completeSave: (sessionId: number, postCloseToast?: CommitmentFormPostCloseToast) => boolean;
-  completeClose: (sessionId: number) => CommitmentFormPostCloseToast | undefined;
+  completeSave: (sessionId: number, closeOutcome?: CommitmentFormCloseOutcome) => boolean;
+  completeClose: (sessionId: number) => CommitmentFormCloseOutcome | undefined;
   publishFooter: (sessionId: number, footer: CommitmentFormFooterState) => void;
   reset: () => void;
 };
@@ -73,12 +77,17 @@ const INITIAL_STATE: CommitmentFormHostStateShape = {
   editingStopCounts: NO_STOP_COUNTS,
   landing: undefined,
   footer: INITIAL_FOOTER,
-  postCloseToast: undefined,
+  closeOutcome: undefined,
 };
 
 export function isCommitmentFormSessionSaving(mode: CommitmentFormMode | undefined): boolean {
   if (mode === 'add') return useAddCommitmentState.getState().saving;
-  if (mode === 'edit') return isAnyEditCommitmentSaving(useEditCommitmentState.getState());
+  if (mode === 'edit') {
+    return (
+      isAnyEditCommitmentSaving(useEditCommitmentState.getState()) ||
+      isAnyCommitmentStopBusy(useCommitmentStopState.getState())
+    );
+  }
   return false;
 }
 
@@ -97,11 +106,11 @@ export const useCommitmentFormHostState = createMoneyAppSelectors(
         editingStopCounts: NO_STOP_COUNTS,
         landing: undefined,
         footer: INITIAL_FOOTER,
-        postCloseToast: undefined,
+        closeOutcome: undefined,
       }));
     },
 
-    openEdit: (commitment, settledDueDates, landing, stopCounts = NO_STOP_COUNTS) => {
+    openEdit: (commitment, settledDueDates, landing, stopCounts) => {
       if (get().phase !== 'closed') return;
       set((state) => ({
         phase: 'open',
@@ -112,7 +121,7 @@ export const useCommitmentFormHostState = createMoneyAppSelectors(
         editingStopCounts: stopCounts,
         landing,
         footer: INITIAL_FOOTER,
-        postCloseToast: undefined,
+        closeOutcome: undefined,
       }));
     },
 
@@ -124,10 +133,10 @@ export const useCommitmentFormHostState = createMoneyAppSelectors(
       return true;
     },
 
-    completeSave: (sessionId, postCloseToast) => {
+    completeSave: (sessionId, closeOutcome) => {
       const state = get();
       if (state.phase !== 'open' || state.sessionId !== sessionId) return false;
-      set({ phase: 'closing', postCloseToast });
+      set({ phase: 'closing', closeOutcome });
       return true;
     },
 
@@ -142,9 +151,9 @@ export const useCommitmentFormHostState = createMoneyAppSelectors(
         editingStopCounts: NO_STOP_COUNTS,
         landing: undefined,
         footer: INITIAL_FOOTER,
-        postCloseToast: undefined,
+        closeOutcome: undefined,
       });
-      return state.postCloseToast;
+      return state.closeOutcome;
     },
 
     publishFooter: (sessionId, footer) => {
@@ -165,6 +174,7 @@ export const COMMITMENT_FORM_SESSION_SOURCE: FormSessionHostSource = {
     useCommitmentFormHostState,
     useAddCommitmentState,
     useEditCommitmentState,
+    useCommitmentStopState,
   ]),
   requestClose: () => useCommitmentFormHostState.getState().requestClose(),
 };

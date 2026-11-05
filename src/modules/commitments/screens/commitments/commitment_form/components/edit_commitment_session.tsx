@@ -30,7 +30,7 @@ export function EditCommitmentSession({
   onSaved,
   onStopped,
 }: EditCommitmentSessionProps): React.ReactElement {
-  const { state, form, onSubmit, openStopDialog, confirmStop, cancelStop } = useEditCommitment({
+  const { state, form, onSubmit, openStopDialog, stopCommitment, cancelStop } = useEditCommitment({
     commitment,
     onSaved: () => onSaved(sessionId),
     onStopped: () => onStopped(sessionId),
@@ -73,10 +73,10 @@ export function EditCommitmentSession({
         isOpen={state.stopDialogVisible}
         name={commitment.name}
         counts={stopCounts}
-        busy={state.saving}
-        failed={state.stopError}
+        busy={state.stopBusy}
+        errorMessage={state.stopError ? Strings.commitmentsStopError : undefined}
         onCancel={cancelStop}
-        onConfirm={() => void confirmStop()}
+        onConfirm={() => void stopCommitment()}
       />
     </>
   );

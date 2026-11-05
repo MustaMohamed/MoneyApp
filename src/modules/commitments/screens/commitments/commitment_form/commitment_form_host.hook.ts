@@ -5,12 +5,12 @@ import { useToast } from '@/components/ui/toast';
 import { Strings } from '@/constants/strings';
 import {
   COMMITMENT_FORM_SESSION_SOURCE,
-  type CommitmentFormPostCloseToast,
+  type CommitmentFormCloseOutcome,
   useCommitmentFormHostState,
 } from '@/modules/commitments/store/commitment_form_host.state';
 import { useFormSessionHost } from '@/utils/use_form_session.hook';
 
-const POST_CLOSE_TOAST_LABEL: Record<Exclude<CommitmentFormPostCloseToast, 'stopped'>, string> = {
+const POST_CLOSE_TOAST_LABEL: Record<Exclude<CommitmentFormCloseOutcome, 'stopped'>, string> = {
   added: Strings.commitmentsAddedToast,
   updated: Strings.commitmentsUpdatedToast,
 };
@@ -65,13 +65,13 @@ export function useCommitmentFormHost() {
 
   const handleCloseComplete = useCallback(() => {
     const { landing } = useCommitmentFormHostState.getState();
-    const postCloseToast = completeClose(sessionId);
-    if (postCloseToast === undefined) return;
-    if (postCloseToast === 'stopped') {
+    const closeOutcome = completeClose(sessionId);
+    if (closeOutcome === undefined) return;
+    if (closeOutcome === 'stopped') {
       landing?.onStopped?.();
       return;
     }
-    toast.show({ label: POST_CLOSE_TOAST_LABEL[postCloseToast], variant: 'success' });
+    toast.show({ label: POST_CLOSE_TOAST_LABEL[closeOutcome], variant: 'success' });
   }, [completeClose, sessionId, toast]);
 
   return {

@@ -14,17 +14,15 @@ export function resolveSkipConfirmBody(input: {
   today: string;
 }): string {
   const { payment, commitment, today } = input;
-  const display = resolveDisplayAmount(payment, commitment);
-  const composed = composeCommitmentAmount(
-    display,
+  const { withCode } = composeCommitmentAmount(
+    resolveDisplayAmount(payment, commitment),
     payment.currency,
     CURRENCY_CONFIG[payment.currency].code,
   );
-  const amount = display.amount === undefined ? composed.text : composed.spoken;
   return Strings.commitmentsSkipConfirmBody(
     commitment.name,
     formatShortWeekdayDate(payment.due_date, today),
-    amount,
+    withCode,
     fullMonthName(payment.due_date.slice(0, 7)),
   );
 }

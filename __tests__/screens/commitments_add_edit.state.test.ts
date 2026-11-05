@@ -40,8 +40,6 @@ const entryOf = (owner: string) => useEditCommitmentState.getState().entries[own
 const guardedWrites: ((owner: string) => void)[] = [
   (owner) => useEditCommitmentState.getState().setSaving(owner, true),
   (owner) => useEditCommitmentState.getState().setSaveError(owner, 'Could not save'),
-  (owner) => useEditCommitmentState.getState().setStopDialogVisible(owner, true),
-  (owner) => useEditCommitmentState.getState().setStopError(owner, true),
 ];
 
 describe('useEditCommitmentState', () => {
@@ -55,8 +53,6 @@ describe('useEditCommitmentState', () => {
     expect(entryOf('owner-a')).toEqual({
       saving: false,
       saveError: undefined,
-      stopDialogVisible: false,
-      stopError: false,
     });
   });
 
@@ -82,8 +78,6 @@ describe('useEditCommitmentState', () => {
     expect(entryOf('owner-b')).toEqual({
       saving: true,
       saveError: 'Could not save',
-      stopDialogVisible: true,
-      stopError: true,
     });
   });
 

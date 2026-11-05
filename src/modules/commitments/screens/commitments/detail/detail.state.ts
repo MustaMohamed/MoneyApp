@@ -13,9 +13,6 @@ interface CommitmentDetailUiEntry {
   skipConfirmVisible: boolean;
   skipBusy: boolean;
   skipError: boolean;
-  stopConfirmVisible: boolean;
-  stopBusy: boolean;
-  stopError: boolean;
 }
 
 type DetailStateShape = KeyedEntries<CommitmentDetailUiEntry>;
@@ -28,9 +25,6 @@ type CommitmentDetailState = DetailStateShape & {
   setSkipConfirmVisible: (owner: string, v: boolean) => void;
   setSkipBusy: (owner: string, v: boolean) => void;
   setSkipError: (owner: string, v: boolean) => void;
-  setStopConfirmVisible: (owner: string, v: boolean) => void;
-  setStopBusy: (owner: string, v: boolean) => void;
-  setStopError: (owner: string, v: boolean) => void;
   release: (owner: string) => void;
   reset: () => void;
 };
@@ -43,9 +37,6 @@ export const INITIAL_UI_ENTRY: CommitmentDetailUiEntry = Object.freeze({
   skipConfirmVisible: false,
   skipBusy: false,
   skipError: false,
-  stopConfirmVisible: false,
-  stopBusy: false,
-  stopError: false,
 });
 
 const initialState = (): DetailStateShape => ({ entries: {} });
@@ -104,10 +95,6 @@ export const useCommitmentDetailState = createMoneyAppSelectors(
       set((state) => updateEntry(state, owner, () => ({ skipConfirmVisible: v }))),
     setSkipBusy: (owner, v) => set((state) => updateEntry(state, owner, () => ({ skipBusy: v }))),
     setSkipError: (owner, v) => set((state) => updateEntry(state, owner, () => ({ skipError: v }))),
-    setStopConfirmVisible: (owner, v) =>
-      set((state) => updateEntry(state, owner, () => ({ stopConfirmVisible: v }))),
-    setStopBusy: (owner, v) => set((state) => updateEntry(state, owner, () => ({ stopBusy: v }))),
-    setStopError: (owner, v) => set((state) => updateEntry(state, owner, () => ({ stopError: v }))),
     release: (owner) => set((state) => withoutEntry(state, owner)),
     reset: () => set(initialState()),
   })),

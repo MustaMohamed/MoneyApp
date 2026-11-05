@@ -1,5 +1,7 @@
 import { act, renderHook } from '@testing-library/react-native';
 
+import { NO_STOP_COUNTS } from '@/modules/commitments/domain/payment_state';
+
 const mockPush = jest.fn();
 const mockFocusEffect = jest.fn<void, [() => void | (() => void)]>();
 let mockPathname = '/dashboard';
@@ -77,7 +79,12 @@ describe('useTabsLayout', () => {
     await act(() =>
       useCommitmentFormHostState
         .getState()
-        .openEdit(makeTestCommitment({ id: 'c-1' }), NO_SETTLED_DUE_DATES),
+        .openEdit(
+          makeTestCommitment({ id: 'c-1' }),
+          NO_SETTLED_DUE_DATES,
+          undefined,
+          NO_STOP_COUNTS,
+        ),
     );
 
     expect(mockPush).not.toHaveBeenCalled();

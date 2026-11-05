@@ -28,7 +28,7 @@ export default function CommitmentDetailScreen() {
     confirmSkip,
     skipPayment,
     cancelSkip,
-    confirmStop,
+    openStopDialog,
     cancelStop,
     stopCommitment,
     reload,
@@ -96,7 +96,7 @@ export default function CommitmentDetailScreen() {
           <DetailNoteCard note={state.commitment.notes} testID="commitment-detail-note-card" />
           <PaymentHistory rows={state.paymentRows} onSeeAll={goToAllPayments} />
           {state.showsEdit ? (
-            <CommitmentDetailActions onEdit={goToEdit} onStop={confirmStop} />
+            <CommitmentDetailActions onEdit={goToEdit} onStop={openStopDialog} />
           ) : null}
         </ScreenScroll>
       ) : null}
@@ -131,7 +131,7 @@ export default function CommitmentDetailScreen() {
         name={state.commitment?.name ?? ''}
         counts={state.stopCounts}
         busy={state.stopBusy}
-        failed={state.stopError}
+        errorMessage={state.stopError ? Strings.commitmentsStopError : undefined}
         onCancel={cancelStop}
         onConfirm={() => void stopCommitment()}
       />

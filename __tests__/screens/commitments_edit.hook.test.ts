@@ -152,7 +152,7 @@ describe('useEditCommitment', () => {
     expect(result.current.state.stopDialogVisible).toBe(true);
 
     await act(async () => {
-      await result.current.confirmStop();
+      await result.current.stopCommitment();
     });
 
     expect(deactivateCommitmentMock).toHaveBeenCalledTimes(1);
@@ -182,7 +182,7 @@ describe('useEditCommitment', () => {
     await act(async () => result.current.openStopDialog());
 
     await act(async () => {
-      await result.current.confirmStop();
+      await result.current.stopCommitment();
     });
 
     expect(result.current.state.saveError).toBeUndefined();
@@ -358,7 +358,7 @@ describe('useEditCommitment', () => {
     let deactivating: Promise<void> | undefined;
 
     await act(async () => {
-      deactivating = copy.result.current.confirmStop();
+      deactivating = copy.result.current.stopCommitment();
     });
     expect(deactivateCommitmentMock).toHaveBeenCalled();
 
@@ -378,7 +378,7 @@ describe('useEditCommitment', () => {
     const before = entries()[upperOwner];
 
     await act(async () => {
-      await lower.result.current.confirmStop();
+      await lower.result.current.stopCommitment();
     });
 
     expect(lower.result.current.state.stopDialogVisible).toBe(true);
@@ -416,7 +416,7 @@ describe('useEditCommitment', () => {
 
       await act(async () => hook.result.current.openStopDialog());
       await act(async () => {
-        await hook.result.current.confirmStop();
+        await hook.result.current.stopCommitment();
       });
 
       expect(deactivateCommitmentMock).not.toHaveBeenCalled();
@@ -449,7 +449,7 @@ describe('useEditCommitment', () => {
       await act(async () => result.current.openStopDialog());
 
       await act(async () => {
-        await result.current.confirmStop();
+        await result.current.stopCommitment();
       });
 
       expect(deactivateCommitmentMock).toHaveBeenCalledTimes(1);

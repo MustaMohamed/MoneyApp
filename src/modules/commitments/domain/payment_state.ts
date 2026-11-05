@@ -56,10 +56,13 @@ export interface CommitmentStopCounts {
 export const NO_STOP_COUNTS: CommitmentStopCounts = Object.freeze({ unpaid: 0, paid: 0 });
 
 export function countStopPayments(rows: readonly PaymentDates[]): CommitmentStopCounts {
-  return {
-    unpaid: rows.filter(isUnpaidPayment).length,
-    paid: rows.filter((p) => isPaidPayment(p)).length,
-  };
+  let unpaid = 0;
+  let paid = 0;
+  for (const row of rows) {
+    if (isUnpaidPayment(row)) unpaid += 1;
+    else if (isPaidPayment(row)) paid += 1;
+  }
+  return { unpaid, paid };
 }
 
 /** The due days of the paid and skipped rows, the ones an edit save keeps. */

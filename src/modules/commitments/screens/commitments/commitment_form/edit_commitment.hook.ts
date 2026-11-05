@@ -14,6 +14,8 @@ import {
   type CommitmentFormValues,
   buildEditDefaults,
 } from '../commitment_form.shared';
+import { useCommitmentStop } from '../commitment_stop.hook';
+import { useCommitmentStopState } from '../commitment_stop.state';
 import { INITIAL_UI_ENTRY, useEditCommitmentState } from './edit_commitment.state';
 
 export type { CommitmentFormValues };
@@ -31,15 +33,12 @@ export function useEditCommitment(options: EditCommitmentOptions) {
   const accounts = useAccountStore((s) => s.accounts);
   const categories = useCategoryStore.useState.categories();
   const updateCommitment = useCommitmentStore.getState().updateCommitment;
-  const deactivateCommitment = useCommitmentStore.getState().deactivateCommitment;
-  const { saving, saveError, stopDialogVisible, stopError } = useEditCommitmentState(
+  const { saving, saveError } = useEditCommitmentState(
     useShallow((s) => s.entries[owner] ?? INITIAL_UI_ENTRY),
   );
   const claim = useEditCommitmentState.getState().claim;
   const setSaving = useEditCommitmentState.getState().setSaving;
   const setSaveError = useEditCommitmentState.getState().setSaveError;
-  const setStopDialogVisible = useEditCommitmentState.getState().setStopDialogVisible;
-  const setStopError = useEditCommitmentState.getState().setStopError;
   const release = useEditCommitmentState.getState().release;
 
   const form = useZodForm(COMMITMENT_SCHEMA, {
@@ -49,7 +48,10 @@ export function useEditCommitment(options: EditCommitmentOptions) {
   });
 
   // Read off the store: two taps in one frame both see the render's `saving` as false.
-  const isSaving = (): boolean => useEditCommitmentState.getState().entries[owner]?.saving === true;
+  const isSaving = (): boolean =>
+    useEditCommitmentState.getState().entries[owner]?.saving === true ||
+    useCommitmentStopState.getState().entries[owner]?.busy === true;
+  const stop = useCommitmentStop(owner, commitment.id, options.onStopped);
 
   useEffect(() => {
     claim(owner);
@@ -91,43 +93,25 @@ export function useEditCommitment(options: EditCommitmentOptions) {
     await form.handleSubmit(onValid)();
   };
 
-  function openStopDialog() {
-    setStopError(owner, false);
-    setStopDialogVisible(owner, true);
-  }
-
-  async function confirmStop() {
+  async function stopCommitment(): Promise<void> {
     if (isSaving()) return;
-    setStopError(owner, false);
-    setSaving(owner, true);
-    try {
-      await deactivateCommitment(commitment.id);
-      setStopDialogVisible(owner, false);
-      options.onStopped();
-    } catch {
-      setStopError(owner, true);
-    } finally {
-      setSaving(owner, false);
-    }
-  }
-
-  function cancelStop() {
-    setStopDialogVisible(owner, false);
+    await stop.stopCommitment();
   }
 
   return {
     state: {
       saving,
       saveError,
-      stopDialogVisible,
-      stopError,
+      stopDialogVisible: stop.state.isOpen,
+      stopBusy: stop.state.busy,
+      stopError: stop.state.failed,
       categories,
       accounts,
     },
     form,
     onSubmit,
-    openStopDialog,
-    confirmStop,
-    cancelStop,
+    openStopDialog: stop.openStopDialog,
+    stopCommitment,
+    cancelStop: stop.cancelStop,
   };
 }
