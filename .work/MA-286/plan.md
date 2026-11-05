@@ -16,6 +16,11 @@ base: a8e4ee9c0b4141bbadcccbbb8e6bbec63872ee69 · verify: none · flags: none ·
 - Change: append one sentence to the end of that bullet, without narrowing it: a test that compares a `Strings` call with another call of the same function, at a count of one against two or with an argument against without, is not a mirror. The sentence avoids the phrases `scripts/validate-agent-assets.js:201` bans.
 - Test: `none` · a rules `.md` line; `npm run lint` (`validate:agent-assets`) checks its prose.
 
+### 3. No copy mirror is left in `__tests__/constants/`
+- File: `__tests__/constants/spoken_labels.strings.test.ts` (deleted whole)
+- Change: delete the file. Its one `it.each` compares nine `Strings` members with literals of their own text by `toBe` (`:15`), a mirror under `.claude/rules/tests.md:14`, and a mirror block is deleted whole. No other file imports it.
+- Test: `none` · the step removes a test; the bar forbids replacing a mirror, and the nine members carry no branch.
+
 ## Non-goals
 - Branch tests for the fifteen branching strings that never had one (budget, categories, commitments hero and recurrence, income sheet).
 - Restoring any #932-deleted test on a string with no branch.
@@ -33,6 +38,9 @@ base: a8e4ee9c0b4141bbadcccbbb8e6bbec63872ee69 · verify: none · flags: none ·
 ## Risks
 - A future copy edit that adds a digit run besides the count is masked with it, so a removed branch still leaves the masked forms equal and the suite reddens.
 - A reviewer reading the ticket's "their sites go in one new suite" as covering only the six deleted-whole files may ask for the four kept-file sites back in their old files; step 1 puts all fourteen in one suite on purpose.
+
+## Amendments
+- 2026-11-05 · step 3 · added from /ship triage of PR #934 (quality lens finding 2): `spoken_labels.strings.test.ts` is the one copy mirror left beside the new suite; deleting it adds 0 lines outside tests, so the expected diff stays ~2.
 
 ## Self-assessment
 Step 1's single-suite choice is the one I am least sure of: the ticket names the four kept files and could be read as wanting those sites restored there, but three of them are not string suites by subject (`net_worth_breakdown_sheet.helpers` tests helpers, `transactions_copy_note` guards one Copy-note departure), and one file with three shapes is what the added rules sentence points a mirror sweep at.
