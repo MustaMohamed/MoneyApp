@@ -411,6 +411,24 @@ const BANNED: BannedSeed[] = [
     text: '<Button variant="secondary" flat tone="danger" />',
     token: 'tone="danger"',
   },
+  {
+    guard: 'a danger button drawn inline in the transaction detail action row',
+    target: TRANSACTION_ACTION_ROW,
+    text: '<Button variant="secondary" flat tone="danger" />',
+    token: 'tone="danger"',
+  },
+  {
+    guard: 'a danger button drawn inline in the account detail screen',
+    target: ACCOUNT_DETAIL_INDEX,
+    text: '<Button variant="secondary" flat tone="danger" />',
+    token: 'tone="danger"',
+  },
+  {
+    guard: 'a danger button with a braced tone in the commitment detail actions',
+    target: COMMITMENT_DETAIL_ACTIONS,
+    text: `<Button variant="secondary" flat tone={'danger'} />`,
+    token: "tone={'danger'}",
+  },
 ];
 
 function withoutTag(rel: string, tag: string, where: string): RequiredSeed {

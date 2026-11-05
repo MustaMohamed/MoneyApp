@@ -295,7 +295,7 @@ const NAMED_ROWS = [
       `${TRANSACTIONS}/detail/components/action_row.tsx`,
       `${ACCOUNTS}/screens/accounts/detail/index.tsx`,
     ],
-    banned: [literal('tone="danger"')],
+    banned: [/tone=\{?\s*['"]danger['"]\s*\}?/],
     rule: 'draws its own danger button; render `DetailDangerButton`',
     required: [tag('DetailDangerButton')],
     needs: 'the detail action row draws its danger half through `DetailDangerButton`',
