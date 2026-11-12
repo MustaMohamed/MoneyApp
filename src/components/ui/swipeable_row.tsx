@@ -164,8 +164,8 @@ export function SwipeableRow({
         enabled={!disabled}
         renderRightActions={renderRightActions}
         rightThreshold={ACTION_TILE_WIDTH * 0.4}
-        dragOffsetFromLeftEdge={DRAG_CANCEL_DISTANCE}
-        dragOffsetFromRightEdge={DRAG_CANCEL_DISTANCE}
+        dragOffsetFromLeft={DRAG_CANCEL_DISTANCE}
+        dragOffsetFromRight={DRAG_CANCEL_DISTANCE}
         onSwipeableOpen={handleSwipeOpen}
         onSwipeableClose={handleSwipeClose}
         overshootRight={false}

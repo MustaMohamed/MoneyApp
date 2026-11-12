@@ -274,7 +274,7 @@ describe('HeroCard pills drawn by the shared hero pill (MA-173)', () => {
       'dashboard-hero-foreign-pill',
     );
 
-    expect(StyleSheet.flatten(foreign.props.style).height).toBeUndefined();
+    expect(StyleSheet.flatten(foreign.props.style)?.height).toBeUndefined();
     expect(getByTestId('dashboard-hero-rate-pill')).toHaveStyle({ height: floored });
     expect(getByTestId('dashboard-hero-accounts-pill')).toHaveStyle({ height: floored });
   });

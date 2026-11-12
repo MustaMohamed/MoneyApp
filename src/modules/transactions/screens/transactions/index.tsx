@@ -178,7 +178,7 @@ export default function TransactionsScreen(): React.ReactElement {
         />
       ) : state.emptyVariant === 'noResults' ? (
         <EmptyState variant="filtered" onAction={resetFilters} />
-      ) : null,
+      ) : undefined,
     [
       backToThisMonth,
       openAddTransaction,
@@ -204,7 +204,7 @@ export default function TransactionsScreen(): React.ReactElement {
     () =>
       state.paginationError ? (
         <TransactionLoadError variant="pagination" onRetry={handleEndReached} />
-      ) : null,
+      ) : undefined,
     [handleEndReached, state.paginationError],
   );
 

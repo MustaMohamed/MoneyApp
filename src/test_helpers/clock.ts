@@ -37,7 +37,7 @@ export async function advanceTo(moment: Date): Promise<void> {
 export function mockAppStateListeners() {
   const listeners = new Set<ChangeListener>();
   const setState = (status: AppStateStatus) => {
-    (AppState as { currentState: AppStateStatus }).currentState = status;
+    Reflect.set(AppState, 'currentState', status);
   };
   setState('active');
   jest.spyOn(AppState, 'addEventListener').mockImplementation((_type, listener) => {

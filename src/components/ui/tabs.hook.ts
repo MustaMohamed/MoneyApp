@@ -3,7 +3,7 @@ import type {
   LayoutChangeEvent,
   NativeScrollEvent,
   NativeSyntheticEvent,
-  ScrollView,
+  ScrollViewInstance,
 } from 'react-native';
 
 import { getVisibleScrollOffset, type VisibleScrollOffsetParams } from './scroll_reveal.geometry';
@@ -38,7 +38,7 @@ export function useSegmentedTabsScroll<T extends string>({
   segments,
   segmentWidth,
 }: UseSegmentedTabsScrollParams<T>) {
-  const scrollViewRef = useRef<ScrollView>(null);
+  const scrollViewRef = useRef<ScrollViewInstance>(null);
   const currentOffsetRef = useRef(0);
   const [viewportWidth, setViewportWidth] = useState(0);
   const isVisibleScroll = scrollAlign === 'visible' && segmentWidth != null;

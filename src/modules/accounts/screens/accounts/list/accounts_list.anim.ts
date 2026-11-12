@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo } from 'react';
-import type { LayoutChangeEvent, ScrollView } from 'react-native';
-import { Gesture, type PanGesture } from 'react-native-gesture-handler';
+import type { LayoutChangeEvent, ScrollViewInstance } from 'react-native';
+import { Gesture, type LegacyPanGesture } from 'react-native-gesture-handler';
 import {
   type FrameInfo,
   measure,
@@ -82,7 +82,7 @@ export function useAccountsListDragAnim(input: {
   const firstRowTop = useSharedValue(0);
   const lastRowBottom = useSharedValue(0);
   const reducedMotion = useReducedMotion();
-  const scrollRef = useAnimatedRef<ScrollView>();
+  const scrollRef = useAnimatedRef<ScrollViewInstance>();
   // A ref with no mounted scroll view warns once per mount, so the error and no-accounts states pass none.
   const scrollOffset = useScrollOffset(hasScroll ? scrollRef : null);
 
@@ -242,7 +242,7 @@ export function useLiftGesture(input: {
   enabled: boolean;
   onLift: (id: string) => void;
   onRelease: (id: string, fromIndex: number, toIndex: number) => Promise<void>;
-}): { gesture: PanGesture; onLayout: (e: LayoutChangeEvent) => void } {
+}): { gesture: LegacyPanGesture; onLayout: (e: LayoutChangeEvent) => void } {
   const { drag, id, index, count, enabled, onLift, onRelease } = input;
   const onLayout = useCallback(
     (e: LayoutChangeEvent) => {

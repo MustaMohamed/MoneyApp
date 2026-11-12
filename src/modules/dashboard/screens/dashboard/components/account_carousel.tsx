@@ -7,7 +7,7 @@ import {
   type ListRenderItem,
   useWindowDimensions,
 } from 'react-native';
-import { Gesture, GestureDetector, type PanGesture } from 'react-native-gesture-handler';
+import { Gesture, GestureDetector, type LegacyPanGesture } from 'react-native-gesture-handler';
 
 import { AccountType, Currency } from '@/constants/enums';
 import { Spacing } from '@/constants/theme';
@@ -65,7 +65,7 @@ interface AccountCarouselProps {
   onAccountPress: (id: string) => void;
   onAddPress: () => void;
   /** The dashboard's segment swipe, held off while a drag that began on this row is the row's. */
-  segmentSwipe: PanGesture;
+  segmentSwipe: LegacyPanGesture;
 }
 
 export function AccountCarousel({

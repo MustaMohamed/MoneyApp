@@ -1,5 +1,5 @@
 import { act, renderHook } from '@testing-library/react-native';
-import type { TextInput } from 'react-native';
+import type { TextInputInstance } from 'react-native';
 
 import { useSearchFieldSheetFocus } from '@/components/ui/search_filter_row.hook';
 import { useSheetVisibilityStore } from '@/components/ui/sheet_visibility.state';
@@ -7,7 +7,7 @@ import { useSheetVisibilityStore } from '@/components/ui/sheet_visibility.state'
 async function mountSearchField() {
   const focus = jest.fn();
   const hook = await renderHook(() => useSearchFieldSheetFocus());
-  hook.result.current.inputRef.current = { focus } as unknown as TextInput;
+  hook.result.current.inputRef.current = { focus } as unknown as TextInputInstance;
   return {
     focus,
     takeFocus: () => act(() => hook.result.current.handleFocus()),

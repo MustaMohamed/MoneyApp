@@ -1,4 +1,4 @@
-import { AppState, type NativeEventSubscription } from 'react-native';
+import { AppState, type EventSubscription } from 'react-native';
 
 import { toLocalDateString } from '@/utils/format_date';
 
@@ -7,7 +7,7 @@ type DayListener = (today: string) => void;
 const listeners = new Set<DayListener>();
 let timer: ReturnType<typeof setTimeout> | undefined;
 let armedMidnight: number | undefined;
-let subscription: NativeEventSubscription | undefined;
+let subscription: EventSubscription | undefined;
 
 // One read of the day for every listener, so all sheets on screen re-render in one batch on one today.
 function notify() {

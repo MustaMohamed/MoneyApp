@@ -1,19 +1,19 @@
 import { useFocusEffect } from 'expo-router';
 import { type RefObject, useCallback, useRef } from 'react';
-import { type View, useWindowDimensions } from 'react-native';
+import { type ViewInstance, useWindowDimensions } from 'react-native';
 
 import { resolveFloatingAlertToastClearance } from '@/components/ui/load_error_alert.geometry';
 import { holdAlertToastClearance } from '@/components/ui/toast_clearance.state';
 
 interface FloatingAlertToastHold {
-  frameRef: RefObject<View | null>;
+  frameRef: RefObject<ViewInstance | null>;
   holdClearance: () => void;
 }
 
 /** Holds the toast clear of a floating alert's top while its screen has focus; `holdClearance` runs on each layout. */
 export function useFloatingAlertToastHold(): FloatingAlertToastHold {
   const { height: windowHeight } = useWindowDimensions();
-  const frameRef = useRef<View | null>(null);
+  const frameRef = useRef<ViewInstance | null>(null);
   const holdRef = useRef<{ focused: boolean; release: (() => void) | undefined }>({
     focused: false,
     release: undefined,

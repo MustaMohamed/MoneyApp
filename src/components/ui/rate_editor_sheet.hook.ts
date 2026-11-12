@@ -1,5 +1,5 @@
 import { type RefObject, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
-import type { TextInput } from 'react-native';
+import type { TextInputInstance } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
 import { Strings } from '@/constants/strings';
@@ -72,10 +72,10 @@ export function useRateEditor(
 }
 
 export function useRateEditorFocus(): {
-  inputRef: RefObject<TextInput | null>;
+  inputRef: RefObject<TextInputInstance | null>;
   focusInput: () => void;
 } {
-  const inputRef = useRef<TextInput | null>(null);
+  const inputRef = useRef<TextInputInstance | null>(null);
   const focusInput = useCallback(() => inputRef.current?.focus(), []);
   return { inputRef, focusInput };
 }

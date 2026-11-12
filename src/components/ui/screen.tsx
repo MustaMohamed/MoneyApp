@@ -2,6 +2,7 @@ import { cn } from 'heroui-native';
 import React, { type Ref } from 'react';
 import {
   ScrollView,
+  type ScrollViewInstance,
   type ScrollViewProps,
   type StyleProp,
   View,
@@ -55,7 +56,7 @@ export function Screen({
 
 export interface ScreenScrollProps extends ScrollViewProps {
   className?: string;
-  ref?: Ref<ScrollView>;
+  ref?: Ref<ScrollViewInstance>;
 }
 
 // A `flex-1` className does not hold the flex chain, so `flex` and `flexGrow` go in `style`.

@@ -294,7 +294,7 @@ function makeDaySection(key: string, ids: string[]): DaySection {
 }
 
 function flatStyle(node: { props: { style?: StyleProp<ViewStyle> } }): ViewStyle {
-  return StyleSheet.flatten(node.props.style);
+  return StyleSheet.flatten(node.props.style) ?? {};
 }
 
 function readSlice(slice: HostNode) {

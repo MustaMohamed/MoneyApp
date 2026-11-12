@@ -165,7 +165,7 @@ export default function CommitmentsScreen() {
         <EmptyState variant="commitmentsMonth" monthName={state.emptyMonthName} />
       ) : state.emptyVariant === 'noResults' ? (
         <EmptyState variant="filtered" onAction={resetFilters} />
-      ) : null,
+      ) : undefined,
     [resetFilters, state.emptyMonthName, state.emptyVariant, state.presentation],
   );
 

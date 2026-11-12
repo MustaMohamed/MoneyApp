@@ -1,5 +1,3 @@
-import { InteractionManager } from 'react-native';
-
 export type RunAfterInteractionsTask = {
   cancel: () => void;
 };
@@ -26,8 +24,7 @@ export function runAfterInteractions(
     console.error('[runAfterInteractions] task failed:', error);
   };
 
-  // oxlint-disable-next-line typescript/no-deprecated -- defer until navigation interactions finish.
-  const task = InteractionManager.runAfterInteractions(() => {
+  const handle = requestIdleCallback(() => {
     if (cancelled) return;
     try {
       const result = callback();
@@ -40,7 +37,7 @@ export function runAfterInteractions(
   return {
     cancel: () => {
       cancelled = true;
-      task.cancel();
+      cancelIdleCallback(handle);
     },
   };
 }

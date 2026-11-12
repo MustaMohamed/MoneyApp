@@ -1,8 +1,8 @@
 diff --git a/node_modules/react-native/ReactAndroid/src/main/java/com/facebook/react/views/text/ReactTextView.java b/node_modules/react-native/ReactAndroid/src/main/java/com/facebook/react/views/text/ReactTextView.java
-index 1268eab..359bc86 100644
+index c20f271..26bcec4 100644
 --- a/node_modules/react-native/ReactAndroid/src/main/java/com/facebook/react/views/text/ReactTextView.java
 +++ b/node_modules/react-native/ReactAndroid/src/main/java/com/facebook/react/views/text/ReactTextView.java
-@@ -73,9 +73,13 @@ public class ReactTextView extends AppCompatTextView implements ReactCompoundVie
+@@ -74,9 +74,13 @@ public class ReactTextView extends AppCompatTextView implements ReactCompoundVie
    private @Nullable Spannable mSpanned;
    private @Nullable PreparedLayout mPreparedLayout;
  
@@ -16,7 +16,7 @@ index 1268eab..359bc86 100644
    }
  
    /**
-@@ -223,6 +227,41 @@ public class ReactTextView extends AppCompatTextView implements ReactCompoundVie
+@@ -321,6 +325,41 @@ public class ReactTextView extends AppCompatTextView implements ReactCompoundVie
      }
    }
  
@@ -58,7 +58,7 @@ index 1268eab..359bc86 100644
    public void setText(ReactTextUpdate update) {
      try (SystraceSection s = new SystraceSection("ReactTextView.setText(ReactTextUpdate)")) {
        // Android's TextView crashes when it tries to relayout if LayoutParams are
-@@ -239,6 +278,7 @@ public class ReactTextView extends AppCompatTextView implements ReactCompoundVie
+@@ -337,6 +376,7 @@ public class ReactTextView extends AppCompatTextView implements ReactCompoundVie
          Linkify.addLinks((Spannable) spanned, mLinkifyMaskType);
          setMovementMethod(LinkMovementMethod.getInstance());
        }
