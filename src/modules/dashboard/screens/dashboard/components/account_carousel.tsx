@@ -7,7 +7,7 @@ import {
   type ListRenderItem,
   useWindowDimensions,
 } from 'react-native';
-import { Gesture, GestureDetector, type PanGesture } from 'react-native-gesture-handler';
+import { GestureDetector, type PanGesture, useNativeGesture } from 'react-native-gesture-handler';
 
 import { AccountType, Currency } from '@/constants/enums';
 import { Spacing } from '@/constants/theme';
@@ -112,10 +112,8 @@ export function AccountCarousel({
     // Without `baseCurrency` here the memoised renderItem keeps rendering the previous base.
     [accountPressHandlers, baseCurrency, cardWidth, isRateUsable, onAddPress, rate, statsMap],
   );
-  const rowGesture = useMemo(
-    () => Gesture.Native().blocksExternalGesture(segmentSwipe),
-    [segmentSwipe],
-  );
+  const rowGestureConfig = useMemo(() => ({ block: segmentSwipe }), [segmentSwipe]);
+  const rowGesture = useNativeGesture(rowGestureConfig);
   const getItemLayout = useCallback(
     (_data: ArrayLike<AccountCarouselItem> | null | undefined, index: number) =>
       getAccountCarouselItemLayout(cardWidth, index),

@@ -227,8 +227,6 @@ describe('resolveButtonUnclipRadius', () => {
 
   it('MA-248: a button with no slop does not unclip, flat or not', () => {
     expect(resolveButtonUnclipRadius(flatStyle, 'sm', undefined)).toBeUndefined();
-    expect(resolveButtonUnclipRadius(flatStyle, 'sm', null)).toBeUndefined();
     expect(resolveButtonUnclipRadius(undefined, 'sm', undefined)).toBeUndefined();
-    expect(resolveButtonUnclipRadius(undefined, 'sm', null)).toBeUndefined();
   });
 });

@@ -1,5 +1,5 @@
 import { act, renderHook } from '@testing-library/react-native';
-import { Keyboard, type TextInput } from 'react-native';
+import { Keyboard, type TextInputInstance } from 'react-native';
 
 import {
   openRateEditor,
@@ -332,7 +332,7 @@ describe('useRateEditorFocus', () => {
     await act(() => result.current.focusInput());
 
     const focus = jest.fn();
-    result.current.inputRef.current = { focus } as unknown as TextInput;
+    result.current.inputRef.current = { focus } as unknown as TextInputInstance;
     await act(() => result.current.focusInput());
 
     expect(focus).toHaveBeenCalledTimes(1);

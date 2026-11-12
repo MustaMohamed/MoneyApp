@@ -1,17 +1,17 @@
 import { type RefObject, useCallback, useEffect, useRef } from 'react';
-import type { TextInput } from 'react-native';
+import type { TextInputInstance } from 'react-native';
 
 import { useAnySheetOpen } from '@/components/ui/sheet_visibility.state';
 
 interface SearchFieldSheetFocus {
-  inputRef: RefObject<TextInput | null>;
+  inputRef: RefObject<TextInputInstance | null>;
   handleFocus: () => void;
   handleBlur: () => void;
 }
 
 /** A search field that held focus when a sheet opened and lost it while the sheet was up takes it back when the last sheet closes. */
 export function useSearchFieldSheetFocus(): SearchFieldSheetFocus {
-  const inputRef = useRef<TextInput | null>(null);
+  const inputRef = useRef<TextInputInstance | null>(null);
   const isFocusedRef = useRef(false);
   const heldFocusAtOpenRef = useRef(false);
   const anySheetOpen = useAnySheetOpen();

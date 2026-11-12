@@ -1,6 +1,6 @@
 import { Input, PressableFeedback } from 'heroui-native';
 import { type RefObject, useCallback } from 'react';
-import { type TextInput, View, useWindowDimensions } from 'react-native';
+import { type TextInputInstance, View, useWindowDimensions } from 'react-native';
 
 import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
@@ -23,7 +23,7 @@ import { useRateEditor, useRateEditorFocus } from './rate_editor_sheet.hook';
 import { RateStaleLine } from './rate_stale_line';
 
 interface RateEditorSheetBodyProps {
-  inputRef: RefObject<TextInput | null>;
+  inputRef: RefObject<TextInputInstance | null>;
   draft: string;
   error: string | undefined;
   onChangeText: (text: string) => void;

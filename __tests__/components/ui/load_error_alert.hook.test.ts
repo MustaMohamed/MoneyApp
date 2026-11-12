@@ -1,5 +1,5 @@
 import { renderHook } from '@testing-library/react-native';
-import { Dimensions, type View } from 'react-native';
+import { Dimensions, type ViewInstance } from 'react-native';
 
 const mockFocusEffect = jest.fn<void, [() => void | (() => void)]>();
 
@@ -22,7 +22,7 @@ const alertClearance = () => useToastClearanceState.getState().alertClearance;
 async function mountFloatingAlert() {
   const measureInWindow = jest.fn<void, [MeasureCallback]>();
   const hook = await renderHook(() => useFloatingAlertToastHold());
-  hook.result.current.frameRef.current = { measureInWindow } as unknown as View;
+  hook.result.current.frameRef.current = { measureInWindow } as unknown as ViewInstance;
   let cleanup: (() => void) | undefined;
   return {
     focus: () => {

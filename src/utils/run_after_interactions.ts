@@ -1,4 +1,5 @@
-import { InteractionManager } from 'react-native';
+// An idle slot never comes while the JS thread stays busy, so the load runs by this deadline.
+export const RUN_AFTER_INTERACTIONS_TIMEOUT_MS = 250;
 
 export type RunAfterInteractionsTask = {
   cancel: () => void;
@@ -26,21 +27,23 @@ export function runAfterInteractions(
     console.error('[runAfterInteractions] task failed:', error);
   };
 
-  // oxlint-disable-next-line typescript/no-deprecated -- defer until navigation interactions finish.
-  const task = InteractionManager.runAfterInteractions(() => {
-    if (cancelled) return;
-    try {
-      const result = callback();
-      void Promise.resolve(result).catch(deliverError);
-    } catch (error) {
-      deliverError(error);
-    }
-  });
+  const handle = requestIdleCallback(
+    () => {
+      if (cancelled) return;
+      try {
+        const result = callback();
+        void Promise.resolve(result).catch(deliverError);
+      } catch (error) {
+        deliverError(error);
+      }
+    },
+    { timeout: RUN_AFTER_INTERACTIONS_TIMEOUT_MS },
+  );
 
   return {
     cancel: () => {
       cancelled = true;
-      task.cancel();
+      cancelIdleCallback(handle);
     },
   };
 }

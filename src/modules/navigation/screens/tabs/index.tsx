@@ -11,9 +11,15 @@ import { useTabBarLabelStyle, useTabsLayout } from './tabs.hook';
 
 type MCIName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
-// `expo-router` types `tabBarIcon` color as `ColorValue`, which `MaterialCommunityIcons` takes.
+// The icon takes a string or a platform colour; a processed number or a null has no form it accepts.
 function tabIcon(name: MCIName, color: ColorValue) {
-  return <MaterialCommunityIcons name={name} size={24} color={color} />;
+  return (
+    <MaterialCommunityIcons
+      name={name}
+      size={24}
+      color={typeof color === 'number' || color == null ? undefined : color}
+    />
+  );
 }
 
 export function FABOverlay() {
@@ -38,7 +44,6 @@ export default function TabsLayout(): React.ReactElement {
   return (
     <>
       <Tabs
-        initialRouteName="dashboard"
         screenOptions={{
           headerShown: false,
           freezeOnBlur: true,

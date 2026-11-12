@@ -3,7 +3,7 @@
 - **Date:** 2026-10-03
 - **Status:** accepted
 - **Ticket:** MA-141 (#634), under #602
-- **Applies to:** `patches/react-native+0.86.3.patch`, `app.json`
+- **Applies to:** `patches/react-native+0.88.1.patch`, `app.json`
 
 On Android a truncated line in Inter or Sora could draw its `…` wider than the space Android reserved for it, so the last dot was cut, or on a right-aligned line the first glyph. This record fixes it once, below every text, with a patch on React Native's text view and a build setting that puts the patch in every APK. Line cites in React Native files are to the unpatched 0.86.3 sources.
 
@@ -32,7 +32,7 @@ The 2026-10-03 decision on the ticket weighed two other routes. Flipping `enable
 
 ## 5. Removal
 
-The patch, the flag, `mqa build`'s check that `android/settings.gradle` carries React Native's `includeBuild` block and the `Patched React Native compiles (Android)` job in `.github/workflows/pr-checks.yml`, with its paragraph and the "but one, named below" clause in `CLAUDE.md` § Commands, leave together once React Native sets the paint's face itself, or once `enablePreparedTextLayout` turns on, which stops `ReactTextView` handling `RCTText` and the patch running. A React Native bump leaves `react-native+0.86.3.patch` behind, and `__tests__/app_config_plugins.test.ts` goes red until the patch is regenerated under the new version with `npx patch-package react-native --include 'ReactAndroid/src/main/java/com/facebook/react/views/text/ReactTextView\.java'`. Without `--include`, a run after a from-source build diffs `ReactAndroid/build` and `.cxx` into the patch. `patch-package` applies the patch at `postinstall`, so a checkout whose `node_modules` predates it needs `npm ci`.
+The patch, the flag, `mqa build`'s check that `android/settings.gradle` carries React Native's `includeBuild` block and the `Patched React Native compiles (Android)` job in `.github/workflows/pr-checks.yml`, with its paragraph and the "but one, named below" clause in `CLAUDE.md` § Commands, leave together once React Native sets the paint's face itself, or once `enablePreparedTextLayout` turns on, which stops `ReactTextView` handling `RCTText` and the patch running. A React Native bump leaves the old `react-native+<version>.patch` behind, and `__tests__/app_config_plugins.test.ts` goes red until the patch is regenerated under the new version with `npx patch-package react-native --include 'ReactAndroid/src/main/java/com/facebook/react/views/text/ReactTextView\.java|ReactAndroid/hermes-engine/build\.gradle\.kts'`. Since 0.88.1 the patch also carries one line in `hermes-engine/build.gradle.kts`: the from-source build unpacks Hermes's GitHub tarball, whose top folder is now `meta-hermes-<SHA>` where the script flattens only `facebook-hermes-*`; it leaves with the rest. Without `--include`, a run after a from-source build diffs `ReactAndroid/build` and `.cxx` into the patch. `patch-package` applies the patch at `postinstall`, so a checkout whose `node_modules` predates it needs `npm ci`.
 
 ## 6. Limits
 

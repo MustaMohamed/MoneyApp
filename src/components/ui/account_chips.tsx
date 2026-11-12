@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   ScrollView,
+  type ScrollViewInstance,
   useWindowDimensions,
   type LayoutChangeEvent,
   type NativeScrollEvent,
@@ -63,7 +64,7 @@ export function AccountChips({ chips, onToggle, testID }: Props): React.ReactEle
     ],
     [fontScale],
   );
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
   const chipFramesRef = useRef(new Map<string, ChipFrame>());
   const viewportWidthRef = useRef(0);
   const scrollXRef = useRef(0);

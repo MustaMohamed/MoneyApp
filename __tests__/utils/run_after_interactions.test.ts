@@ -1,10 +1,11 @@
 const mockScheduledCallbacks: Array<() => void> = [];
 const mockNativeCancel = jest.fn();
 
-import { InteractionManager } from 'react-native';
-
 import { deferred } from '@/test_helpers/deferred';
-import { runAfterInteractions } from '@/utils/run_after_interactions';
+import {
+  RUN_AFTER_INTERACTIONS_TIMEOUT_MS,
+  runAfterInteractions,
+} from '@/utils/run_after_interactions';
 
 describe('runAfterInteractions', () => {
   beforeEach(() => {
@@ -12,12 +13,11 @@ describe('runAfterInteractions', () => {
     mockNativeCancel.mockClear();
     jest.clearAllMocks();
     jest.spyOn(console, 'warn').mockImplementation(() => {});
-    jest.spyOn(InteractionManager, 'runAfterInteractions').mockImplementation((callback) => {
-      mockScheduledCallbacks.push(callback as () => void);
-      return { cancel: mockNativeCancel } as unknown as ReturnType<
-        typeof InteractionManager.runAfterInteractions
-      >;
+    global.requestIdleCallback = jest.fn((callback: IdleRequestCallback) => {
+      mockScheduledCallbacks.push(() => callback({ didTimeout: false, timeRemaining: () => 50 }));
+      return mockScheduledCallbacks.length;
     });
+    global.cancelIdleCallback = mockNativeCancel;
   });
 
   afterEach(() => {
@@ -29,7 +29,10 @@ describe('runAfterInteractions', () => {
 
     runAfterInteractions(callback);
 
-    expect(InteractionManager.runAfterInteractions).toHaveBeenCalledTimes(1);
+    expect(global.requestIdleCallback).toHaveBeenCalledTimes(1);
+    expect(global.requestIdleCallback).toHaveBeenCalledWith(expect.any(Function), {
+      timeout: RUN_AFTER_INTERACTIONS_TIMEOUT_MS,
+    });
     expect(callback).not.toHaveBeenCalled();
 
     mockScheduledCallbacks[0]?.();

@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useRef } from 'react';
 import { Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
 import type { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
+import Animated, { type SharedValue } from 'react-native-reanimated';
 
 import { Text } from '@/components/ui/text';
 import { Colors, FontFamily, Spacing, Type, lineHeightFor } from '@/constants/theme';
@@ -15,6 +16,8 @@ import {
   subscribeToRegistry,
 } from '@/utils/swipeable_row_registry';
 import { DRAG_CANCEL_DISTANCE } from '@/utils/use_drag_cancelled_press.hook';
+
+import { useRestingActionsHidden } from './swipeable_row.anim';
 
 type MaterialIconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -64,6 +67,51 @@ export function resolveSwipeTileColors(variant: SwipeAction['variant']): SwipeTi
   }
 }
 
+interface SwipeTilesProps {
+  actions: SwipeAction[];
+  progress: SharedValue<number>;
+  width: number;
+  onActionPress: (action: SwipeAction) => void;
+}
+
+function SwipeTiles({ actions, progress, width, onActionPress }: SwipeTilesProps) {
+  const hiddenAtRest = useRestingActionsHidden(progress);
+  return (
+    <Animated.View style={[{ width, flexDirection: 'row' }, hiddenAtRest]}>
+      {actions.map((action) => {
+        const colors = resolveSwipeTileColors(action.variant);
+        return (
+          <Pressable
+            key={action.key}
+            accessibilityRole="button"
+            accessibilityLabel={action.label}
+            onPress={() => onActionPress(action)}
+            style={{
+              width: ACTION_TILE_WIDTH,
+              backgroundColor: colors.background,
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: Spacing.xxs,
+            }}
+          >
+            <MaterialCommunityIcons name={action.icon} size={ms(22)} color={colors.icon} />
+            <Text
+              style={{
+                fontFamily: FontFamily.interMedium,
+                fontSize: Type.micro,
+                lineHeight: lineHeightFor(Type.micro),
+                color: colors.label,
+              }}
+            >
+              {action.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </Animated.View>
+  );
+}
+
 let _idCounter = 0;
 // Callers must pass a stable `rowId` for list rows; this fallback dies on reload or recycling.
 function genId(): string {
@@ -109,39 +157,13 @@ export function SwipeableRow({
   );
 
   const renderRightActions = useCallback(
-    () => (
-      <View style={{ width: totalWidth, flexDirection: 'row' }}>
-        {actions.map((action) => {
-          const colors = resolveSwipeTileColors(action.variant);
-          return (
-            <Pressable
-              key={action.key}
-              accessibilityRole="button"
-              accessibilityLabel={action.label}
-              onPress={() => handleActionPress(action)}
-              style={{
-                width: ACTION_TILE_WIDTH,
-                backgroundColor: colors.background,
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: Spacing.xxs,
-              }}
-            >
-              <MaterialCommunityIcons name={action.icon} size={ms(22)} color={colors.icon} />
-              <Text
-                style={{
-                  fontFamily: FontFamily.interMedium,
-                  fontSize: Type.micro,
-                  lineHeight: lineHeightFor(Type.micro),
-                  color: colors.label,
-                }}
-              >
-                {action.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
+    (progress: SharedValue<number>) => (
+      <SwipeTiles
+        actions={actions}
+        progress={progress}
+        width={totalWidth}
+        onActionPress={handleActionPress}
+      />
     ),
     [actions, handleActionPress, totalWidth],
   );
@@ -164,8 +186,8 @@ export function SwipeableRow({
         enabled={!disabled}
         renderRightActions={renderRightActions}
         rightThreshold={ACTION_TILE_WIDTH * 0.4}
-        dragOffsetFromLeftEdge={DRAG_CANCEL_DISTANCE}
-        dragOffsetFromRightEdge={DRAG_CANCEL_DISTANCE}
+        dragOffsetFromLeft={DRAG_CANCEL_DISTANCE}
+        dragOffsetFromRight={-DRAG_CANCEL_DISTANCE}
         onSwipeableOpen={handleSwipeOpen}
         onSwipeableClose={handleSwipeClose}
         overshootRight={false}
