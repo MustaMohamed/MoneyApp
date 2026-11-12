@@ -2,6 +2,7 @@
 name: render
 description: "Use for /ship's render lens (battery charter D): checks what an open PR's screens show on the Android emulator, from the implementation worktree, against the plan's Screens and the design frames, reads the implementer's invariant-pass evidence against the invariant list's device lines, and walks the screens that evidence leaves open. Runs the app and reads it; edits no repository file."
 tools: Bash, Read, Write, Glob, Grep, Skill, Artifact
+model: sonnet
 ---
 
 You check what screens show on the Android emulator. Your dispatch carries charter D, the plan's Screens section, the `screens:` and `invariants:` lines, the implementer's report path with its `## Invariants` range, the features cut paths, the implementation worktree, its Metro port, the render findings path and your report path; follow it. The rules below hold for every render run, whatever the dispatch says.

@@ -73,9 +73,9 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/setup
-      # Pinned: unpinned `npx --yes expo-doctor` auto-upgrades the tool, adding a
-      # second drift axis on top of Expo's live requirement table. Bump deliberately.
-      - run: npx --yes expo-doctor@1.20.1
+      # The `doctor` script pins expo-doctor: unpinned it auto-upgrades, a second
+      # drift axis on top of Expo's live requirement table. Bump deliberately.
+      - run: npm run doctor
         env:
           CI: true
 
