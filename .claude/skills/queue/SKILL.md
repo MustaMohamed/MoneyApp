@@ -1,6 +1,6 @@
 ---
 name: queue
-description: "Use when parked questions wait on the user, or a board column should be worked without typing each ticket: '/queue asks', 'answer the parked questions', 'what is waiting on me', '/queue Planned', '/queue Defined 2', 'ship the planned tickets', 'review everything at Defined', or a board row whose command is /queue asks. Not for one typed ticket (issue-review, prep, ship) or for reading the board (board)."
+description: "Use when parked questions wait on the user, or a board column should be worked without typing each ticket: '/queue asks', 'what is waiting on me', '/queue Planned', '/queue Defined 2', or a board row whose command is /queue asks. Not for one typed ticket."
 argument-hint: "asks | Defined [n] | \"Ready For Development\" [n] | Planned [n]"
 ---
 

@@ -2,7 +2,7 @@
 
 React Native (Expo) personal finance app: local-only, no bank connections.
 
-Path-scoped rules in `.claude/rules/` load with matching files: `database.md` (queries, migrations, repositories), `ui.md` (all `.tsx`, styling, HeroUI, sheets), `state.md` (stores, state, hooks), `money.md` (domain resolvers, rounding, formatting), `tests.md` (everything in `__tests__/`), `review.md` (the five recurring defect classes, all of `src/**`), `business.md` (business rules 1-9: onboarding, accounts, net worth, names). Project skills are in `.claude/skills/`; each one's description says when it applies.
+Path-scoped rules in `.claude/rules/` load with matching files; each file's `paths:` frontmatter names its scope. Project skills are in `.claude/skills/`; each one's description says when it applies.
 
 Rules and agent files cite audit findings by ID (`H11`, `M33`, `L2`, …). They resolve in [docs/superpowers/reviews/2026-07-29-full-technical-audit.md](docs/superpowers/reviews/2026-07-29-full-technical-audit.md); remediation is tracked in [docs/superpowers/plans/2026-07-30-audit-remediation-backlog.md](docs/superpowers/plans/2026-07-30-audit-remediation-backlog.md).
 
@@ -10,7 +10,7 @@ Rules and agent files cite audit findings by ID (`H11`, `M33`, `L2`, …). They 
 
 `primitive`, `surface` and `harness` are domain terms here, exempt from unslop's jargon rule where they name the real thing. `npm run lint` fails on its banned method-certification phrases in any tracked `.md` file outside `docs/scopes/` and `docs/superpowers/`, which are frozen history.
 
-Every question the main session puts to me, in a skill or not, is checked first against [question-visuals.md](.claude/skills/issue-review/references/question-visuals.md), where the first matching row decides. Options that differ on screen, in a figure or in a structure go out with the HTML visual in the same message, and options that differ over time with a GIF; each draws today beside the options. A gate confirming what I have just read, options that differ only in words, a fact I hold, and anything else stay text, and no file is made. A subagent returns its question as text and draws nothing; the session that asks me makes the visual.
+Every question the main session puts to me, in a skill or not, is checked first against [question-visuals.md](.claude/skills/issue-review/references/question-visuals.md), where the first matching row decides whether a visual goes with it.
 
 ## When to stop
 
@@ -21,7 +21,7 @@ Critical triggers (wake me; everywhere else proceed):
 1. Product/domain disagreement `[marcus]` and `[layla]` cannot resolve
 2. Cross-cutting impact: a decision binds later work non-obviously
 3. High blast radius: feature-flag flip, V1 deletion, migration with data-loss risk
-4. New dependency, native code change, anything outside the established stack
+4. New dependency, native code change, a custom component a HeroUI primitive could cover, anything outside the established stack
 5. User-facing copy with voice/branding weight (field labels and error messages stay team-decided)
 6. Scope balloon vs the locked epic
 7. Auth / secure store / data-loss surface
@@ -34,12 +34,7 @@ Not critical (decide it and move): field-level UX, naming, file structure, test 
 - **Always branch before any work. Never commit to `main`.** Branches: `feat/x`, `refactor/x`, `fix/x`, `perf/x`, `docs/<slug>` for a change to docs, skills or rules only; task branches add the ID, `feat/MA-042-slug`.
 - The issue is the record. `.work/<MA-id>/` (the `/prep` plan, removed before merge) and `~/.ship/MoneyApp/MA-XXX/` are transient; `~/.ship/MoneyApp/canvas/` (design frames) and `~/.ship/MoneyApp/queue/` (log and leases) are not.
 - Define with `/epic`, `/boundaries <n>`, `/tickets <parent>`, `/issue-review <n>`; deliver a leaf with `/prep <n>` to Planned and `/ship <n>` to Awaiting Human. `/queue <column> [n]` starts them and never merges. One human gate: the merge.
-- Ready For Development is one-way; `/issue-review` is the only road there and only `/prep` takes a leaf from it.
-- An unattended run (`Run: unattended`) never waits on me: it parks each question as a `Question: open` record ([question-record.md](.claude/skills/issue-review/references/question-record.md)), and `/queue asks` puts them to me. `promote` refuses a ticket with an open record.
-- The board is the state: Project #2, Status field. `scripts/board.sh` is the only writer. Its `promote` is the only move from Defined to Ready For Development and the only thing that closes a parent. Never write a `status:*` label.
-- Two moves are by hand with `board.sh status`: Blocked to Ready For Development (`promote` refuses a Blocked row; `/queue asks` also makes it when it answers a ticket's last open record), and a parent to In Progress when its first child starts, carried up at every level.
-- Read the board with `/board [n] [graph|text]`, or `bash scripts/board.sh next [n]` from a terminal (`--json` for a script).
-- A leaf task is one PR, and the unit that gets a branch and `Closes #N`. A parent is never pulled by `/prep` or `/ship`; it mirrors its furthest child and closes through its children.
+- The board is the state: Project #2, Status field. `scripts/board.sh` is its only writer; never write a `status:*` label. An unattended run (`Run: unattended`) never waits on me: it parks each question as a `Question: open` record for `/queue asks`.
 - **The size gate is hard: ~400 planned lines outside tests, and 8 plan steps; the number of files is not capped.** No ruling lifts it, mine included. Scope added during `/ship` is recounted, and over the gate it is a new ticket, not this PR. Definition and evidence: `.claude/skills/tickets/references/splitting.md` § Size gate.
 - Every move, who makes it and on what, plus the hierarchy and the size gate: [docs/workflow.md](docs/workflow.md). Nothing else moves a row.
 - CI parity before pushing to a PR branch: `npm run ci:local` (*Commands*). CI is the last line of defence, not the first.
@@ -47,14 +42,13 @@ Not critical (decide it and move): field-level UX, naming, file structure, test 
 
 ## Team
 
-`@layla` writes a money ruling into an issue: name a ruling file outside the repo in the dispatch; its lines go under `## Rules` unchanged, plus the Decisions line per `.claude/skills/tickets/references/ticket-body.md` § Writing an answer. The personas `[layla]` `[marcus]` `[sarah]` `[tariq]` `[dev]` answer inline through the `moneyapp-expert-panel` skill: advisory, no files.
+Dispatched `@layla` writes a money ruling to a file outside the repo (`.claude/agents/layla.md`). The personas `[layla]` `[marcus]` `[sarah]` `[tariq]` `[dev]` answer inline through the `moneyapp-expert-panel` skill: advisory, no files.
 
 ## Tech Stack
 
 Versions are in `package.json`. What it doesn't say:
 
 - The UI is HeroUI Native on Uniwind and Unistyles 3. `@gorhom/bottom-sheet` is only the engine under HeroUI `BottomSheet`.
-- Tailwind v4 is CSS-first: there is no `tailwind.config.js`.
 - oxlint (type-aware through oxlint-tsgolint) is the only linter and oxfmt the only formatter. No ESLint, no Prettier.
 - Fonts are Sora and Inter from `@expo-google-fonts`; icons are MaterialCommunityIcons; ids come from `react-native-uuid`.
 
@@ -64,7 +58,7 @@ Versions are in `package.json`. What it doesn't say:
 - `npm run ci:local` is the pre-push CI parity chain: every job after `Install` in `.github/workflows/pr-checks.yml`, in order, stopping on the first failure. Fix and re-run it whole until green, then push. It skips one job, `Patched React Native compiles (Android)`; `.claude/skills/ship/references/implement.md` step 7 says when that job compiles.
 - `expo-doctor` checks Expo's live requirement table, so it can go red with zero commits; fix with `npx expo install --check` or `expo.install.exclude`. Its pin lives in the `doctor` script, which CI runs too.
 
-**After I merge a PR**, without being asked, run the post-merge list in [merge.md § After the merge](.claude/skills/ship/references/merge.md): sync `main`, confirm the ticket closed and Board on merge ran, tear down the worktree and branch, `npm ci` if the lock moved; it names the steps a merge outside `/ship` skips. Squash-merged branches never appear in `git branch --merged`: check `gh pr list --head <branch> --state all` and delete only what reads `MERGED`.
+**After I merge a PR**, without being asked, run the post-merge list in [merge.md § After the merge](.claude/skills/ship/references/merge.md). Squash-merged branches never appear in `git branch --merged` (its step 5).
 
 ## Code layout
 
@@ -89,7 +83,6 @@ Each folder: `index.tsx` (UI, no useState/useSharedValue) · `<name>.hook.ts` (l
 ## Conventions
 
 - **Code comments: one line, and only when needed.** A comment states a constraint the code can't, in a single line. No multi-line comment blocks; anything longer belongs in an ADR or a doc. The `no-comments` skill sweeps a scope back down to this rule.
-- **HeroUI Native first (Team Law 7).** A custom component a HeroUI primitive could cover is a critical trigger; `.claude/rules/ui.md` and the `heroui-native` skill hold the rest, with tokens and strings.
 - **null vs undefined.** `null` = DB-mapped nullable columns only. Absent values elsewhere = `undefined`.
 
 Product docs on Notion (PRD, tech spec, QA plan): [docs/links.md](docs/links.md).

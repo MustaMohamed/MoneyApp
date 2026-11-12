@@ -1,6 +1,6 @@
 ---
 name: money-rules
-description: Use when writing or reviewing any code that computes, converts, rounds, stores, or displays money in MoneyApp — transaction amounts, commitment payments, balances, budget math, currency previews, EGP/USD conversion, exchange rates, or Intl formatting.
+description: "Use when writing or reviewing code that computes, converts, rounds, stores or displays money in MoneyApp: amounts, balances, budget math, EGP/USD conversion, exchange rates, Intl formatting."
 ---
 
 # MoneyApp Money Rules

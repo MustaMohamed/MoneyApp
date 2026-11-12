@@ -1,6 +1,6 @@
 ---
 name: prep
-description: "Use when a ticket at Ready For Development needs its implementation plan before code: '/prep <n>', 'prep MA-013', 'prep N'. Also '/prep N --replan' to plan a Planned ticket again and '/prep N --amend' when the plan turned out wrong about the code. Creates the ticket branch, has a cold planner write .work/MA-XXX/plan.md, has a probe render its marked screen states on the emulator beside review round 1 by a fresh reviewer, revises the plan once for both, runs a second round only on a blocking finding, commits it on the branch and moves the ticket to Planned. Not for defining scope (boundaries), cutting tasks (tickets) or delivering (ship)."
+description: "Use when a ticket at Ready For Development needs its implementation plan before code: '/prep <n>', 'prep MA-013'. Also '/prep N --replan' for a Planned ticket and '/prep N --amend' when the plan is wrong about the code. Ends with the plan committed on the ticket branch and the ticket at Planned."
 argument-hint: "<issue number> [--replan | --amend]"
 ---
 

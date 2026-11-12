@@ -1,6 +1,6 @@
 ---
 name: emulator-verify
-description: Use when you need to see a MoneyApp change actually run rather than infer it from tests — checking a screen renders, walking a flow end to end, reproducing a device-only bug, or asserting what the app really wrote to SQLite. Also for "does this look right?", "run the app", "check it on the emulator", or a `[runtime not ready]` / white-screen / native crash report.
+description: "Use to see a MoneyApp change run on the emulator instead of inferring it from tests: a screen renders, a flow end to end, a device-only bug, what the app wrote to SQLite, 'run the app', or a `[runtime not ready]` / white-screen / native crash report."
 ---
 
 # Verifying on the Android emulator

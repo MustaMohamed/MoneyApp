@@ -1,6 +1,6 @@
 ---
 name: issue-review
-description: "Use after an epic is locked or tickets are created, or any time a Defined issue should be checked: '/issue-review <n>', 'review epic N', 'review the tickets of N'. Never for a leaf at Ready For Development, which only /prep takes. The define workflow's review step: fresh reviewers check the issue, or its children when it has any, against its Goal, its parent and the code; mechanical deltas apply without a gate and only a question stops the run. Not for reviewing code or a PR (ship)."
+description: "Use after an epic is locked or tickets are created, or when a Defined issue should be checked: '/issue-review <n>', 'review epic N', 'review the tickets of N'. Never for a leaf at Ready For Development, which only /prep takes, or for reviewing code or a PR (ship)."
 argument-hint: "<issue number>"
 ---
 

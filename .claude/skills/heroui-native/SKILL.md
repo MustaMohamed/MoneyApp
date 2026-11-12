@@ -1,6 +1,6 @@
 ---
 name: heroui-native
-description: "Use when building or changing any MoneyApp UI — screens, sheets, forms, cards, buttons, lists, badges, dialogs — or when choosing between a HeroUI Native primitive, an existing project wrapper, and a custom component. Keywords: HeroUI Native, heroui-native, component, sheet, BottomSheet, Card, Surface, Uniwind, Tailwind class, wrapper."
+description: "Use when building or changing any MoneyApp UI (screens, sheets, forms, cards, lists, dialogs) or choosing between a HeroUI Native primitive, a project wrapper and a custom component. Keywords: heroui-native, BottomSheet, Card, Surface, Uniwind, Tailwind class."
 metadata:
   owner: moneyapp
   targets: heroui-native@1.0.8
@@ -8,7 +8,7 @@ metadata:
 
 # HeroUI Native in MoneyApp
 
-MoneyApp runs **heroui-native 1.0.8** on Uniwind (Tailwind v4 for React Native). This skill is the mechanics of Team Law 7 (stated in CLAUDE.md) — how to find the right primitive and use it correctly.
+MoneyApp runs **heroui-native 1.0.8** on Uniwind (Tailwind v4 for React Native). This skill is the mechanics of Team Law 7 (stated in `.claude/rules/ui.md`) — how to find the right primitive and use it correctly.
 
 ## The docs that are true for this project
 
