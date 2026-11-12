@@ -24,5 +24,13 @@
         ]
       }
     ]
+  },
+  "enabledPlugins": {
+    "expo@expo-plugins": false
+  },
+  "skillOverrides": {
+    "cds-daily-report": "off",
+    "cds-ticket": "off",
+    "review-radar": "off"
   }
 }

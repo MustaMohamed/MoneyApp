@@ -6,6 +6,7 @@
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
+    "android:clean": "expo prebuild --clean && expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
     "typecheck": "node scripts/generate-typed-routes.js && tsc --noEmit",
@@ -16,6 +17,9 @@
     "format:check": "oxfmt --check",
     "test": "jest",
     "test:coverage": "jest --coverage",
+    "doctor": "npx --yes expo-doctor@1.20.1",
+    "prebuild:check": "expo prebuild --no-install --platform android && test -d android",
+    "ci:local": "npm run format:check && npm run lint && npm run typecheck && jest --ci && npm run doctor && npm run prebuild:check && echo 'CI parity green, safe to push'",
     "prepare": "husky",
     "postinstall": "patch-package",
     "ui:inventory": "node scripts/heroui-inventory.js",
