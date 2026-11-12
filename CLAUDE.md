@@ -32,22 +32,18 @@ Not critical (decide it and move): field-level UX, naming, file structure, test 
 ## Workflow
 
 - **Always branch before any work. Never commit to `main`.** Branches: `feat/x`, `refactor/x`, `fix/x`, `perf/x`, `docs/<slug>` for a change to docs, skills or rules only; task branches add the ID, `feat/MA-042-slug`.
-- The issue is the record. `.work/<MA-id>/` (the `/prep` plan, branch-only, removed before merge) and `~/.ship/MoneyApp/MA-XXX/` (`/ship` state) hold transient working files. `~/.ship/MoneyApp/canvas/` is not transient: it holds the design frames render checks measure against. Nor is `~/.ship/MoneyApp/queue/`: it holds the queue's log and leases.
-- Define before code: `/epic`, then `/boundaries <n>`, `/tickets <parent>`, `/issue-review <n>`. `/issue-review` is the only road to Ready For Development.
-- Ready For Development is one-way. `promote` refuses a leaf whose `Size:` line is missing or over the gate, a leaf counted over it stays at Defined for `/tickets`, and `/issue-review` and `/tickets` refuse a Ready leaf: only `/prep` takes one. A plan over the gate is trimmed at its one seam with the remainder opened at Defined, and two or more seams are a question; an open gap sends the ticket to Blocked, never back.
-- Deliver a leaf: `/prep <n>` takes it to Planned with the plan committed on the ticket branch; `/ship <n>` takes it to Awaiting Human with a merge summary, and `/ship` with no number pulls nothing. `/queue <column> [n]` starts `/issue-review`, `/prep` or `/ship` on the top eligible tickets of Defined, Ready For Development or Planned, one app task per ticket under a lease, and never merges. `/queue Defined` also starts `/issue-review <parent>` on a parent `/tickets` has just cut, so the parent is marked before its children. One human gate: the merge.
-- An unattended run, `Run: unattended` in its task prompt, never waits on me; `/queue <column>` starts them. `/issue-review` and `/prep` park each question as a record, an issue comment whose first line is `Question: open` ([question-record.md](.claude/skills/issue-review/references/question-record.md)), and the board shows the ticket as mine with `/queue asks`. `/ship` asks nothing in any run: what it cannot rule it parks the same way and moves the ticket to Blocked. `/queue asks` puts every open record to me, one per message, and writes each answer into its ticket. `promote` refuses a ticket with an open record.
-- The board is the state: Project #2, Status field, Todo · Defined · Ready For Development · Planned · In Progress · In Review · Awaiting Human · Blocked · Done. Row order within a column is priority after what a ticket frees: the board report, its page and `/queue` take first the ticket whose close frees the most open tickets, counting those that wait on its parent.
-- `scripts/board.sh` is the only writer. Its `promote` is the only move from Defined to Ready For Development and the only thing that closes a parent. Never write a `status:*` label.
+- The issue is the record. `.work/<MA-id>/` (the `/prep` plan, removed before merge) and `~/.ship/MoneyApp/MA-XXX/` are transient; `~/.ship/MoneyApp/canvas/` (design frames) and `~/.ship/MoneyApp/queue/` (log and leases) are not.
+- Define with `/epic`, `/boundaries <n>`, `/tickets <parent>`, `/issue-review <n>`; deliver a leaf with `/prep <n>` to Planned and `/ship <n>` to Awaiting Human. `/queue <column> [n]` starts them and never merges. One human gate: the merge.
+- Ready For Development is one-way; `/issue-review` is the only road there and only `/prep` takes a leaf from it.
+- An unattended run (`Run: unattended`) never waits on me: it parks each question as a `Question: open` record ([question-record.md](.claude/skills/issue-review/references/question-record.md)), and `/queue asks` puts them to me. `promote` refuses a ticket with an open record.
+- The board is the state: Project #2, Status field. `scripts/board.sh` is the only writer. Its `promote` is the only move from Defined to Ready For Development and the only thing that closes a parent. Never write a `status:*` label.
 - Two moves are by hand with `board.sh status`: Blocked to Ready For Development (`promote` refuses a Blocked row; `/queue asks` also makes it when it answers a ticket's last open record), and a parent to In Progress when its first child starts, carried up at every level.
 - Read the board with `/board [n] [graph|text]`, or `bash scripts/board.sh next [n]` from a terminal (`--json` for a script).
 - A leaf task is one PR, and the unit that gets a branch and `Closes #N`. A parent is never pulled by `/prep` or `/ship`; it mirrors its furthest child and closes through its children.
 - **The size gate is hard: ~400 planned lines outside tests, and 8 plan steps; the number of files is not capped.** No ruling lifts it, mine included. Scope added during `/ship` is recounted, and over the gate it is a new ticket, not this PR. Definition and evidence: `.claude/skills/tickets/references/splitting.md` § Size gate.
 - Every move, who makes it and on what, plus the hierarchy and the size gate: [docs/workflow.md](docs/workflow.md). Nothing else moves a row.
 - CI parity before pushing to a PR branch: the chain in *Commands*. CI is the last line of defence, not the first.
-- Emulator verification is the check each `Verify emulator` ticket gets: anything that changes what a screen shows. A repository test asserts a write. The `emulator-verify` skill has the mechanics, including the per-worktree device lease `mqa up` takes and when a Gradle build is needed.
-
-Gotcha: **device QA does not run in the worktree.** A worktree whose `node_modules` is a symlink passes `tsc`, `jest` and lint, but expo-router resolves zero routes in a device build. Device QA builds from `main` in the primary checkout. Emulator verification does run in the worktree once it has a real `node_modules` (`/prep`'s APFS clone, or `npm ci`).
+- Emulator verification is the check each `Verify emulator` ticket gets: anything that changes what a screen shows. A repository test asserts a write. The `emulator-verify` skill has the mechanics, including the per-worktree device lease `mqa up` takes and when a Gradle build is needed. Device QA builds from `main` in the primary checkout (`device-qa` skill).
 
 ## Team
 
@@ -88,15 +84,7 @@ Of the jobs after `Install`, the one the chain does not run is `Patched React Na
 
 Gotcha: even pinned, `expo-doctor` validates against Expo's **live** requirement table, so it can go red with zero commits when Expo moves an SDK requirement. If it fails on a version you didn't touch, that's why; fix with `npx expo install --check` or `expo.install.exclude`. Keep the pinned tool version here and in `.github/workflows/pr-checks.yml` in sync; bump it deliberately.
 
-**After I merge a PR**, without being asked:
-
-1. `git checkout main` and pull.
-2. Confirm the merge closed the ticket: `Closes #N` does it, and closed **is** the done signal. The `Board on merge` Action then runs `board.sh status <N> Done` and `promote <parent>` on the server (needs the `BOARD_TOKEN` repo secret); `bash scripts/board.sh get <N>` reads Done once it has. If the run failed, run both by hand: `promote` moves the children the close unblocked to Ready For Development, and closes a parent whose children are all closed, at every level up.
-3. Remove the ticket's worktree if it had one, and `git worktree prune`; a branch checked out in a worktree cannot be deleted.
-4. Delete the merged local branch and `git remote prune origin`.
-5. **`npm ci` if the merge moved `package-lock.json`**, otherwise `node_modules` silently belongs to neither branch, and every later verification runs against a tree that matches nothing.
-
-Gotcha: **squash-merged branches never appear in `git branch --merged`**, because the squash commit shares no history with them. Deleting on that basis leaves every task branch behind and forces `-D` later, on faith. Check `gh pr list --head <branch> --state all` and delete only what reads `MERGED`.
+**After I merge a PR**, without being asked, run the post-merge list in [merge.md § After the merge](.claude/skills/ship/references/merge.md): sync `main`, confirm the ticket closed and Board on merge ran, tear down the worktree and branch, `npm ci` if the lock moved; it names the steps a merge outside `/ship` skips. Squash-merged branches never appear in `git branch --merged`: check `gh pr list --head <branch> --state all` and delete only what reads `MERGED`.
 
 ## Project Structure
 
@@ -143,11 +131,9 @@ Gotcha: **`expo install --fix` keeps adding `@react-native-community/datetimepic
 ## Conventions
 
 - **Code comments: one line, and only when needed.** A comment states a constraint the code can't, in a single line. No multi-line comment blocks; anything longer belongs in an ADR or a doc. The `no-comments` skill sweeps a scope back down to this rule.
-- **HeroUI Native first (Team Law 7).** Use a HeroUI primitive wherever one exists; never hand-roll or pull a third-party equivalent. A custom component a primitive could cover is a critical trigger. Mechanics, catalog, and the wrapper inventory: the `heroui-native` skill.
+- **HeroUI Native first (Team Law 7).** A custom component a HeroUI primitive could cover is a critical trigger; `.claude/rules/ui.md` and the `heroui-native` skill hold the rest, with tokens and strings.
 - **null vs undefined.** `null` = DB-mapped nullable columns only. Absent values elsewhere = `undefined`.
 - **Enums.** String enums in `constants/enums.ts`, regular `enum`, not `const enum` (Babel incompatible). Values match SQLite CHECK strings. Validate with `z.nativeEnum()`.
-- **Tokens.** All sizing/spacing/radius/color from `constants/theme.ts`, scaled with `ms()`/`msFont()`. Never hardcode.
-- **Strings.** All user-visible copy in `constants/strings.ts`.
 - **SecureStore keys.** Centralised in `constants/secure_store_keys.ts` as `as const`.
 
 ## Notion Docs
