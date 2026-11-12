@@ -5,6 +5,11 @@ jest.mock('react-native-gesture-handler/ReanimatedSwipeable', () => ({
   __esModule: true,
   default: () => null,
 }));
+jest.mock('react-native-reanimated', () => ({
+  __esModule: true,
+  default: { View: () => null },
+  useAnimatedStyle: () => ({}),
+}));
 
 // The white the coloured tiles draw today, kept as the literal `swipeable_row.tsx` holds.
 const TILE_WHITE = '#FFFFFF';
