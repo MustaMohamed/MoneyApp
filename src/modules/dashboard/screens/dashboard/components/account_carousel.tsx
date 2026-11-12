@@ -112,7 +112,8 @@ export function AccountCarousel({
     // Without `baseCurrency` here the memoised renderItem keeps rendering the previous base.
     [accountPressHandlers, baseCurrency, cardWidth, isRateUsable, onAddPress, rate, statsMap],
   );
-  const rowGesture = useNativeGesture({ block: segmentSwipe });
+  const rowGestureConfig = useMemo(() => ({ block: segmentSwipe }), [segmentSwipe]);
+  const rowGesture = useNativeGesture(rowGestureConfig);
   const getItemLayout = useCallback(
     (_data: ArrayLike<AccountCarouselItem> | null | undefined, index: number) =>
       getAccountCarouselItemLayout(cardWidth, index),

@@ -2,7 +2,10 @@ const mockScheduledCallbacks: Array<() => void> = [];
 const mockNativeCancel = jest.fn();
 
 import { deferred } from '@/test_helpers/deferred';
-import { runAfterInteractions } from '@/utils/run_after_interactions';
+import {
+  RUN_AFTER_INTERACTIONS_TIMEOUT_MS,
+  runAfterInteractions,
+} from '@/utils/run_after_interactions';
 
 describe('runAfterInteractions', () => {
   beforeEach(() => {
@@ -27,6 +30,9 @@ describe('runAfterInteractions', () => {
     runAfterInteractions(callback);
 
     expect(global.requestIdleCallback).toHaveBeenCalledTimes(1);
+    expect(global.requestIdleCallback).toHaveBeenCalledWith(expect.any(Function), {
+      timeout: RUN_AFTER_INTERACTIONS_TIMEOUT_MS,
+    });
     expect(callback).not.toHaveBeenCalled();
 
     mockScheduledCallbacks[0]?.();

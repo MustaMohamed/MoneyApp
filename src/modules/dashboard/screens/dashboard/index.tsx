@@ -2,7 +2,11 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Button, Separator, Surface, Tabs, Typography } from 'heroui-native';
 import React, { useCallback, useMemo } from 'react';
 import { RefreshControl, View } from 'react-native';
-import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
+import {
+  GestureDetector,
+  type PanGestureConfig,
+  usePanGesture,
+} from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 
@@ -82,18 +86,22 @@ export default function DashboardScreen() {
 
   // Each account carousel blocks this pan, so a sideways drag that starts on a row belongs to the row.
   const SWIPE_THRESHOLD = 50;
-  const swipeGesture = usePanGesture({
-    activeOffsetX: [-30, 30],
-    failOffsetY: [-15, 15],
-    onDeactivate: (e) => {
-      'worklet';
-      if (e.translationX < -SWIPE_THRESHOLD) {
-        scheduleOnRN(setSelectedSegment, 'accounts');
-      } else if (e.translationX > SWIPE_THRESHOLD) {
-        scheduleOnRN(setSelectedSegment, 'overview');
-      }
-    },
-  });
+  const swipeConfig = useMemo<PanGestureConfig>(
+    () => ({
+      activeOffsetX: [-30, 30],
+      failOffsetY: [-15, 15],
+      onDeactivate: (e) => {
+        'worklet';
+        if (e.translationX < -SWIPE_THRESHOLD) {
+          scheduleOnRN(setSelectedSegment, 'accounts');
+        } else if (e.translationX > SWIPE_THRESHOLD) {
+          scheduleOnRN(setSelectedSegment, 'overview');
+        }
+      },
+    }),
+    [setSelectedSegment],
+  );
+  const swipeGesture = usePanGesture(swipeConfig);
 
   return (
     <Screen edges={['top']}>

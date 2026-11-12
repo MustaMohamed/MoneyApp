@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import type { LayoutChangeEvent, ScrollViewInstance } from 'react-native';
-import { type PanGesture, usePanGesture } from 'react-native-gesture-handler';
+import {
+  type PanGesture,
+  type PanGestureConfig,
+  usePanGesture,
+} from 'react-native-gesture-handler';
 import {
   type FrameInfo,
   measure,
@@ -258,51 +262,56 @@ export function useLiftGesture(input: {
     [drag, index],
   );
 
-  const gesture = usePanGesture({
-    activateAfterLongPress: LIFT_LONG_PRESS_MS,
-    enabled,
-    shouldCancelWhenOutside: false,
-    // RNGH hit-tests the detector's own box; the pressable's `hitSlop` never reaches it.
-    hitSlop: ACCOUNTS_LIST_GRIP_HIT_SLOP,
-    onActivate: (e) => {
-      'worklet';
-      if (drag.liftedIndex.value === -1) {
-        drag.liftedIndex.value = index;
-        drag.targetIndex.value = index;
-        drag.translationY.value = 0;
-        const liftBoxes = drag.rowBoxes.value;
-        drag.cellHeight.value = index in liftBoxes ? liftBoxes[index].height : 0;
-        drag.isHolding.value = true;
-        drag.fingerTranslationY.value = 0;
+  // RNGH 3 re-sends the config to native whenever its identity changes.
+  const config = useMemo<PanGestureConfig>(
+    () => ({
+      activateAfterLongPress: LIFT_LONG_PRESS_MS,
+      enabled,
+      shouldCancelWhenOutside: false,
+      // RNGH hit-tests the detector's own box; the pressable's `hitSlop` never reaches it.
+      hitSlop: ACCOUNTS_LIST_GRIP_HIT_SLOP,
+      onActivate: (e) => {
+        'worklet';
+        if (drag.liftedIndex.value === -1) {
+          drag.liftedIndex.value = index;
+          drag.targetIndex.value = index;
+          drag.translationY.value = 0;
+          const liftBoxes = drag.rowBoxes.value;
+          drag.cellHeight.value = index in liftBoxes ? liftBoxes[index].height : 0;
+          drag.isHolding.value = true;
+          drag.fingerTranslationY.value = 0;
+          drag.fingerAbsoluteY.value = e.absoluteY;
+          drag.liftScrollOffset.value = drag.scrollOffset.value;
+          drag.edgeScrollOffset.value = drag.scrollOffset.value;
+        }
+        scheduleOnRN(onLift, id);
+      },
+      onUpdate: (e) => {
+        'worklet';
+        if (drag.liftedIndex.value !== index) return;
+        drag.fingerTranslationY.value = e.translationY;
         drag.fingerAbsoluteY.value = e.absoluteY;
-        drag.liftScrollOffset.value = drag.scrollOffset.value;
-        drag.edgeScrollOffset.value = drag.scrollOffset.value;
-      }
-      scheduleOnRN(onLift, id);
-    },
-    onUpdate: (e) => {
-      'worklet';
-      if (drag.liftedIndex.value !== index) return;
-      drag.fingerTranslationY.value = e.translationY;
-      drag.fingerAbsoluteY.value = e.absoluteY;
-      trackLiftedRow(drag, count);
-    },
-    onFinalize: (e) => {
-      'worklet';
-      const ownsLift = drag.liftedIndex.value === index;
-      const to = ownsLift && !e.canceled ? drag.targetIndex.value : index;
-      // Parks the copy in the slot until React commits.
-      if (ownsLift) {
-        drag.isHolding.value = false;
-        drag.targetIndex.value = to;
-        const boxes = drag.rowBoxes.value;
-        drag.translationY.value =
-          resolveSlotOffset({ fromIndex: index, toIndex: to, boxes }) -
-          resolveSlotOffset({ fromIndex: index, toIndex: index, boxes });
-      }
-      scheduleOnRN(onRelease, id, index, to);
-    },
-  });
+        trackLiftedRow(drag, count);
+      },
+      onFinalize: (e) => {
+        'worklet';
+        const ownsLift = drag.liftedIndex.value === index;
+        const to = ownsLift && !e.canceled ? drag.targetIndex.value : index;
+        // Parks the copy in the slot until React commits.
+        if (ownsLift) {
+          drag.isHolding.value = false;
+          drag.targetIndex.value = to;
+          const boxes = drag.rowBoxes.value;
+          drag.translationY.value =
+            resolveSlotOffset({ fromIndex: index, toIndex: to, boxes }) -
+            resolveSlotOffset({ fromIndex: index, toIndex: index, boxes });
+        }
+        scheduleOnRN(onRelease, id, index, to);
+      },
+    }),
+    [count, drag, enabled, id, index, onLift, onRelease],
+  );
+  const gesture = usePanGesture(config);
 
   return { gesture, onLayout };
 }

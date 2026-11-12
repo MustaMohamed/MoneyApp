@@ -338,6 +338,17 @@ const NAMED_ROWS = [
     ],
     needs: 'the root layout mounts the raw HeroUI provider inside a seeded `SafeAreaProvider`',
   },
+  {
+    files: ['global.css'],
+    required: [
+      holds(
+        /@layer theme\s*\{\s*:root\s*\{\s*@variant dark\b/,
+        'no `:root { @variant dark` opening `@layer theme`',
+      ),
+    ],
+    needs:
+      "under Uniwind 1.13 HeroUI's `:root`-scoped light variant outranks an unscoped one, and the app renders light",
+  },
   stateScreen(EMPTY_STATE, 'empty'),
   stateScreen(ERROR_STATE, 'error'),
   {

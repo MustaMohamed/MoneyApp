@@ -11,13 +11,13 @@ import { useTabBarLabelStyle, useTabsLayout } from './tabs.hook';
 
 type MCIName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
-// `tabBarIcon` passes a `ColorValue` (null and numbers allowed); the tab tints are hex strings.
+// The icon takes a string or a platform colour; a processed number or a null has no form it accepts.
 function tabIcon(name: MCIName, color: ColorValue) {
   return (
     <MaterialCommunityIcons
       name={name}
       size={24}
-      color={typeof color === 'string' ? color : undefined}
+      color={typeof color === 'number' || color == null ? undefined : color}
     />
   );
 }

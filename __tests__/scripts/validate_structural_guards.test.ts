@@ -499,6 +499,13 @@ const REQUIRED: RequiredSeed[] = [
   withoutTag(COMMITMENT_DETAIL_ACTIONS, 'DetailDangerButton', 'the commitment detail actions'),
   withoutTag(TRANSACTION_ACTION_ROW, 'DetailDangerButton', 'the transaction detail action row'),
   withoutTag(ACCOUNT_DETAIL_INDEX, 'DetailDangerButton', 'the account detail screen'),
+  {
+    guard: 'the theme variants scoped under :root in global.css',
+    rel: 'global.css',
+    seed: () =>
+      replacePattern('global.css', /@layer theme \{\n  :root \{/, '@layer theme {\n  .seeded {'),
+    words: 'no `:root { @variant dark` opening `@layer theme`',
+  },
 ];
 
 const DELETED_PATHS = [

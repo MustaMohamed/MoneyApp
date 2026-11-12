@@ -29,11 +29,14 @@ function escapeRegExp(text: string): string {
 
 /** The value `property` takes in the rule whose whole selector is `selector`. */
 function declaration(css: string, selector: string, property: string): string {
-  const rule = capture(
-    new RegExp(`^[ \\t]*${escapeRegExp(selector)}\\s*\\{([^}]*)\\}`, 'm'),
-    css,
-    selector,
-  );
+  const rules = [
+    ...css.matchAll(new RegExp(`^[ \\t]*${escapeRegExp(selector)}\\s*\\{([^}]*)\\}`, 'gm')),
+  ];
+  // An indented match can sit in a nested block; two matches would leave the base rule ambiguous.
+  if (rules.length !== 1) {
+    throw new Error(`${rules.length} rules for ${selector} in the vendor CSS, expected 1`);
+  }
+  const rule = rules[0]![1]!.trim();
   return capture(
     new RegExp(`(?:^|[;\\s])${escapeRegExp(property)}\\s*:\\s*([^;]+);`),
     rule,

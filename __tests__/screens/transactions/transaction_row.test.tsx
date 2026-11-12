@@ -23,6 +23,7 @@ import {
 } from '@/modules/transactions/components/transaction_row.helpers';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { ms } from '@/utils/responsive';
+import { DRAG_CANCEL_DISTANCE } from '@/utils/use_drag_cancelled_press.hook';
 
 interface MockSwipeableRowProps {
   actions: unknown[];
@@ -39,6 +40,8 @@ jest.mock('@/components/ui/swipeable_row', () => ({
 interface MockReanimatedSwipeableProps {
   children: React.ReactNode;
   containerStyle?: unknown;
+  dragOffsetFromLeft?: number;
+  dragOffsetFromRight?: number;
 }
 
 const mockReanimatedSwipeable = jest.fn(({ children }: MockReanimatedSwipeableProps) => (
@@ -337,5 +340,21 @@ describe('SwipeableRow', () => {
     );
 
     expect(mockReanimatedSwipeable.mock.calls[0][0].containerStyle).toBe(corners);
+  });
+
+  it('passes RNGH 3 drag offsets with the signs it requires, so a row swipe does not throw', async () => {
+    const { SwipeableRow: RealSwipeableRow } = jest.requireActual<
+      typeof import('@/components/ui/swipeable_row')
+    >('@/components/ui/swipeable_row');
+
+    await render(
+      <RealSwipeableRow actions={[]}>
+        <View />
+      </RealSwipeableRow>,
+    );
+
+    const props = mockReanimatedSwipeable.mock.lastCall?.[0];
+    expect(props?.dragOffsetFromLeft).toBe(DRAG_CANCEL_DISTANCE);
+    expect(props?.dragOffsetFromRight).toBe(-DRAG_CANCEL_DISTANCE);
   });
 });
