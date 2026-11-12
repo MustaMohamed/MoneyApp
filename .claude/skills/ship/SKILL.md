@@ -1,6 +1,6 @@
 ---
 name: ship
-description: "Use when the user invokes /ship with an issue number or an MA id to take a Planned ticket to Awaiting Human with a merge summary, or asks to resume a ticket that has ~/.ship/MoneyApp/MA-XXX/state.md. The second half of delivery, after /prep: implement, review battery, triage and fix, re-check, merge summary. '/ship' with no number pulls nothing. Not for planning (prep) or defining (boundaries, tickets)."
+description: "Use when the user invokes /ship with an issue number or MA id to take a Planned ticket to Awaiting Human, or asks to resume a ticket that has ~/.ship/MoneyApp/MA-XXX/state.md. '/ship' with no number pulls nothing."
 argument-hint: "<issue number> | MA-XXX"
 ---
 

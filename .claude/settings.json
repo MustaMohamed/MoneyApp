@@ -32,6 +32,7 @@
   "skillOverrides": {
     "cds-daily-report": "off",
     "cds-ticket": "off",
-    "review-radar": "off"
+    "review-radar": "off",
+    "gh-stack": "name-only"
   }
 }

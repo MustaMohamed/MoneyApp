@@ -1,6 +1,6 @@
 ---
 name: moneyapp-expert-panel
-description: "Use when a message tags a MoneyApp persona in brackets, [layla], [marcus], [sarah], [tariq], or [dev], or asks who is on the team or for the expert panel. Advisory only: gives that specialist's stance inline without dispatching a subagent and writes no files."
+description: "Use when a message tags a MoneyApp persona in brackets, [layla], [marcus], [sarah], [tariq] or [dev], or asks for the expert panel. Advisory and inline: no subagent, no files."
 ---
 
 # MoneyApp expert advisory panel (inline)
