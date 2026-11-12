@@ -7,7 +7,7 @@ import {
   type ListRenderItem,
   useWindowDimensions,
 } from 'react-native';
-import { Gesture, GestureDetector, type LegacyPanGesture } from 'react-native-gesture-handler';
+import { GestureDetector, type PanGesture, useNativeGesture } from 'react-native-gesture-handler';
 
 import { AccountType, Currency } from '@/constants/enums';
 import { Spacing } from '@/constants/theme';
@@ -65,7 +65,7 @@ interface AccountCarouselProps {
   onAccountPress: (id: string) => void;
   onAddPress: () => void;
   /** The dashboard's segment swipe, held off while a drag that began on this row is the row's. */
-  segmentSwipe: LegacyPanGesture;
+  segmentSwipe: PanGesture;
 }
 
 export function AccountCarousel({
@@ -112,10 +112,7 @@ export function AccountCarousel({
     // Without `baseCurrency` here the memoised renderItem keeps rendering the previous base.
     [accountPressHandlers, baseCurrency, cardWidth, isRateUsable, onAddPress, rate, statsMap],
   );
-  const rowGesture = useMemo(
-    () => Gesture.Native().blocksExternalGesture(segmentSwipe),
-    [segmentSwipe],
-  );
+  const rowGesture = useNativeGesture({ block: segmentSwipe });
   const getItemLayout = useCallback(
     (_data: ArrayLike<AccountCarouselItem> | null | undefined, index: number) =>
       getAccountCarouselItemLayout(cardWidth, index),

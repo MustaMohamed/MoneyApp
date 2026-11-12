@@ -67,10 +67,7 @@ const mockFrame: { callback?: (frame: MockFrameInfo) => void; isActive: boolean 
   isActive: false,
 };
 
-type MockPan = {
-  calls: { name: string; args: unknown[] }[];
-  handlers: Partial<Record<string, (...args: unknown[]) => unknown>>;
-};
+type MockPan = { config: Record<string, unknown> };
 
 jest.mock('react-native-reanimated', () => {
   const { useRef } = jest.requireActual<typeof import('react')>('react');
@@ -129,55 +126,9 @@ jest.mock('react-native-worklets', () => ({
     mockScheduleOnRN(fn, ...args),
 }));
 
-jest.mock('react-native-gesture-handler', () => {
-  const chainMethods = [
-    'activateAfterLongPress',
-    'enabled',
-    'shouldCancelWhenOutside',
-    'minDistance',
-    'activeOffsetY',
-    'failOffsetX',
-    'hitSlop',
-    'runOnJS',
-    'withTestId',
-    'simultaneousWithExternalGesture',
-    'requireExternalGestureToFail',
-    'blocksExternalGesture',
-  ];
-  const callbackMethods = [
-    'onBegin',
-    'onStart',
-    'onUpdate',
-    'onChange',
-    'onEnd',
-    'onFinalize',
-    'onTouchesDown',
-    'onTouchesMove',
-    'onTouchesUp',
-    'onTouchesCancelled',
-  ];
-  return {
-    Gesture: {
-      Pan: () => {
-        const pan: MockPan & Record<string, unknown> = { calls: [], handlers: {} };
-        for (const name of chainMethods) {
-          pan[name] = (...args: unknown[]) => {
-            pan.calls.push({ name, args });
-            return pan;
-          };
-        }
-        for (const name of callbackMethods) {
-          pan[name] = (callback: (...args: unknown[]) => unknown) => {
-            pan.calls.push({ name, args: [callback] });
-            pan.handlers[name] = callback;
-            return pan;
-          };
-        }
-        return pan;
-      },
-    },
-  };
-});
+jest.mock('react-native-gesture-handler', () => ({
+  usePanGesture: (config: Record<string, unknown>): MockPan => ({ config }),
+}));
 
 import {
   LIFT_DURATION_MS,
@@ -282,16 +233,14 @@ async function renderScreen(overrides: Partial<ScreenProps> = {}) {
 type Screen = Awaited<ReturnType<typeof renderScreen>>;
 
 function handler(screen: Screen, name: string) {
-  const callback = screen.pan().handlers[name];
-  if (!callback) throw new Error(`the pan has no ${name} callback`);
-  return callback;
+  const callback = screen.pan().config[name];
+  if (typeof callback !== 'function') throw new Error(`the pan has no ${name} callback`);
+  return callback as (...args: unknown[]) => unknown;
 }
 
 function argsOf(screen: Screen, name: string) {
-  return screen
-    .pan()
-    .calls.filter((call) => call.name === name)
-    .map((call) => call.args);
+  const { config } = screen.pan();
+  return name in config ? [[config[name]]] : [];
 }
 
 const layoutOf = (height: number, y = 0) =>
@@ -314,7 +263,7 @@ async function dragBy(
 ) {
   await layOutRows(screen, boxes);
   await act(() => {
-    handler(screen, 'onStart')({ translationY: 0, absoluteY: fromY });
+    handler(screen, 'onActivate')({ translationY: 0, absoluteY: fromY });
   });
   await act(() => {
     handler(screen, 'onUpdate')({ translationY, absoluteY: fromY + translationY });
@@ -351,7 +300,7 @@ async function liftAndHold(screen: Screen, fingerY: number, reach: number, offse
 
 async function finalize(screen: Screen, success: boolean) {
   await act(() => {
-    handler(screen, 'onFinalize')({ translationY: 0 }, success);
+    handler(screen, 'onFinalize')({ translationY: 0, canceled: !success });
   });
 }
 
@@ -675,7 +624,7 @@ describe('useLiftGesture: a second grip while another row owns the lift', () => 
     const screen = await ownedByRowZero();
 
     await act(() => {
-      handler(screen, 'onStart')({ translationY: 0 });
+      handler(screen, 'onActivate')({ translationY: 0 });
     });
 
     expect(screen.props.onLift).toHaveBeenCalledTimes(1);
@@ -688,7 +637,7 @@ describe('useLiftGesture: a second grip while another row owns the lift', () => 
     const screen = await ownedByRowZero();
 
     await act(() => {
-      handler(screen, 'onStart')({ translationY: 0 });
+      handler(screen, 'onActivate')({ translationY: 0 });
     });
     await act(() => {
       handler(screen, 'onUpdate')({ translationY: 200 });
@@ -701,7 +650,7 @@ describe('useLiftGesture: a second grip while another row owns the lift', () => 
     const screen = await ownedByRowZero();
 
     await act(() => {
-      handler(screen, 'onStart')({ translationY: 0 });
+      handler(screen, 'onActivate')({ translationY: 0 });
     });
     await finalize(screen, true);
 

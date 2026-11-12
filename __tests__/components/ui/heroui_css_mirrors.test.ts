@@ -30,7 +30,7 @@ function escapeRegExp(text: string): string {
 /** The value `property` takes in the rule whose whole selector is `selector`. */
 function declaration(css: string, selector: string, property: string): string {
   const rule = capture(
-    new RegExp(`^${escapeRegExp(selector)}\\s*\\{([^}]*)\\}`, 'm'),
+    new RegExp(`^[ \\t]*${escapeRegExp(selector)}\\s*\\{([^}]*)\\}`, 'm'),
     css,
     selector,
   );
