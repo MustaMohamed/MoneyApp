@@ -26,7 +26,8 @@
     ]
   },
   "enabledPlugins": {
-    "expo@expo-plugins": false
+    "expo@expo-plugins": false,
+    "superpowers@claude-plugins-official": false
   },
   "skillOverrides": {
     "cds-daily-report": "off",
