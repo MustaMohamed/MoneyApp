@@ -4,9 +4,12 @@ paths:
   - "src/modules/**/database/**"
   - "src/modules/**/repositories/**"
   - "src/repositories/**"
+  - "src/constants/enums.ts"
 ---
 
 # Database layer rules
+
+**Enums.** String enums in `constants/enums.ts`, regular `enum`, not `const enum` (Babel incompatible). Values match SQLite CHECK strings. Validate with `z.nativeEnum()`.
 
 ## Migrations (`src/database/migrations/`)
 

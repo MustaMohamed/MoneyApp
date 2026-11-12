@@ -11,6 +11,8 @@ paths:
 
 # Business rules
 
+**SecureStore keys** are centralised in `constants/secure_store_keys.ts` as `as const`.
+
 Other files cite these by number ("business rule 6"); keep the numbering.
 
 1. `OnboardingComplete` set only on "Open My Dashboard" tap (N4; the flow is N1 welcome → N2 add account → N3 more accounts → N4 ready).
