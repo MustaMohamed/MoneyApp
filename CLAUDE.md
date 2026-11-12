@@ -8,7 +8,7 @@ Rules and agent files cite audit findings by ID (`H11`, `M33`, `L2`, …). They 
 
 ## Answering me
 
-The `unslop` skill is the output contract for every reply, agent return, review, plan, spec and record; the prompt hook restates its short form each turn. `primitive`, `surface` and `harness` are domain terms here, exempt from its jargon rule where they name the real thing. `npm run lint` fails on its banned method-certification phrases, in any case, in any tracked `.md` file outside `docs/scopes/` and `docs/superpowers/`, which are frozen history.
+`primitive`, `surface` and `harness` are domain terms here, exempt from unslop's jargon rule where they name the real thing. `npm run lint` fails on its banned method-certification phrases in any tracked `.md` file outside `docs/scopes/` and `docs/superpowers/`, which are frozen history.
 
 Every question the main session puts to me, in a skill or not, is checked first against [question-visuals.md](.claude/skills/issue-review/references/question-visuals.md), where the first matching row decides. Options that differ on screen, in a figure or in a structure go out with the HTML visual in the same message, and options that differ over time with a GIF; each draws today beside the options. A gate confirming what I have just read, options that differ only in words, a fact I hold, and anything else stay text, and no file is made. A subagent returns its question as text and draws nothing; the session that asks me makes the visual.
 
@@ -42,14 +42,12 @@ Not critical (decide it and move): field-level UX, naming, file structure, test 
 - A leaf task is one PR, and the unit that gets a branch and `Closes #N`. A parent is never pulled by `/prep` or `/ship`; it mirrors its furthest child and closes through its children.
 - **The size gate is hard: ~400 planned lines outside tests, and 8 plan steps; the number of files is not capped.** No ruling lifts it, mine included. Scope added during `/ship` is recounted, and over the gate it is a new ticket, not this PR. Definition and evidence: `.claude/skills/tickets/references/splitting.md` § Size gate.
 - Every move, who makes it and on what, plus the hierarchy and the size gate: [docs/workflow.md](docs/workflow.md). Nothing else moves a row.
-- CI parity before pushing to a PR branch: the chain in *Commands*. CI is the last line of defence, not the first.
+- CI parity before pushing to a PR branch: `npm run ci:local` (*Commands*). CI is the last line of defence, not the first.
 - Emulator verification is the check each `Verify emulator` ticket gets: anything that changes what a screen shows. A repository test asserts a write. The `emulator-verify` skill has the mechanics, including the per-worktree device lease `mqa up` takes and when a Gradle build is needed. Device QA builds from `main` in the primary checkout (`device-qa` skill).
 
 ## Team
 
-Two dispatchable agents. `@layla` (`.claude/agents/layla.md`) is for a money ruling that must be written into an issue. Name a file path for the ruling in the dispatch, outside the repo (the session scratchpad); the file's lines go under the issue's `## Rules` heading unchanged, and on a task the main thread adds the ruling's Decisions line per `.claude/skills/tickets/references/ticket-body.md` § Writing an answer. `render` (`.claude/agents/render.md`) is the agent type `/ship`'s battery dispatches as the render lens: the emulator rules, a small tool set, no repository writes. Five inline personas through the `moneyapp-expert-panel` skill, `[layla]` `[marcus]` `[sarah]` `[tariq]` `[dev]`: advisory, no files, no dispatch. `/prep` composes its planner and reviewer, `/ship` its implementer and review lenses; the define skills use read-only scouts, and `/issue-review` dispatches fresh reviewers for every lens.
-
-Gotcha: **editing an agent definition is snapshotted at session start; creating a new one is not.** A new file in `.claude/agents/` registers and becomes dispatchable immediately, but editing an existing one does not affect subagents dispatched later in that same session. Restart the session before testing an agent change. Skills and path-scoped rules in `.claude/rules/` have neither problem; they load live, including inside subagents.
+`@layla` writes a money ruling into an issue: name a ruling file outside the repo in the dispatch; its lines go under `## Rules` unchanged, plus the Decisions line per `.claude/skills/tickets/references/ticket-body.md` § Writing an answer. The personas `[layla]` `[marcus]` `[sarah]` `[tariq]` `[dev]` answer inline through the `moneyapp-expert-panel` skill: advisory, no files.
 
 ## Tech Stack
 
@@ -62,53 +60,16 @@ Versions are in `package.json`. What it doesn't say:
 
 ## Commands
 
-```bash
-npx expo prebuild --clean && npx expo run:android   # local dev build
-eas build --profile development --platform android  # cloud dev build
-```
-
-**Pre-push CI parity** mirrors every job after `Install` in `.github/workflows/pr-checks.yml` but one, named below, step for step and stops on the first failure. Fix and re-run from the top until green, then push.
-
-```bash
-npm run format:check \
-  && npm run lint \
-  && npm run typecheck \
-  && npm test -- --ci \
-  && npx --yes expo-doctor@1.20.1 \
-  && npx expo prebuild --no-install --platform android \
-  && test -d android \
-  && echo "✓ CI parity green, safe to push"
-```
-
-Of the jobs after `Install`, the one the chain does not run is `Patched React Native compiles (Android)`. When a pull request changes `patches/**`, `app.json`, `package.json` or `package-lock.json`, it compiles ReactAndroid's Java and Kotlin from the patched source; on any other pull request, and on one whose only such change is a `package.json` change confined to scripts npm does not run on install (`scripts/package_json_scripts_only.mjs`), it passes without compiling. Only a local or EAS build compiles a C++ hunk in a patch. Locally `mqa build` or `npx expo run:android` runs the job's compile inside the Android build. The job has no retry, so re-run one that dies on a download and not on the compile.
-
-Gotcha: even pinned, `expo-doctor` validates against Expo's **live** requirement table, so it can go red with zero commits when Expo moves an SDK requirement. If it fails on a version you didn't touch, that's why; fix with `npx expo install --check` or `expo.install.exclude`. Keep the pinned tool version here and in `.github/workflows/pr-checks.yml` in sync; bump it deliberately.
+- `npm run android:clean` local dev build; `eas build --profile development --platform android` cloud dev build.
+- `npm run ci:local` is the pre-push CI parity chain: every job after `Install` in `.github/workflows/pr-checks.yml`, in order, stopping on the first failure. Fix and re-run it whole until green, then push. It skips one job, `Patched React Native compiles (Android)`; `.claude/skills/ship/references/implement.md` step 7 says when that job compiles.
+- `expo-doctor` checks Expo's live requirement table, so it can go red with zero commits; fix with `npx expo install --check` or `expo.install.exclude`. Its pin lives in the `doctor` script and in `pr-checks.yml`; bump both together.
 
 **After I merge a PR**, without being asked, run the post-merge list in [merge.md § After the merge](.claude/skills/ship/references/merge.md): sync `main`, confirm the ticket closed and Board on merge ran, tear down the worktree and branch, `npm ci` if the lock moved; it names the steps a merge outside `/ship` skips. Squash-merged branches never appear in `git branch --merged`: check `gh pr list --head <branch> --state all` and delete only what reads `MERGED`.
 
-## Project Structure
+## Code layout
 
-```
-src/app/              ROUTING ONLY: _layout.tsx and index.tsx files only
-src/modules/<domain>/ canonical feature code: database, repositories, entities, store, domain, utils, constants, screens, components
-src/components/ui/    shared UI primitives and wrappers
-src/components/       legacy/shared compatibility wrappers only
-src/constants/        enums.ts · secure_store_keys.ts · strings.ts · theme.ts
-src/store/            backward-compat re-exports; avoid new consumers
-src/repositories/     backward-compat re-exports plus shared app settings repo
-src/database/         client.ts · migrations/ · compatibility query/entity stubs
-src/test_helpers/     test-only helpers imported through @/test_helpers
-src/screens/          legacy, one dev-only primitives screen; add nothing here
-src/utils/            shared helpers: money.ts · format_amount.ts · responsive.ts · *.hook.ts · schemas/
-__tests__/            snake_case tests; new files logic-only .ts; existing .tsx suites per .claude/rules/tests.md Render-suite policy
-docs/workflow.md      the board transition table, hierarchy and size gate the workflow skills apply
-docs/adr/             architecture decision records, one dated file per decision
-docs/scopes/          frozen history, output of the retired /scope workflow, one folder per scope
-docs/superpowers/     frozen history: specs, plans, reviews, QA from the pre-/scope flow
-.work/<MA-id>/       transient, branch-only workflow files (the /prep plan); removed before merge, never on main
-```
-
-New domain work belongs under `src/modules/<domain>/` using the existing module shape: `database/`, `repositories/`, `entities/` (types only), `store/` (data stores, and a screen store or `.state.ts` another module reads; a screen's own `.state.ts` stays beside it, § module screen anatomy), `domain/` (money math and derivations), `utils/` (helpers and types other modules read, display helpers included), `constants/` (fixed tables and the colour and label resolvers built on them, their money arithmetic in `domain/`), `screens/` and optional `components/`, per `docs/adr/2026-09-28-shared-helpers-leave-screen-folders.md` §1. No `data/` folder. Root `src/store/`, `src/repositories/`, and most `src/database/` domain files are compatibility surfaces; do not add new consumers.
+- New domain work goes under `src/modules/<domain>/` in the existing module shape, per `docs/adr/2026-09-28-shared-helpers-leave-screen-folders.md` §1. No `data/` folder.
+- Compatibility surfaces, no new consumers: `src/store/`, `src/repositories/`, most of `src/database/`, `src/components/` outside `ui/`, and `src/screens/` (add nothing).
 
 ### app/ rules (critical)
 
