@@ -22,10 +22,10 @@ Audit IDs resolve in [docs/superpowers/reviews/2026-07-29-full-technical-audit.m
 
 ## Gates
 
-Not audit-ID defect classes — process rules MA-016's own review found itself reproducing, over specs, tickets, and jest invocations rather than over `src/`. That is why this section, and this file's path list, cover `__tests__/**` too.
+These rules cover specs, tickets and jest invocations, not `src/`, so this file's path list includes `__tests__/**`.
 
-- **A gate that cannot fail is not a gate.** Every acceptance command published in a spec or task must be demonstrated to produce a different result at base than at head — a command that passes in both states asserts nothing (the fifth recurrence of this exact defect across two tickets). Rule 1 subsumes rule 2 below, and both are kept: every one of MA-016's five failed gates would have been caught by this rule alone, applied at the point the command was published.
-- **Jest treats a path argument as a regex.** A path that matches nothing is a silent skip at exit 0, not a failure. `test -f` every jest path argument before it is published in a spec or task — a concrete recipe for the general rule above, worth keeping on its own because this exact failure mode (a renamed or moved suite, still cited by its old path) recurs independently of whether anyone thought to demonstrate the gate at base vs head.
+- **A gate that cannot fail is not a gate.** Every acceptance command published in a spec or task must be demonstrated to produce a different result at base than at head. A command that passes in both states asserts nothing.
+- **Jest treats a path argument as a regex.** A path that matches nothing is a silent skip at exit 0, not a failure. `test -f` every jest path argument before it is published in a spec or task. The usual case is a renamed or moved suite still cited by its old path.
 
 ## Reporting a defect
 

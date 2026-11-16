@@ -21,9 +21,8 @@ shadows, gesture feel and performance wait for that pass (`device-qa`).
 `mqa.sh`, next to this file, is the only command a run needs. Call it from the worktree as
 `bash .claude/skills/emulator-verify/mqa.sh <verb>`, typed out in full, **one verb per Bash
 call**; below, `mqa` stands for that line. The worktree guard `/ship` runs under refuses a
-function or variable wrapped around it (`m() { … }`, `bash $M`) and a chain of calls: on
-26 Sep it refused 23 such calls in 14 agents, 3.4M tokens of turns. A sequence goes in a walk
-file (below). `mqa help` is complete; do not read the script to learn it.
+function or variable wrapped around it (`m() { … }`, `bash $M`) and a chain of calls.
+A sequence goes in a walk file (below). `mqa help` is complete; do not read the script to learn it.
 
 **A run is three calls:** `mqa up`, one `mqa walk`, `mqa down`. `up` claims this worktree's
 device when it has none, prints the build verdict, and starts or reuses this worktree's

@@ -17,7 +17,7 @@ paths:
 
 Placement and naming: `__tests__/`, `snake_case`, logic-only `.ts` for new files. The `.tsx` render suites are a settled exception, not a pending one, and a new case in one of them follows the Render-suite policy below.
 
-**Render-suite policy (resolves audit M36, decided 2026-08-05, amended 2026-09-28): keep the files, prune by reading, and add a case to an existing `.tsx` suite only when an Acceptance line names render-only wiring, the case's style assertions bind to tokens or named constants, and no new `.tsx` file is created. Render-only wiring is what only a render can observe, such as the render→handler binding below.** This reverses the earlier "delete them all" stance (recorded at audit M36) on measurement rather than preference — so don't "restore" the older policy. ~105 `fireEvent` interactions live across 25 of those suites, and none of the 25 has a same-named `.test.ts` counterpart; three have partial relatives (`set_budget_sheet.hook`/`.state`, `budget_copy_sheet.geometry`) but none of those exercises a render→handler binding. Delete the suites and that wiring coverage goes with nothing inheriting it.
+**Render-suite policy (audit M36): keep the files, prune by reading, and add a case to an existing `.tsx` suite only when an Acceptance line names render-only wiring, the case's style assertions bind to tokens or named constants, and no new `.tsx` file is created. Render-only wiring is what only a render can observe, such as the render→handler binding below.** The `.tsx` suites carry render→handler coverage that no `.test.ts` exercises, so deleting one loses that coverage.
 
 **Keep vs prune, by what the assertion binds to — not by matcher name:**
 
