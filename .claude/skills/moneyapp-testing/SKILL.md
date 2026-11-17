@@ -7,7 +7,7 @@ description: Use when writing or modifying tests in MoneyApp — repository test
 
 ## Overview
 
-Logic-only `.ts` tests in `__tests__/` (snake_case) — no new `.tsx` file; a case in an existing `.tsx` suite follows the Render-suite policy in `.claude/rules/tests.md`. SQL is tested against a **real** SQLite engine (better-sqlite3 in-memory) bridged into the mocked expo-sqlite API, not against mocks of the query layer. The core principle: **a test that mocks the thing it claims to verify is vacuous** (audit M33 found atomicity tests that mocked the transaction wrapper into a pass-through — they'd pass with the logic deleted).
+Logic-only `.ts` tests in `__tests__/` (snake_case) — no new `.tsx` file; a case in an existing `.tsx` suite follows the Render-suite policy in `.claude/rules/tests.md`. SQL is tested against a **real** SQLite engine (better-sqlite3 in-memory) bridged into the mocked expo-sqlite API, not against mocks of the query layer. The core principle: **a test that mocks the thing it claims to verify is vacuous** (M33).
 
 ## The bridge pattern (canonical: `__tests__/transaction.repository.test.ts`)
 
@@ -36,7 +36,7 @@ A test that settles a promise by hand takes `deferred<T>()` from `@/test_helpers
 
 ## Migration testing — the runner caveat
 
-`MIGRATIONS.map(m => m.up).join()` is fine for building schema in repository tests, **but it bypasses `runMigrations`** — the code that actually upgrades every user's database. The audit (H11) found all 35 SQLite suites used the concat shortcut and the runner had zero coverage. Rules:
+`MIGRATIONS.map(m => m.up).join()` is fine for building schema in repository tests, **but it bypasses `runMigrations`** — the code that actually upgrades every user's database. Rules:
 
 - Every new migration gets a test that asserts its DDL effect **and** its CHECK constraints match `src/constants/enums.ts`.
 - At least one suite must drive the real `runMigrations(db)` through the bridge: fresh db → run → assert `schema_migrations` rows; already-migrated db → run → assert idempotence (no re-application).
@@ -54,7 +54,7 @@ A test that settles a promise by hand takes `deferred<T>()` from `@/test_helpers
 
 ## Assert behavior, not source text
 
-Audit M35 found 12 suites asserting raw source strings (exact Tailwind classes, file contents). Those break on refactors that change nothing observable and pass on bugs that change everything. Assert returned values, thrown error types (`TransactionValidationError`, not message text), and database row states after the operation.
+Assertions on raw source strings, such as exact Tailwind classes or file contents (M35), break on refactors that change nothing observable and pass on bugs that change everything. Assert returned values, thrown error types (`TransactionValidationError`, not message text), and database row states after the operation.
 
 ## Required edge cases for money/date logic
 

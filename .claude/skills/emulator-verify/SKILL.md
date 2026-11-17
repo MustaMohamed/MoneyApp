@@ -26,8 +26,7 @@ A sequence goes in a walk file (below). `mqa help` is complete; do not read the 
 
 **A run is three calls:** `mqa up`, one `mqa walk`, `mqa down`. `up` claims this worktree's
 device when it has none, prints the build verdict, and starts or reuses this worktree's
-Metro, so `claim`, `claims`, `needs-build`, `metro` and `help` are not part of a run; on
-26 Sep agents spent 5.8 calls per run on them around `up`.
+Metro, so `claim`, `claims`, `needs-build`, `metro` and `help` are not part of a run.
 
 | Verb | Does |
 |---|---|
@@ -124,10 +123,9 @@ shell calls do not carry env between them, so an exported `MQA_SERIAL` is gone b
 call. Keyed on the worktree, one claim covers every later call from it.
 
 Without a claim, `mqa` refuses to run as soon as a second device is attached or any lease
-is held. Before this existed, four concurrent `/ship` sessions shared one device and
-produced three silent failures: a launch re-pointed another session's dev client at the
-wrong Metro, two dumps at once returned a screen the app was not on, and state-setting
-`DELETE`s landed in another session's fixtures. Every one of those reads as a pass.
+is held. Sessions sharing one device without a claim re-point each other's dev client at the
+wrong Metro, read a screen the app is not on, and delete each other's fixtures. Each of
+those reads as a pass.
 
 A lease goes stale when its worktree is deleted, or after `MQA_LEASE_TTL` (default 2h)
 without a call; every `mqa` call touches its own. `mqa claims` shows a stale lease as free
@@ -152,14 +150,6 @@ dispatches the probe.
 (screen → mapping → SQLite), native and render behaviour, and pixels — not arithmetic a
 pure function already covers.
 
-Two independent walks of MA-007, same branch, same defect surface:
-
-| | 9 scenarios, driven per interaction | 4 scenarios, scoped and scripted |
-|---|---|---|
-| Tool calls | 415 | 132 |
-| Tokens | 473k | 220k |
-| Found the regression | no | **yes** |
-
 Add a scenario only when you can say **what device-only failure it catches**. Four is a
 normal size. The invariant pass of the invariant list, `features/README.md` § Invariant
 pass, runs on at most eight screens outside that count and is not going wide. If a claim
@@ -168,15 +158,14 @@ can be checked with `mqa db`, check it there rather than reading it off a screen
 ## Sync on the value you assert
 
 The agent-device engine reads a screen in under half a second, fast enough to catch it
-before it settles. On MA-102 the totals strip still read the unfiltered month just after
-the filter badge showed `Filter, 1 active`, in 2 of 4 runs. `mqa wait '−2,100'`, then read.
+before it settles. The totals strip can still read the unfiltered month just after the
+filter badge shows `Filter, 1 active`. `mqa wait '−2,100'`, then read.
 A wait on a nearby label is how a fast read reports a stale screen.
 
 `scroll --until` reads before it swipes, so the rule covers it. A first read that lands
 while a screen loads misses a target the loaded screen shows, and the swipe that follows
-exits 0 as `reached <sel> after 1 swipes`: on 2026-10-09 `mqa open /transactions` then
-`scroll down --until 'label="Filter"'` did so in 2 of 2 runs. The verb holds its first
-swipe while its reads still change, and with the hold the same two runs took 0 swipes. A
+exits 0 as `reached <sel> after 1 swipes`. The verb holds its first swipe while its reads
+still change. A
 screen that sits unchanged while its data loads still reads as settled. So after a load (a
 cold launch, `mqa open`, a tap that navigates), `mqa wait` on a node the screen draws from
 its data and shows unscrolled, never on the node `up --ready` already waited for, then
@@ -184,7 +173,7 @@ scroll. A swipe the recipe did not need can leave a node at the scroll viewport'
 where `mqa bounds` reads its box shorter (MA-162, `N4 ready card, rate needed, large font`
 in `features/onboarding.md`).
 
-`mqa bounds` keeps a closed sheet's nodes and, just after a Back, the popped screen's (MA-194: `Save budget`, `Add Category` and `Go back` read present on screens that no longer drew them), so a landing or a closed sheet is proven by the shot, not by a read.
+`mqa bounds` keeps a closed sheet's nodes and, just after a Back, the popped screen's so a landing or a closed sheet is proven by the shot, not by a read.
 
 ## Uiautomator engine: three ordering rules
 
@@ -309,8 +298,7 @@ mqa db "select name, opening_balance, current_balance, currency from accounts"
 ```
 
 Read the columns first with `mqa schema transactions`: dates are `transaction_date` and
-`transaction_time`, and deletion is `is_deleted` on accounts only. Three agents on 26 Sep
-lost a call each to a `date` column that does not exist.
+`transaction_time`, and deletion is `is_deleted` on accounts only.
 
 expo-sqlite runs in WAL mode: writes from seconds ago sit in `moneyapp.db-wal`, so the
 helper pulls `.db`, `-wal` and `-shm` together. Copying the `.db` alone gives you the full
@@ -347,7 +335,7 @@ device QA: this is "verified on emulator", never "QA passed".
 | Reading or waiting on a loading skeleton | It never goes idle, so every read costs 30 s and fails. `shot` it. |
 | `scroll` inside a sheet from a full-screen drag | Pass `--in 'id="<the sheet's scroll view>"'` so the drag starts inside the list. |
 | `scroll --until` as the first call after a launch, `mqa open` or a tap that navigates | `reached <sel> after 1 swipes`, exit 0, on a target the loaded screen shows with no scroll. `mqa wait` first (§ Sync on the value you assert). |
-| Going wide "to be safe" | Measured on MA-007: the 9-scenario walk cost 2× the 4-scenario one **and missed the defect the short one found**. |
+| Going wide "to be safe" | Every scenario costs turns. Add one only for a device-only failure you can name. |
 | A walk driven one tool call per tap | Every call is a model turn. Put the scenario in a script and run `mqa walk`. |
 | Waiting on a nearby label, then reading the value | The value can lag the label (MA-102 totals strip). `mqa wait` on the value itself. |
 | Mixing engines in one run | The uiautomator engine refuses while an agent-device session holds the device. `mqa down` first, or stay on one engine. |
