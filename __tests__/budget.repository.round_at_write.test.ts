@@ -123,6 +123,15 @@ describe('BudgetRepository.setBudget — rounds at the first statement', () => {
 
     expect(readLimitAmount('generated-1')).toBe(500.56);
   });
+
+  it('a second setLimit on one category and month updates the same row', async () => {
+    const repo = new BudgetRepository();
+    await repo.setLimit('cat_food', 500, '2026-08');
+    await expect(repo.setLimit('cat_food', 750, '2026-08')).resolves.toBeUndefined();
+
+    expect(countBudgets()).toBe(1);
+    expect(readLimitAmount('generated-1')).toBe(750);
+  });
 });
 
 function countBudgets(): number {

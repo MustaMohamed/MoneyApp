@@ -355,7 +355,22 @@ export class BudgetRepository implements IBudgetRepository {
   }
 
   async setLimit(categoryId: string, limit: number, yearMonth = currentYearMonth()): Promise<void> {
-    await this.setBudget({ categoryId, name: 'Budget', limit, yearMonth });
+    const name = 'Budget';
+    const limitAmount = roundMoney(limit);
+    const now = new Date().toISOString();
+    await withExclusiveWriteTransactionAsync(async (tx) => {
+      const siblings = await getBudgetRowsForCategoryMonth(tx, categoryId, yearMonth);
+      const existing = siblings.find((row) => sameBudgetName(row.name, name));
+      await setBudgetRow(tx, {
+        id: existing?.id ?? String(uuid.v4()),
+        category_id: categoryId,
+        name,
+        limit_amount: limitAmount,
+        effective_from: yearMonth,
+        created_at: existing?.created_at ?? now,
+        updated_at: now,
+      });
+    });
   }
 
   async removeBudget(id: string, _yearMonth = currentYearMonth()): Promise<void> {

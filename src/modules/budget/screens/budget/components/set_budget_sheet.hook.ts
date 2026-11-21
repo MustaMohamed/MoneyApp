@@ -10,10 +10,10 @@ import type { BudgetEditTargetVM } from '@/modules/budget/screens/budget/budget.
 import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import type { Category } from '@/modules/categories/entities/category.entity';
-import { formatMonthYear } from '@/utils/format_date';
 import { formatStoredMoneyText, maskFieldText, parseRequiredMoneyText } from '@/utils/money_text';
 import { budgetFormSchema, type BudgetFormValues } from '@/utils/schemas/budget.schema';
 import { setTypedDecimal, useZodForm } from '@/utils/use_zod_form.hook';
+import { fullMonthName } from '@/utils/year_month';
 
 import { useSetBudgetSheetState } from './set_budget_sheet.state';
 
@@ -166,8 +166,7 @@ export function useSetBudgetSheet({
   const resolvedCategoryName = isEdit ? editingRow?.categoryName : selectedCategory?.name;
   const submit = handleSubmit(async (values) => {
     if (!resolvedCategoryId) return;
-    const monthYear = formatMonthYear(selectedMonth);
-    const monthName = monthYear.split(' ')[0] ?? monthYear;
+    const monthName = fullMonthName(selectedMonth);
     const nameTakenMessage = (error: unknown) =>
       error instanceof BudgetNameTakenError && resolvedCategoryName !== undefined
         ? Strings.budgetNameTaken(resolvedCategoryName, error.budgetName, monthName)
