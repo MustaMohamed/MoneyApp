@@ -1,5 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 
+import { BudgetGroup } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { BudgetNameTakenError } from '@/modules/budget/repositories/budget.repository';
 import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
@@ -79,7 +80,11 @@ describe('useSetBudgetSheet', () => {
     useBudgetState.getState().setSelectedMonth('2026-08');
     useBudgetState.getState().openEdit(existingBudget.id);
     const { result } = await renderHook(() =>
-      useSetBudgetSheet({ budgetableCategories: categories, editingRow: existingBudget }),
+      useSetBudgetSheet({
+        budgetableCategories: categories,
+        editingRow: existingBudget,
+        shownGroupByCategoryId: {},
+      }),
     );
     await waitFor(() => expect(useSetBudgetSheetState.getState().sessionKey).toBeDefined());
 
@@ -99,7 +104,11 @@ describe('useSetBudgetSheet', () => {
     useBudgetState.getState().setSelectedMonth('2026-08');
     useBudgetState.getState().openEdit(existingBudget.id);
     const { result } = await renderHook(() =>
-      useSetBudgetSheet({ budgetableCategories: categories, editingRow: existingBudget }),
+      useSetBudgetSheet({
+        budgetableCategories: categories,
+        editingRow: existingBudget,
+        shownGroupByCategoryId: {},
+      }),
     );
     await waitFor(() => expect(useSetBudgetSheetState.getState().sessionKey).toBeDefined());
 
@@ -129,7 +138,11 @@ describe('useSetBudgetSheet — MA-115 a half-typed limit', () => {
     useBudgetState.getState().setSelectedMonth('2026-08');
     useBudgetState.getState().openEdit(existingBudget.id);
     const { result } = await renderHook(() =>
-      useSetBudgetSheet({ budgetableCategories: categories, editingRow: existingBudget }),
+      useSetBudgetSheet({
+        budgetableCategories: categories,
+        editingRow: existingBudget,
+        shownGroupByCategoryId: {},
+      }),
     );
     await waitFor(() => expect(useSetBudgetSheetState.getState().sessionKey).toBeDefined());
     return { result, setBudget };
@@ -326,5 +339,112 @@ describe('a duplicate-name refusal shows its own message on the sheet (MA-287)',
       Strings.budgetNameTaken('Health', 'gym', 'November'),
     );
     expect(useBudgetState.getState().sheetVisible).toBe(true);
+  });
+});
+
+describe('the sheet starts on the group the category shows for the month (MA-287)', () => {
+  const health = makeTestBudgetableCategory({
+    id: 'cat_health',
+    name: 'Health',
+    budget_group: BudgetGroup.Need,
+  });
+  const food = makeTestBudgetableCategory({
+    id: 'cat_food',
+    name: 'Food',
+    budget_group: BudgetGroup.Need,
+  });
+  const gifts = makeTestBudgetableCategory({
+    id: 'cat_gifts',
+    name: 'Gifts',
+    budget_group: BudgetGroup.Want,
+  });
+  const shownGroupByCategoryId = {
+    cat_health: BudgetGroup.Want,
+    cat_food: BudgetGroup.Savings,
+  };
+
+  async function mountAdd(budgetableCategories = [health, food, gifts]) {
+    const setBudget = jest.fn().mockResolvedValue(undefined);
+    useBudgetStore.setState({ setBudget });
+    useBudgetState.getState().setSelectedMonth('2026-11');
+    useBudgetState.getState().openAdd();
+    const { result } = await renderHook(() =>
+      useSetBudgetSheet({ budgetableCategories, shownGroupByCategoryId }),
+    );
+    await waitFor(() => expect(useSetBudgetSheetState.getState().sessionKey).toBeDefined());
+    return { result, setBudget };
+  }
+
+  it('add mode on a category whose month group is Want and default Need starts on Want', async () => {
+    await mountAdd();
+
+    expect(useSetBudgetSheetState.getState()).toMatchObject({
+      selectedCategoryId: 'cat_health',
+      groupValue: BudgetGroup.Want,
+    });
+  });
+
+  it('add mode on a category with no entry for the month starts not grouped', async () => {
+    await mountAdd([gifts, health]);
+
+    expect(useSetBudgetSheetState.getState()).toMatchObject({
+      selectedCategoryId: 'cat_gifts',
+      groupValue: null,
+    });
+  });
+
+  it("selectCategory moves the group to the chosen category's entry for the month", async () => {
+    const { result } = await mountAdd();
+
+    await act(async () => result.current.selectCategory(food));
+    expect(useSetBudgetSheetState.getState()).toMatchObject({
+      selectedCategoryId: 'cat_food',
+      groupValue: BudgetGroup.Savings,
+    });
+
+    await act(async () => result.current.selectCategory(gifts));
+    expect(useSetBudgetSheetState.getState()).toMatchObject({
+      selectedCategoryId: 'cat_gifts',
+      groupValue: null,
+    });
+  });
+
+  it('a sheet opened from a 50/30/20 group keeps that group after selectCategory', async () => {
+    useBudgetStore.setState({ setBudget: jest.fn().mockResolvedValue(undefined) });
+    useBudgetState.getState().setSelectedMonth('2026-11');
+    useBudgetState.getState().openAddWithContext(undefined, BudgetGroup.Need);
+    const { result } = await renderHook(() =>
+      useSetBudgetSheet({ budgetableCategories: [health, food], shownGroupByCategoryId }),
+    );
+    await waitFor(() => expect(useSetBudgetSheetState.getState().sessionKey).toBeDefined());
+    expect(useSetBudgetSheetState.getState().groupValue).toBe(BudgetGroup.Need);
+
+    await act(async () => result.current.selectCategory(health));
+
+    expect(useSetBudgetSheetState.getState()).toMatchObject({
+      selectedCategoryId: 'cat_health',
+      groupValue: BudgetGroup.Need,
+    });
+  });
+
+  it('a save without touching the group sends the group the category shows for the month', async () => {
+    const { result, setBudget } = await mountAdd();
+
+    await act(async () => {
+      await result.current.control
+        .register('nameText')
+        .onChange({ target: { name: 'nameText', value: 'Gym' }, type: 'change' });
+      result.current.setLimitText('500');
+    });
+    await act(async () => result.current.submit());
+
+    expect(setBudget).toHaveBeenCalledTimes(1);
+    expect(setBudget).toHaveBeenCalledWith(
+      expect.objectContaining({
+        categoryId: 'cat_health',
+        yearMonth: '2026-11',
+        categoryGroup: BudgetGroup.Want,
+      }),
+    );
   });
 });

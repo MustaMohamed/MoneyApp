@@ -449,6 +449,7 @@ const baseState: BudgetScreenState = {
   hasBudgets: false,
   hasSpendingPlans: false,
   budgetableCategories: [],
+  budgetSheetGroupByCategoryId: {},
   ruleLens: {
     summary: {
       income: undefined,
