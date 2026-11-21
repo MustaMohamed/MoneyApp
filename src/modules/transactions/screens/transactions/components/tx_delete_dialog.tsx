@@ -25,6 +25,7 @@ export function TxDeleteDialog({
       visible={isOpen}
       busy={busy}
       destructive
+      trashIcon
       title={Strings.deleteConfirmTitle}
       body={body}
       confirmLabel={Strings.deleteTransaction}

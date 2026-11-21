@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { CHIP_ROW_ROOM_BELOW } from '@/components/ui/account_chips.geometry';
+import { CHIP_ROW_ROOM_BELOW } from '@/components/ui/chip_row.geometry';
 import { SearchFilterRow } from '@/components/ui/search_filter_row';
 import { Strings } from '@/constants/strings';
 
