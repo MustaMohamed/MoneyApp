@@ -260,6 +260,7 @@ recorded in an ADR — the obligation `exchange_rate_row.tsx`'s prior bare liter
   escalate-on-zero rule, because it is a live-entry confirmation of what the user is typing, not
   an at-rest amount. Recorded in
   `docs/adr/2026-08-22-money-rounding-layer.md` Addendum A §4.
+  Amended by MA-315 (#969): the line prints whole EGP until any figure has cents (Addendum A §4).
 
 Do not amend `docs/adr/2026-08-18-starting-net-position.md` §6 from here — it is stale for a
 separate reason (#276), not this ticket's.

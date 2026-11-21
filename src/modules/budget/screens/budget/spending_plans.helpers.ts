@@ -463,12 +463,13 @@ export function computeAllocationHelper(
   totalAmount: number | undefined,
   amounts: readonly (number | undefined)[],
 ): AllocationHelperVM {
-  const { allocated, buffer, isOver } = sumAllocations(amounts, totalAmount);
+  const { allocated, buffer, isOver, hasCents } = sumAllocations(amounts, totalAmount);
   return {
     allocated,
     // Normalise here: the formatter leaves an exact -0 on screen rather than laundering it.
     buffer: buffer === undefined ? undefined : normalizeNegativeZero(buffer),
     isOver,
+    hasCents,
   };
 }
 

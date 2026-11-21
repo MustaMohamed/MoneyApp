@@ -2,7 +2,9 @@ import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Strings } from '@/constants/strings';
 import { Size, Type } from '@/constants/theme';
 import {
+  formatLimitsFigure,
   resolveAllocationSlotMinHeight,
+  resolveAllocationSlotWidth,
   resolveSpendingPlanFieldGeometry,
   showsAllocationSuffix,
   validateAllocationText,
@@ -99,6 +101,37 @@ describe('resolveAllocationSlotMinHeight', () => {
 
     expect(resolveAllocationSlotMinHeight(fontScale)).toBeCloseTo(field.height + 26, 10);
     expect(resolveAllocationSlotMinHeight(fontScale)).toBeGreaterThan(62);
+  });
+});
+
+describe('formatLimitsFigure', () => {
+  it.each([
+    [3000, false, '3,000'],
+    [2000.4, true, '2,000.40'],
+    [500, true, '500.00'],
+  ])('formats %p with hasCents %p as %p', (value, hasCents, expected) => {
+    expect(formatLimitsFigure(value, hasCents)).toBe(expected);
+  });
+});
+
+describe('resolveAllocationSlotWidth', () => {
+  it.each([0.85, 1])('is the slot token at font scale %s', (fontScale) => {
+    expect(resolveAllocationSlotWidth(fontScale)).toBe(Size.spendingPlanAllocationSlot);
+  });
+
+  it('grows with the empty field text at font scale 2', () => {
+    const width = resolveAllocationSlotWidth(2);
+
+    expect(width).toBe(
+      2 * Size.spendingPlanAllocationFieldPaddingX +
+        2 * Size.fieldBorderWidth +
+        2 * Size.spendingPlanAllocationSlotText,
+    );
+    expect(width).toBeGreaterThan(Size.spendingPlanAllocationSlot);
+  });
+
+  it('never drops below the slot token at font scale 1.3', () => {
+    expect(resolveAllocationSlotWidth(1.3)).toBeGreaterThanOrEqual(Size.spendingPlanAllocationSlot);
   });
 });
 

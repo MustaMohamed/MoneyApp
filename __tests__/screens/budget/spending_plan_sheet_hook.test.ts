@@ -253,9 +253,9 @@ describe('useSpendingPlanSheet', () => {
     expect(prefill.totalText).toBe('1000000000000000000000');
   });
 
-  it('hides the allocation helper line while no plan total has been entered', async () => {
-    mockTotalText = '0';
-    const { result } = await renderHook(() =>
+  it('hides the limits summary and reads nothing over while no plan total has been entered', async () => {
+    mockTotalText = '5000';
+    const { result, rerender } = await renderHook(() =>
       useSpendingPlanSheet({ budgetableCategories: categories }),
     );
     await waitFor(() =>
@@ -263,11 +263,19 @@ describe('useSpendingPlanSheet', () => {
     );
 
     await act(() => result.current.setAllocateByCategory(true));
-    await act(() => result.current.setAllocationText('cat_food', '100'));
+    await act(() => result.current.setAllocationText('cat_food', '6000'));
+    expect(result.current.state.allocationSummaryText).toBe(
+      Strings.budgetPlanLimitsSummaryOver('6,000', '1,000'),
+    );
+
+    mockTotalText = '0';
+    await rerender(undefined);
 
     // Read before any submit: a successful save closes the sheet and resets the draft store.
-    expect(result.current.state.allocationHelperText).toBeUndefined();
+    expect(result.current.state.allocationSummaryText).toBeUndefined();
     expect(result.current.state.allocationIsOver).toBe(false);
+    expect(result.current.state.footerLine).toBeUndefined();
+    expect(result.current.state.overRingedCategoryId).toBeUndefined();
   });
 
   it('ignores an allocation on a category that is not selected', async () => {
@@ -460,8 +468,8 @@ describe('useSpendingPlanSheet', () => {
     await act(() => result.current.setAllocationText('cat_transport', '40'));
 
     // Read before any submit: a successful save closes the sheet and resets the draft store.
-    expect(result.current.state.allocationHelperText).toBe(
-      '40.00 of 100.00 allocated · 60.00 buffer',
+    expect(result.current.state.allocationSummaryText).toBe(
+      Strings.budgetPlanLimitsSummary('40', '60'),
     );
     expect(result.current.state.allocationErrors.cat_food).toBeUndefined();
     expect(result.current.state.allocationErrors.cat_transport).toBeUndefined();
@@ -529,6 +537,7 @@ describe('useSpendingPlanSheet', () => {
 
     const otherEdits: Array<[string, (hook: PlanHook) => void]> = [
       ['clearSubmitError', (hook) => hook.clearSubmitError()],
+      ['editTotal', (hook) => hook.editTotal()],
       ['toggleCategory on another category', (hook) => hook.toggleCategory(health)],
       [
         'setAllocateByCategory off and on',
@@ -558,6 +567,29 @@ describe('useSpendingPlanSheet', () => {
 
         expect(useSpendingPlanSheetStore.getState().allocations.cat_food).toBe('48.');
         expect(result.current.state.allocationErrors.cat_food).toBe(Strings.errAmountInvalid);
+      },
+    );
+
+    it.each(otherEdits)(
+      'a Save the 0.005 row refused leaves no line above Save once %s runs',
+      async (_name, edit) => {
+        const setSpendingPlan = jest.fn().mockResolvedValue(undefined);
+        useBudgetStore.setState({ setSpendingPlan });
+        const { result } = await renderHook(() =>
+          useSpendingPlanSheet({ budgetableCategories: threeCategories }),
+        );
+        await waitFor(() =>
+          expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
+        );
+        await act(() => result.current.setAllocateByCategory(true));
+        await act(() => result.current.setAllocationText('cat_food', '0.005'));
+        await act(async () => result.current.submit());
+        expect(setSpendingPlan).not.toHaveBeenCalled();
+        expect(result.current.state.footerLine).toBe(Strings.budgetPlanAllocationInvalid);
+
+        await act(() => edit(result.current));
+
+        expect(result.current.state.footerLine).toBeUndefined();
       },
     );
 
@@ -840,11 +872,11 @@ describe('useSpendingPlanSheet', () => {
     );
   });
 
-  // `formatAmount` defaults to 0dp, which would hide the cents this line exists to confirm.
+  // Once a typed figure holds cents the summary prints to the cent, so no cent is rounded away.
   it.each([
-    ['0.40', '0.40 of 100.00 allocated · 99.60 buffer'],
-    ['45.40', '45.40 of 100.00 allocated · 54.60 buffer'],
-  ])('renders the running total at 2dp for %p', async (text, expected) => {
+    ['0.40', '0.40', '99.60'],
+    ['45.40', '45.40', '54.60'],
+  ])('renders the limits summary to the cent for %p', async (text, assigned, flexible) => {
     mockTotalText = '100';
     const { result } = await renderHook(() =>
       useSpendingPlanSheet({ budgetableCategories: categories }),
@@ -857,11 +889,13 @@ describe('useSpendingPlanSheet', () => {
     await act(() => result.current.setAllocationText('cat_food', text));
 
     // Read before any submit: a successful save closes the sheet and resets the draft store.
-    expect(result.current.state.allocationHelperText).toBe(expected);
+    expect(result.current.state.allocationSummaryText).toBe(
+      Strings.budgetPlanLimitsSummary(assigned, flexible),
+    );
     expect(result.current.state.allocationIsOver).toBe(false);
   });
 
-  it('renders a signed negative buffer once the allocations exceed the total', async () => {
+  it('renders the over figure as a magnitude once the limits exceed the total', async () => {
     mockTotalText = '100';
     const { result } = await renderHook(() =>
       useSpendingPlanSheet({ budgetableCategories: categories }),
@@ -874,14 +908,15 @@ describe('useSpendingPlanSheet', () => {
     await act(() => result.current.setAllocationText('cat_food', '100.40'));
 
     // Read before any submit: a successful save closes the sheet and resets the draft store.
-    expect(result.current.state.allocationHelperText).toBe(
-      '100.40 of 100.00 allocated · -0.40 buffer',
+    expect(result.current.state.allocationSummaryText).toBe(
+      Strings.budgetPlanLimitsSummaryOver('100.40', '0.40'),
     );
+    expect(result.current.state.footerLine).toBe(Strings.budgetPlanLimitsOver('0.40'));
     expect(result.current.state.allocationIsOver).toBe(true);
   });
 
   // '45.' fails the validator and contributes 0, so the buffer transiently overstates.
-  it('recomputes the running total on every keystroke, mid-typing states included', async () => {
+  it('recomputes the limits summary on every keystroke, mid-typing states included', async () => {
     mockTotalText = '100';
     const { result } = await renderHook(() =>
       useSpendingPlanSheet({ budgetableCategories: categories }),
@@ -892,15 +927,178 @@ describe('useSpendingPlanSheet', () => {
 
     await act(() => result.current.setAllocateByCategory(true));
     // Read before any submit: a successful save closes the sheet and resets the draft store.
-    for (const [text, expected] of [
-      ['4', '4.00 of 100.00 allocated · 96.00 buffer'],
-      ['45', '45.00 of 100.00 allocated · 55.00 buffer'],
-      ['45.', '0.00 of 100.00 allocated · 100.00 buffer'],
-      ['45.4', '45.40 of 100.00 allocated · 54.60 buffer'],
-      ['45.40', '45.40 of 100.00 allocated · 54.60 buffer'],
+    for (const [text, assigned, flexible] of [
+      ['4', '4', '96'],
+      ['45', '45', '55'],
+      ['45.', '0', '100'],
+      ['45.4', '45.40', '54.60'],
+      ['45.40', '45.40', '54.60'],
     ] as const) {
       await act(() => result.current.setAllocationText('cat_food', text));
-      expect(result.current.state.allocationHelperText).toBe(expected);
+      expect(result.current.state.allocationSummaryText).toBe(
+        Strings.budgetPlanLimitsSummary(assigned, flexible),
+      );
     }
+  });
+
+  describe('MA-315 limits summary, over line and ringed field', () => {
+    const transport: Category = { ...category, id: 'cat_transport', name: 'Transport' };
+    const health: Category = { ...category, id: 'cat_health', name: 'Health' };
+    // Hoisted: `budgetableCategories` is in the seeding effect's deps, so a new array re-seeds.
+    const threeCategories = [category, transport, health];
+
+    // Food, Transport and Health selected, allocate on, total 5000.
+    async function mountLimits() {
+      mockTotalText = '5000';
+      mockSubmitTotalText = '5000';
+      const setSpendingPlan = jest.fn().mockResolvedValue(undefined);
+      useBudgetStore.setState({ setSpendingPlan });
+      const hook = await renderHook(() =>
+        useSpendingPlanSheet({ budgetableCategories: threeCategories }),
+      );
+      await waitFor(() =>
+        expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
+      );
+      await act(() => hook.result.current.toggleCategory(transport));
+      await act(() => hook.result.current.toggleCategory(health));
+      await act(() => hook.result.current.setAllocateByCategory(true));
+      return { ...hook, setSpendingPlan };
+    }
+
+    it('reads assigned and flexible in whole EGP while every figure is whole', async () => {
+      const { result } = await mountLimits();
+
+      await act(() => result.current.setAllocationText('cat_food', '2000'));
+      await act(() => result.current.setAllocationText('cat_transport', '1000'));
+
+      expect(result.current.state.allocationSummaryText).toBe(
+        Strings.budgetPlanLimitsSummary('3,000', '2,000'),
+      );
+      expect(result.current.state.allocationIsOver).toBe(false);
+      expect(result.current.state.footerLine).toBeUndefined();
+    });
+
+    it('reads assigned and flexible to the cent once a limit holds cents', async () => {
+      const { result } = await mountLimits();
+
+      await act(() => result.current.setAllocationText('cat_food', '2000.40'));
+
+      expect(result.current.state.allocationSummaryText).toBe(
+        Strings.budgetPlanLimitsSummary('2,000.40', '2,999.60'),
+      );
+    });
+
+    it('rings the limit row typed last while the limits exceed the total', async () => {
+      const { result } = await mountLimits();
+
+      await act(() => result.current.setAllocationText('cat_food', '2000'));
+      await act(() => result.current.setAllocationText('cat_transport', '3500'));
+
+      expect(result.current.state.allocationSummaryText).toBe(
+        Strings.budgetPlanLimitsSummaryOver('5,500', '500'),
+      );
+      expect(result.current.state.footerLine).toBe(Strings.budgetPlanLimitsOver('500'));
+      expect(result.current.state.allocationIsOver).toBe(true);
+      expect(result.current.state.overRingedCategoryId).toBe('cat_transport');
+      expect(result.current.state.totalCarriesOverRing).toBe(false);
+    });
+
+    it('rings the total, not a row, when the total is lowered past the limits', async () => {
+      const { result, rerender } = await mountLimits();
+      await act(() => result.current.setAllocationText('cat_food', '2000'));
+      await act(() => result.current.setAllocationText('cat_transport', '3000'));
+      expect(result.current.state.allocationIsOver).toBe(false);
+
+      await act(() => result.current.editTotal());
+      mockTotalText = '4500';
+      await rerender(undefined);
+
+      expect(result.current.state.allocationIsOver).toBe(true);
+      expect(result.current.state.totalCarriesOverRing).toBe(true);
+      expect(result.current.state.overRingedCategoryId).toBeUndefined();
+      expect(result.current.state.footerLine).toBe(Strings.budgetPlanLimitsOver('500'));
+    });
+
+    it('rings nothing once the row typed last leaves with its category, still over', async () => {
+      const { result } = await mountLimits();
+      await act(() => result.current.setAllocationText('cat_health', '3000'));
+      await act(() => result.current.setAllocationText('cat_food', '2500'));
+      await act(() => result.current.setAllocationText('cat_transport', '500'));
+      expect(result.current.state.overRingedCategoryId).toBe('cat_transport');
+
+      await act(() => result.current.toggleCategory(transport));
+
+      expect(result.current.state.allocationIsOver).toBe(true);
+      expect(result.current.state.overRingedCategoryId).toBeUndefined();
+      expect(result.current.state.totalCarriesOverRing).toBe(false);
+      expect(result.current.state.allocationSummaryText).toBe(
+        Strings.budgetPlanLimitsSummaryOver('5,500', '500'),
+      );
+      expect(result.current.state.footerLine).toBe(Strings.budgetPlanLimitsOver('500'));
+    });
+
+    it('refuses a Save while over without setting a submit error', async () => {
+      const { result, setSpendingPlan } = await mountLimits();
+      await act(() => result.current.setAllocationText('cat_food', '2000'));
+      await act(() => result.current.setAllocationText('cat_transport', '3500'));
+
+      await act(async () => result.current.submit());
+
+      expect(setSpendingPlan).not.toHaveBeenCalled();
+      expect(useSpendingPlanSheetState.getState().submitError).toBeUndefined();
+      expect(result.current.state.footerLine).toBe(Strings.budgetPlanLimitsOver('500'));
+    });
+
+    const nextEdits: Array<[string, (hook: ReturnType<typeof useSpendingPlanSheet>) => void]> = [
+      ['setAllocationText', (hook) => hook.setAllocationText('cat_food', '5')],
+      ['toggleCategory', (hook) => hook.toggleCategory(health)],
+    ];
+
+    it.each(nextEdits)(
+      'shows the 0.005 row refusal above Save until %s runs',
+      async (_name, edit) => {
+        const { result, setSpendingPlan } = await mountLimits();
+        await act(() => result.current.setAllocationText('cat_food', '0.005'));
+        await act(async () => result.current.submit());
+        expect(setSpendingPlan).not.toHaveBeenCalled();
+        expect(result.current.state.footerLine).toBe(Strings.budgetPlanAllocationInvalid);
+
+        await act(() => edit(result.current));
+
+        expect(result.current.state.footerLine).toBeUndefined();
+      },
+    );
+
+    it('keeps the ringed limit row when the name clears the submit error', async () => {
+      const { result } = await mountLimits();
+      await act(() => result.current.setAllocationText('cat_food', '2000'));
+      await act(() => result.current.setAllocationText('cat_transport', '3500'));
+      expect(result.current.state.overRingedCategoryId).toBe('cat_transport');
+
+      await act(() => result.current.clearSubmitError());
+
+      expect(result.current.state.overRingedCategoryId).toBe('cat_transport');
+      expect(result.current.state.totalCarriesOverRing).toBe(false);
+    });
+
+    it('saves with no limits once the switch is turned off while over', async () => {
+      const { result, setSpendingPlan } = await mountLimits();
+      await act(() => result.current.setAllocationText('cat_food', '2000'));
+      await act(() => result.current.setAllocationText('cat_transport', '3500'));
+      expect(result.current.state.footerLine).toBe(Strings.budgetPlanLimitsOver('500'));
+
+      await act(() => result.current.setAllocateByCategory(false));
+      expect(result.current.state.allocationIsOver).toBe(false);
+      expect(result.current.state.footerLine).toBeUndefined();
+
+      await act(async () => result.current.submit());
+
+      expect(setSpendingPlan).toHaveBeenCalledTimes(1);
+      const [input] = setSpendingPlan.mock.calls[0] as [
+        { categories: Array<{ categoryId: string; allocatedAmount?: number }> },
+      ];
+      expect(input.categories.length).toBeGreaterThan(0);
+      for (const entry of input.categories) expect(entry.allocatedAmount).toBeUndefined();
+    });
   });
 });

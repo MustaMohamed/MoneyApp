@@ -212,4 +212,6 @@ export interface AllocationHelperVM {
   /** `undefined` while no plan total has been entered. */
   buffer: number | undefined;
   isOver: boolean;
+  /** Whether the total or any limit holds cents, so the figures print to the cent. */
+  hasCents: boolean;
 }

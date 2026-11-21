@@ -13,6 +13,7 @@ const LUMINANCE_BAND = { min: 0.187, max: 0.245 } as const;
 
 const BACKDROPS: Record<string, string> = {
   darkScreen: Colors.dark.bg,
+  darkSurface: Colors.dark.surface,
   darkChip: Colors.dark.surfaceEl,
   heroGradientMiddle: Colors.shared.heroGrad2,
   lightSurface: Colors.light.surface,
@@ -86,12 +87,12 @@ function freshInstallColours(): CategoryColour[] {
 }
 
 describe('category colours clear the 3:1 glyph floor on both themes', () => {
-  it('every swatch in the category form clears 3:1 on all five backdrops', () => {
+  it('every swatch in the category form clears 3:1 on all six backdrops', () => {
     expect(swatches).toHaveLength(12);
     expect(belowFloor(swatches)).toEqual([]);
   });
 
-  it('every fresh-install category colour clears 3:1 on all five backdrops', () => {
+  it('every fresh-install category colour clears 3:1 on all six backdrops', () => {
     const rows = freshInstallColours();
 
     expect(rows).toHaveLength(29);

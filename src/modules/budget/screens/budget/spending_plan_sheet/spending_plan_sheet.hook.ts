@@ -10,7 +10,7 @@ import {
 } from '@/modules/budget/repositories/budget.repository';
 import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
 import {
-  SPENDING_PLAN_ALLOCATION_DECIMALS,
+  formatLimitsFigure,
   validateAllocationText,
 } from '@/modules/budget/screens/budget/spending_plan_sheet/spending_plan_sheet.helpers';
 import {
@@ -25,7 +25,6 @@ import {
 import type { SpendingPlanRowVM } from '@/modules/budget/screens/budget/spending_plans.types';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import type { Category } from '@/modules/categories/entities/category.entity';
-import { formatAmount } from '@/utils/format_amount';
 import { toLocalDateString } from '@/utils/format_date';
 import {
   formatStoredMoneyText,
@@ -76,6 +75,7 @@ export function useSpendingPlanSheet({
     saving,
     allocationSubmitAttempted,
     lastTypedAllocationId,
+    lastEditedAmountField,
   } = useSpendingPlanSheetState(
     useShallow((state) => ({
       pickerExpanded: state.pickerExpanded,
@@ -84,6 +84,7 @@ export function useSpendingPlanSheet({
       saving: state.saving,
       allocationSubmitAttempted: state.allocationSubmitAttempted,
       lastTypedAllocationId: state.lastTypedAllocationId,
+      lastEditedAmountField: state.lastEditedAmountField,
     })),
   );
   const setLastTypedAllocation = useSpendingPlanSheetState.getState().setLastTypedAllocation;
@@ -185,6 +186,8 @@ export function useSpendingPlanSheet({
         preflight.setSubmitError(Strings.budgetPlanAllocationInvalid);
         return;
       }
+      // The live over line already stands above Save; the schema's static issue is for other callers.
+      if (allocationHelper.isOver) return;
       // Parsed before `setSaving(true)` so a failure returns with no saving flag left set.
       let totalAmount: number;
       try {
@@ -247,17 +250,30 @@ export function useSpendingPlanSheet({
     datePickerTarget === 'end'
       ? endDate || `${selectedMonth}-01`
       : startDate || `${selectedMonth}-01`;
+  const { allocated, buffer, isOver, hasCents } = allocationHelper;
+  const fmt = (value: number) => formatLimitsFigure(value, hasCents);
   // The two clauses below are one condition; narrowing either does not narrow the other.
-  const { allocated, buffer } = allocationHelper;
-  const helperText =
-    buffer === undefined || totalAmount === undefined
+  const allocationSummaryText =
+    !allocateByCategory || buffer === undefined || totalAmount === undefined
       ? undefined
-      : Strings.budgetPlanAllocationHelper(
-          formatAmount(allocated, SPENDING_PLAN_ALLOCATION_DECIMALS),
-          formatAmount(totalAmount, SPENDING_PLAN_ALLOCATION_DECIMALS),
-          // Signed, not clamped: a plan 0.40 over its total has to say so.
-          formatAmount(buffer, SPENDING_PLAN_ALLOCATION_DECIMALS),
-        );
+      : isOver
+        ? Strings.budgetPlanLimitsSummaryOver(fmt(allocated), fmt(-buffer))
+        : Strings.budgetPlanLimitsSummary(fmt(allocated), fmt(buffer));
+  const overLine =
+    isOver && buffer !== undefined ? Strings.budgetPlanLimitsOver(fmt(-buffer)) : undefined;
+  const totalCarriesOverRing = isOver && lastEditedAmountField?.kind === 'total';
+  const overRingedCategoryId =
+    isOver &&
+    lastEditedAmountField?.kind === 'allocation' &&
+    selectedCategoryIds.includes(lastEditedAmountField.categoryId)
+      ? lastEditedAmountField.categoryId
+      : undefined;
+
+  // An edit outside the limit rows ends the refusal line and the incomplete-row exemption.
+  const endEdit = () => {
+    useSpendingPlanSheetState.getState().setSubmitError(undefined);
+    setLastTypedAllocation(undefined);
+  };
 
   return {
     state: {
@@ -272,9 +288,11 @@ export function useSpendingPlanSheet({
       allocateByCategory,
       allocations,
       allocationErrors,
-      allocationHelperText: helperText,
-      allocationIsOver: allocationHelper.isOver,
-      submitError,
+      allocationSummaryText,
+      allocationIsOver: isOver,
+      totalCarriesOverRing,
+      overRingedCategoryId,
+      footerLine: submitError ?? overLine,
       saving,
       categoryPickerOpen: planSheetVisible && pickerExpanded,
       budgetableCategories,
@@ -289,11 +307,11 @@ export function useSpendingPlanSheet({
     setValue,
     clearErrors,
     toggleCategory: (category: Category) => {
-      setLastTypedAllocation(undefined);
+      endEdit();
       useSpendingPlanSheetStore.getState().toggleCategoryId(category.id);
     },
     setAllocateByCategory: (enabled: boolean) => {
-      setLastTypedAllocation(undefined);
+      endEdit();
       useSpendingPlanSheetStore.getState().setAllocateByCategory(enabled);
     },
     setAllocationText: (categoryId: string, text: string) => {
@@ -302,14 +320,18 @@ export function useSpendingPlanSheet({
       const masked = maskMoneyFieldText(previous, text);
       if (masked === undefined) return;
       // Clear after the mask guard, so a refused keystroke cannot wipe a visible error.
-      useSpendingPlanSheetState.getState().setSubmitError(undefined);
+      const sheetState = useSpendingPlanSheetState.getState();
+      sheetState.setSubmitError(undefined);
+      sheetState.setLastEditedAmountField({ kind: 'allocation', categoryId });
       setLastTypedAllocation(categoryId);
       useSpendingPlanSheetStore.getState().setAllocation(categoryId, masked);
     },
-    // The name and the total call this as `onEdit`: an edit outside the rows ends the exemption.
-    clearSubmitError: () => {
-      useSpendingPlanSheetState.getState().setSubmitError(undefined);
-      setLastTypedAllocation(undefined);
+    // The name calls this as `onEdit`.
+    clearSubmitError: endEdit,
+    // The total's `onEdit`: it also becomes the field that carries the ring while limits are over.
+    editTotal: () => {
+      endEdit();
+      useSpendingPlanSheetState.getState().setLastEditedAmountField({ kind: 'total' });
     },
     openDatePicker: (target: SpendingPlanDatePickerTarget) =>
       useSpendingPlanSheetState.getState().openDatePicker(target),
@@ -320,7 +342,7 @@ export function useSpendingPlanSheet({
       date: Date,
     ) => {
       const next = toLocalDateString(date);
-      setLastTypedAllocation(undefined);
+      endEdit();
       if (target === 'start') useSpendingPlanSheetStore.getState().setStartDate(next);
       if (target === 'end') useSpendingPlanSheetStore.getState().setEndDate(next);
       useSpendingPlanSheetState.getState().closeDatePicker();
