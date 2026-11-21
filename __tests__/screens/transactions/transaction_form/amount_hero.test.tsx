@@ -36,7 +36,7 @@ jest.mock('@/components/ui/sheet', () => ({
   useBottomSheetAwareHandlers: () => ({ onFocus: jest.fn(), onBlur: jest.fn() }),
 }));
 
-import { AmountHeroSuggestions } from '@/components/ui/amount_hero';
+import { AmountHeroSuggestions } from '@/components/ui/amount_hero_suggestions';
 import type { AmountSuggestion } from '@/components/ui/amount_suggestions.helpers';
 import {
   AMOUNT_ENTRY_MAX_FONT_SCALE,
