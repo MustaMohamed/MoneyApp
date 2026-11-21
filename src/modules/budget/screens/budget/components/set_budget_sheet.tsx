@@ -59,13 +59,20 @@ export function SetBudgetSheet(props: SetBudgetSheetProps) {
         size="md"
         scrollable
         footer={
-          <Button
-            variant="primary"
-            label={Strings.budgetSaveCta}
-            isLoading={state.saving}
-            isDisabled={state.saving}
-            onPress={() => void submit()}
-          />
+          <>
+            {state.errorMessage ? (
+              <Text className="font-inter-medium text-danger mb-2 text-sm">
+                {state.errorMessage}
+              </Text>
+            ) : null}
+            <Button
+              variant="primary"
+              label={Strings.budgetSaveCta}
+              isLoading={state.saving}
+              isDisabled={state.saving}
+              onPress={() => void submit()}
+            />
+          </>
         }
       >
         <BottomSheetScrollView showsVerticalScrollIndicator={false}>
@@ -238,11 +245,6 @@ export function SetBudgetSheet(props: SetBudgetSheetProps) {
                 </RadioGroup.Item>
               ))}
             </RadioGroup>
-            {state.errorMessage ? (
-              <Text className="font-inter-medium text-danger mt-2 text-sm">
-                {state.errorMessage}
-              </Text>
-            ) : null}
           </View>
         </BottomSheetScrollView>
       </Sheet>
