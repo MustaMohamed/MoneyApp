@@ -2,6 +2,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import React from 'react';
 import { View, useWindowDimensions } from 'react-native';
 
+import { BudgetRing } from '@/components/ui/budget_ring';
 import { Text } from '@/components/ui/text';
 import {
   resolveOneLineTextProps,
@@ -9,7 +10,6 @@ import {
   scaledTextStyleAboveOne,
 } from '@/components/ui/text_scale.geometry';
 import { Size, Spacing, Type } from '@/constants/theme';
-import { BudgetRing } from '@/modules/budget/screens/budget/components/budget_ring';
 import type { SpendingPlanDetailCategoryRowVM } from '@/modules/budget/screens/budget/spending_plans.types';
 import { toIconName } from '@/utils/icon_name_guard';
 

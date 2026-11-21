@@ -20,6 +20,9 @@ export const CHIP_ROW_ROOM_BELOW = ROW_PADDING_BOTTOM / 2;
 /** Commitments canvas `.spill .id-tile`, a 20 square around a 14 glyph, the account strip's `Size.rowGlyph`. */
 export const CHIP_TILE = ms(20);
 
+/** Budget canvas `.spill .d`, the 8 square dot that leads a state or group chip. */
+export const CHIP_DOT = ms(8);
+
 /** `Size.compactChipHeight` while the tile is the chip's tallest child, the bare pill's block once the scaled label line reaches it. */
 export function resolveTileChipPaddingVertical(fontScale: number): number {
   const { lineHeight } = scaledTextStyle(SELECTABLE_PILL_LABEL_FONT_SIZE, fontScale);

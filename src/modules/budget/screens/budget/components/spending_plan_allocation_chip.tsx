@@ -3,9 +3,9 @@ import { Chip } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
+import { BudgetRing } from '@/components/ui/budget_ring';
 import { Text } from '@/components/ui/text';
 import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
-import { BudgetRing } from '@/modules/budget/screens/budget/components/budget_ring';
 import type { SpendingPlanCardAllocationChipVM } from '@/modules/budget/screens/budget/spending_plans.types';
 import { toIconName } from '@/utils/icon_name_guard';
 

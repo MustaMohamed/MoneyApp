@@ -1,4 +1,4 @@
-import { CHIP_ROW_ROOM_BELOW } from '@/components/ui/account_chips.geometry';
+import { CHIP_ROW_ROOM_BELOW } from '@/components/ui/chip_row.geometry';
 import { DISPLAY_HEADLINE_MAX_FONT_SCALE } from '@/components/ui/display_headline.geometry';
 import { HERO_SHELL_MARGIN_BOTTOM } from '@/components/ui/hero_shell.geometry';
 import {

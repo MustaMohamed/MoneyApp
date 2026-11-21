@@ -2,6 +2,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Accordion, Button, Chip } from 'heroui-native';
 import { View, useWindowDimensions } from 'react-native';
 
+import { BudgetRing } from '@/components/ui/budget_ring';
 import { resolveButtonLabelStyle, resolveButtonRootStyle } from '@/components/ui/button.geometry';
 import { Text } from '@/components/ui/text';
 import {
@@ -15,7 +16,6 @@ import { BudgetGroup } from '@/constants/enums';
 import { Colors, Size, Type, lineHeightFor } from '@/constants/theme';
 import type { RuleBucketVM } from '@/modules/budget/screens/budget/budget_buckets.helpers';
 import { resolveRuleValueColumnWidth } from '@/modules/budget/screens/budget/budget_text.geometry';
-import { BudgetRing } from '@/modules/budget/screens/budget/components/budget_ring';
 import { RuleContributorRow } from '@/modules/budget/screens/budget/components/fifty_thirty_twenty/rule_contributor_row';
 
 interface RuleBucketRowProps {

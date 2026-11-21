@@ -36,10 +36,10 @@ describe('buildAccountChips', () => {
 
     expect(chips.map((chip) => chip.label)).toEqual([Strings.filterAllAccounts, 'Wallet', 'CIB']);
     expect(chips[0]).toStrictEqual({
-      accountId: undefined,
+      id: undefined,
       label: Strings.filterAllAccounts,
       accessibilityLabel: Strings.filterAllAccounts,
-      tile: undefined,
+      lead: undefined,
       selected: true,
     });
     expect(chips.filter((chip) => chip.selected)).toHaveLength(1);
@@ -50,17 +50,17 @@ describe('buildAccountChips', () => {
 
     expect(chips.slice(1)).toStrictEqual([
       {
-        accountId: 'acc-1',
+        id: 'acc-1',
         label: 'Wallet',
         accessibilityLabel: Strings.filterAccountAccessibility('Wallet'),
-        tile: { color: '#1E88E5', type: AccountType.Bank },
+        lead: { kind: 'tile', color: '#1E88E5', type: AccountType.Bank },
         selected: false,
       },
       {
-        accountId: 'acc-2',
+        id: 'acc-2',
         label: 'CIB',
         accessibilityLabel: Strings.filterAccountAccessibility('CIB'),
-        tile: { color: '#43A047', type: AccountType.CreditCard },
+        lead: { kind: 'tile', color: '#43A047', type: AccountType.CreditCard },
         selected: false,
       },
     ]);
@@ -69,7 +69,7 @@ describe('buildAccountChips', () => {
   it('turns on the one applied account and turns All accounts off', () => {
     const chips = buildAccountChips(accounts, ['acc-2']);
 
-    expect(chips.map((chip) => [chip.accountId, chip.selected])).toEqual([
+    expect(chips.map((chip) => [chip.id, chip.selected])).toEqual([
       [undefined, false],
       ['acc-1', false],
       ['acc-2', true],
@@ -92,7 +92,7 @@ describe('buildAccountChips', () => {
   it('gives an account with no colour a tile with a null colour and its type', () => {
     const chips = buildAccountChips([makeTestAccount({ color: null })], []);
 
-    expect(chips[1].tile).toEqual({ color: null, type: AccountType.PhysicalWallet });
+    expect(chips[1].lead).toEqual({ kind: 'tile', color: null, type: AccountType.PhysicalWallet });
   });
 
   it('gives no chip to an archived or a deleted account', () => {
@@ -101,7 +101,7 @@ describe('buildAccountChips', () => {
 
     const chips = buildAccountChips([archived, wallet, deleted], []);
 
-    expect(chips.map((chip) => [chip.accountId, chip.label])).toEqual([
+    expect(chips.map((chip) => [chip.id, chip.label])).toEqual([
       [undefined, Strings.filterAllAccounts],
       ['acc-1', 'Wallet'],
     ]);

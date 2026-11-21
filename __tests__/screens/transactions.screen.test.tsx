@@ -109,8 +109,8 @@ jest.mock('@/modules/transactions/screens/transactions/components/search_row', (
     );
   },
 }));
-jest.mock('@/components/ui/account_chips', () => ({
-  AccountChips: () => {
+jest.mock('@/components/ui/chip_row', () => ({
+  ChipRow: () => {
     const { View } = jest.requireActual<typeof import('react-native')>('react-native');
     return <View testID="transactions-account-chips" />;
   },

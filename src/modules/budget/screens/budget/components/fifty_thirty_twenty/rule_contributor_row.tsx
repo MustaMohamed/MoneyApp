@@ -1,10 +1,10 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { View } from 'react-native';
 
+import { BudgetRing } from '@/components/ui/budget_ring';
 import { Text } from '@/components/ui/text';
 import { Size, Type, lineHeightFor } from '@/constants/theme';
 import type { BudgetRuleContributorVM } from '@/modules/budget/screens/budget/budget_buckets.helpers';
-import { BudgetRing } from '@/modules/budget/screens/budget/components/budget_ring';
 import { toIconName } from '@/utils/icon_name_guard';
 
 interface RuleContributorRowProps {

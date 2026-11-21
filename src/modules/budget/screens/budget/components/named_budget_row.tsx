@@ -2,10 +2,10 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Chip, Menu, PressableFeedback, Typography } from 'heroui-native';
 import { View } from 'react-native';
 
+import { BudgetRing } from '@/components/ui/budget_ring';
 import { Strings } from '@/constants/strings';
 import { Colors, Size, Spacing, TouchSize, Type, lineHeightFor } from '@/constants/theme';
 import type { NamedBudgetVM } from '@/modules/budget/screens/budget/budget_categories.types';
-import { BudgetRing } from '@/modules/budget/screens/budget/components/budget_ring';
 import { TitleWithChip } from '@/modules/budget/screens/budget/components/title_with_chip';
 
 // The ring's hole less 2 dp each side, so a label shrinks to fit rather than wrap onto the stroke.

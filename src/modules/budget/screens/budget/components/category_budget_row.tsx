@@ -3,10 +3,10 @@ import { Accordion, Chip, PressableFeedback, Typography } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
+import { BudgetRing } from '@/components/ui/budget_ring';
 import { Strings } from '@/constants/strings';
 import { Colors, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import type { CategoryBudgetRowVM } from '@/modules/budget/screens/budget/budget_categories.types';
-import { BudgetRing } from '@/modules/budget/screens/budget/components/budget_ring';
 import { NamedBudgetRow } from '@/modules/budget/screens/budget/components/named_budget_row';
 import { TitleWithChip } from '@/modules/budget/screens/budget/components/title_with_chip';
 import { UnassignedSpendingRow } from '@/modules/budget/screens/budget/components/unassigned_spending_row';

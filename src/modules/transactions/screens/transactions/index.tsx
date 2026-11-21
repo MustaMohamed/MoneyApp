@@ -3,7 +3,7 @@ import React, { useCallback, useMemo } from 'react';
 import { RefreshControl, SectionList, View } from 'react-native';
 import type { SectionListData, SectionListRenderItemInfo } from 'react-native';
 
-import { AccountChips } from '@/components/ui/account_chips';
+import { ChipRow } from '@/components/ui/chip_row';
 import { DayCardRow } from '@/components/ui/day_card_row';
 import { resolveDayCardSwipeCorners } from '@/components/ui/day_card_row.helpers';
 import { SKELETON_DAY_CARDS, SKELETON_ROWS_PER_CARD } from '@/components/ui/day_cards_skeleton';
@@ -125,7 +125,7 @@ export default function TransactionsScreen(): React.ReactElement {
   );
   const accountChips = useMemo(
     () => (
-      <AccountChips
+      <ChipRow
         chips={state.accountChips}
         onToggle={toggleAccountChip}
         testID="transactions-account-chips"

@@ -2,11 +2,11 @@ import { useCallback, useEffect, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import {
-  type AccountChipModel,
   buildAccountChips,
   pruneAccountFilter,
   toggleAccountFilter,
 } from '@/components/ui/account_chips.helpers';
+import type { ChipRowModel } from '@/components/ui/chip_row.helpers';
 
 import { useAccountStore } from './account.store';
 
@@ -16,7 +16,7 @@ export interface AccountFilterStore<F> {
 
 export interface AccountChipFilter<F> {
   effectiveFilters: F;
-  accountChips: AccountChipModel[];
+  accountChips: ChipRowModel[];
   /** `undefined` is All accounts. */
   toggleAccountChip: (accountId: string | undefined) => void;
 }

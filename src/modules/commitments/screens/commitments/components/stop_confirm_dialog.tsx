@@ -30,6 +30,7 @@ export function StopConfirmDialog({
       visible={isOpen}
       busy={busy}
       destructive
+      trashIcon
       title={Strings.commitmentsStopConfirmTitle(name)}
       body={resolveStopConfirmBody(counts)}
       confirmLabel={Strings.commitmentsStopConfirmConfirm}

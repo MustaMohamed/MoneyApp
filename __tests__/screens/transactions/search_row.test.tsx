@@ -1,7 +1,7 @@
 import { fireEvent, render } from '@testing-library/react-native';
 import { Dimensions } from 'react-native';
 
-import { CHIP_ROW_ROOM_BELOW } from '@/components/ui/account_chips.geometry';
+import { CHIP_ROW_ROOM_BELOW } from '@/components/ui/chip_row.geometry';
 import { resolveSearchFilterRowGeometry } from '@/components/ui/search_filter_row.geometry';
 import { SearchRow } from '@/modules/transactions/screens/transactions/components/search_row';
 
