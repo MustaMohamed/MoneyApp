@@ -117,7 +117,7 @@ export function ConfirmDialog({
             </View>
             <View style={{ flex: 1 }}>
               <Button
-                variant={destructive ? 'danger' : 'primary'}
+                variant={destructive || trashIcon ? 'danger' : 'primary'}
                 flat
                 label={confirmLabel}
                 loadingLabel={confirmLoadingLabel}

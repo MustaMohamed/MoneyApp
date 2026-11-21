@@ -1,4 +1,4 @@
-import type { ChipRowModel } from '@/components/ui/chip_row.helpers';
+import { type ChipRowModel, buildAllChip } from '@/components/ui/chip_row.helpers';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import { resolveAccountName } from '@/utils/account_name';
@@ -13,13 +13,7 @@ export function buildAccountChips(
     (account) => account.is_archived !== 1 && account.is_deleted !== 1,
   );
   return [
-    {
-      id: undefined,
-      label: Strings.filterAllAccounts,
-      accessibilityLabel: Strings.filterAllAccounts,
-      lead: undefined,
-      selected: accountIds.length === 0,
-    },
+    buildAllChip(Strings.filterAllAccounts, accountIds.length === 0),
     ...chipAccounts.map((account): ChipRowModel => {
       const label = resolveAccountName(account);
       return {

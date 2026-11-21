@@ -13,6 +13,9 @@ export const PILL_BORDER_WIDTH = 1;
 // A `SelectablePill` with no adornment takes `py-1`, unscaled CSS px.
 export const SELECTABLE_PILL_PADDING_BLOCK = 4;
 
+// `SelectablePill`'s `px-3`, unscaled CSS px, frame `.spill` `padding: 4px 12px`.
+export const SELECTABLE_PILL_PADDING_INLINE = 12;
+
 /** A pill never exceeds its line, so a label that wraps keeps the pill's rounded right end inside its card. */
 export const WRAPPING_PILL_STYLE = { maxWidth: '100%' } as const;
 

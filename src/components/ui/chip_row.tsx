@@ -11,7 +11,10 @@ import {
 
 import { AccountColorTile } from '@/components/ui/account_color_tile';
 import { SelectablePill } from '@/components/ui/chip';
-import { SELECTABLE_PILL_PADDING_BLOCK } from '@/components/ui/chip.geometry';
+import {
+  SELECTABLE_PILL_PADDING_BLOCK,
+  SELECTABLE_PILL_PADDING_INLINE,
+} from '@/components/ui/chip.geometry';
 import { HERO_SHELL_MARGIN_BOTTOM } from '@/components/ui/hero_shell.geometry';
 import { getVisibleScrollOffset } from '@/components/ui/scroll_reveal.geometry';
 import { Size, Spacing } from '@/constants/theme';
@@ -21,7 +24,6 @@ import {
   CHIP_DOT,
   CHIP_SLOP_Y,
   CHIP_TILE,
-  DOT_CHIP_PADDING_INLINE,
   ROW_PADDING_BOTTOM,
   ROW_PADDING_TOP,
   resolveTileChipPaddingVertical,
@@ -50,7 +52,10 @@ const CHIP_TILE_PADDING_LEFT = ms(6);
 /** Beats the pill's adornment `py-1.5 px-2.5`, so a dot chip reads as tall as All. */
 const DOT_CHIP_STYLE = Object.freeze([
   CHIP_STYLE,
-  { paddingVertical: SELECTABLE_PILL_PADDING_BLOCK, paddingHorizontal: DOT_CHIP_PADDING_INLINE },
+  {
+    paddingVertical: SELECTABLE_PILL_PADDING_BLOCK,
+    paddingHorizontal: SELECTABLE_PILL_PADDING_INLINE,
+  },
 ]);
 
 const DOT_STYLE = Object.freeze({ width: CHIP_DOT, height: CHIP_DOT, borderRadius: CHIP_DOT / 2 });

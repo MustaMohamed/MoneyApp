@@ -13,13 +13,14 @@ export interface ChipRowItem {
   lead: ChipLead | undefined;
 }
 
-export interface ChipRowModel {
+export type ChipRowModel = Omit<ChipRowItem, 'id'> & {
   /** `undefined` is the All chip. */
   id: string | undefined;
-  label: string;
-  accessibilityLabel: string;
-  lead: ChipLead | undefined;
   selected: boolean;
+};
+
+export function buildAllChip(label: string, selected: boolean): ChipRowModel {
+  return { id: undefined, label, accessibilityLabel: label, lead: undefined, selected };
 }
 
 /** All first, lit exactly when no item matches `selectedId`, then the items in input order. */
@@ -29,14 +30,5 @@ export function buildChipRow(
   selectedId: string | undefined,
 ): ChipRowModel[] {
   const chips = items.map((item) => ({ ...item, selected: item.id === selectedId }));
-  return [
-    {
-      id: undefined,
-      label: allLabel,
-      accessibilityLabel: allLabel,
-      lead: undefined,
-      selected: !chips.some((chip) => chip.selected),
-    },
-    ...chips,
-  ];
+  return [buildAllChip(allLabel, !chips.some((chip) => chip.selected)), ...chips];
 }

@@ -23,9 +23,6 @@ export const CHIP_TILE = ms(20);
 /** Budget canvas `.spill .d`, the 8 square dot that leads a state or group chip. */
 export const CHIP_DOT = ms(8);
 
-/** The bare pill's `px-3`, unscaled as the class is, frame `.spill` `padding: 4px 12px`. */
-export const DOT_CHIP_PADDING_INLINE = 12;
-
 /** `Size.compactChipHeight` while the tile is the chip's tallest child, the bare pill's block once the scaled label line reaches it. */
 export function resolveTileChipPaddingVertical(fontScale: number): number {
   const { lineHeight } = scaledTextStyle(SELECTABLE_PILL_LABEL_FONT_SIZE, fontScale);
