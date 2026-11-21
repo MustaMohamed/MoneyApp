@@ -9,9 +9,17 @@ import { useAddTransactionStore } from '@/modules/transactions/screens/transacti
 
 jest.mock('heroui-native', () => {
   const ReactLocal = jest.requireActual<typeof import('react')>('react');
-  const { TextInput: RNTextInput, View: RNView } =
-    jest.requireActual<typeof import('react-native')>('react-native');
+  const {
+    Text: RNText,
+    TextInput: RNTextInput,
+    View: RNView,
+  } = jest.requireActual<typeof import('react-native')>('react-native');
+  const ChipLabel = (props: React.ComponentProps<typeof RNText>) =>
+    ReactLocal.createElement(RNText, props);
+  const ChipRoot = (props: React.ComponentProps<typeof RNView> & { onPress?: () => void }) =>
+    ReactLocal.createElement(RNView, props);
   return {
+    Chip: Object.assign(ChipRoot, { Label: ChipLabel }),
     cn: (...classes: Array<string | undefined>) => classes.filter(Boolean).join(' '),
     Input: ReactLocal.forwardRef<
       React.ComponentRef<typeof RNTextInput>,
@@ -22,15 +30,22 @@ jest.mock('heroui-native', () => {
   };
 });
 
+jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
+
 jest.mock('@/components/ui/sheet', () => ({
   useBottomSheetAwareHandlers: () => ({ onFocus: jest.fn(), onBlur: jest.fn() }),
 }));
 
+import { AmountHeroSuggestions } from '@/components/ui/amount_hero';
+import type { AmountSuggestion } from '@/components/ui/amount_suggestions.helpers';
 import {
   AMOUNT_ENTRY_MAX_FONT_SCALE,
   AMOUNT_ERROR_LINE_HEIGHT,
   AMOUNT_ERROR_LINE_STYLE,
+  AMOUNT_SUGGESTION_GAP,
+  resolveAmountSuggestionChipGeometry,
 } from '@/components/ui/form_sheet.geometry';
+import { Strings } from '@/constants/strings';
 import { TransactionAmountHero } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_amount_hero';
 
 describe('TransactionAmountHero', () => {
@@ -196,5 +211,74 @@ describe('TransactionAmountHero', () => {
 
     expect(getAllByText(Currency.EGP, { includeHiddenElements: false })).toHaveLength(1);
     expect(getAllByText(Currency.EGP, { includeHiddenElements: true })).toHaveLength(2);
+  });
+});
+
+describe('AmountHeroSuggestions', () => {
+  it('MA-288: draws a chip per valued suggestion that fills the field, lights while the field holds its amount, and wraps at font scale 2', async () => {
+    const { fontScale } = Dimensions.get('window');
+    const geometry = resolveAmountSuggestionChipGeometry(fontScale);
+    const suggestions: AmountSuggestion[] = [
+      { kind: 'spentLastMonth', amount: undefined },
+      { kind: 'threeMonthAverage', amount: 41200 },
+    ];
+    const onSelect = jest.fn();
+    const { getByTestId, getByText, queryByTestId, rerender, toJSON } = await render(
+      <AmountHeroSuggestions
+        suggestions={suggestions}
+        value=""
+        currency={Currency.EGP}
+        onSelect={onSelect}
+      />,
+    );
+
+    expect(queryByTestId('amount-suggestion-spentLastMonth')).toBeNull();
+    const row = getByTestId('amount-suggestions');
+    expect(row).toHaveStyle({ flexWrap: 'wrap', gap: AMOUNT_SUGGESTION_GAP });
+    const pill = getByTestId('amount-suggestion-threeMonthAverage');
+    expect(pill).toHaveStyle({ minHeight: geometry.height });
+    expect(pill).toHaveProp('hitSlop', geometry.hitSlop);
+    expect(getByText(Strings.amountSuggestionThreeMonthAverage('41,200'))).toHaveStyle(
+      geometry.label,
+    );
+
+    await fireEvent.press(pill);
+    expect(onSelect).toHaveBeenCalledWith('41200');
+
+    await rerender(
+      <AmountHeroSuggestions
+        suggestions={suggestions}
+        value="41200"
+        currency={Currency.EGP}
+        onSelect={onSelect}
+      />,
+    );
+    expect(getByTestId('amount-suggestion-threeMonthAverage')).toHaveProp('accessibilityState', {
+      selected: true,
+      disabled: false,
+    });
+
+    await rerender(
+      <AmountHeroSuggestions
+        suggestions={suggestions}
+        value="4120"
+        currency={Currency.EGP}
+        onSelect={onSelect}
+      />,
+    );
+    expect(getByTestId('amount-suggestion-threeMonthAverage')).toHaveProp('accessibilityState', {
+      selected: false,
+      disabled: false,
+    });
+
+    await rerender(
+      <AmountHeroSuggestions
+        suggestions={undefined}
+        value="4120"
+        currency={Currency.EGP}
+        onSelect={onSelect}
+      />,
+    );
+    expect(toJSON()).toBeNull();
   });
 });
