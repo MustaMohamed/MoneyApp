@@ -32,8 +32,8 @@ export function SpendingPlanSheet(props: SpendingPlanSheetProps) {
         scrollable
         footer={
           <>
-            {state.submitError ? (
-              <Text className="font-inter text-danger text-[11px]">{state.submitError}</Text>
+            {state.footerLine ? (
+              <Text className="font-inter text-danger text-[11px]">{state.footerLine}</Text>
             ) : null}
             <Button
               variant="primary"
@@ -54,6 +54,8 @@ export function SpendingPlanSheet(props: SpendingPlanSheetProps) {
             control={state.control}
             form={{ setValue: actions.setValue, clearErrors: actions.clearErrors }}
             onEdit={actions.clearSubmitError}
+            onTotalEdit={actions.editTotal}
+            totalCarriesOverRing={state.totalCarriesOverRing}
             onFocus={actions.onFocus}
             onBlur={actions.onBlur}
           />
@@ -76,8 +78,9 @@ export function SpendingPlanSheet(props: SpendingPlanSheetProps) {
             selectedCategories={state.selectedCategories}
             values={state.allocations}
             errors={state.allocationErrors}
-            helperText={state.allocationHelperText}
+            summaryText={state.allocationSummaryText}
             isOver={state.allocationIsOver}
+            overRingedCategoryId={state.overRingedCategoryId}
             onAllocationTextChange={actions.setAllocationText}
             onFocus={actions.onFocus}
             onBlur={actions.onBlur}

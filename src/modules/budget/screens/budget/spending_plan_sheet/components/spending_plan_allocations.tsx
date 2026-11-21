@@ -21,8 +21,9 @@ interface SpendingPlanAllocationsProps {
   selectedCategories: Category[];
   values: Record<string, string>;
   errors: Record<string, string | undefined>;
-  helperText?: string;
+  summaryText: string | undefined;
   isOver: boolean;
+  overRingedCategoryId: string | undefined;
   onAllocationTextChange: (categoryId: string, text: string) => void;
   onFocus: (event: FocusEvent) => void;
   onBlur: (event: BlurEvent) => void;
@@ -46,8 +47,8 @@ export function SpendingPlanAllocations(props: SpendingPlanAllocationsProps) {
       </View>
       {props.isEnabled ? (
         <View className="gap-2">
-          {props.helperText === undefined ? null : (
-            <Text className="font-inter text-muted text-[11px]">{props.helperText}</Text>
+          {props.summaryText === undefined ? null : (
+            <Text className="font-inter text-muted text-[11px]">{props.summaryText}</Text>
           )}
           <View className="mt-2 justify-center" style={{ minHeight: ALLOCATION_OVER_SLOT_HEIGHT }}>
             {props.isOver ? (
@@ -74,7 +75,10 @@ export function SpendingPlanAllocations(props: SpendingPlanAllocationsProps) {
                     onBlur={props.onBlur}
                     keyboardType="decimal-pad"
                     placeholder={Strings.zeroAmountPlaceholder}
-                    isInvalid={props.errors[category.id] !== undefined}
+                    isInvalid={
+                      props.errors[category.id] !== undefined ||
+                      props.overRingedCategoryId === category.id
+                    }
                     errorMessage={props.errors[category.id]}
                     errorNumberOfLines={1}
                     allowFontScaling={field.text === undefined}
