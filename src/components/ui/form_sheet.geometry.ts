@@ -1,6 +1,10 @@
 import type { Insets } from 'react-native';
 
-import { SELECTABLE_PILL_LABEL_FONT_SIZE } from '@/components/ui/chip.geometry';
+import {
+  PILL_BORDER_WIDTH,
+  SELECTABLE_PILL_LABEL_FONT_SIZE,
+  SELECTABLE_PILL_PADDING_BLOCK,
+} from '@/components/ui/chip.geometry';
 import { DISPLAY_HEADLINE_MAX_FONT_SCALE } from '@/components/ui/display_headline.geometry';
 import { resolveFactRowHeight } from '@/components/ui/fact_row.geometry';
 import { getVisibleScrollOffset } from '@/components/ui/scroll_reveal.geometry';
@@ -11,12 +15,14 @@ import {
 import {
   type ScaledTextStyle,
   resolveOneLineTextProps,
+  scaledTextStyle,
   scaledTextStyleAboveOne,
 } from '@/components/ui/text_scale.geometry';
 import {
   Radius,
   Size,
   Spacing,
+  type TouchFloorHitSlop,
   TouchSize,
   Type,
   lineHeightFor,
@@ -90,6 +96,26 @@ export const AMOUNT_CODE_STYLE = {
 
 /** A money figure at entry size stops growing at the top of the gated text scale range. */
 export const AMOUNT_ENTRY_MAX_FONT_SCALE = DISPLAY_HEADLINE_MAX_FONT_SCALE;
+
+// Frame C1's `.sugg` `gap:6px` and `padding:10px 0 2px`, and `.spill` `min-height:28px`, unscaled CSS px.
+export const AMOUNT_SUGGESTION_GAP = 6;
+export const AMOUNT_SUGGESTION_ROW_PADDING_TOP = 10;
+export const AMOUNT_SUGGESTION_ROW_PADDING_BOTTOM = 2;
+export const AMOUNT_SUGGESTION_CHIP_MIN_HEIGHT = 28;
+
+/** A suggestion chip is its scaled label line inside the pill's padding and border, never shorter than C1's 28. */
+export function resolveAmountSuggestionChipGeometry(fontScale: number): {
+  height: number;
+  label: ScaledTextStyle;
+  hitSlop: TouchFloorHitSlop;
+} {
+  const label = scaledTextStyle(SELECTABLE_PILL_LABEL_FONT_SIZE, fontScale);
+  const height = Math.max(
+    AMOUNT_SUGGESTION_CHIP_MIN_HEIGHT,
+    label.lineHeight + 2 * SELECTABLE_PILL_PADDING_BLOCK + 2 * PILL_BORDER_WIDTH,
+  );
+  return { height, label, hitSlop: touchFloorHitSlop(height) };
+}
 
 /** The gap between the status track and the flat button. */
 export const FORM_SHEET_STATUS_GAP = Spacing.xs;
