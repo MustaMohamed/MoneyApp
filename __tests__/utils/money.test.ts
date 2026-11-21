@@ -179,6 +179,7 @@ describe('sumAllocations', () => {
       allocated: 0.4,
       buffer: undefined,
       isOver: false,
+      hasCents: true,
     });
   });
 
@@ -201,11 +202,26 @@ describe('sumAllocations', () => {
       [0.5049, 0.335, 0.12],
       [0.5049, 0.12, 0.335],
     ];
-    const expected: AllocationTotals = { allocated: 0.96, buffer: 0.04, isOver: false };
+    const expected: AllocationTotals = {
+      allocated: 0.96,
+      buffer: 0.04,
+      isOver: false,
+      hasCents: true,
+    };
 
     for (const amounts of permutations) {
       expect(sumAllocations(amounts, 1)).toEqual(expected);
     }
+  });
+
+  it.each([
+    [[3000, 2000], 5000, false],
+    [[2000.4], 5000, true],
+    [[3000], 5000.5, true],
+    [[0.004], 1, false],
+    [[0.4], undefined, true],
+  ])('%p against %p has hasCents %p', (amounts, total, expected) => {
+    expect(sumAllocations(amounts, total).hasCents).toBe(expected);
   });
 });
 
