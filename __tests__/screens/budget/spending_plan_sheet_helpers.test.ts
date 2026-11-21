@@ -122,7 +122,11 @@ describe('resolveAllocationSlotWidth', () => {
   it('grows with the empty field text at font scale 2', () => {
     const width = resolveAllocationSlotWidth(2);
 
-    expect(width).toBe(2 * Size.inputPaddingY + 2 * Size.spendingPlanAllocationSlotText);
+    expect(width).toBe(
+      2 * Size.spendingPlanAllocationFieldPaddingX +
+        2 * Size.fieldBorderWidth +
+        2 * Size.spendingPlanAllocationSlotText,
+    );
     expect(width).toBeGreaterThan(Size.spendingPlanAllocationSlot);
   });
 

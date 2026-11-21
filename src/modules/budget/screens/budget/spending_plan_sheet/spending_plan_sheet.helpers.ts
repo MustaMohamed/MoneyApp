@@ -15,7 +15,7 @@ import {
 } from '@/utils/parse_decimal';
 
 /** 2dp overrides EGP's 0dp on the limits summary once any figure has cents, where `45.40` would render as `45`. */
-export const SPENDING_PLAN_ALLOCATION_DECIMALS = 2;
+const SPENDING_PLAN_ALLOCATION_DECIMALS = 2;
 
 export function formatLimitsFigure(value: number, hasCents: boolean): string {
   return formatAmount(
@@ -65,7 +65,9 @@ export function resolveAllocationSlotMinHeight(fontScale: number): number {
 export function resolveAllocationSlotWidth(fontScale: number): number {
   return Math.max(
     Size.spendingPlanAllocationSlot,
-    2 * Size.inputPaddingY + scaledFontSize(Size.spendingPlanAllocationSlotText, fontScale),
+    2 * Size.spendingPlanAllocationFieldPaddingX +
+      2 * Size.fieldBorderWidth +
+      scaledFontSize(Size.spendingPlanAllocationSlotText, fontScale),
   );
 }
 

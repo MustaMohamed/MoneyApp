@@ -33,7 +33,13 @@ export function SpendingPlanSheet(props: SpendingPlanSheetProps) {
         footer={
           <>
             {state.footerLine ? (
-              <Text className="font-inter text-danger text-[11px]">{state.footerLine}</Text>
+              <Text
+                testID="spending-plan-footer-line"
+                accessibilityLiveRegion="polite"
+                className="font-inter text-danger text-[11px]"
+              >
+                {state.footerLine}
+              </Text>
             ) : null}
             <Button
               variant="primary"

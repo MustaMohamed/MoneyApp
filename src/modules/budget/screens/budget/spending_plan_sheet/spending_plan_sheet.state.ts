@@ -4,9 +4,7 @@ import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 export type SpendingPlanDatePickerTarget = 'start' | 'end';
 
-export type SpendingPlanAmountField =
-  | { kind: 'total' }
-  | { kind: 'allocation'; categoryId: string };
+type SpendingPlanAmountField = { kind: 'total' } | { kind: 'allocation'; categoryId: string };
 
 interface SpendingPlanSheetStateShape {
   pickerExpanded: boolean;

@@ -269,6 +269,12 @@ export function useSpendingPlanSheet({
       ? lastEditedAmountField.categoryId
       : undefined;
 
+  // An edit outside the limit rows ends the refusal line and the incomplete-row exemption.
+  const endEdit = () => {
+    useSpendingPlanSheetState.getState().setSubmitError(undefined);
+    setLastTypedAllocation(undefined);
+  };
+
   return {
     state: {
       isOpen: planSheetVisible,
@@ -301,13 +307,11 @@ export function useSpendingPlanSheet({
     setValue,
     clearErrors,
     toggleCategory: (category: Category) => {
-      useSpendingPlanSheetState.getState().setSubmitError(undefined);
-      setLastTypedAllocation(undefined);
+      endEdit();
       useSpendingPlanSheetStore.getState().toggleCategoryId(category.id);
     },
     setAllocateByCategory: (enabled: boolean) => {
-      useSpendingPlanSheetState.getState().setSubmitError(undefined);
-      setLastTypedAllocation(undefined);
+      endEdit();
       useSpendingPlanSheetStore.getState().setAllocateByCategory(enabled);
     },
     setAllocationText: (categoryId: string, text: string) => {
@@ -322,17 +326,12 @@ export function useSpendingPlanSheet({
       setLastTypedAllocation(categoryId);
       useSpendingPlanSheetStore.getState().setAllocation(categoryId, masked);
     },
-    // The name calls this as `onEdit`: an edit outside the rows ends the exemption.
-    clearSubmitError: () => {
-      useSpendingPlanSheetState.getState().setSubmitError(undefined);
-      setLastTypedAllocation(undefined);
-    },
+    // The name calls this as `onEdit`.
+    clearSubmitError: endEdit,
     // The total's `onEdit`: it also becomes the field that carries the ring while limits are over.
     editTotal: () => {
-      const sheetState = useSpendingPlanSheetState.getState();
-      sheetState.setSubmitError(undefined);
-      sheetState.setLastEditedAmountField({ kind: 'total' });
-      setLastTypedAllocation(undefined);
+      endEdit();
+      useSpendingPlanSheetState.getState().setLastEditedAmountField({ kind: 'total' });
     },
     openDatePicker: (target: SpendingPlanDatePickerTarget) =>
       useSpendingPlanSheetState.getState().openDatePicker(target),
@@ -343,8 +342,7 @@ export function useSpendingPlanSheet({
       date: Date,
     ) => {
       const next = toLocalDateString(date);
-      useSpendingPlanSheetState.getState().setSubmitError(undefined);
-      setLastTypedAllocation(undefined);
+      endEdit();
       if (target === 'start') useSpendingPlanSheetStore.getState().setStartDate(next);
       if (target === 'end') useSpendingPlanSheetStore.getState().setEndDate(next);
       useSpendingPlanSheetState.getState().closeDatePicker();

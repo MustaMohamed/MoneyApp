@@ -593,7 +593,7 @@ export const Strings = {
   budgetPlanLimitsSummaryOver: (assigned: string, over: string) =>
     `${assigned} assigned · ${over} over the plan total`,
   budgetPlanLimitsOver: (over: string) => `Limits are ${over} EGP over the plan total.`,
-  // Two strings for one rule: the row is a 128px column and truncates the sentence.
+  // Two strings for one rule: the row's slot is 128 dp at scale 1 and truncates the sentence.
   budgetPlanAllocationInvalid: 'Each allocation must be 0 or at least 0.01.',
   budgetPlanAllocationBelowMin: '0 or min 0.01',
   budgetPlanExpenseCategoriesOnly: 'Select expense categories only.',
