@@ -1,6 +1,7 @@
 import { resolveFactRowHeight } from '@/components/ui/fact_row.geometry';
 import {
   FORM_SHEET_CONTENT_CONTAINER_STYLE,
+  resolveAmountSuggestionChipGeometry,
   resolveFormSupportLineTextProps,
   resolveNoteInputGeometry,
   resolveTypeTabsGeometry,
@@ -8,6 +9,16 @@ import {
 import { TABS_LIST_PADDING, resolveSegmentedTabsGeometry } from '@/components/ui/tabs.geometry';
 import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Spacing, TouchSize, Type, lineHeightFor } from '@/constants/theme';
+
+describe('resolveAmountSuggestionChipGeometry', () => {
+  it.each([1, 2])(
+    'MA-288: at font scale %d a suggestion chip and its slop reach the touch floor',
+    (fontScale) => {
+      const { height, hitSlop } = resolveAmountSuggestionChipGeometry(fontScale);
+      expect(height + hitSlop.top + hitSlop.bottom).toBeGreaterThanOrEqual(TouchSize.min);
+    },
+  );
+});
 
 describe('resolveTypeTabsGeometry', () => {
   it('at font scale 1 keeps the 36 tab row and returns only the list height and the slop', () => {
