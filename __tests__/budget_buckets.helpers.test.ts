@@ -3,7 +3,10 @@ import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
 import type { Category } from '@/database/entities/category.entity';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
-import { buildBudgetRuleLens } from '@/modules/budget/screens/budget/budget_buckets.helpers';
+import {
+  buildBudgetRuleLens,
+  resolveBudgetRuleGroups,
+} from '@/modules/budget/screens/budget/budget_buckets.helpers';
 
 const NOW = '2026-05-01T00:00:00.000Z';
 const MONTH = '2026-05';
@@ -703,5 +706,47 @@ describe('the 50/30/20 lens carries no ratio a bar or ring does not draw (MA-172
       summary: removedKeysOn(result.summary),
       contributor: removedKeysOn(contributor(result, BudgetGroup.Need, 'housing')),
     }).toEqual({ bucket: [], summary: [], contributor: [] });
+  });
+});
+
+describe('resolveBudgetRuleGroups gives every category the group its month shows (MA-287)', () => {
+  it("the month's own group wins over the category default", () => {
+    const groups = resolveBudgetRuleGroups(
+      [makeCategory('cat_health', BudgetGroup.Need)],
+      { cat_health: BudgetGroup.Want },
+      false,
+    );
+
+    expect(groups).toEqual({ cat_health: BudgetGroup.Want });
+  });
+
+  it('no own group and no income gives the category default', () => {
+    const groups = resolveBudgetRuleGroups(
+      [makeCategory('cat_health', BudgetGroup.Need)],
+      {},
+      false,
+    );
+
+    expect(groups).toEqual({ cat_health: BudgetGroup.Need });
+  });
+
+  it('no own group with income gives no key', () => {
+    const groups = resolveBudgetRuleGroups(
+      [makeCategory('cat_health', BudgetGroup.Need)],
+      {},
+      true,
+    );
+
+    expect(groups).toEqual({});
+  });
+
+  it('a custom category seeded with no group and no income gives no key', () => {
+    const groups = resolveBudgetRuleGroups(
+      [makeCategory('cat_custom', null), makeCategory('cat_food', BudgetGroup.Want)],
+      {},
+      false,
+    );
+
+    expect(groups).toEqual({ cat_food: BudgetGroup.Want });
   });
 });

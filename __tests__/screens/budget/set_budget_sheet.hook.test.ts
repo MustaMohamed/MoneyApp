@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 
 import { Strings } from '@/constants/strings';
+import { BudgetNameTakenError } from '@/modules/budget/repositories/budget.repository';
 import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
 import {
   useSetBudgetSheet,
@@ -227,5 +228,103 @@ describe('useSetBudgetSheet — MA-115 a half-typed limit', () => {
     });
 
     expect(limitError(result)).toBeUndefined();
+  });
+});
+
+describe('a duplicate-name refusal shows its own message on the sheet (MA-287)', () => {
+  const health = makeTestBudgetableCategory({ id: 'cat_health', name: 'Health' });
+  const mapTaken = (error: unknown) =>
+    error instanceof BudgetNameTakenError ? `taken ${error.budgetName}` : undefined;
+
+  it("runSave sets the refusal mapper's message for a BudgetNameTakenError and returns false", async () => {
+    const { result } = await renderHook(() => useSetBudgetSheetSave());
+
+    let saved = true;
+    await act(async () => {
+      saved = await result.current.runSave(
+        jest.fn().mockRejectedValue(new BudgetNameTakenError('Gym')),
+        mapTaken,
+      );
+    });
+
+    expect(saved).toBe(false);
+    expect(useSetBudgetSheetState.getState().errorMessage).toBe('taken Gym');
+  });
+
+  it('runSave falls back to the generic save error for an error the mapper does not map', async () => {
+    const { result } = await renderHook(() => useSetBudgetSheetSave());
+
+    await act(async () => {
+      await result.current.runSave(
+        jest.fn().mockRejectedValue(new BudgetNameTakenError('Gym')),
+        mapTaken,
+      );
+    });
+    expect(useSetBudgetSheetState.getState().errorMessage).toBe('taken Gym');
+
+    await act(async () => {
+      await result.current.runSave(
+        jest.fn().mockRejectedValue(new Error('write failed')),
+        mapTaken,
+      );
+    });
+    expect(useSetBudgetSheetState.getState().errorMessage).toBe(Strings.budgetSaveError);
+  });
+
+  it('an edit-mode save refused for a taken name shows the category, name and month, and the sheet stays open', async () => {
+    const editing = makeTestBudgetEditTarget({
+      categoryId: 'cat_health',
+      categoryName: 'Health',
+      name: 'Yoga',
+    });
+    useBudgetStore.setState({
+      setBudget: jest.fn().mockRejectedValue(new BudgetNameTakenError('Gym')),
+    });
+    useBudgetState.getState().setSelectedMonth('2026-11');
+    useBudgetState.getState().openEdit(editing.id);
+    const { result } = await renderHook(() =>
+      useSetBudgetSheet({
+        budgetableCategories: [health],
+        editingRow: editing,
+        shownGroupByCategoryId: {},
+      }),
+    );
+    await waitFor(() => expect(useSetBudgetSheetState.getState().sessionKey).toBeDefined());
+
+    await act(async () => result.current.submit());
+
+    expect(useSetBudgetSheetState.getState().errorMessage).toBe(
+      Strings.budgetNameTaken('Health', 'Gym', 'November'),
+    );
+    expect(useBudgetState.getState().sheetVisible).toBe(true);
+  });
+
+  it('an add-mode save refused for a taken name names the selected category, and the sheet stays open', async () => {
+    useBudgetStore.setState({
+      setBudget: jest.fn().mockRejectedValue(new BudgetNameTakenError('gym')),
+    });
+    useBudgetState.getState().setSelectedMonth('2026-11');
+    useBudgetState.getState().openAdd();
+    const { result } = await renderHook(() =>
+      useSetBudgetSheet({
+        budgetableCategories: [health],
+        shownGroupByCategoryId: {},
+      }),
+    );
+    await waitFor(() => expect(useSetBudgetSheetState.getState().sessionKey).toBeDefined());
+    expect(result.current.state.selectedCategoryId).toBe('cat_health');
+
+    await act(async () => {
+      await result.current.control
+        .register('nameText')
+        .onChange({ target: { name: 'nameText', value: ' gym ' }, type: 'change' });
+      result.current.setLimitText('500');
+    });
+    await act(async () => result.current.submit());
+
+    expect(useSetBudgetSheetState.getState().errorMessage).toBe(
+      Strings.budgetNameTaken('Health', 'gym', 'November'),
+    );
+    expect(useBudgetState.getState().sheetVisible).toBe(true);
   });
 });
