@@ -412,6 +412,14 @@ invariant are unchanged.
    fires. Cross-referenced from
    `docs/adr/2026-08-21-currency-aware-display-decimals.md`.
 
+   Amended 2026-11-21 (#969, MA-315). The running-total line is now the limits summary
+   (`<assigned> assigned · <flexible> flexible`) and the over figure in the line above Save. Both
+   print at EGP's 0dp from `CURRENCY_CONFIG` while the plan total and every limit are whole in
+   cents, and at `SPENDING_PLAN_ALLOCATION_DECIMALS` once any of them has cents, so no typed cent
+   is rounded away. `sumAllocations`' `hasCents` decides it on the same integer-cents basis as
+   `isOver`. The signed buffer gives way to an over figure printed as a magnitude, never 0, since
+   over is at least one cent.
+
 ## Addendum B — the Variable estimate and the pay write by id (MA-205)
 
 2026-10-21, MA-205 (#779). Amends §3 rows 2 and 3. §1's rule, §5's exception and §6's invariant
