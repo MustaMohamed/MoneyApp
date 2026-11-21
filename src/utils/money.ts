@@ -32,6 +32,8 @@ export interface AllocationTotals {
   /** `total - allocated`; `undefined` when no total has been entered. */
   buffer: number | undefined;
   isOver: boolean;
+  /** Whether the total or any amount holds cents once rounded to whole cents. */
+  hasCents: boolean;
 }
 
 /** Rounds with `roundMoney` first; a bare `Math.round(n * 100)` differs at exact half-cents. */
@@ -109,15 +111,23 @@ export function sumAllocations(
   total: number | undefined,
 ): AllocationTotals {
   let allocatedCents = 0;
-  for (const amount of amounts) allocatedCents += toCents(amount ?? 0);
+  let amountsHaveCents = false;
+  for (const amount of amounts) {
+    const cents = toCents(amount ?? 0);
+    allocatedCents += cents;
+    if (cents % 100 !== 0) amountsHaveCents = true;
+  }
   const allocated = allocatedCents / 100;
 
-  if (total === undefined) return { allocated, buffer: undefined, isOver: false };
+  if (total === undefined) {
+    return { allocated, buffer: undefined, isOver: false, hasCents: amountsHaveCents };
+  }
 
   const totalCents = toCents(total);
   return {
     allocated,
     buffer: (totalCents - allocatedCents) / 100,
     isOver: allocatedCents > totalCents,
+    hasCents: amountsHaveCents || totalCents % 100 !== 0,
   };
 }

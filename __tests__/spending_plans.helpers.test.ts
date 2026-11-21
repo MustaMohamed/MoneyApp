@@ -822,6 +822,7 @@ describe('spending plan helpers', () => {
       allocated: 3000,
       buffer: 5000,
       isOver: false,
+      hasCents: false,
     });
   });
 
@@ -831,6 +832,7 @@ describe('spending plan helpers', () => {
       allocated: 6000,
       buffer: -1000,
       isOver: true,
+      hasCents: false,
     });
   });
 
@@ -848,7 +850,12 @@ describe('spending plan helpers', () => {
       allocated: 40,
       buffer: undefined,
       isOver: false,
+      hasCents: false,
     });
+  });
+
+  it('passes through that a typed allocation holds cents', () => {
+    expect(computeAllocationHelper(5000, [2000.4]).hasCents).toBe(true);
   });
 
   // A signed zero renders as "-0.00"; under integer cents `a - b` with `a === b` gives +0.

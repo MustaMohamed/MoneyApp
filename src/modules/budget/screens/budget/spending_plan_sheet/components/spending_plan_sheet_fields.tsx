@@ -25,6 +25,7 @@ interface SpendingPlanFieldProps {
   keyboardType?: KeyboardTypeOptions;
   variant: 'name' | 'amount';
   suffix?: string;
+  carriesOverRing: boolean;
   onEdit: () => void;
   onFocus: (event: FocusEvent) => void;
   onBlur: (event: BlurEvent) => void;
@@ -57,7 +58,7 @@ function SpendingPlanField(props: SpendingPlanFieldProps) {
           placeholder={props.placeholder}
           label={props.label}
           accessibilityLabel={props.label}
-          isInvalid={fieldState.invalid}
+          isInvalid={fieldState.invalid || props.carriesOverRing}
           errorMessage={fieldState.error?.message}
           allowFontScaling={geometry.text === undefined}
           style={{ height: geometry.height, ...geometry.text }}
@@ -81,6 +82,8 @@ interface SpendingPlanFormFieldsProps {
   control: Control<SpendingPlanFormValues>;
   form: SpendingPlanHoldForm;
   onEdit: () => void;
+  onTotalEdit: () => void;
+  totalCarriesOverRing: boolean;
   onFocus: (event: FocusEvent) => void;
   onBlur: (event: BlurEvent) => void;
 }
@@ -89,6 +92,8 @@ export function SpendingPlanFormFields({
   control,
   form,
   onEdit,
+  onTotalEdit,
+  totalCarriesOverRing,
   onFocus,
   onBlur,
 }: SpendingPlanFormFieldsProps) {
@@ -102,6 +107,7 @@ export function SpendingPlanFormFields({
         testID="spending-plan-name-input"
         placeholder={Strings.budgetPlanNamePlaceholder}
         variant="name"
+        carriesOverRing={false}
         onEdit={onEdit}
         onFocus={onFocus}
         onBlur={onBlur}
@@ -116,7 +122,8 @@ export function SpendingPlanFormFields({
         keyboardType="decimal-pad"
         variant="amount"
         suffix={Strings.currencyEgp}
-        onEdit={onEdit}
+        carriesOverRing={totalCarriesOverRing}
+        onEdit={onTotalEdit}
         onFocus={onFocus}
         onBlur={onBlur}
       />

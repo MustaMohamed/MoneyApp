@@ -1,14 +1,28 @@
-import { type ScaledTextStyle, scaledTextStyleAboveOne } from '@/components/ui/text_scale.geometry';
+import {
+  type ScaledTextStyle,
+  scaledFontSize,
+  scaledTextStyleAboveOne,
+} from '@/components/ui/text_scale.geometry';
+import { CURRENCY_CONFIG } from '@/constants/currency';
+import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Size, Type } from '@/constants/theme';
+import { formatAmount } from '@/utils/format_amount';
 import {
   isStillTypingDecimal,
   parseDecimalText,
   parseNonNegativeDecimal,
 } from '@/utils/parse_decimal';
 
-/** 2dp overrides EGP's 0dp on the live running total, where `45.40` would render as `45`. */
-export const SPENDING_PLAN_ALLOCATION_DECIMALS = 2;
+/** 2dp overrides EGP's 0dp on the limits summary once any figure has cents, where `45.40` would render as `45`. */
+const SPENDING_PLAN_ALLOCATION_DECIMALS = 2;
+
+export function formatLimitsFigure(value: number, hasCents: boolean): string {
+  return formatAmount(
+    value,
+    hasCents ? SPENDING_PLAN_ALLOCATION_DECIMALS : CURRENCY_CONFIG[Currency.EGP].decimals,
+  );
+}
 
 export type SpendingPlanFieldKind = 'name' | 'amount' | 'allocation';
 
@@ -44,6 +58,16 @@ export function resolveAllocationSlotMinHeight(fontScale: number): number {
   return (
     resolveSpendingPlanFieldGeometry('allocation', fontScale).height +
     Size.spendingPlanAllocationErrorRoom
+  );
+}
+
+/** The slot grows past its 128 dp so the empty field's `No limit` and `EGP` read whole above scale 1. */
+export function resolveAllocationSlotWidth(fontScale: number): number {
+  return Math.max(
+    Size.spendingPlanAllocationSlot,
+    2 * Size.spendingPlanAllocationFieldPaddingX +
+      2 * Size.fieldBorderWidth +
+      scaledFontSize(Size.spendingPlanAllocationSlotText, fontScale),
   );
 }
 

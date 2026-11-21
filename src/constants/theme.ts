@@ -179,6 +179,12 @@ export const Size = {
   spendingPlanFieldTrack: 40,
   // Raw 36 for the same reason: the spending plan sheet's per-category field, formerly `h-9`, at scale 1.
   spendingPlanAllocationTrack: 36,
+  // Raw 128, never ms(): the per-category field slot, formerly `w-32`, at scale 1.
+  spendingPlanAllocationSlot: 128,
+  // Raw 84.5, never ms(): the empty field's Sora `No limit`, its gap and `EGP` at 12px, text only.
+  spendingPlanAllocationSlotText: 84.5,
+  // Raw 8, never ms(): the per-category field's `px-2` on each side.
+  spendingPlanAllocationFieldPaddingX: 8,
   // The 6px gap and the 20px error line box under the per-category field; unscaled, never `ms()`.
   spendingPlanAllocationErrorRoom: 26,
   // The shared input's `py-2` on each edge (`src/components/ui/input.tsx`); unscaled, never `ms()`.
