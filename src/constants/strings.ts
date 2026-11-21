@@ -467,6 +467,8 @@ export const Strings = {
   budgetLoadError: 'Could not load your budget.',
   budgetLoadRetry: 'Try again',
   budgetAddCategory: 'Add budget',
+  amountSuggestionSpentLastMonth: (amount: string) => `${amount} · spent last month`,
+  amountSuggestionThreeMonthAverage: (amount: string) => `${amount} · 3-month average`,
   budgetSummaryBudgeted: 'Budgeted',
   budgetSummarySpent: 'Spent',
   budgetSummaryLeft: 'Left',
