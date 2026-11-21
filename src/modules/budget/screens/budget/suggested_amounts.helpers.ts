@@ -1,11 +1,9 @@
+import type { AmountSuggestionKind } from '@/components/ui/amount_suggestions.helpers';
 import { toCents } from '@/utils/money';
 
 import { previousYearMonth } from './budget.helpers';
 
-export interface SuggestedAmounts {
-  spentLastMonth: number | undefined;
-  threeMonthAverage: number | undefined;
-}
+export type SuggestedAmounts = Record<AmountSuggestionKind, number | undefined>;
 
 // Half up to a whole unit in integer cents, per docs/adr/2026-11-21-suggested-amounts-half-up.md.
 function halfUpWholeUnits(cents: number, months: number): number | undefined {

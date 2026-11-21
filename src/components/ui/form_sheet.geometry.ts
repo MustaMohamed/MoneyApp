@@ -101,7 +101,7 @@ export const AMOUNT_ENTRY_MAX_FONT_SCALE = DISPLAY_HEADLINE_MAX_FONT_SCALE;
 export const AMOUNT_SUGGESTION_GAP = 6;
 export const AMOUNT_SUGGESTION_ROW_PADDING_TOP = 10;
 export const AMOUNT_SUGGESTION_ROW_PADDING_BOTTOM = 2;
-export const AMOUNT_SUGGESTION_CHIP_MIN_HEIGHT = 28;
+const AMOUNT_SUGGESTION_CHIP_MIN_HEIGHT = 28;
 
 /** A suggestion chip is its scaled label line inside the pill's padding and border, never shorter than C1's 28. */
 export function resolveAmountSuggestionChipGeometry(fontScale: number): {
