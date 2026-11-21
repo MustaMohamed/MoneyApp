@@ -62,7 +62,7 @@ export function SwitchCard({
               <Switch isSelected={isOn} role="none" accessible={false} aria-valuetext="" />
             </View>
           </Accordion.Trigger>
-          <Accordion.Content style={{ padding: 0 }}>{children}</Accordion.Content>
+          <Accordion.Content className="p-0">{children}</Accordion.Content>
         </Accordion.Item>
       </Accordion>
     </View>
