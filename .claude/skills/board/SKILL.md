@@ -10,7 +10,7 @@ One read of Project #2, one action per open ticket, the dependency graph when th
 
 ## A poll needs no session
 
-`bash scripts/board.sh next [<issue>]` in a terminal prints the same text report in about five seconds with no model; `--json` gives the actions for a script. On the accounts redesign 38 `/board` calls cost 74.5M tokens, 16 of them sessions opened for one poll. Use this skill when the graph is wanted or the report needs reading with the user; otherwise run the command.
+`bash scripts/board.sh next [<issue>]` in a terminal prints the same text report in about five seconds with no model; `--json` gives the actions for a script. Use this skill when the graph is wanted or the report needs reading with the user; otherwise run the command.
 
 ## Steps
 

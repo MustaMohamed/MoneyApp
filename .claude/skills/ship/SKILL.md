@@ -65,7 +65,7 @@ Load `references/<phase>.md` on entering a phase. The file is the method; this t
 | 4 | Re-check | one fresh re-checker per pushed fix | | all fixed, no new findings; cap 4 cycles with phase 3 |
 | 5 | Merge summary | conductor removes the plan file and writes the summary; the human merges | Awaiting Human; In Review on a change the user asks for, below the cap of § Fix loop | summary sent; a typed run then watches the merge and cleans |
 
-A phase with nothing to do is recorded as vacuous (`P4: vacuous, no fixes`), never skipped silently. There is no fast lane and no mode: one ticket, one branch, one PR. The reason, from the commitments close audit: a fix line costs 101k tokens, 1.2 times a feature line, and 2 of 14 fix tickets sat under 60 lines.
+A phase with nothing to do is recorded as vacuous (`P4: vacuous, no fixes`), never skipped silently. There is no fast lane and no mode: one ticket, one branch, one PR.
 
 ## Artifacts
 
@@ -146,7 +146,7 @@ Each phase, and in P3 and P4 each cycle's visit, takes one Log line, written whe
 | "This reviewer re-found the ruled finding and sounds certain" | Rule 8. Cite the ledger, move on. Three reviewers re-finding a ruled finding is sensitivity working, not a new defect. |
 | "The plan is wrong here, the implementer can improvise" | A discrepancy STOP is the prep skill's `--amend` path. Improvisation is where phase-2 findings come from. |
 | "CI is green, I can merge" | The human merges. Always. |
-| "The user ruled it in, so it rides this PR" | Rule 10. A ruling adds scope to the work, not room to the gate. #580 folded two tickets into a ~265-line plan and shipped 866 lines, 18 fix commits and 5 follow-up tickets. |
+| "The user ruled it in, so it rides this PR" | Rule 10. A ruling adds scope to the work, not room to the gate. |
 
 ## Deep mode
 
@@ -208,7 +208,7 @@ ln -sfn /Users/musta/Code/projects/practice/MoneyApp/.claude/worktrees/MA-XXX/no
 
 The review worktree sits under `.claude/worktrees/` of this repository, so a subagent can enter it. Every dispatch that names it carries this line: call EnterWorktree with `path` set to the review worktree as your first action. If Bash is then refused there, EnterWorktree back to the implementation worktree, which is at the same head during a battery or a re-check, run git there with the SHA named in each command, and keep Read, Grep and LSP on the review worktree's paths. Your return names the worktree Bash ran in and carries `LSP: used | not used, <why>`. Wherever these skills call EnterWorktree, a refusal because it already is the working folder is a pass.
 
-Teardown after the merge, in this order: review worktree (`--force`), implementation worktree, local branch, `git worktree prune`. Subagents never create or remove worktrees.
+Teardown after the merge, in this order: review worktree (`--force`), implementation worktree, local branch, `git worktree prune`, `git remote prune origin`. Subagents never create or remove worktrees.
 
 ## Dispatch recipe
 

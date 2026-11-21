@@ -11,7 +11,7 @@ EGP is the ledger base currency; USD is the only foreign currency; `exchange_rat
 
 ## The iron rule: derive display from the write path
 
-**Any money the user sees before confirming must come from the same domain function that will perform the write.** The audit found three independent preview bugs (H6, M18, M19 — up to 50x overstated confirmations) and every one was an inline `amount * rate` re-computation drifting from the domain function.
+**Any money the user sees before confirming must come from the same domain function that will perform the write.** An inline `amount * rate` re-computation drifts from the domain function (H6, M18, M19).
 
 ```tsx
 // ❌ WRONG — inline math, wrong currency direction, wrong label (audit H6)
@@ -67,7 +67,7 @@ Every export, as of this commit:
 | `formatExchangeRate(rate)` | `48.60 EGP/USD`; owns rate precision — `.claude/rules/ui.md` names it canonical for rates |
 | `formatExchangeRateSentence(rate)` | `1 USD = 48.60 EGP`; the labelled-row long form beside a rate chip's compact `formatExchangeRate` |
 | `EXCHANGE_RATE_DECIMALS` | the 2 dp that `formatExchangeRate` and `formatExchangeRateSentence` apply |
-| `signAmountText(text, sign, printsAsZero = false)` | the sign composition point (#332): prefixes the glyph onto formatted text; a text that prints as zero takes no sign. Owned and owed amounts go through `formatOwnedAmountParts`, `formatLiabilityRowValue` and `formatLiabilityAmountParts`, which call it; a flow sign (`+` in, `−` out) calls it directly |
+| `signAmountText(text, sign, printsAsZero = false)` | the sign composition point: prefixes the glyph onto formatted text; a text that prints as zero takes no sign. Owned and owed amounts go through `formatOwnedAmountParts`, `formatLiabilityRowValue` and `formatLiabilityAmountParts`, which call it; a flow sign (`+` in, `−` out) calls it directly |
 | `MINUS_SIGN` / `PLUS_SIGN` | the canonical glyphs — `−` is U+2212 per the 2026-08-27 money-colour ADR decision 3, never the ASCII hyphen |
 | `AmountSign` (type) | `MINUS_SIGN \| PLUS_SIGN \| ''` — sites with a fixed direction take `Exclude<AmountSign, ''>` |
 | `AccountBalanceParts` (type) | `{ amount: string; code: string; printsAsZero: boolean }` — what `formatAccountBalanceParts` returns |
@@ -75,7 +75,7 @@ Every export, as of this commit:
 
 Decimals for an amount come from `CURRENCY_CONFIG` (`src/constants/currency.ts` — EGP 0, USD 2; plain `formatAmount` defaults to 0 dp and truncates cents if you skip `formatCurrencyAmount` — audit M22). A screen may override only by passing a **named constant** to a formatter's own `decimals` parameter — never a bare literal — recorded in an ADR. Shipped precedent: `N4_HERO_AMOUNT_DECIMALS` (`src/modules/onboarding/screens/onboarding/ready/ready.geometry.ts`), approved at `docs/adr/2026-08-18-starting-net-position.md` §6. This must not contradict `.claude/rules/review.md` item 3, which is the authority on decimal counts.
 
-Never construct `Intl.NumberFormat` outside `src/utils/format_amount.ts`, full stop — `npm run lint` rejects the constructor at **any** scope, not just top-level. Use a formatter from this file instead. The same script rejects a hand-built owned sign outside this file, a ternary that picks between a minus glyph (`MINUS_SIGN`, a quoted `-` or `−`) and an empty string; the transactions hero's `leftOfIncome` percent is the one exemption, by name, in the script's `OWNED_SIGN_ALLOWLIST`. It also rejects `formatAmount`, `formatCurrencyAmount`, `formatCurrencyParts`, `formatDisplayAmount`, `formatDisplayAmountParts` or `formatDisplayMagnitude` called with `.current_balance` or `.opening_balance` as the first argument, since a balance prints through `formatAccountBalanceParts` or `formatAccountBalance`. That scan has no allowlist, and it sees the column only as the end of the first argument, so a balance passed under another name or wrapped in a call passes lint and must still print through those two composers. ADR 2026-10-06 §6 lists the shapes it misses. The script rejects an amount joined to a currency code by hand outside this file as well: a template literal with two slots one space apart, the second naming `code`, `Code` or `urrency`. Its `HAND_JOIN_ALLOWLIST` exempts the count and code of `n4CaptionConverted` in `src/constants/strings.ts` by name, the commitments filter summary's file and this file. It reads template literals alone, so a join through `.join(' ')`, a `+` or a JSX text node passes lint and must still come from a joined formatter. ADR 2026-10-04 §1 lists the shapes it misses.
+Never construct `Intl.NumberFormat` outside `src/utils/format_amount.ts`, full stop — `npm run lint` rejects the constructor at **any** scope, not just top-level. Use a formatter from this file instead. The same script rejects a hand-built owned sign outside this file, a ternary that picks between a minus glyph (`MINUS_SIGN`, a quoted `-` or `−`) and an empty string; the transactions hero's `leftOfIncome` percent is the one exemption, by name, in the script's `OWNED_SIGN_ALLOWLIST`. It also rejects `formatAmount`, `formatCurrencyAmount`, `formatCurrencyParts`, `formatDisplayAmount`, `formatDisplayAmountParts` or `formatDisplayMagnitude` called with `.current_balance` or `.opening_balance` as the first argument, since a balance prints through `formatAccountBalanceParts` or `formatAccountBalance`. That scan has no allowlist, and it sees the column only as the end of the first argument, so a balance passed under another name or wrapped in a call passes lint and must still print through those two composers. ADR 2026-10-06 §6 lists the shapes it misses. The script rejects an amount joined to a currency code by hand outside this file as well: a template literal with two slots one space apart, the second naming `code`, `Code` or `urrency`. Its `HAND_JOIN_ALLOWLIST` exempts the count and code of `n4CaptionConverted` in `src/constants/strings.ts` by name, and this file. It reads template literals alone, so a join through `.join(' ')`, a `+` or a JSX text node passes lint and must still come from a joined formatter. `docs/adr/2026-10-04-owned-owed-composers-shared-home.md` §1 lists the shapes it misses.
 
 ## Sign conventions
 
@@ -86,7 +86,7 @@ Never construct `Intl.NumberFormat` outside `src/utils/format_amount.ts`, full s
 
 | Mistake | Reality |
 |---|---|
-| "It's just a preview label, inline math is fine" | Previews drift from writes — three audit findings, one 50x overstatement. Use the domain function. |
+| "It's just a preview label, inline math is fine" | Previews drift from writes (H6). Use the domain function. |
 | Multiplying by rate for both directions | EGP → USD divides. Check which side is USD before touching the rate. |
 | `formatAmount(usdValue)` | Renders 0 dp — cents silently vanish. Use `formatCurrencyAmount`. |
 | Guarding division with `?? 0` | `x / 0` = Infinity reaching the UI. The domain functions validate rate > 0; keep that property. |

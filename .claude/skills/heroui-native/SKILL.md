@@ -3,12 +3,12 @@ name: heroui-native
 description: "Use when building or changing any MoneyApp UI (screens, sheets, forms, cards, lists, dialogs) or choosing between a HeroUI Native primitive, a project wrapper and a custom component. Keywords: heroui-native, BottomSheet, Card, Surface, Uniwind, Tailwind class."
 metadata:
   owner: moneyapp
-  targets: heroui-native@1.0.8
+  targets: heroui-native@1.0.11
 ---
 
 # HeroUI Native in MoneyApp
 
-MoneyApp runs **heroui-native 1.0.8** on Uniwind (Tailwind v4 for React Native). This skill is the mechanics of Team Law 7 (stated in `.claude/rules/ui.md`) — how to find the right primitive and use it correctly.
+MoneyApp runs **heroui-native 1.x** on Uniwind (Tailwind v4 for React Native). This skill is the mechanics of Team Law 7 (stated in `.claude/rules/ui.md`) — how to find the right primitive and use it correctly.
 
 ## The docs that are true for this project
 
@@ -32,7 +32,7 @@ Compose or extend an existing wrapper; don't bypass one for the role it covers.
 
 - **Compound components, always.** `Card.Header` / `Card.Body` / `Card.Title` / `Card.Description` / `Card.Footer` — Title and Description go *inside* Body. Don't flatten to props.
 - **Text is called `Typography`.** `import { Typography } from 'heroui-native'` — `Text` is a deprecated alias of the same component and fails type-aware lint. Distinct from `@/components/ui/text`, the project's Cairo Nights wrapper over React Native `Text`; both exist and both are current.
-- **Semantic variants** (exact set in 1.0.8): `primary`, `secondary`, `tertiary`, `danger`, `danger-soft`, `ghost`, `outline`. One `primary` per context. Never raw colours.
+- **Semantic variants** (exact set in the installed version): `primary`, `secondary`, `tertiary`, `danger`, `danger-soft`, `ghost`, `outline`. One `primary` per context. Never raw colours.
 - **`onPress`, not `onClick`.** This is React Native — HeroUI React (web) patterns, `@heroui/react` imports, and oklch colours do not apply.
 - `cn` comes from `heroui-native`. Variants come from `tailwind-variants`.
 
