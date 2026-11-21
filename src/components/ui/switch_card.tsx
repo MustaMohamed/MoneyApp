@@ -53,13 +53,13 @@ export function SwitchCard({
             >
               {label}
             </Text>
-            {/* Hidden on the wrapper: set on the Switch it leaves a second switch node in the tree. */}
+            {/* The trigger is the one switch node: the drawn Switch drops its role, value and focus. */}
             <View
               pointerEvents="none"
               accessibilityElementsHidden
               importantForAccessibility="no-hide-descendants"
             >
-              <Switch isSelected={isOn} />
+              <Switch isSelected={isOn} role="none" accessible={false} aria-valuetext="" />
             </View>
           </Accordion.Trigger>
           <Accordion.Content className="p-0" style={{ padding: 0 }}>
