@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react-native';
 import { create } from 'zustand';
 
-import type { AccountChipModel } from '@/components/ui/account_chips.helpers';
+import type { ChipRowModel } from '@/components/ui/chip_row.helpers';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useAccountChipFilter } from '@/modules/accounts/store/use_account_chip_filter.hook';
@@ -160,8 +160,8 @@ describe('useAccountChipFilter, toggling', () => {
 });
 
 describe('useAccountChipFilter, chips', () => {
-  function litIds(chips: readonly AccountChipModel[]): Array<string | undefined> {
-    return chips.filter((chip) => chip.selected).map((chip) => chip.accountId);
+  function litIds(chips: readonly ChipRowModel[]): Array<string | undefined> {
+    return chips.filter((chip) => chip.selected).map((chip) => chip.id);
   }
 
   it('lights All accounts only with no account applied', async () => {
@@ -185,7 +185,7 @@ describe('useAccountChipFilter, chips', () => {
   it('draws All accounts, then one chip per loaded account', async () => {
     const { result } = await renderLive(makeFilterStore([]));
 
-    expect(result.current.accountChips.map((chip: AccountChipModel) => chip.accountId)).toEqual([
+    expect(result.current.accountChips.map((chip: ChipRowModel) => chip.id)).toEqual([
       undefined,
       cash.id,
       bank.id,

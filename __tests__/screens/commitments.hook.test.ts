@@ -1668,7 +1668,7 @@ describe('useCommitments account chips, account prune and tally (MA-241)', () =>
     const { result } = await renderHook(() => useCommitments());
 
     expect(
-      result.current.state.accountChips.map((chip) => [chip.accountId, chip.label, chip.selected]),
+      result.current.state.accountChips.map((chip) => [chip.id, chip.label, chip.selected]),
     ).toEqual([
       [undefined, Strings.filterAllAccounts, true],
       ['account-wallet', 'Wallet', false],
@@ -1762,7 +1762,7 @@ describe('useCommitments account chips, account prune and tally (MA-241)', () =>
     expect(ensureMonthAggregateMock).toHaveBeenLastCalledWith('2026-05', undefined);
     expect(hook.result.current.state.hero.title).toBe('Left to pay');
     expect(hook.result.current.state.accountChips[0]).toMatchObject({
-      accountId: undefined,
+      id: undefined,
       selected: true,
     });
   });

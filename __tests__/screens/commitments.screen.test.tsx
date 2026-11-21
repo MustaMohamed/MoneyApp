@@ -2,7 +2,7 @@ import { fireEvent, render, within } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 import { Dimensions } from 'react-native';
 
-import type { AccountChipModel } from '@/components/ui/account_chips.helpers';
+import type { ChipRowModel } from '@/components/ui/chip_row.helpers';
 import { LIST_RAIL_ALL_OPTION } from '@/components/ui/list_rail';
 import { LIST_RAIL } from '@/components/ui/list_rail.geometry';
 import type { SearchTallyModel } from '@/components/ui/search_tally';
@@ -90,13 +90,13 @@ jest.mock('@/components/ui/segment_filter', () => {
     },
   };
 });
-jest.mock('@/components/ui/account_chips', () => {
+jest.mock('@/components/ui/chip_row', () => {
   const accountChipsProps: { last: object | undefined } = { last: undefined };
   return {
     accountChipsProps,
-    AccountChips: (props: {
-      chips: ReadonlyArray<{ accountId: string | undefined; label: string }>;
-      onToggle: (accountId: string | undefined) => void;
+    ChipRow: (props: {
+      chips: ReadonlyArray<{ id: string | undefined; label: string }>;
+      onToggle: (id: string | undefined) => void;
       testID: string;
     }) => {
       const { Pressable, Text, View } =
@@ -108,7 +108,7 @@ jest.mock('@/components/ui/account_chips', () => {
             <Pressable
               key={chip.label}
               accessibilityRole="button"
-              onPress={() => props.onToggle(chip.accountId)}
+              onPress={() => props.onToggle(chip.id)}
             >
               <Text>{`chip:${chip.label}`}</Text>
             </Pressable>
@@ -296,8 +296,8 @@ const { segmentFilterProps } = jest.requireMock<{
   segmentFilterProps: { last: SegmentFilterMockProps | undefined };
 }>('@/components/ui/segment_filter');
 const { accountChipsProps } = jest.requireMock<{
-  accountChipsProps: { last: { chips: readonly AccountChipModel[] } | undefined };
-}>('@/components/ui/account_chips');
+  accountChipsProps: { last: { chips: readonly ChipRowModel[] } | undefined };
+}>('@/components/ui/chip_row');
 const { searchTallyProps } = jest.requireMock<{
   searchTallyProps: { last: { model: SearchTallyModel; testID: string } | undefined };
 }>('@/components/ui/search_tally');
@@ -372,12 +372,12 @@ function mockUseCommitments(state: Partial<CommitmentsScreenState> = {}) {
   });
 }
 
-function chip(accountId: string | undefined, label: string, selected: boolean): AccountChipModel {
+function chip(id: string | undefined, label: string, selected: boolean): ChipRowModel {
   return {
-    accountId,
+    id,
     label,
     accessibilityLabel: label,
-    tile: undefined,
+    lead: undefined,
     selected,
   };
 }

@@ -21,7 +21,7 @@ jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => {
   return ({ name }: { name: string }) => <View testID={`icon-${name}`} />;
 });
 
-jest.mock('@/modules/budget/screens/budget/components/budget_ring', () => {
+jest.mock('@/components/ui/budget_ring', () => {
   const { View } = jest.requireActual<typeof import('react-native')>('react-native');
   return {
     BudgetRing: ({ children }: { children?: ReactNode }) => (
