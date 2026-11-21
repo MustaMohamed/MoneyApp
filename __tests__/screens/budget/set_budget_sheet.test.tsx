@@ -1,4 +1,4 @@
-import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, waitFor, within } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 import { Dimensions } from 'react-native';
 import type { PressableProps } from 'react-native';
@@ -7,6 +7,7 @@ import { BudgetGroup } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Type } from '@/constants/theme';
 import type { BudgetMonthGroupMap } from '@/modules/budget/entities/budget.entity';
+import { BudgetNameTakenError } from '@/modules/budget/repositories/budget.repository';
 import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
 import { SetBudgetSheet } from '@/modules/budget/screens/budget/components/set_budget_sheet';
 import { resolveSetBudgetFieldGeometry } from '@/modules/budget/screens/budget/components/set_budget_sheet.geometry';
@@ -47,7 +48,7 @@ jest.mock('@/components/ui/sheet', () => ({
     return isOpen ? (
       <View testID="set-budget-sheet" accessibilityState={{ disabled: !isDismissable }}>
         {children}
-        {footer}
+        {footer === undefined ? null : <View testID="sheet-footer">{footer}</View>}
       </View>
     ) : null;
   },
@@ -235,6 +236,27 @@ describe('SetBudgetSheet', () => {
         yearMonth: '2026-08',
       }),
     );
+  });
+
+  it("shows a duplicate-name refusal inside the sheet's footer", async () => {
+    mockSetBudget.mockRejectedValueOnce(new BudgetNameTakenError('Gym'));
+    useBudgetState.getState().setSelectedMonth('2026-08');
+    const { getByLabelText, getByTestId } = await render(
+      <SetBudgetSheet shownGroupByCategoryId={noShownGroups} budgetableCategories={categories} />,
+    );
+
+    await fireEvent.changeText(getByTestId('budget-name-input'), 'Gym');
+    await fireEvent.changeText(getByTestId('budget-limit-input'), '500');
+    await fireEvent.press(getByLabelText(Strings.budgetSaveCta));
+
+    await waitFor(() =>
+      expect(
+        within(getByTestId('sheet-footer')).getByText(
+          Strings.budgetNameTaken(categories[0].name, 'Gym', 'August'),
+        ),
+      ).toBeTruthy(),
+    );
+    expect(getByTestId('set-budget-sheet')).toBeTruthy();
   });
 
   it("saves the category's shown 50/30/20 group for the month", async () => {
