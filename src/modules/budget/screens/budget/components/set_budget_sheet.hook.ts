@@ -4,11 +4,13 @@ import { useShallow } from 'zustand/react/shallow';
 import { useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { BudgetGroup } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import type { BudgetMonthGroupMap } from '@/modules/budget/entities/budget.entity';
+import { BudgetNameTakenError } from '@/modules/budget/repositories/budget.repository';
 import type { BudgetEditTargetVM } from '@/modules/budget/screens/budget/budget.hook';
 import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import type { Category } from '@/modules/categories/entities/category.entity';
-import { useCategoryStore } from '@/modules/categories/store/category.store';
+import { formatMonthYear } from '@/utils/format_date';
 import { formatStoredMoneyText, maskFieldText, parseRequiredMoneyText } from '@/utils/money_text';
 import { budgetFormSchema, type BudgetFormValues } from '@/utils/schemas/budget.schema';
 import { setTypedDecimal, useZodForm } from '@/utils/use_zod_form.hook';
@@ -16,22 +18,30 @@ import { setTypedDecimal, useZodForm } from '@/utils/use_zod_form.hook';
 import { useSetBudgetSheetState } from './set_budget_sheet.state';
 
 export function useSetBudgetSheetSave() {
-  const runSave = useCallback(async (operation: () => Promise<void>): Promise<boolean> => {
-    const state = useSetBudgetSheetState.getState();
-    if (state.saving) return false;
+  const runSave = useCallback(
+    async (
+      operation: () => Promise<void>,
+      refusalMessage?: (error: unknown) => string | undefined,
+    ): Promise<boolean> => {
+      const state = useSetBudgetSheetState.getState();
+      if (state.saving) return false;
 
-    state.setSaving(true);
-    state.setErrorMessage(undefined);
-    try {
-      await operation();
-      return true;
-    } catch {
-      useSetBudgetSheetState.getState().setErrorMessage(Strings.budgetSaveError);
-      return false;
-    } finally {
-      useSetBudgetSheetState.getState().setSaving(false);
-    }
-  }, []);
+      state.setSaving(true);
+      state.setErrorMessage(undefined);
+      try {
+        await operation();
+        return true;
+      } catch (error) {
+        useSetBudgetSheetState
+          .getState()
+          .setErrorMessage(refusalMessage?.(error) ?? Strings.budgetSaveError);
+        return false;
+      } finally {
+        useSetBudgetSheetState.getState().setSaving(false);
+      }
+    },
+    [],
+  );
 
   return { runSave };
 }
@@ -39,6 +49,7 @@ export function useSetBudgetSheetSave() {
 export interface SetBudgetSheetOptions {
   budgetableCategories: Category[];
   editingRow?: BudgetEditTargetVM;
+  shownGroupByCategoryId: BudgetMonthGroupMap;
 }
 
 const BUDGET_GROUP_VALUES: readonly string[] = Object.values(BudgetGroup);
@@ -47,7 +58,11 @@ function isBudgetGroup(value: string): value is BudgetGroup {
   return BUDGET_GROUP_VALUES.includes(value);
 }
 
-export function useSetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSheetOptions) {
+export function useSetBudgetSheet({
+  budgetableCategories,
+  editingRow,
+  shownGroupByCategoryId,
+}: SetBudgetSheetOptions) {
   const { sheetVisible, mode, selectedMonth, addCategoryId, addBudgetGroup } = useBudgetState(
     useShallow((state) => ({
       sheetVisible: state.sheetVisible,
@@ -69,7 +84,6 @@ export function useSetBudgetSheet({ budgetableCategories, editingRow }: SetBudge
     );
   const close = useBudgetState.getState().close;
   const setBudget = useBudgetStore.getState().setBudget;
-  const loadCategories = useCategoryStore.getState().loadCategories;
   const initAddMode = useSetBudgetSheetState.getState().initAddMode;
   const initEditMode = useSetBudgetSheetState.getState().initEditMode;
   const setSelectedCategoryId = useSetBudgetSheetState.getState().setSelectedCategoryId;
@@ -120,7 +134,9 @@ export function useSetBudgetSheet({ budgetableCategories, editingRow }: SetBudge
         contextualCategory ?? (addBudgetGroup === undefined ? budgetableCategories[0] : undefined);
       initialized = initAddMode(
         initialCategory?.id,
-        addBudgetGroup ?? initialCategory?.budget_group ?? null,
+        addBudgetGroup ??
+          (initialCategory ? shownGroupByCategoryId[initialCategory.id] : undefined) ??
+          null,
         sessionKey,
       );
     }
@@ -143,11 +159,19 @@ export function useSetBudgetSheet({ budgetableCategories, editingRow }: SetBudge
     resetState,
     sessionKey,
     sheetVisible,
+    shownGroupByCategoryId,
   ]);
 
   const resolvedCategoryId = isEdit ? editingRow?.categoryId : selectedCategoryId;
+  const resolvedCategoryName = isEdit ? editingRow?.categoryName : selectedCategory?.name;
   const submit = handleSubmit(async (values) => {
     if (!resolvedCategoryId) return;
+    const monthYear = formatMonthYear(selectedMonth);
+    const monthName = monthYear.split(' ')[0] ?? monthYear;
+    const nameTakenMessage = (error: unknown) =>
+      error instanceof BudgetNameTakenError && resolvedCategoryName !== undefined
+        ? Strings.budgetNameTaken(resolvedCategoryName, error.budgetName, monthName)
+        : undefined;
     const saved = await runSave(async () => {
       await setBudget({
         id: isEdit ? editingRow?.id : undefined,
@@ -157,17 +181,16 @@ export function useSetBudgetSheet({ budgetableCategories, editingRow }: SetBudge
         yearMonth: selectedMonth,
         categoryGroup: groupValue ?? undefined,
       });
-      await loadCategories().catch(() => undefined);
-    });
+    }, nameTakenMessage);
     if (saved) close();
   });
 
   const selectCategory = useCallback(
     (category: Category) => {
       setSelectedCategoryId(category.id);
-      if (addBudgetGroup === undefined) setGroupValue(category.budget_group ?? null);
+      if (addBudgetGroup === undefined) setGroupValue(shownGroupByCategoryId[category.id] ?? null);
     },
-    [addBudgetGroup, setGroupValue, setSelectedCategoryId],
+    [addBudgetGroup, setGroupValue, setSelectedCategoryId, shownGroupByCategoryId],
   );
 
   const selectGroup = useCallback(

@@ -266,6 +266,7 @@ export default function BudgetScreen() {
       <SetBudgetSheet
         budgetableCategories={state.budgetableCategories}
         editingRow={state.editingRow}
+        shownGroupByCategoryId={state.budgetSheetGroupByCategoryId}
       />
       <SpendingPlanSheet
         budgetableCategories={state.budgetableCategories}
