@@ -132,6 +132,24 @@ describe('BudgetRepository.setBudget — rounds at the first statement', () => {
     expect(countBudgets()).toBe(1);
     expect(readLimitAmount('generated-1')).toBe(750);
   });
+
+  it('setLimit on a row named budget keeps its stored name', async () => {
+    realDb
+      .prepare(
+        `INSERT INTO budgets (id, category_id, name, limit_amount, effective_from, created_at, updated_at)
+         VALUES ('b_lower', 'cat_food', 'budget', 300, '2026-08', '2026-08-01T00:00:00.000Z', '2026-08-01T00:00:00.000Z')`,
+      )
+      .run();
+    const repo = new BudgetRepository();
+    await repo.setLimit('cat_food', 750, '2026-08');
+
+    const row = realDb.prepare('SELECT name FROM budgets WHERE id = ?').get('b_lower') as {
+      name: string;
+    };
+    expect(countBudgets()).toBe(1);
+    expect(row.name).toBe('budget');
+    expect(readLimitAmount('b_lower')).toBe(750);
+  });
 });
 
 function countBudgets(): number {

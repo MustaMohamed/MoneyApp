@@ -364,7 +364,7 @@ export class BudgetRepository implements IBudgetRepository {
       await setBudgetRow(tx, {
         id: existing?.id ?? String(uuid.v4()),
         category_id: categoryId,
-        name,
+        name: existing?.name ?? name,
         limit_amount: limitAmount,
         effective_from: yearMonth,
         created_at: existing?.created_at ?? now,
