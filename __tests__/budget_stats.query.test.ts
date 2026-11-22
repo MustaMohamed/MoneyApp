@@ -6,6 +6,7 @@ import {
   getBudgetSpendByMonth,
   getCategorySpendByMonth,
 } from '@/modules/budget/database/budget_stats';
+import { resolveSuggestedAmounts } from '@/modules/budget/screens/budget/suggested_amounts.helpers';
 
 const sqlite = SQLite as unknown as { __reset: () => void };
 let realDb: ReturnType<typeof Database>;
@@ -55,6 +56,12 @@ beforeAll(() => {
     .prepare(
       `INSERT OR IGNORE INTO accounts (id,name,type,currency,opening_balance,current_balance,interest_tracking,is_archived,sort_order,created_at,updated_at)
        VALUES ('acc_card','Card','credit_card','EGP',0,0,0,0,0,?,?)`,
+    )
+    .run(NOW, NOW);
+  realDb
+    .prepare(
+      `INSERT OR IGNORE INTO accounts (id,name,type,currency,opening_balance,current_balance,interest_tracking,is_archived,sort_order,created_at,updated_at)
+       VALUES ('acc_usd','Dollars','bank','USD',0,0,0,0,0,?,?)`,
     )
     .run(NOW, NOW);
   const fake = (SQLite as unknown as { __fakeDb: { getAllAsync: jest.Mock } }).__fakeDb;
@@ -174,5 +181,21 @@ describe('getBudgetSpendByMonth', () => {
     await expect(getBudgetSpendByMonth(db, ['2026-05'])).resolves.toEqual({
       food_monthly: 450,
     });
+  });
+});
+
+describe('resolveSuggestedAmounts over getCategorySpendByMonth', () => {
+  it('MA-288: counts an expense from a USD account at its EGP amount', async () => {
+    tx({
+      id: 'usd_expense',
+      account_id: 'acc_usd',
+      currency: 'USD',
+      amount: 50,
+      egp_amount: 2500,
+      exchange_rate: 50,
+      transaction_date: '2026-10-15',
+    });
+    const spend = await getCategorySpendByMonth(db, ['2026-10', '2026-09', '2026-08']);
+    expect(resolveSuggestedAmounts('2026-11', spend['cat_food']).spentLastMonth).toBe(2500);
   });
 });

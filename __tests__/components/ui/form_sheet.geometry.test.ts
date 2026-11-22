@@ -1,6 +1,10 @@
+import { PILL_BORDER_WIDTH, SELECTABLE_PILL_PADDING_BLOCK } from '@/components/ui/chip.geometry';
 import { resolveFactRowHeight } from '@/components/ui/fact_row.geometry';
 import {
+  AMOUNT_SUGGESTION_GAP,
+  AMOUNT_SUGGESTION_ROW_PADDING_TOP,
   FORM_SHEET_CONTENT_CONTAINER_STYLE,
+  resolveAmountSuggestionChipGeometry,
   resolveFormSupportLineTextProps,
   resolveNoteInputGeometry,
   resolveTypeTabsGeometry,
@@ -8,6 +12,42 @@ import {
 import { TABS_LIST_PADDING, resolveSegmentedTabsGeometry } from '@/components/ui/tabs.geometry';
 import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Spacing, TouchSize, Type, lineHeightFor } from '@/constants/theme';
+
+describe('resolveAmountSuggestionChipGeometry', () => {
+  it.each([1, 2])(
+    'MA-288: at font scale %d a suggestion chip and its slop reach the touch floor',
+    (fontScale) => {
+      const { height, hitSlop } = resolveAmountSuggestionChipGeometry(fontScale);
+      expect(height + hitSlop.top + hitSlop.bottom).toBeGreaterThanOrEqual(TouchSize.min);
+    },
+  );
+
+  it.each([1, 2])(
+    'MA-288: at font scale %d the label fits its chip and wrapped rows clear the amount and each other',
+    (fontScale) => {
+      const { height, label } = resolveAmountSuggestionChipGeometry(fontScale);
+      expect(
+        label.lineHeight + 2 * SELECTABLE_PILL_PADDING_BLOCK + 2 * PILL_BORDER_WIDTH,
+      ).toBeLessThanOrEqual(height);
+      const heroBottom = 0;
+      const firstRow = { top: heroBottom + AMOUNT_SUGGESTION_ROW_PADDING_TOP, bottom: 0 };
+      firstRow.bottom = firstRow.top + height;
+      const secondRow = { top: firstRow.bottom + AMOUNT_SUGGESTION_GAP, bottom: 0 };
+      secondRow.bottom = secondRow.top + height;
+      expect(heroBottom - firstRow.top).toBeLessThanOrEqual(1);
+      expect(firstRow.bottom - secondRow.top).toBeLessThanOrEqual(1);
+    },
+  );
+
+  it('MA-288: at font scale 2, where the row wraps, no chip hit rect reaches a neighbouring chip', () => {
+    const { height, hitSlop } = resolveAmountSuggestionChipGeometry(2);
+    const firstRowBottom = AMOUNT_SUGGESTION_ROW_PADDING_TOP + height;
+    const secondRowTop = firstRowBottom + AMOUNT_SUGGESTION_GAP;
+    expect(firstRowBottom + hitSlop.bottom - secondRowTop).toBeLessThanOrEqual(1);
+    expect(firstRowBottom - (secondRowTop - hitSlop.top)).toBeLessThanOrEqual(1);
+    expect(hitSlop.top).toBeLessThanOrEqual(AMOUNT_SUGGESTION_ROW_PADDING_TOP);
+  });
+});
 
 describe('resolveTypeTabsGeometry', () => {
   it('at font scale 1 keeps the 36 tab row and returns only the list height and the slop', () => {

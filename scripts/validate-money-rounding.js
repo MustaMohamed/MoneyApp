@@ -28,6 +28,7 @@ const PERMITTED = {
     'src/utils/money.ts',
   ],
   toCents: [
+    'src/modules/budget/screens/budget/suggested_amounts.helpers.ts',
     'src/modules/transactions/domain/expense_share.ts',
     'src/modules/transactions/domain/period_delta.ts',
     'src/modules/transactions/screens/transactions/transactions.helpers.ts',
