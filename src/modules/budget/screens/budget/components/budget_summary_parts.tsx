@@ -43,10 +43,24 @@ interface BudgetSummaryMetricItem {
   key: string;
   label: string;
   value: string;
-  tone?: 'default' | 'warning';
+  tone?: BudgetSummaryMetricTone;
   onPress?: () => void;
   accessibilityLabel?: string;
 }
+
+type BudgetSummaryMetricTone = 'default' | 'warning' | 'negative';
+
+const STACKED_METRIC_VALUE_CLASS: Record<BudgetSummaryMetricTone, string> = {
+  default: 'font-sora-semibold text-foreground text-right',
+  warning: 'font-sora-semibold text-warning text-right',
+  negative: 'font-sora-semibold text-negative text-right',
+};
+
+const METRIC_VALUE_CLASS: Record<BudgetSummaryMetricTone, string> = {
+  default: 'font-sora-semibold text-foreground mt-px text-center',
+  warning: 'font-sora-semibold text-warning mt-px text-center',
+  negative: 'font-sora-semibold text-negative mt-px text-center',
+};
 
 interface BudgetSummaryStatusItem {
   key: string;
@@ -282,11 +296,7 @@ function BudgetSummaryMetric({ item }: { item: BudgetSummaryMetricItem }) {
       <Text
         {...valueText}
         style={{ ...valueText.style, flexShrink: 0, maxWidth: STACKED_METRIC_VALUE_MAX_WIDTH }}
-        className={
-          item.tone === 'warning'
-            ? 'font-sora-semibold text-warning text-right'
-            : 'font-sora-semibold text-foreground text-right'
-        }
+        className={STACKED_METRIC_VALUE_CLASS[item.tone ?? 'default']}
       >
         {item.value}
       </Text>
@@ -301,11 +311,7 @@ function BudgetSummaryMetric({ item }: { item: BudgetSummaryMetricItem }) {
       </Text>
       <Text
         style={{ fontSize: Type.bodyStrong, lineHeight: lineHeightFor(Type.bodyStrong) }}
-        className={
-          item.tone === 'warning'
-            ? 'font-sora-semibold text-warning mt-px text-center'
-            : 'font-sora-semibold text-foreground mt-px text-center'
-        }
+        className={METRIC_VALUE_CLASS[item.tone ?? 'default']}
       >
         {item.value}
       </Text>

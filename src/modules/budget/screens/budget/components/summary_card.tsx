@@ -66,14 +66,13 @@ export function SummaryCard({ summary, onSetIncome }: SummaryCardProps) {
               value: summary.plannedLabel,
             },
             {
-              key: 'unassigned-income',
-              label: Strings.budgetCategoriesSummaryUnassignedIncome,
-              value: summary.unassignedIncomeLabel,
-              onPress: summary.unassignedIncome === undefined ? onSetIncome : undefined,
+              key: 'income-left',
+              label: summary.incomeLeftLabel,
+              value: summary.incomeLeftValueLabel,
+              tone: summary.incomeOver ? 'negative' : 'default',
+              onPress: summary.incomeLeft === undefined ? onSetIncome : undefined,
               accessibilityLabel:
-                summary.unassignedIncome === undefined
-                  ? Strings.budgetCategoriesSetIncome
-                  : undefined,
+                summary.incomeLeft === undefined ? Strings.budgetCategoriesSetIncome : undefined,
             },
             {
               key: 'unbudgeted-spend',

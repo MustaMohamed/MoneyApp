@@ -481,7 +481,8 @@ export const Strings = {
     `${spent} spent of ${planned}`,
   budgetCategoriesSummaryUsed: (percentage: number) => `${percentage}% used`,
   budgetCategoriesSummaryPlanned: 'Planned',
-  budgetCategoriesSummaryUnassignedIncome: 'Unassigned income',
+  budgetCategoriesSummaryIncomeLeft: 'Income left',
+  budgetCategoriesSummaryOverIncome: 'Over income',
   budgetCategoriesSummaryUnbudgetedSpend: 'Unbudgeted spend',
   budgetCategoriesSetIncome: 'Set income',
   budgetCategoriesNoBudgetSet: 'No budget set',
@@ -552,6 +553,8 @@ export const Strings = {
   budgetMonthlyLimitLabel: 'Monthly limit',
   budgetSaveCta: 'Save budget',
   budgetSaveError: 'Could not save budget. Please try again.',
+  budgetNameTaken: (category: string, name: string, month: string) =>
+    `${category} already has a ${name} budget in ${month}.`,
   budgetRemoveCta: 'Remove budget',
   budgetNameRequired: 'Enter a budget name',
   budgetAmountRequired: 'Enter a monthly limit',

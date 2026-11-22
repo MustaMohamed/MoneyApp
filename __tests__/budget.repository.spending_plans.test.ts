@@ -36,6 +36,7 @@ jest.mock('@/modules/budget/database/budgets', () => ({
   deleteBudgetRow: jest.fn().mockResolvedValue(undefined),
   getBudgetRowById: jest.fn().mockResolvedValue(null),
   getBudgetRows: jest.fn().mockResolvedValue([]),
+  getBudgetRowsForCategoryMonth: jest.fn().mockResolvedValue([]),
   setBudgetRow: jest.fn().mockResolvedValue(undefined),
 }));
 jest.mock('@/modules/budget/database/spending_plan_categories', () => ({
@@ -169,7 +170,7 @@ describe('BudgetRepository spending plans', () => {
     await transaction?.(transactionDb);
 
     expect(setBudgetRow).toHaveBeenCalledWith(transactionDb, expect.anything());
-    expect(setCategoryGroup).toHaveBeenCalledWith(transactionDb, 'cat_food', BudgetGroup.Need);
+    expect(setCategoryGroup).not.toHaveBeenCalled();
   });
 
   it('creates a plan with selected categories and allocations', async () => {

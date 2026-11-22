@@ -46,7 +46,8 @@ export interface BudgetCategoriesSummaryVM {
   spent: number;
   left: number;
   usedPct: number | undefined;
-  unassignedIncome: number | undefined;
+  incomeLeft: number | undefined;
+  incomeOver: boolean;
   unbudgetedSpend: number;
   eyebrowLabel: string;
   categoryCountLabel: string;
@@ -57,7 +58,8 @@ export interface BudgetCategoriesSummaryVM {
   spentPlannedLabel: string;
   usedLabel: string | undefined;
   plannedLabel: string;
-  unassignedIncomeLabel: string;
+  incomeLeftLabel: string;
+  incomeLeftValueLabel: string;
   unbudgetedSpendLabel: string;
   lifecycleLabel: string;
   onTrackCount: number;

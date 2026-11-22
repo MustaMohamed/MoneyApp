@@ -17,6 +17,7 @@ import {
 } from '@/modules/budget/screens/budget/budget.helpers';
 import { BUDGET_WARNING_PERCENT, budgetBandColor } from '@/modules/budget/utils/budget_summary';
 import type { Category } from '@/modules/categories/entities/category.entity';
+import { formatAmount } from '@/utils/format_amount';
 
 const NOW = '2026-05-01T00:00:00.000Z';
 function row(
@@ -192,7 +193,7 @@ describe('budget categories ledger view models', () => {
         spent: 1900,
         left: 600,
         usedPct: 0.76,
-        unassignedIncome: undefined,
+        incomeLeft: undefined,
         unbudgetedSpend: 450,
         onTrackCount: 1,
         watchCount: 0,
@@ -723,5 +724,68 @@ describe('figures under half a cent and spends that tie their limit to the cent 
 
   it('computeCategoryHistory returns a spend under half a cent as 0', () => {
     expect(computeCategoryHistory([historyMonth(0.3, 5.5e-17, 0.3)]).results[0]?.spent).toBe(0);
+  });
+});
+
+describe('Income left keeps its sign and reads Income left, Over income or Set income (MA-287)', () => {
+  const summaryWith = (expectedIncome: number | null, budgeted: number) => {
+    const { rows, unbudgetedSpend } = buildCategoryBudgetRows({
+      categories: [category('food', 'Food & Dining')],
+      budgets: [row('food', budgeted, '2026-11', 'Monthly meals', 'meals')],
+      spendByMonth: {},
+      spendByBudgetId: {},
+      yearMonth: '2026-11',
+    });
+    return buildBudgetCategoriesSummary({
+      rows,
+      expectedIncome,
+      unbudgetedSpend,
+      selectedMonth: '2026-11',
+      today: '2026-11-14',
+    });
+  };
+
+  it('income 1,000 and budgets 600 leaves 400 under Income left', () => {
+    const summary = summaryWith(1000, 600);
+
+    expect(summary.incomeLeft).toBe(400);
+    expect(summary.incomeOver).toBe(false);
+    expect(summary.incomeLeftLabel).toBe(Strings.budgetCategoriesSummaryIncomeLeft);
+    expect(summary.incomeLeftValueLabel).toBe(formatAmount(400));
+  });
+
+  it('budgets equal to income leave 0 under Income left', () => {
+    const summary = summaryWith(1000, 1000);
+
+    expect(summary.incomeLeft).toBe(0);
+    expect(summary.incomeOver).toBe(false);
+    expect(summary.incomeLeftLabel).toBe(Strings.budgetCategoriesSummaryIncomeLeft);
+    expect(summary.incomeLeftValueLabel).toBe(formatAmount(0));
+  });
+
+  it('budgets a cent above income read Over income with the difference as a positive amount', () => {
+    const summary = summaryWith(1000, 1000.01);
+
+    expect(summary.incomeOver).toBe(true);
+    expect(summary.incomeLeft).toBeLessThan(0);
+    expect(summary.incomeLeftLabel).toBe(Strings.budgetCategoriesSummaryOverIncome);
+    expect(summary.incomeLeftValueLabel).toBe(formatAmount(0.01));
+  });
+
+  it('budgets under a cent above income are not over and read 0', () => {
+    const summary = summaryWith(1000, 1000.004);
+
+    expect(summary.incomeOver).toBe(false);
+    expect(summary.incomeLeftLabel).toBe(Strings.budgetCategoriesSummaryIncomeLeft);
+    expect(summary.incomeLeftValueLabel).toBe(formatAmount(0));
+  });
+
+  it('no expected income leaves the figure undefined and reads Set income', () => {
+    const summary = summaryWith(null, 600);
+
+    expect(summary.incomeLeft).toBeUndefined();
+    expect(summary.incomeOver).toBe(false);
+    expect(summary.incomeLeftLabel).toBe(Strings.budgetCategoriesSummaryIncomeLeft);
+    expect(summary.incomeLeftValueLabel).toBe(Strings.budgetCategoriesSetIncome);
   });
 });

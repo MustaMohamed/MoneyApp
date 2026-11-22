@@ -43,7 +43,7 @@ import type {
   SpendingPlanCategory,
   SpendingPlanWithCategories,
 } from '@/modules/budget/entities/budget.entity';
-import { getCategoriesByType, setCategoryGroup } from '@/modules/categories/database/categories';
+import { getCategoriesByType } from '@/modules/categories/database/categories';
 import { roundMoney } from '@/utils/money';
 import { spendingPlanInputSchema, type SpendingPlanInput } from '@/utils/schemas/budget.schema';
 
@@ -120,6 +120,13 @@ export interface BudgetMonthSnapshot {
 }
 
 export class SpendingPlanValidationError extends Error {}
+
+export class BudgetNameTakenError extends Error {
+  constructor(readonly budgetName: string) {
+    super('A budget with this name already exists in this category and month');
+    this.name = 'BudgetNameTakenError';
+  }
+}
 
 function hydrateSpendingPlans(
   plans: SpendingPlan[],
@@ -327,6 +334,10 @@ export class BudgetRepository implements IBudgetRepository {
     const id = input.id ?? String(uuid.v4());
 
     await withExclusiveWriteTransactionAsync(async (tx) => {
+      const siblings = await getBudgetRowsForCategoryMonth(tx, input.categoryId, yearMonth);
+      if (siblings.some((row) => row.id !== id && sameBudgetName(row.name, input.name))) {
+        throw new BudgetNameTakenError(normalizeBudgetName(input.name));
+      }
       const existing = input.id ? await getBudgetRowById(tx, input.id) : undefined;
       await setBudgetRow(tx, {
         id,
@@ -339,13 +350,27 @@ export class BudgetRepository implements IBudgetRepository {
       });
       if (input.categoryGroup !== undefined) {
         await setBudgetMonthCategoryGroup(tx, yearMonth, input.categoryId, input.categoryGroup);
-        await setCategoryGroup(tx, input.categoryId, input.categoryGroup);
       }
     });
   }
 
   async setLimit(categoryId: string, limit: number, yearMonth = currentYearMonth()): Promise<void> {
-    await this.setBudget({ categoryId, name: 'Budget', limit, yearMonth });
+    const name = 'Budget';
+    const limitAmount = roundMoney(limit);
+    const now = new Date().toISOString();
+    await withExclusiveWriteTransactionAsync(async (tx) => {
+      const siblings = await getBudgetRowsForCategoryMonth(tx, categoryId, yearMonth);
+      const existing = siblings.find((row) => sameBudgetName(row.name, name));
+      await setBudgetRow(tx, {
+        id: existing?.id ?? String(uuid.v4()),
+        category_id: categoryId,
+        name: existing?.name ?? name,
+        limit_amount: limitAmount,
+        effective_from: yearMonth,
+        created_at: existing?.created_at ?? now,
+        updated_at: now,
+      });
+    });
   }
 
   async removeBudget(id: string, _yearMonth = currentYearMonth()): Promise<void> {

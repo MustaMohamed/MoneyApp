@@ -20,6 +20,7 @@ import {
   buildBudgetRuleLens,
   hasBudgetRuleIncome,
   resolveBudgetRuleGroup,
+  resolveBudgetRuleGroups,
 } from '@/modules/budget/screens/budget/budget_buckets.helpers';
 import type { NamedBudgetVM } from '@/modules/budget/screens/budget/budget_categories.types';
 import { useIncomeSheetState } from '@/modules/budget/screens/budget/components/income_sheet.state';
@@ -280,6 +281,15 @@ export function useBudget() {
     () => categories.filter((c) => c.type === CategoryType.Expense),
     [categories],
   );
+  const budgetSheetGroupByCategoryId = useMemo(
+    () =>
+      resolveBudgetRuleGroups(
+        budgetableCategories,
+        activeBudgetGroupByCategoryId,
+        hasConfiguredIncome,
+      ),
+    [activeBudgetGroupByCategoryId, budgetableCategories, hasConfiguredIncome],
+  );
 
   const hasMatchingCopyPreview =
     copyPreviewLoaded &&
@@ -478,6 +488,7 @@ export function useBudget() {
       hasBudgets: rows.length > 0,
       hasSpendingPlans: spendingPlanRows.length > 0,
       budgetableCategories,
+      budgetSheetGroupByCategoryId,
       ruleLens,
       suggestion: activeIncomeSuggestion,
       lensTab,

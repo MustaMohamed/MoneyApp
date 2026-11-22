@@ -256,6 +256,11 @@ function summaryLifecycle(selectedMonth: string, today: string): string {
   return Strings.budgetCategoriesDaysLeft(Math.max(0, lastDay - Number(today.slice(8, 10))));
 }
 
+function incomeLeftValue(incomeLeft: number | undefined, incomeOver: boolean): string {
+  if (incomeLeft === undefined) return Strings.budgetCategoriesSetIncome;
+  return formatAmount(incomeOver ? Math.abs(incomeLeft) : Math.max(incomeLeft, 0));
+}
+
 export function buildBudgetCategoriesSummary({
   rows,
   expectedIncome,
@@ -269,8 +274,8 @@ export function buildBudgetCategoriesSummary({
   const balance = remainingLabel(left);
   const usedPct = planned > 0 ? ratioHeldAtTie(spent, planned) : undefined;
   const unbudgeted = snapToZero(unbudgetedSpend);
-  const unassignedIncome =
-    expectedIncome === null ? undefined : Math.max(expectedIncome - planned, 0);
+  const incomeLeft = expectedIncome === null ? undefined : snapToZero(expectedIncome - planned);
+  const incomeOver = expectedIncome !== null && exceedsToCent(planned, expectedIncome);
   const onTrackCount = rows.filter((row) => row.status === 'on-track').length;
   const watchCount = rows.filter((row) => row.status === 'watch').length;
   const overCount = rows.filter((row) => row.status === 'over').length;
@@ -285,7 +290,8 @@ export function buildBudgetCategoriesSummary({
     spent,
     left,
     usedPct,
-    unassignedIncome,
+    incomeLeft,
+    incomeOver,
     unbudgetedSpend: unbudgeted,
     eyebrowLabel: Strings.budgetCategoriesSummaryEyebrow(rows.length, monthLabel),
     categoryCountLabel: Strings.budgetCategoryCountLabel(rows.length),
@@ -302,10 +308,10 @@ export function buildBudgetCategoriesSummary({
         ? undefined
         : Strings.budgetCategoriesSummaryUsed(wholePercent(spent, planned)),
     plannedLabel: formatAmount(planned),
-    unassignedIncomeLabel:
-      unassignedIncome === undefined
-        ? Strings.budgetCategoriesSetIncome
-        : formatAmount(unassignedIncome),
+    incomeLeftLabel: incomeOver
+      ? Strings.budgetCategoriesSummaryOverIncome
+      : Strings.budgetCategoriesSummaryIncomeLeft,
+    incomeLeftValueLabel: incomeLeftValue(incomeLeft, incomeOver),
     unbudgetedSpendLabel: formatAmount(unbudgeted),
     lifecycleLabel: summaryLifecycle(selectedMonth, today),
     onTrackCount,

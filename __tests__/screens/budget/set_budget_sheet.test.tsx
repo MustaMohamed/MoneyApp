@@ -1,4 +1,4 @@
-import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, waitFor, within } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 import { Dimensions } from 'react-native';
 import type { PressableProps } from 'react-native';
@@ -6,6 +6,8 @@ import type { PressableProps } from 'react-native';
 import { BudgetGroup } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Type } from '@/constants/theme';
+import type { BudgetMonthGroupMap } from '@/modules/budget/entities/budget.entity';
+import { BudgetNameTakenError } from '@/modules/budget/repositories/budget.repository';
 import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
 import { SetBudgetSheet } from '@/modules/budget/screens/budget/components/set_budget_sheet';
 import { resolveSetBudgetFieldGeometry } from '@/modules/budget/screens/budget/components/set_budget_sheet.geometry';
@@ -16,7 +18,6 @@ import { deferred } from '@/test_helpers/deferred';
 import { ms } from '@/utils/responsive';
 
 let mockSetBudget: jest.Mock<Promise<void>, [unknown]>;
-const mockLoadCategories = jest.fn<Promise<void>, []>().mockResolvedValue(undefined);
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => {
   const { View } = jest.requireActual<typeof import('react-native')>('react-native');
@@ -47,7 +48,7 @@ jest.mock('@/components/ui/sheet', () => ({
     return isOpen ? (
       <View testID="set-budget-sheet" accessibilityState={{ disabled: !isDismissable }}>
         {children}
-        {footer}
+        {footer === undefined ? null : <View testID="sheet-footer">{footer}</View>}
       </View>
     ) : null;
   },
@@ -67,13 +68,6 @@ jest.mock('@/modules/budget/store/budget.store', () => {
   return {
     useBudgetStore: {
       getState: jest.fn(() => ({ setBudget: mockSetBudget, setLimit: jest.fn() })),
-    },
-  };
-});
-jest.mock('@/modules/categories/store/category.store', () => {
-  return {
-    useCategoryStore: {
-      getState: jest.fn(() => ({ loadCategories: mockLoadCategories })),
     },
   };
 });
@@ -147,20 +141,21 @@ const categories = [makeTestBudgetableCategory()];
 
 const existingBudget = makeTestBudgetEditTarget();
 
+const noShownGroups: BudgetMonthGroupMap = {};
+
 beforeEach(() => {
   useBudgetState.getState().reset();
   // `reset()` re-seeds `selectedMonth` from the system clock; pin a month that can never be now.
   useBudgetState.getState().setSelectedMonth('2026-01');
   useSetBudgetSheetState.getState().reset();
   mockSetBudget.mockClear();
-  mockLoadCategories.mockClear();
   useBudgetState.getState().openAdd();
 });
 
 describe('SetBudgetSheet', () => {
   it('keeps the category selector compact inside the sheet', async () => {
     const { getByTestId, getByText } = await render(
-      <SetBudgetSheet budgetableCategories={categories} />,
+      <SetBudgetSheet shownGroupByCategoryId={noShownGroups} budgetableCategories={categories} />,
     );
 
     expect(getByTestId('icon-home')).toHaveStyle({ width: ms(13), height: ms(13) });
@@ -172,7 +167,9 @@ describe('SetBudgetSheet', () => {
       Type.bodyStrong,
       Dimensions.get('window').fontScale,
     );
-    const { getByTestId } = await render(<SetBudgetSheet budgetableCategories={categories} />);
+    const { getByTestId } = await render(
+      <SetBudgetSheet shownGroupByCategoryId={noShownGroups} budgetableCategories={categories} />,
+    );
 
     const input = getByTestId('budget-limit-input');
     expect(input).toHaveStyle({ ...text, height });
@@ -184,7 +181,9 @@ describe('SetBudgetSheet', () => {
       Type.body,
       Dimensions.get('window').fontScale,
     );
-    const { getByTestId } = await render(<SetBudgetSheet budgetableCategories={categories} />);
+    const { getByTestId } = await render(
+      <SetBudgetSheet shownGroupByCategoryId={noShownGroups} budgetableCategories={categories} />,
+    );
 
     const input = getByTestId('budget-name-input');
     expect(input).toHaveStyle({ ...text, height });
@@ -194,7 +193,9 @@ describe('SetBudgetSheet', () => {
   it('requires category selection when a contextual group has no matching category', async () => {
     useBudgetState.getState().openAddWithContext(undefined, BudgetGroup.Want);
 
-    await render(<SetBudgetSheet budgetableCategories={categories} />);
+    await render(
+      <SetBudgetSheet shownGroupByCategoryId={noShownGroups} budgetableCategories={categories} />,
+    );
 
     expect(useSetBudgetSheetState.getState()).toMatchObject({
       selectedCategoryId: undefined,
@@ -204,7 +205,9 @@ describe('SetBudgetSheet', () => {
 
   it('preserves the contextual rule group when selecting a category', async () => {
     useBudgetState.getState().openAddWithContext(undefined, BudgetGroup.Want);
-    const screen = await render(<SetBudgetSheet budgetableCategories={categories} />);
+    const screen = await render(
+      <SetBudgetSheet shownGroupByCategoryId={noShownGroups} budgetableCategories={categories} />,
+    );
 
     await fireEvent.press(screen.getByLabelText(Strings.budgetPickCategory));
     await fireEvent.press(screen.getByLabelText('select first budget category'));
@@ -218,7 +221,7 @@ describe('SetBudgetSheet', () => {
   it('adds a named budget for the selected month', async () => {
     useBudgetState.getState().setSelectedMonth('2026-08');
     const { getByLabelText, getByTestId } = await render(
-      <SetBudgetSheet budgetableCategories={categories} />,
+      <SetBudgetSheet shownGroupByCategoryId={noShownGroups} budgetableCategories={categories} />,
     );
 
     await fireEvent.changeText(getByTestId('budget-name-input'), 'Alexandria Trip Food');
@@ -235,10 +238,33 @@ describe('SetBudgetSheet', () => {
     );
   });
 
-  it('saves the selected 50/30/20 group atomically and refreshes categories', async () => {
-    const groupedCategories = [{ ...categories[0], budget_group: BudgetGroup.Need }];
+  it("shows a duplicate-name refusal inside the sheet's footer", async () => {
+    mockSetBudget.mockRejectedValueOnce(new BudgetNameTakenError('Gym'));
+    useBudgetState.getState().setSelectedMonth('2026-08');
     const { getByLabelText, getByTestId } = await render(
-      <SetBudgetSheet budgetableCategories={groupedCategories} />,
+      <SetBudgetSheet shownGroupByCategoryId={noShownGroups} budgetableCategories={categories} />,
+    );
+
+    await fireEvent.changeText(getByTestId('budget-name-input'), 'Gym');
+    await fireEvent.changeText(getByTestId('budget-limit-input'), '500');
+    await fireEvent.press(getByLabelText(Strings.budgetSaveCta));
+
+    await waitFor(() =>
+      expect(
+        within(getByTestId('sheet-footer')).getByText(
+          Strings.budgetNameTaken(categories[0].name, 'Gym', 'August'),
+        ),
+      ).toBeTruthy(),
+    );
+    expect(getByTestId('set-budget-sheet')).toBeTruthy();
+  });
+
+  it("saves the category's shown 50/30/20 group for the month", async () => {
+    const { getByLabelText, getByTestId } = await render(
+      <SetBudgetSheet
+        shownGroupByCategoryId={{ housing: BudgetGroup.Need }}
+        budgetableCategories={categories}
+      />,
     );
 
     await fireEvent.changeText(getByTestId('budget-name-input'), 'Monthly housing');
@@ -254,7 +280,6 @@ describe('SetBudgetSheet', () => {
         categoryGroup: BudgetGroup.Need,
       }),
     );
-    expect(mockLoadCategories).toHaveBeenCalledTimes(1);
   });
 
   it('prefills and saves an existing budget in edit mode', async () => {
@@ -263,7 +288,11 @@ describe('SetBudgetSheet', () => {
     useBudgetState.getState().openEdit('budget-trip-food');
 
     const { getByLabelText, getByTestId, getByText } = await render(
-      <SetBudgetSheet budgetableCategories={categories} editingRow={existingBudget} />,
+      <SetBudgetSheet
+        shownGroupByCategoryId={noShownGroups}
+        budgetableCategories={categories}
+        editingRow={existingBudget}
+      />,
     );
 
     expect(getByTestId('budget-name-input')).toHaveProp('value', 'Alexandria Trip Food');
@@ -289,7 +318,9 @@ describe('SetBudgetSheet', () => {
   });
 
   it('carries a typed comma on the limit to a decimal point, and leaves the name alone', async () => {
-    const { getByTestId } = await render(<SetBudgetSheet budgetableCategories={categories} />);
+    const { getByTestId } = await render(
+      <SetBudgetSheet shownGroupByCategoryId={noShownGroups} budgetableCategories={categories} />,
+    );
 
     // Assert after every step; a final-only check passes even if the comma is refused outright.
     for (const [delivered, held] of [
@@ -310,7 +341,9 @@ describe('SetBudgetSheet', () => {
   it.each([['1.5,'], ['1.5.'], ['1,500'], ['1,234.56']])(
     'refuses %p on the limit and keeps the accepted text',
     async (delivered) => {
-      const { getByTestId } = await render(<SetBudgetSheet budgetableCategories={categories} />);
+      const { getByTestId } = await render(
+        <SetBudgetSheet shownGroupByCategoryId={noShownGroups} budgetableCategories={categories} />,
+      );
 
       await fireEvent.changeText(getByTestId('budget-limit-input'), '1.5');
       await fireEvent.changeText(getByTestId('budget-limit-input'), delivered);
@@ -327,6 +360,7 @@ describe('SetBudgetSheet', () => {
 
     const { getByTestId } = await render(
       <SetBudgetSheet
+        shownGroupByCategoryId={noShownGroups}
         budgetableCategories={categories}
         editingRow={{ ...existingBudget, limit: 1e-7 }}
       />,
@@ -349,6 +383,7 @@ describe('SetBudgetSheet', () => {
 
     const { getByTestId } = await render(
       <SetBudgetSheet
+        shownGroupByCategoryId={noShownGroups}
         budgetableCategories={categories}
         editingRow={{ ...existingBudget, limit: -5 }}
       />,
@@ -367,7 +402,11 @@ describe('SetBudgetSheet', () => {
     useBudgetState.getState().openEdit(existingBudget.id);
 
     const screen = await render(
-      <SetBudgetSheet budgetableCategories={categories} editingRow={existingBudget} />,
+      <SetBudgetSheet
+        shownGroupByCategoryId={noShownGroups}
+        budgetableCategories={categories}
+        editingRow={existingBudget}
+      />,
     );
 
     await fireEvent.press(screen.getByLabelText(Strings.budgetSaveCta));
@@ -377,7 +416,11 @@ describe('SetBudgetSheet', () => {
     });
 
     await screen.rerender(
-      <SetBudgetSheet budgetableCategories={[...categories]} editingRow={{ ...existingBudget }} />,
+      <SetBudgetSheet
+        shownGroupByCategoryId={noShownGroups}
+        budgetableCategories={[...categories]}
+        editingRow={{ ...existingBudget }}
+      />,
     );
 
     expect(useSetBudgetSheetState.getState().saving).toBe(true);

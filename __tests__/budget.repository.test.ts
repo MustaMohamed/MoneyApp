@@ -45,6 +45,7 @@ jest.mock('@/modules/budget/database/budgets', () => ({
   deleteBudgetRow: jest.fn().mockResolvedValue(undefined),
   getBudgetRowById: jest.fn().mockResolvedValue(null),
   getBudgetRows: jest.fn(),
+  getBudgetRowsForCategoryMonth: jest.fn().mockResolvedValue([]),
   getBudgetRowsForMonths: jest.fn().mockResolvedValue([]),
   setBudgetRow: jest.fn().mockResolvedValue(undefined),
 }));
@@ -231,7 +232,7 @@ describe('BudgetRepository.setBudget', () => {
     );
   });
 
-  it('writes the selected-month group snapshot and future category default atomically', async () => {
+  it('writes the budget row and the selected-month group snapshot in one transaction', async () => {
     await new BudgetRepository().setBudget({
       categoryId: 'food',
       name: 'Monthly Food',
@@ -246,11 +247,8 @@ describe('BudgetRepository.setBudget', () => {
       'food',
       BudgetGroup.Need,
     );
-    expect(setCategoryGroup).toHaveBeenCalledWith(expect.anything(), 'food', BudgetGroup.Need);
-    expect(setBudgetMonthCategoryGroup.mock.calls[0]?.[0]).toBe(
-      setCategoryGroup.mock.calls[0]?.[0],
-    );
-    expect(setBudgetRow.mock.calls[0]?.[0]).toBe(setCategoryGroup.mock.calls[0]?.[0]);
+    expect(setCategoryGroup).not.toHaveBeenCalled();
+    expect(setBudgetRow.mock.calls[0]?.[0]).toBe(setBudgetMonthCategoryGroup.mock.calls[0]?.[0]);
   });
 });
 

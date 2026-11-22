@@ -395,7 +395,8 @@ const baseState: BudgetScreenState = {
     spent: 0,
     left: 0,
     usedPct: undefined,
-    unassignedIncome: undefined,
+    incomeLeft: undefined,
+    incomeOver: false,
     unbudgetedSpend: 0,
     eyebrowLabel: '0 category budgets in July 2026',
     categoryCountLabel: '0 category budgets',
@@ -406,7 +407,8 @@ const baseState: BudgetScreenState = {
     spentPlannedLabel: '0 spent of 0',
     usedLabel: undefined,
     plannedLabel: '0',
-    unassignedIncomeLabel: 'Set income',
+    incomeLeftLabel: 'Income left',
+    incomeLeftValueLabel: 'Set income',
     unbudgetedSpendLabel: '0',
     lifecycleLabel: '12 days left',
     onTrackCount: 0,
@@ -447,6 +449,7 @@ const baseState: BudgetScreenState = {
   hasBudgets: false,
   hasSpendingPlans: false,
   budgetableCategories: [],
+  budgetSheetGroupByCategoryId: {},
   ruleLens: {
     summary: {
       income: undefined,

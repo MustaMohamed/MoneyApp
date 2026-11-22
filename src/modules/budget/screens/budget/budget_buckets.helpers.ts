@@ -177,6 +177,19 @@ export function resolveBudgetRuleGroup(
   );
 }
 
+export function resolveBudgetRuleGroups(
+  categories: Pick<Category, 'id' | 'budget_group'>[],
+  budgetGroupByCategoryId: BudgetMonthGroupMap,
+  hasIncome: boolean,
+): BudgetMonthGroupMap {
+  const groups: BudgetMonthGroupMap = {};
+  for (const category of categories) {
+    const group = resolveBudgetRuleGroup(category, budgetGroupByCategoryId, hasIncome);
+    if (group !== undefined) groups[category.id] = group;
+  }
+  return groups;
+}
+
 const GROUP_PRESENTATION: Record<
   BudgetGroup,
   { label: string; ratioLabel: string; icon: RuleBucketIcon }
