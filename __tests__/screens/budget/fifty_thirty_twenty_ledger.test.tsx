@@ -381,5 +381,8 @@ describe('budget skeletons at the window font scale', () => {
       bar(lineHeightFor(Type.caption)),
       Size.budgetMonthlyBarMaxHeight,
     ]);
+    expect(screen.getByTestId('budget-category-detail-skeleton-hero')).toHaveStyle({
+      height: hero.height,
+    });
   });
 });
