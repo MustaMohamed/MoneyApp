@@ -8,6 +8,7 @@ import { FormFactCell } from '@/components/ui/form_fact_cell';
 import { FormPickerRow } from '@/components/ui/form_picker_row';
 import { ListCard } from '@/components/ui/list_card';
 import { NoteFactRow } from '@/components/ui/note_fact_row';
+import { ValidationSlot } from '@/components/ui/validation_slot';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Size } from '@/constants/theme';
@@ -25,6 +26,7 @@ interface SpendingPlanTotalHeroProps {
   form: SpendingPlanHoldForm;
   onTotalEdit: () => void;
   totalCarriesOverRing: boolean;
+  totalFault: string | undefined;
 }
 
 export function SpendingPlanTotalHero({
@@ -32,28 +34,41 @@ export function SpendingPlanTotalHero({
   form,
   onTotalEdit,
   totalCarriesOverRing,
+  totalFault,
 }: SpendingPlanTotalHeroProps) {
   return (
-    <Controller
-      control={control}
-      name="totalText"
-      render={({ field }) => (
-        <AmountHero
-          value={field.value}
-          onChange={(masked) => {
-            // The hero has already refused a bad keystroke, so this edit is a real one.
-            onTotalEdit();
-            const held = holdStillTypingDecimal(form, 'totalText', masked, PLAN_TOTAL_REFUSES_ZERO);
-            if (!held) field.onChange(masked);
-          }}
-          tone="foreground"
-          currency={Currency.EGP}
-          caption={Strings.budgetPlanAmountLabel}
-          invalid={totalCarriesOverRing}
-          accessibilityLabel={Strings.budgetPlanAmountLabel}
-        />
-      )}
-    />
+    <>
+      <Controller
+        control={control}
+        name="totalText"
+        render={({ field }) => (
+          <AmountHero
+            value={field.value}
+            onChange={(masked) => {
+              // The hero has already refused a bad keystroke, so this edit is a real one.
+              onTotalEdit();
+              const held = holdStillTypingDecimal(
+                form,
+                'totalText',
+                masked,
+                PLAN_TOTAL_REFUSES_ZERO,
+              );
+              if (!held) field.onChange(masked);
+            }}
+            tone="foreground"
+            currency={Currency.EGP}
+            caption={Strings.budgetPlanAmountLabel}
+            invalid={totalFault !== undefined || totalCarriesOverRing}
+            accessibilityLabel={Strings.budgetPlanAmountLabel}
+          />
+        )}
+      />
+      <ValidationSlot
+        testID="spending-plan-total-error-slot"
+        liveTestID="spending-plan-total-error-live"
+        message={totalFault}
+      />
+    </>
   );
 }
 
@@ -62,6 +77,9 @@ interface SpendingPlanFactCardProps {
   startDate: string;
   endDate: string;
   categoriesValue: string;
+  nameFault: string | undefined;
+  endDateFault: string | undefined;
+  categoriesFault: string | undefined;
   onEdit: () => void;
   onStartDateChange: (next: string) => void;
   onEndDateChange: (next: string) => void;
@@ -73,6 +91,9 @@ export function SpendingPlanFactCard({
   startDate,
   endDate,
   categoriesValue,
+  nameFault,
+  endDateFault,
+  categoriesFault,
   onEdit,
   onStartDateChange,
   onEndDateChange,
@@ -82,7 +103,7 @@ export function SpendingPlanFactCard({
   const endsOwnerId = useId();
   return (
     <ListCard testID="spending-plan-fact-group">
-      <FormFactCell>
+      <FormFactCell fault={nameFault} ringTestID="spending-plan-name-ring">
         <Controller
           control={control}
           name="nameText"
@@ -91,6 +112,7 @@ export function SpendingPlanFactCard({
               inset={false}
               label={Strings.budgetPlanNameLabel}
               placeholder={Strings.budgetPlanNamePlaceholder}
+              accessibilityHint={nameFault}
               value={value}
               onChangeText={(text) => {
                 onEdit();
@@ -114,7 +136,7 @@ export function SpendingPlanFactCard({
           wrapsValue
         />
       </FormFactCell>
-      <FormFactCell>
+      <FormFactCell fault={endDateFault} ringTestID="spending-plan-ends-ring">
         <DateRow
           ownerId={endsOwnerId}
           value={endDate}
@@ -125,15 +147,21 @@ export function SpendingPlanFactCard({
           pickerTitle={Strings.budgetPlanEndDate}
           capsAtToday={false}
           wrapsValue
+          accessibilityHint={endDateFault}
         />
       </FormFactCell>
-      <FormFactCell divider={false}>
+      <FormFactCell
+        divider={false}
+        fault={categoriesFault}
+        ringTestID="spending-plan-categories-ring"
+      >
         <FormPickerRow
           testID="spending-plan-categories-row"
           divider={false}
           label={Strings.budgetPlanCategories}
           value={categoriesValue}
           onPress={onCategoriesPress}
+          accessibilityHint={categoriesFault}
           suffix={
             <MaterialCommunityIcons
               name="chevron-right"

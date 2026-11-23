@@ -1,5 +1,4 @@
 import { useEffect, useMemo } from 'react';
-import type { FieldErrors } from 'react-hook-form';
 import { useShallow } from 'zustand/react/shallow';
 
 import { useBottomSheetAwareHandlers } from '@/components/ui/sheet';
@@ -16,6 +15,9 @@ import {
   formatLimitsFigure,
   formatPlanCategoriesValue,
   resolvePlanDailyLine,
+  resolvePlanFooterLine,
+  resolvePlanScheduleFaults,
+  type SpendingPlanFieldFaults,
   validateAllocationText,
 } from '@/modules/budget/screens/budget/spending_plan_sheet/spending_plan_sheet.helpers';
 import { useSpendingPlanSheetState } from '@/modules/budget/screens/budget/spending_plan_sheet/spending_plan_sheet.state';
@@ -77,7 +79,7 @@ export function useSpendingPlanSheet({
     pickerExpanded,
     submitError,
     saving,
-    allocationSubmitAttempted,
+    submitAttempted,
     lastTypedAllocationId,
     lastEditedAmountField,
   } = useSpendingPlanSheetState(
@@ -85,7 +87,7 @@ export function useSpendingPlanSheet({
       pickerExpanded: state.pickerExpanded,
       submitError: state.submitError,
       saving: state.saving,
-      allocationSubmitAttempted: state.allocationSubmitAttempted,
+      submitAttempted: state.submitAttempted,
       lastTypedAllocationId: state.lastTypedAllocationId,
       lastEditedAmountField: state.lastEditedAmountField,
     })),
@@ -95,6 +97,7 @@ export function useSpendingPlanSheet({
   const {
     clearErrors,
     control,
+    formState,
     handleSubmit,
     reset: resetForm,
     setValue,
@@ -102,6 +105,8 @@ export function useSpendingPlanSheet({
   } = useZodForm<SpendingPlanFormValues>(spendingPlanFormSchema, {
     defaultValues: { nameText: '', totalText: '' },
   });
+  // Read during render: `formState` is a proxy and only refreshes keys read while rendering.
+  const errors = formState.errors;
 
   const selectedCategories = useMemo(
     () => budgetableCategories.filter((category) => selectedCategoryIds.includes(category.id)),
@@ -126,12 +131,19 @@ export function useSpendingPlanSheet({
     allocationFields.map(({ categoryId, validation }) => [
       categoryId,
       !validation.ok &&
-      (!validation.incomplete ||
-        (allocationSubmitAttempted && categoryId !== lastTypedAllocationId))
+      (!validation.incomplete || (submitAttempted && categoryId !== lastTypedAllocationId))
         ? validation.message
         : undefined,
     ]),
   );
+  const scheduleFaults = resolvePlanScheduleFaults(startDate, endDate, selectedCategoryIds.length);
+  const faults: SpendingPlanFieldFaults = {
+    name: errors.nameText?.message,
+    total: errors.totalText?.message,
+    endDate: submitAttempted ? scheduleFaults.endDate : undefined,
+    categories: submitAttempted ? scheduleFaults.categories : undefined,
+    allocations: allocationErrors,
+  };
   const allocatedByCategoryId = new Map(
     allocationFields.map((field) => [field.categoryId, field.amount]),
   );
@@ -185,11 +197,14 @@ export function useSpendingPlanSheet({
     async (values) => {
       if (useSpendingPlanSheetState.getState().saving) return;
       // Without this return a rejected row would save as NULL rather than blocking the save.
-      if (allocationFields.some(({ validation }) => !validation.ok)) {
+      if (
+        allocationFields.some(({ validation }) => !validation.ok) ||
+        scheduleFaults.endDate !== undefined ||
+        scheduleFaults.categories !== undefined
+      ) {
         const preflight = useSpendingPlanSheetState.getState();
-        preflight.setAllocationSubmitAttempted(true);
-        // Save sits in the fixed footer, so an off-screen row message alone reads as dead.
-        preflight.setSubmitError(Strings.budgetPlanAllocationInvalid);
+        preflight.setSubmitAttempted(true);
+        preflight.setSubmitError(undefined);
         return;
       }
       // The live over line already stands above Save; the schema's static issue is for other callers.
@@ -246,12 +261,11 @@ export function useSpendingPlanSheet({
         state.setSaving(false);
       }
     },
-    (errors: FieldErrors<SpendingPlanFormValues>) => {
-      // Also set here: a Save blocked by the plan total never reaches the valid callback.
+    () => {
+      // Also set here: a Save RHF refuses never reaches the valid callback; its faults read from `errors`.
       const refused = useSpendingPlanSheetState.getState();
-      refused.setAllocationSubmitAttempted(true);
-      // The hero sits above Name, so the total's message wins until MA-317 moves both onto their fields.
-      refused.setSubmitError(errors.totalText?.message ?? errors.nameText?.message);
+      refused.setSubmitAttempted(true);
+      refused.setSubmitError(undefined);
     },
   );
 
@@ -305,7 +319,11 @@ export function useSpendingPlanSheet({
       allocationIsOver: isOver,
       totalCarriesOverRing,
       overRingedCategoryId,
-      footerLine: submitError ?? overLine,
+      nameFault: faults.name,
+      totalFault: faults.total,
+      endDateFault: faults.endDate,
+      categoriesFault: faults.categories,
+      footerLine: resolvePlanFooterLine(faults, submitError, overLine),
       dailyLine: resolvePlanDailyLine(totalAmount, startDate, endDate),
       categoriesValue: formatPlanCategoriesValue(
         selectedCategories.map((category) => category.name),

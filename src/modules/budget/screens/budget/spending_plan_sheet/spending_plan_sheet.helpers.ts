@@ -40,6 +40,45 @@ export function resolvePlanDailyLine(
   );
 }
 
+export interface SpendingPlanFieldFaults {
+  name: string | undefined;
+  total: string | undefined;
+  endDate: string | undefined;
+  categories: string | undefined;
+  allocations: Readonly<Record<string, string | undefined>>;
+}
+
+/** Ungated: the hook shows these only after a refused Save, and refuses on them regardless. */
+export function resolvePlanScheduleFaults(
+  startDate: string,
+  endDate: string,
+  selectedCategoryCount: number,
+): { endDate: string | undefined; categories: string | undefined } {
+  return {
+    endDate: endDate < startDate ? Strings.budgetPlanDateInvalid : undefined,
+    categories: selectedCategoryCount === 0 ? Strings.budgetPlanCategoryRequired : undefined,
+  };
+}
+
+export function countSpendingPlanFaults(faults: SpendingPlanFieldFaults): number {
+  return [
+    faults.name,
+    faults.total,
+    faults.endDate,
+    faults.categories,
+    ...Object.values(faults.allocations),
+  ].filter((fault) => fault !== undefined).length;
+}
+
+export function resolvePlanFooterLine(
+  faults: SpendingPlanFieldFaults,
+  submitError: string | undefined,
+  overLine: string | undefined,
+): string | undefined {
+  const count = countSpendingPlanFaults(faults);
+  return count > 0 ? Strings.fixFieldsMarkedAbove(count) : (submitError ?? overLine);
+}
+
 export function formatPlanCategoriesValue(names: readonly string[]): string {
   if (names.length === 0) return Strings.budgetPlanPickCategories;
   return Strings.budgetPlanCategoriesValue(names.slice(0, 2), Math.max(0, names.length - 2));
