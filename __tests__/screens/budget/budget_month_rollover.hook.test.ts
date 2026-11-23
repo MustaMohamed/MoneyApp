@@ -65,10 +65,7 @@ let budgetLoadErrorState: boolean;
 
 import { useBudget } from '@/modules/budget/screens/budget/budget.hook';
 import { useCategoryDetail } from '@/modules/budget/screens/budget/category_detail/category_detail.hook';
-import {
-  BUDGET_TAB_SHEET_OWNER,
-  useSetBudgetSheetState,
-} from '@/modules/budget/screens/budget/components/set_budget_sheet.state';
+import { useSetBudgetSheetState } from '@/modules/budget/screens/budget/components/set_budget_sheet.state';
 
 function previousYearMonth(yearMonth: string): string {
   const [year, month] = yearMonth.split('-').map(Number);
@@ -431,38 +428,5 @@ describe('useCategoryDetail — month rollover', () => {
     });
 
     expect(result.current.state.month).toBe('2026-06');
-  });
-
-  it('opens edit with the only live-month named budget id', async () => {
-    jest.setSystemTime(new Date('2026-05-15T12:00:00'));
-    categoriesState = [category('cat-1')];
-    budgetRowsState = [budget('budget-food-main', 'Monthly Food')];
-
-    const { result } = await renderHook(() => useCategoryDetail());
-
-    expect(result.current.state.canEditLiveBudget).toBe(true);
-    await act(() => result.current.editBudget());
-
-    expect(mockRouterBack).toHaveBeenCalledTimes(1);
-    expect(openEditMock).toHaveBeenCalledWith('budget-food-main');
-    expect(useSetBudgetSheetState.getState().openOwner).toBeDefined();
-    expect(useSetBudgetSheetState.getState().openOwner).toBe(BUDGET_TAB_SHEET_OWNER);
-  });
-
-  it('does not open aggregate edit when the live month has multiple named budgets', async () => {
-    jest.setSystemTime(new Date('2026-05-15T12:00:00'));
-    categoriesState = [category('cat-1')];
-    budgetRowsState = [
-      budget('budget-food-main', 'Monthly Food'),
-      budget('budget-food-trip', 'Trip Food'),
-    ];
-
-    const { result } = await renderHook(() => useCategoryDetail());
-
-    expect(result.current.state.canEditLiveBudget).toBe(false);
-    await act(() => result.current.editBudget());
-
-    expect(mockRouterBack).not.toHaveBeenCalled();
-    expect(openEditMock).not.toHaveBeenCalled();
   });
 });

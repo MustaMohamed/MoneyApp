@@ -2,10 +2,11 @@ import { fireEvent, render, within } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 import { Dimensions } from 'react-native';
 
+import { resolveDetailHeroGeometry } from '@/components/ui/detail_hero.geometry';
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { resolveFitAmountTextProps, scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { BudgetGroup, CategoryType } from '@/constants/enums';
-import { Size, Type } from '@/constants/theme';
+import { Size, Type, lineHeightFor } from '@/constants/theme';
 import type { Category } from '@/database/entities/category.entity';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 import { buildBudgetRuleLens } from '@/modules/budget/screens/budget/budget_buckets.helpers';
@@ -19,6 +20,11 @@ import { barHeight } from '@/test_helpers/skeleton';
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => {
   const { View } = jest.requireActual<typeof import('react-native')>('react-native');
   return ({ name }: { name: string }) => <View testID={`icon-${name}`} />;
+});
+
+jest.mock('@/components/ui/hero_shell', () => {
+  const { View } = jest.requireActual<typeof import('react-native')>('react-native');
+  return { HeroShell: ({ children }: { children?: ReactNode }) => <View>{children}</View> };
 });
 
 jest.mock('@/components/ui/budget_ring', () => {
@@ -357,26 +363,23 @@ describe('budget skeletons at the window font scale', () => {
     const { fontScale } = Dimensions.get('window');
     expect(fontScale).toBeGreaterThan(1);
     const bar = (height: number): number => resolveSkeletonBarHeight(height, fontScale);
-    const row = [bar(14), bar(11), bar(15)];
 
-    const screen = await render(<CategoryDetailSkeleton onBack={jest.fn()} />);
+    const screen = await render(<CategoryDetailSkeleton />);
 
     const scaled = screen
       .getAllByTestId('skeleton-bar')
       .map(barHeight)
       .filter((height) => height !== undefined);
+    const hero = resolveDetailHeroGeometry(fontScale);
     expect(scaled).toEqual([
-      bar(18),
-      bar(14),
-      bar(14),
-      bar(28),
-      bar(18),
-      bar(12),
-      bar(12),
-      bar(11),
-      ...row,
-      ...row,
-      ...row,
+      Size.detailHeroTile,
+      hero.titleLineHeight,
+      hero.badgeHeight,
+      hero.overlineLineHeight,
+      hero.amountHeight,
+      hero.captionLineHeight,
+      bar(lineHeightFor(Type.caption)),
+      Size.budgetMonthlyBarMaxHeight,
     ]);
   });
 });
