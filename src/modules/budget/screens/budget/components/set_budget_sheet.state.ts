@@ -15,6 +15,7 @@ interface SetBudgetSheetStateShape {
   selectedCategoryId: string | undefined;
   pickerExpanded: boolean;
   groupValue: BudgetGroup | null;
+  groupPickerOpen: boolean;
   saving: boolean;
   errorMessage: string | undefined;
   nameTaken: boolean;
@@ -35,6 +36,9 @@ type SetBudgetSheetState = SetBudgetSheetStateShape & {
   completeClose: (owner: string) => SetBudgetSaveOutcome | undefined;
   setSelectedCategoryId: (id: string) => void;
   setGroupValue: (group: BudgetGroup | null) => void;
+  showGroupPicker: () => void;
+  hideGroupPicker: () => void;
+  chooseGroup: (group: BudgetGroup) => void;
   setSaving: (saving: boolean) => void;
   setErrorMessage: (message: string | undefined, nameTaken?: boolean) => void;
   clearError: () => void;
@@ -50,6 +54,7 @@ const INITIAL_STATE: SetBudgetSheetStateShape = {
   selectedCategoryId: undefined,
   pickerExpanded: false,
   groupValue: null,
+  groupPickerOpen: false,
   saving: false,
   errorMessage: undefined,
   nameTaken: false,
@@ -112,6 +117,15 @@ export const useSetBudgetSheetState = createMoneyAppSelectors(
         }),
       setGroupValue: (group) =>
         set({ groupValue: group, errorMessage: undefined, nameTaken: false }),
+      showGroupPicker: () => set({ groupPickerOpen: true }),
+      hideGroupPicker: () => set({ groupPickerOpen: false }),
+      chooseGroup: (group) =>
+        set({
+          groupValue: group,
+          groupPickerOpen: false,
+          errorMessage: undefined,
+          nameTaken: false,
+        }),
       setSaving: (saving) => set({ saving }),
       setErrorMessage: (errorMessage, nameTaken = false) => set({ errorMessage, nameTaken }),
       clearError: () => set({ errorMessage: undefined, nameTaken: false }),
