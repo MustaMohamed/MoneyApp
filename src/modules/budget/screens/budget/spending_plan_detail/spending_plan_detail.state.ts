@@ -4,6 +4,8 @@ import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 export type SpendingPlanDetailViewState = 'loading' | 'ready' | 'notFound' | 'error';
 
+export type SpendingPlanDetailLoadStatus = 'loading' | 'ready' | 'firstLoadError';
+
 interface SpendingPlanDetailStateShape {
   viewState: SpendingPlanDetailViewState;
   errorMessage: string | undefined;

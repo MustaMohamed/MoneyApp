@@ -698,6 +698,13 @@ export const Strings = {
   budgetPlansDetailAssigned: 'Assigned',
   budgetPlansDetailFlexible: 'Flexible',
   budgetPlansDetailTitle: 'Plan details',
+  budgetPlansDetailEditAccessibility: 'Edit plan',
+  budgetPlansDetailNotFoundTitle: 'This plan is gone',
+  budgetPlansDetailNotFoundBody: 'It no longer exists.',
+  budgetPlansDetailLoadErrorTitle: "Couldn't load your plan.",
+  budgetPlansDetailRefreshErrorTitle: "Couldn't refresh this plan.",
+  budgetPlansDetailLoadErrorDescription:
+    'Something went wrong reading your data. Nothing was changed.',
   budgetPlansDetailNotFound: 'This spending plan is no longer available.',
   budgetPlansDetailLoadError: 'Could not load this spending plan.',
   budgetPlansDetailRetry: 'Try again',
