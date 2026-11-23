@@ -1,4 +1,4 @@
-import { Card, SkeletonGroup } from 'heroui-native';
+import { SkeletonGroup } from 'heroui-native';
 import { View, useWindowDimensions } from 'react-native';
 
 import {
@@ -11,7 +11,12 @@ import {
   resolveDetailHeroGeometry,
 } from '@/components/ui/detail_hero.geometry';
 import { HeroShell } from '@/components/ui/hero_shell';
+import { ListCard } from '@/components/ui/list_card';
 import { ScreenScroll } from '@/components/ui/screen';
+import {
+  SECTION_HEADER_MARGIN_BOTTOM,
+  SECTION_HEADER_MARGIN_TOP,
+} from '@/components/ui/section_header.geometry';
 import { ScaledBar } from '@/components/ui/skeleton_bar';
 import { Radius, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 
@@ -64,18 +69,22 @@ export function CategoryDetailSkeleton(): React.ReactElement {
           </View>
         </HeroShell>
         <View style={{ paddingHorizontal: Spacing.md }}>
-          <ScaledBar height={lineHeightFor(Type.caption)} className="mt-5 mb-2 w-28 rounded-md" />
-          <Card
-            className="bg-surface border-separator rounded-lg border p-0"
-            style={{ boxShadow: 'none' }}
+          <View
+            style={{
+              marginTop: SECTION_HEADER_MARGIN_TOP,
+              marginBottom: SECTION_HEADER_MARGIN_BOTTOM,
+            }}
           >
-            <Card.Body className="p-4">
+            <ScaledBar height={lineHeightFor(Type.caption)} className="w-28 rounded-md" />
+          </View>
+          <ListCard>
+            <View style={{ padding: Spacing.md }}>
               <SkeletonGroup.Item
                 className="w-full rounded-lg"
                 style={{ height: Size.budgetMonthlyBarMaxHeight }}
               />
-            </Card.Body>
-          </Card>
+            </View>
+          </ListCard>
         </View>
       </SkeletonGroup>
     </ScreenScroll>

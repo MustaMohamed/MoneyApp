@@ -52,7 +52,6 @@ let loadBudgetMock: jest.Mock;
 let selectedMonthState: string;
 let copySourceMonthState: string;
 let resetSelectedMonthToCurrentMock: jest.Mock;
-let openEditMock: jest.Mock;
 let mockRouterBack: jest.Mock;
 let categoriesState: Category[];
 let categoriesLoadedState: boolean;
@@ -87,7 +86,6 @@ function setupStores() {
   budgetLoadErrorState = false;
   loadCategoriesMock = jest.fn().mockResolvedValue(undefined);
   loadBudgetMock = jest.fn().mockResolvedValue(undefined);
-  openEditMock = jest.fn();
   mockRouterBack = jest.fn();
   resetSelectedMonthToCurrentMock = jest.fn(() => {
     const now = new Date();
@@ -137,7 +135,7 @@ function setupStores() {
     expandedCategoryId: undefined,
     expandedBudgetGroup: undefined,
     openAdd: jest.fn(),
-    openEdit: openEditMock,
+    openEdit: jest.fn(),
     setLensTab: jest.fn(),
     setSelectedMonth: jest.fn((month: string) => {
       selectedMonthState = month;
@@ -382,6 +380,20 @@ describe('useCategoryDetail — month rollover', () => {
 
     expect(loadBudgetMock).toHaveBeenCalledWith('2026-05');
     expect(loadCategoriesMock).not.toHaveBeenCalled();
+  });
+
+  it('reloads categories on focus when the loaded category list failed its refresh', async () => {
+    jest.setSystemTime(new Date('2026-05-15T12:00:00'));
+    categoriesLoadedState = true;
+    categoriesLoadErrorState = true;
+    await renderHook(() => useCategoryDetail());
+
+    await act(() => {
+      capturedFocusCallback?.();
+    });
+
+    expect(loadCategoriesMock).toHaveBeenCalledTimes(1);
+    expect(loadBudgetMock).toHaveBeenCalledWith('2026-05');
   });
 
   it('does not query categories again when category detail opens warm', async () => {

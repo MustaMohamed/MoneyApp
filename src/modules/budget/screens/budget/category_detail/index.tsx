@@ -11,7 +11,6 @@ import {
   BUDGET_CATEGORY_DETAIL_LOAD_ERROR_COPY,
   BUDGET_CATEGORY_DETAIL_LOAD_ERROR_TEST_ID,
   BUDGET_CATEGORY_DETAIL_NOT_FOUND_TEST_ID,
-  categoryDetailShowsBody,
 } from '@/modules/budget/screens/budget/category_detail/category_detail.helpers';
 import { useCategoryDetail } from '@/modules/budget/screens/budget/category_detail/category_detail.hook';
 import { CategoryDetailSkeleton } from '@/modules/budget/screens/budget/category_detail/components/category_detail_skeleton';
@@ -41,7 +40,7 @@ export default function CategoryBudgetDetailScreen() {
           testID={BUDGET_CATEGORY_DETAIL_LOAD_ERROR_TEST_ID}
           onRetry={retry}
         />
-      ) : categoryDetailShowsBody(state.viewState) ? (
+      ) : (
         <>
           <ScreenScroll contentContainerStyle={styles.content}>
             {state.liveMonth && (
@@ -68,7 +67,7 @@ export default function CategoryBudgetDetailScreen() {
             />
           ) : null}
         </>
-      ) : null}
+      )}
     </Screen>
   );
 }

@@ -27,6 +27,11 @@ jest.mock('@/components/ui/hero_shell', () => {
   return { HeroShell: ({ children }: { children?: ReactNode }) => <View>{children}</View> };
 });
 
+jest.mock('@/components/ui/list_card', () => {
+  const { View } = jest.requireActual<typeof import('react-native')>('react-native');
+  return { ListCard: ({ children }: { children?: ReactNode }) => <View>{children}</View> };
+});
+
 jest.mock('@/components/ui/budget_ring', () => {
   const { View } = jest.requireActual<typeof import('react-native')>('react-native');
   return {

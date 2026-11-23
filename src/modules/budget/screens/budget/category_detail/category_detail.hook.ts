@@ -52,7 +52,8 @@ export function useCategoryDetail() {
     useCallback(() => {
       const selectedMonth = validRouteMonth ?? currentYearMonth();
       setMonth(selectedMonth);
-      if (!useCategoryStore.getState().hasLoaded) {
+      const categoryStore = useCategoryStore.getState();
+      if (!categoryStore.hasLoaded || categoryStore.loadError) {
         void loadCategories().catch(() => undefined);
       }
       void load(selectedMonth).catch(() => undefined);

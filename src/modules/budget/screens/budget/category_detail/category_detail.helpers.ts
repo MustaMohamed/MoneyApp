@@ -8,7 +8,7 @@ export type CategoryDetailViewState =
   | 'refreshErrorWithData'
   | 'ready';
 
-export interface CategoryDetailViewStateInput {
+interface CategoryDetailViewStateInput {
   hasLoaded: boolean;
   hasCategory: boolean;
   loadError: boolean;
