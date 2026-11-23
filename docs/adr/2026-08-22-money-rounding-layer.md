@@ -389,7 +389,7 @@ invariant are unchanged.
    Amended 2026-11-23 (#971, MA-317). Before its own `safeParse`, the hook now refuses an end
    before the start, no category, and a limit that is neither 0 nor at least 0.01, each marked on
    its field. The floor (`n === 0 || n >= MIN_MONEY_AMOUNT`) and the integer-cents over check are
-   unchanged, and both `safeParse` calls stay. The hook's now reaches the footer only with an
+   unchanged, and both `safeParse` calls stay. The hook's `safeParse` now reaches the footer only with an
    issue no field carries, such as a duplicate category.
 
 3. **§2's `[0.335, 0.335, 0.33]` example keeps its verdict, changes its layer, and its test still

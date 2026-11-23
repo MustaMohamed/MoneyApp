@@ -15,6 +15,7 @@ import {
   showsAllocationSuffix,
   validateAllocationText,
 } from '@/modules/budget/screens/budget/spending_plan_sheet/spending_plan_sheet.helpers';
+import { spendingPlanInputSchema } from '@/utils/schemas/budget.schema';
 
 describe('validateAllocationText', () => {
   // Blank is unallocated and reaches the column as NULL, distinct from a deliberate 0.
@@ -275,6 +276,34 @@ describe('resolvePlanScheduleFaults', () => {
     );
     expect(resolvePlanScheduleFaults('2026-11-01', '2026-11-30', 1).categories).toBeUndefined();
   });
+
+  it.each<[string, string, number]>([
+    ['2026-11-15', '2026-11-14', 1],
+    ['2026-11-15', '2026-11-15', 1],
+    ['2026-11-01', '2026-11-30', 0],
+    ['2026-11-01', '2026-11-30', 1],
+  ])(
+    'start %s, end %s, %i categories: the schema refuses exactly where it faults',
+    (startDate, endDate, categoryCount) => {
+      const parsed = spendingPlanInputSchema.safeParse({
+        name: 'Trip',
+        startDate,
+        endDate,
+        totalAmount: 100,
+        categories: Array.from({ length: categoryCount }, (_, index) => ({
+          categoryId: `cat-${index}`,
+        })),
+      });
+      const issueAt = (field: string): string | undefined =>
+        parsed.success
+          ? undefined
+          : parsed.error.issues.find((issue) => issue.path[0] === field)?.message;
+      const faults = resolvePlanScheduleFaults(startDate, endDate, categoryCount);
+
+      expect(issueAt('endDate')).toBe(faults.endDate);
+      expect(issueAt('categories')).toBe(faults.categories);
+    },
+  );
 });
 
 describe('countSpendingPlanFaults', () => {

@@ -1,13 +1,12 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 
-import { CategoryType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
 import { useSpendingPlanSheet } from '@/modules/budget/screens/budget/spending_plan_sheet/spending_plan_sheet.hook';
 import { useSpendingPlanSheetState } from '@/modules/budget/screens/budget/spending_plan_sheet/spending_plan_sheet.state';
 import { useSpendingPlanSheetStore } from '@/modules/budget/screens/budget/spending_plan_sheet/spending_plan_sheet.store';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
-import type { Category } from '@/modules/categories/entities/category.entity';
+import { makeTestBudgetableCategory } from '@/test_helpers/budget';
 import { PLAN_TOTAL_REFUSES_ZERO } from '@/utils/schemas/budget.schema';
 import { holdStillTypingDecimal } from '@/utils/use_zod_form.hook';
 
@@ -18,18 +17,7 @@ jest.mock('@/components/ui/sheet', () => ({
 
 type PlanHook = ReturnType<typeof useSpendingPlanSheet>;
 
-const category: Category = {
-  id: 'cat_food',
-  name: 'Food',
-  type: CategoryType.Expense,
-  icon: 'food',
-  color: '#D4A44C',
-  is_default: 0,
-  sort_order: 0,
-  budget_group: null,
-  created_at: '',
-  updated_at: '',
-};
+const category = makeTestBudgetableCategory({ id: 'cat_food', name: 'Food' });
 const categories = [category];
 
 beforeEach(() => {

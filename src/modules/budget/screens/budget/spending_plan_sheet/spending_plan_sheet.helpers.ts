@@ -61,13 +61,10 @@ export function resolvePlanScheduleFaults(
 }
 
 export function countSpendingPlanFaults(faults: SpendingPlanFieldFaults): number {
-  return [
-    faults.name,
-    faults.total,
-    faults.endDate,
-    faults.categories,
-    ...Object.values(faults.allocations),
-  ].filter((fault) => fault !== undefined).length;
+  const { allocations, ...fields } = faults;
+  return [...Object.values(fields), ...Object.values(allocations)].filter(
+    (fault) => fault !== undefined,
+  ).length;
 }
 
 export function resolvePlanFooterLine(
