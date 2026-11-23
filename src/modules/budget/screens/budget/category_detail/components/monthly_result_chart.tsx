@@ -67,7 +67,7 @@ export function MonthlyResultChart({
         </Typography>
         {legend !== undefined && <Text style={styles.legend}>{legend}</Text>}
       </View>
-      <ListCard>
+      <ListCard testID="monthly-result-card">
         <View style={styles.body}>
           <View style={[styles.barRow, { minHeight: barRowMinHeight }]}>
             {bars.map((bar) => (
@@ -86,11 +86,15 @@ export function MonthlyResultChart({
                 >
                   {bar.amountLabel}
                 </Text>
-                <View style={[styles.bar, { height: bar.heightDp, backgroundColor: bar.color }]} />
+                <View
+                  testID={`monthly-result-bar-${bar.yearMonth}`}
+                  style={[styles.bar, { height: bar.heightDp, backgroundColor: bar.color }]}
+                />
               </View>
             ))}
             {limitOffsetDp !== undefined && (
               <Svg
+                testID="monthly-result-limit-line"
                 width="100%"
                 height={Size.budgetMonthlyLimitStroke}
                 pointerEvents="none"
