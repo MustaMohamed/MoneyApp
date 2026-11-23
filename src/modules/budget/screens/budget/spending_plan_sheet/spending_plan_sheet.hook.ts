@@ -1,4 +1,3 @@
-import type { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 import { useEffect, useMemo } from 'react';
 import type { FieldErrors } from 'react-hook-form';
 import { useShallow } from 'zustand/react/shallow';
@@ -19,10 +18,7 @@ import {
   resolvePlanDailyLine,
   validateAllocationText,
 } from '@/modules/budget/screens/budget/spending_plan_sheet/spending_plan_sheet.helpers';
-import {
-  type SpendingPlanDatePickerTarget,
-  useSpendingPlanSheetState,
-} from '@/modules/budget/screens/budget/spending_plan_sheet/spending_plan_sheet.state';
+import { useSpendingPlanSheetState } from '@/modules/budget/screens/budget/spending_plan_sheet/spending_plan_sheet.state';
 import { useSpendingPlanSheetStore } from '@/modules/budget/screens/budget/spending_plan_sheet/spending_plan_sheet.store';
 import {
   computeAllocationHelper,
@@ -31,7 +27,6 @@ import {
 import type { SpendingPlanRowVM } from '@/modules/budget/screens/budget/spending_plans.types';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import type { Category } from '@/modules/categories/entities/category.entity';
-import { toLocalDateString } from '@/utils/format_date';
 import {
   formatStoredMoneyText,
   maskMoneyFieldText,
@@ -80,7 +75,6 @@ export function useSpendingPlanSheet({
     );
   const {
     pickerExpanded,
-    datePickerTarget,
     submitError,
     saving,
     allocationSubmitAttempted,
@@ -89,7 +83,6 @@ export function useSpendingPlanSheet({
   } = useSpendingPlanSheetState(
     useShallow((state) => ({
       pickerExpanded: state.pickerExpanded,
-      datePickerTarget: state.datePickerTarget,
       submitError: state.submitError,
       saving: state.saving,
       allocationSubmitAttempted: state.allocationSubmitAttempted,
@@ -271,10 +264,6 @@ export function useSpendingPlanSheet({
     });
   };
 
-  const pickerDate =
-    datePickerTarget === 'end'
-      ? endDate || `${selectedMonth}-01`
-      : startDate || `${selectedMonth}-01`;
   const { allocated, buffer, isOver, hasCents } = allocationHelper;
   const fmt = (value: number) => formatLimitsFigure(value, hasCents);
   // The two clauses below are one condition; narrowing either does not narrow the other.
@@ -305,10 +294,9 @@ export function useSpendingPlanSheet({
       isOpen,
       title: planSheetMode === 'edit' ? Strings.budgetPlanEditTitle : Strings.budgetPlanSetTitle,
       control,
-      startDate,
-      endDate,
-      datePickerTarget,
-      datePickerValue: new Date(`${pickerDate}T12:00:00`),
+      // The draft resets both to '' on close, and `DateRow` formats its value unguarded.
+      startDate: startDate || `${selectedMonth}-01`,
+      endDate: endDate || `${selectedMonth}-01`,
       selectedCategories,
       allocateByCategory,
       allocations,
@@ -371,20 +359,5 @@ export function useSpendingPlanSheet({
       endEdit();
       useSpendingPlanSheetStore.getState().setEndDate(next);
     },
-    openDatePicker: (target: SpendingPlanDatePickerTarget) =>
-      useSpendingPlanSheetState.getState().openDatePicker(target),
-    // datetimepicker 9 split `onChange` in two; both legs must close or cancel leaves it mounted.
-    selectDate: (
-      target: SpendingPlanDatePickerTarget,
-      _event: DateTimePickerChangeEvent,
-      date: Date,
-    ) => {
-      const next = toLocalDateString(date);
-      endEdit();
-      if (target === 'start') useSpendingPlanSheetStore.getState().setStartDate(next);
-      if (target === 'end') useSpendingPlanSheetStore.getState().setEndDate(next);
-      useSpendingPlanSheetState.getState().closeDatePicker();
-    },
-    dismissDatePicker: () => useSpendingPlanSheetState.getState().closeDatePicker(),
   };
 }
