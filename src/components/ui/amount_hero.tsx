@@ -84,6 +84,7 @@ export function AmountHero({
           onBlur={onBlur}
           keyboardType="decimal-pad"
           accessibilityLabel={accessibilityLabel}
+          variant="secondary"
           className={amountClass({ tone })}
           allowFontScaling={false}
           style={{

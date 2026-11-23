@@ -72,12 +72,20 @@ jest.mock('@/components/ui/button', () => ({
     );
   },
 }));
+const mockBudgetSnapshot = {
+  loaded: true,
+  loadedMonth: '2026-01',
+  rows: [] as unknown[],
+  spendByMonth: {} as Record<string, Record<string, number>>,
+};
 jest.mock('@/modules/budget/store/budget.store', () => {
   mockSetBudget = jest.fn<Promise<void>, [unknown]>().mockResolvedValue(undefined);
+  const state = () => ({ ...mockBudgetSnapshot, setBudget: mockSetBudget, setLimit: jest.fn() });
   return {
-    useBudgetStore: {
-      getState: jest.fn(() => ({ setBudget: mockSetBudget, setLimit: jest.fn() })),
-    },
+    useBudgetStore: Object.assign(
+      (selector: (snapshot: ReturnType<typeof state>) => unknown) => selector(state()),
+      { getState: jest.fn(state) },
+    ),
   };
 });
 jest.mock('@/modules/categories/components/category_picker_sheet', () => ({
@@ -152,7 +160,11 @@ jest.mock('heroui-native', () => {
       {children}
     </Pressable>
   );
+  const ChipRoot = ({ children, ...props }: PressableProps & { children?: ReactNode }) => (
+    <Pressable {...props}>{children}</Pressable>
+  );
   return {
+    Chip: Object.assign(ChipRoot, { Label: passThrough(Text) }),
     cn: (...args: Array<string | false | null | undefined>) => args.filter(Boolean).join(' '),
     Input: (props: Record<string, unknown>) => (
       <TextInput
@@ -514,6 +526,55 @@ describe('SetBudgetSheet', () => {
     expect(mockToast.show).toHaveBeenCalledWith(
       expect.objectContaining({ label: Strings.budgetAddedToast }),
     );
+  });
+
+  it('a suggestion chip fills the hero, lights up, and clears the limit fault back to the status line', async () => {
+    mockBudgetSnapshot.spendByMonth = {
+      housing: { '2025-12': 640, '2025-11': 900, '2025-10': 590 },
+    };
+    try {
+      const { getByLabelText, getByTestId } = await render(
+        <SetBudgetSheet
+          owner={BUDGET_TAB_SHEET_OWNER}
+          shownGroupByCategoryId={noShownGroups}
+          budgetableCategories={categories}
+        />,
+      );
+      const noBudgetLine = Strings.budgetStatusNoBudget(categories[0].name, 'January');
+
+      await fireEvent.press(getByTestId('category-row'));
+      await fireEvent.press(getByLabelText('select first budget category'));
+      await fireEvent.changeText(getByTestId('budget-name-input'), 'Groceries');
+      expect(within(getByTestId('set-budget-status')).getByText(noBudgetLine)).toBeTruthy();
+
+      await fireEvent.press(getByLabelText(Strings.budgetSaveCta));
+      await waitFor(() =>
+        expect(
+          within(getByTestId('set-budget-status')).getByText(Strings.fixFieldsMarkedAbove(1)),
+        ).toBeTruthy(),
+      );
+      expect(mockSetBudget).not.toHaveBeenCalled();
+
+      await fireEvent.press(getByTestId('amount-suggestion-spentLastMonth'));
+
+      expect(getByTestId('amount-hero-value')).toHaveProp('value', '640');
+      expect(getByTestId('amount-suggestion-spentLastMonth')).toHaveProp(
+        'accessibilityState',
+        expect.objectContaining({ selected: true }),
+      );
+      expect(getByTestId('amount-suggestion-threeMonthAverage')).toHaveProp(
+        'accessibilityState',
+        expect.objectContaining({ selected: false }),
+      );
+      await waitFor(() =>
+        expect(within(getByTestId('set-budget-status')).getByText(noBudgetLine)).toBeTruthy(),
+      );
+      expect(
+        within(getByTestId('set-budget-status')).queryByText(Strings.fixFieldsMarkedAbove(1)),
+      ).toBeNull();
+    } finally {
+      mockBudgetSnapshot.spendByMonth = {};
+    }
   });
 
   it('draws the edit-mode Category row with no button role, and a press leaves the picker closed', async () => {
