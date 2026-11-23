@@ -10,6 +10,7 @@ import {
   computeStatus,
   resolveLimitForMonth,
 } from '@/modules/budget/screens/budget/budget.helpers';
+import { resolveCategoryDetailViewState } from '@/modules/budget/screens/budget/category_detail/category_detail.helpers';
 import { useCategoryDetailState } from '@/modules/budget/screens/budget/category_detail/category_detail.state';
 import {
   BUDGET_TAB_SHEET_OWNER,
@@ -64,6 +65,11 @@ export function useCategoryDetail() {
 
   const category = useMemo(() => categories.find((c) => c.id === id), [categories, id]);
   const hasLoaded = categoriesLoaded && budgetLoaded && loadedMonth === month;
+  const viewState = resolveCategoryDetailViewState({
+    hasLoaded,
+    hasCategory: category !== undefined,
+    loadError: loadError || categoryLoadError,
+  });
 
   const results: MonthResultVM[] = useMemo(() => {
     if (!hasLoaded || !id) return [];
@@ -121,10 +127,12 @@ export function useCategoryDetail() {
       month,
       hasLoaded,
       loadError: !hasLoaded && (loadError || categoryLoadError),
+      viewState,
     },
     goBack: () => router.back(),
     retry: () => {
-      if (!useCategoryStore.getState().hasLoaded) {
+      const categoryStore = useCategoryStore.getState();
+      if (!categoryStore.hasLoaded || categoryStore.loadError) {
         void loadCategories().catch(() => undefined);
       }
       void load(month).catch(() => undefined);
