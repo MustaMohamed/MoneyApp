@@ -79,7 +79,7 @@ describe('the sheet slot is keyed by the screen that opens it (MA-295, Invariant
 
   it('release by another owner leaves the session, the selection and the owed toast standing', () => {
     sheet().initAddMode('a', 'cat_food', null, 'a:add');
-    sheet().markSaved('a', 'added');
+    sheet().completeSave('a', 'added');
 
     sheet().release('b');
 
@@ -87,14 +87,14 @@ describe('the sheet slot is keyed by the screen that opens it (MA-295, Invariant
       owner: 'a',
       sessionKey: 'a:add',
       selectedCategoryId: 'cat_food',
-      postClose: 'added',
+      closeOutcome: 'added',
     });
   });
 
   it('release by the holder clears the selection and the error but keeps the owed toast', () => {
     sheet().initAddMode('a', 'cat_food', null, 'a:add');
     sheet().setErrorMessage('refused', true);
-    sheet().markSaved('a', 'updated');
+    sheet().completeSave('a', 'updated');
 
     sheet().release('a');
 
@@ -102,7 +102,7 @@ describe('the sheet slot is keyed by the screen that opens it (MA-295, Invariant
       selectedCategoryId: undefined,
       errorMessage: undefined,
       nameTaken: false,
-      postClose: 'updated',
+      closeOutcome: 'updated',
     });
   });
 
@@ -115,24 +115,24 @@ describe('the sheet slot is keyed by the screen that opens it (MA-295, Invariant
 
   it('completeClose returns the outcome once, then undefined, and undefined to another owner', () => {
     sheet().initAddMode('a', 'cat_food', null, 'a:add');
-    sheet().markSaved('a', 'added');
+    sheet().completeSave('a', 'added');
 
     expect(sheet().completeClose('b')).toBeUndefined();
     expect(sheet().completeClose('a')).toBe('added');
     expect(sheet().completeClose('a')).toBeUndefined();
   });
 
-  it('markSaved by another owner owes no toast', () => {
+  it('completeSave by another owner owes no toast', () => {
     sheet().initAddMode('a', 'cat_food', null, 'a:add');
 
-    sheet().markSaved('b', 'added');
+    sheet().completeSave('b', 'added');
 
     expect(sheet().completeClose('a')).toBeUndefined();
   });
 
   it('a new init clears an owed toast', () => {
     sheet().initAddMode('a', 'cat_food', null, 'a:add');
-    sheet().markSaved('a', 'added');
+    sheet().completeSave('a', 'added');
 
     sheet().initEditMode('a', null, 'a:edit');
 

@@ -686,4 +686,59 @@ describe('the redrawn sheet resolves its title, month line, faults and footer (M
       expect(mockToast.show).not.toHaveBeenCalled();
     });
   });
+
+  it('a save refused for a taken name marks the Name row with the refusal text', async () => {
+    const { result } = await mountAdd(jest.fn().mockRejectedValue(new BudgetNameTakenError('Gym')));
+    await typeNameAndLimit(result, 'Gym', '500');
+
+    await act(async () => result.current.submit());
+
+    expect(result.current.state.nameFault).toBe(
+      Strings.budgetNameTaken('Health', 'Gym', 'November'),
+    );
+  });
+
+  it("edit mode draws the edited budget's own glyph and colour for a category outside the budgetable list", async () => {
+    const editing = makeTestBudgetEditTarget({
+      categoryId: 'cat_salary',
+      categoryName: 'Salary',
+      icon: 'cash',
+      color: '#2E7D32',
+    });
+    useBudgetState.getState().setSelectedMonth('2026-11');
+    useBudgetState.getState().openEdit(editing.id);
+    const { result } = await renderHook(() =>
+      useSetBudgetSheet({
+        owner: BUDGET_TAB_SHEET_OWNER,
+        budgetableCategories: [health],
+        editingRow: editing,
+        shownGroupByCategoryId: {},
+      }),
+    );
+    await waitFor(() => expect(useSetBudgetSheetState.getState().sessionKey).toBeDefined());
+
+    expect(result.current.state.editGlyph).toEqual({ icon: 'cash', color: '#2E7D32' });
+  });
+
+  it('submit resolves and shows the save failure when a step after the write throws', async () => {
+    const original = useSetBudgetSheetState.getState().completeSave;
+    useSetBudgetSheetState.setState({
+      completeSave: () => {
+        throw new Error('forced');
+      },
+    });
+    try {
+      const { result, setBudget } = await mountAdd();
+      await typeNameAndLimit(result, 'Gym', '500');
+
+      await act(async () => {
+        await expect(result.current.submit()).resolves.toBeUndefined();
+      });
+
+      expect(setBudget).toHaveBeenCalledTimes(1);
+      expect(useSetBudgetSheetState.getState().errorMessage).toBe(Strings.budgetSaveError);
+    } finally {
+      useSetBudgetSheetState.setState({ completeSave: original });
+    }
+  });
 });

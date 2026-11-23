@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import type { BudgetGroup } from '@/constants/enums';
+import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 export const BUDGET_TAB_SHEET_OWNER = 'budget-tab';
@@ -17,7 +18,7 @@ interface SetBudgetSheetStateShape {
   saving: boolean;
   errorMessage: string | undefined;
   nameTaken: boolean;
-  postClose: SetBudgetSaveOutcome | undefined;
+  closeOutcome: SetBudgetSaveOutcome | undefined;
 }
 
 type SetBudgetSheetState = SetBudgetSheetStateShape & {
@@ -30,7 +31,7 @@ type SetBudgetSheetState = SetBudgetSheetStateShape & {
   ) => boolean;
   initEditMode: (owner: string, group: BudgetGroup | null, sessionKey?: string) => boolean;
   release: (owner: string) => void;
-  markSaved: (owner: string, outcome: SetBudgetSaveOutcome) => void;
+  completeSave: (owner: string, outcome: SetBudgetSaveOutcome) => void;
   completeClose: (owner: string) => SetBudgetSaveOutcome | undefined;
   setSelectedCategoryId: (id: string) => void;
   setGroupValue: (group: BudgetGroup | null) => void;
@@ -52,7 +53,7 @@ const INITIAL_STATE: SetBudgetSheetStateShape = {
   saving: false,
   errorMessage: undefined,
   nameTaken: false,
-  postClose: undefined,
+  closeOutcome: undefined,
 };
 
 export const useSetBudgetSheetState = createMoneyAppSelectors(
@@ -86,16 +87,21 @@ export const useSetBudgetSheetState = createMoneyAppSelectors(
       release: (owner) => {
         const s = get();
         if (s.owner !== owner) return;
-        set({ ...INITIAL_STATE, openOwner: s.openOwner, owner: s.owner, postClose: s.postClose });
+        set({
+          ...INITIAL_STATE,
+          openOwner: s.openOwner,
+          owner: s.owner,
+          closeOutcome: s.closeOutcome,
+        });
       },
-      markSaved: (owner, outcome) => {
-        if (get().owner === owner) set({ postClose: outcome });
+      completeSave: (owner, outcome) => {
+        if (get().owner === owner) set({ closeOutcome: outcome });
       },
       completeClose: (owner) => {
         const s = get();
         if (s.owner !== owner) return undefined;
-        set({ postClose: undefined });
-        return s.postClose;
+        set({ closeOutcome: undefined });
+        return s.closeOutcome;
       },
       setSelectedCategoryId: (id) =>
         set({
@@ -115,3 +121,22 @@ export const useSetBudgetSheetState = createMoneyAppSelectors(
     };
   }),
 );
+
+export function openSetBudgetAdd(owner: string): void {
+  useSetBudgetSheetState.getState().openFor(owner);
+  useBudgetState.getState().openAdd();
+}
+
+export function openSetBudgetAddWithContext(
+  owner: string,
+  categoryId: string | undefined,
+  group: BudgetGroup,
+): void {
+  useSetBudgetSheetState.getState().openFor(owner);
+  useBudgetState.getState().openAddWithContext(categoryId, group);
+}
+
+export function openSetBudgetEdit(owner: string, budgetId: string): void {
+  useSetBudgetSheetState.getState().openFor(owner);
+  useBudgetState.getState().openEdit(budgetId);
+}

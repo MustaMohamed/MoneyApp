@@ -107,7 +107,7 @@ export function useSetBudgetSheet({
   const collapsePicker = useSetBudgetSheetState.getState().collapsePicker;
   const clearError = useSetBudgetSheetState.getState().clearError;
   const releaseState = useSetBudgetSheetState.getState().release;
-  const markSaved = useSetBudgetSheetState.getState().markSaved;
+  const completeSave = useSetBudgetSheetState.getState().completeSave;
   const completeClose = useSetBudgetSheetState.getState().completeClose;
   const setErrorMessage = useSetBudgetSheetState.getState().setErrorMessage;
   const { toast } = useToast();
@@ -203,7 +203,7 @@ export function useSetBudgetSheet({
       });
     }, nameTakenMessage);
     if (!saved) return;
-    markSaved(owner, isEdit ? 'updated' : 'added');
+    completeSave(owner, isEdit ? 'updated' : 'added');
     close();
   };
   const submit = async (): Promise<void> => {
@@ -272,8 +272,11 @@ export function useSetBudgetSheet({
       monthLine: Strings.budgetMonthlyLimitLine(formatMonthYear(selectedMonth)),
       rowCategory,
       rowCategoryName: isEdit ? editingRow?.categoryName : undefined,
+      editGlyph:
+        isEdit && editingRow ? { icon: editingRow.icon, color: editingRow.color } : undefined,
       faults,
       nameTaken,
+      nameFault: faults.name ?? (nameTaken ? errorMessage : undefined),
       footerMessage: resolveSetBudgetFooterMessage(faults, errorMessage),
       selectedCategoryId,
       pickerExpanded,

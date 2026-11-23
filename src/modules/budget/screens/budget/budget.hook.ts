@@ -26,7 +26,9 @@ import type { NamedBudgetVM } from '@/modules/budget/screens/budget/budget_categ
 import { useIncomeSheetState } from '@/modules/budget/screens/budget/components/income_sheet.state';
 import {
   BUDGET_TAB_SHEET_OWNER,
-  useSetBudgetSheetState,
+  openSetBudgetAdd,
+  openSetBudgetAddWithContext,
+  openSetBudgetEdit,
 } from '@/modules/budget/screens/budget/components/set_budget_sheet.state';
 import { buildSpendingPlanRows } from '@/modules/budget/screens/budget/spending_plans.helpers';
 import { computeSpendingPlansSummary } from '@/modules/budget/screens/budget/spending_plans_summary.helpers';
@@ -48,21 +50,6 @@ export interface BudgetEditTargetVM extends NamedBudgetVM {
   icon: string;
   color: string;
   limit: number;
-}
-
-function openAdd(): void {
-  useSetBudgetSheetState.getState().openFor(BUDGET_TAB_SHEET_OWNER);
-  useBudgetState.getState().openAdd();
-}
-
-function openAddWithContext(categoryId: string | undefined, group: BudgetGroup): void {
-  useSetBudgetSheetState.getState().openFor(BUDGET_TAB_SHEET_OWNER);
-  useBudgetState.getState().openAddWithContext(categoryId, group);
-}
-
-function openEdit(budgetId: string): void {
-  useSetBudgetSheetState.getState().openFor(BUDGET_TAB_SHEET_OWNER);
-  useBudgetState.getState().openEdit(budgetId);
 }
 
 export function useBudget() {
@@ -477,7 +464,9 @@ export function useBudget() {
         )?.id;
       setLensTab('categories');
       setExpandedCategoryId(firstMatchingCategory?.categoryId);
-      if (!firstMatchingCategory) openAddWithContext(contextualCategoryId, group);
+      if (!firstMatchingCategory) {
+        openSetBudgetAddWithContext(BUDGET_TAB_SHEET_OWNER, contextualCategoryId, group);
+      }
     },
     [
       activeBudgetGroupByCategoryId,
@@ -525,8 +514,8 @@ export function useBudget() {
       expandedBudgetGroup,
       hasLoaded: Boolean(categoriesLoaded && hasMatchingBudgetSnapshot),
     },
-    openAdd,
-    openEdit,
+    openAdd: () => openSetBudgetAdd(BUDGET_TAB_SHEET_OWNER),
+    openEdit: (budgetId: string) => openSetBudgetEdit(BUDGET_TAB_SHEET_OWNER, budgetId),
     openAddPlan,
     openEditPlan,
     openPlanTool,

@@ -121,12 +121,10 @@ export function SetBudgetSheet(props: SetBudgetSheetProps) {
                     leading={
                       <MaterialCommunityIcons
                         name={
-                          state.rowCategory
-                            ? toIconName(state.rowCategory.icon, 'tag')
-                            : 'tag-outline'
+                          state.editGlyph ? toIconName(state.editGlyph.icon, 'tag') : 'tag-outline'
                         }
                         size={Size.filterSegmentIcon}
-                        color={state.rowCategory?.color ?? CoreTokens.text1}
+                        color={state.editGlyph?.color ?? CoreTokens.text1}
                       />
                     }
                     inset={false}
@@ -142,11 +140,7 @@ export function SetBudgetSheet(props: SetBudgetSheetProps) {
                   />
                 )}
               </FormFactCell>
-              <FormFactCell
-                divider={false}
-                fault={faults.name ?? (state.nameTaken ? state.footerMessage : undefined)}
-                ringTestID="name-ring"
-              >
+              <FormFactCell divider={false} fault={state.nameFault} ringTestID="name-ring">
                 <Controller
                   control={control}
                   name="nameText"
