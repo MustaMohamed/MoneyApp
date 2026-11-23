@@ -51,6 +51,7 @@ export function SpendingPlanSheet(props: SpendingPlanSheetProps) {
             form={{ setValue: actions.setValue, clearErrors: actions.clearErrors }}
             onTotalEdit={actions.editTotal}
             totalCarriesOverRing={state.totalCarriesOverRing}
+            totalFault={state.totalFault}
           />
           <View style={FORM_SHEET_CONTENT_CONTAINER_STYLE}>
             <SpendingPlanFactCard
@@ -58,6 +59,9 @@ export function SpendingPlanSheet(props: SpendingPlanSheetProps) {
               startDate={state.startDate}
               endDate={state.endDate}
               categoriesValue={state.categoriesValue}
+              nameFault={state.nameFault}
+              endDateFault={state.endDateFault}
+              categoriesFault={state.categoriesFault}
               onEdit={actions.clearSubmitError}
               onStartDateChange={actions.setStartDate}
               onEndDateChange={actions.setEndDate}
