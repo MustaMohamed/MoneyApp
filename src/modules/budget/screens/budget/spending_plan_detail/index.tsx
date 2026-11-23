@@ -3,6 +3,7 @@ import React from 'react';
 import { View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
+import { DetailLoadError } from '@/components/ui/detail_load_error';
 import { HeaderIconAction } from '@/components/ui/header_icon_action';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { StackHeader } from '@/components/ui/stack_header';
@@ -12,6 +13,10 @@ import { Colors, Size } from '@/constants/theme';
 import { SpendingPlanDetailCategoryRow } from '@/modules/budget/screens/budget/spending_plan_detail/components/spending_plan_detail_category_row';
 import { SpendingPlanDetailSkeleton } from '@/modules/budget/screens/budget/spending_plan_detail/components/spending_plan_detail_skeleton';
 import { SpendingPlanDetailSummary } from '@/modules/budget/screens/budget/spending_plan_detail/components/spending_plan_detail_summary';
+import {
+  SPENDING_PLAN_DETAIL_LOAD_ERROR_COPY,
+  SPENDING_PLAN_DETAIL_LOAD_ERROR_TEST_ID,
+} from '@/modules/budget/screens/budget/spending_plan_detail/spending_plan_detail.helpers';
 import { useSpendingPlanDetail } from '@/modules/budget/screens/budget/spending_plan_detail/spending_plan_detail.hook';
 import { SpendingPlanSheet } from '@/modules/budget/screens/budget/spending_plan_sheet';
 
@@ -60,21 +65,15 @@ export default function SpendingPlanDetailScreen() {
         </View>
       ) : null}
 
-      {state.viewState === 'error' ? (
-        <View className="flex-1 items-center justify-center gap-4 px-6">
-          <Text className="font-sora-semibold text-muted text-center text-[14px]">
-            {state.errorMessage}
-          </Text>
-          <Button
-            variant="secondary"
-            size="sm"
-            label={Strings.budgetPlansDetailRetry}
-            onPress={() => void retry()}
-          />
-        </View>
+      {state.viewState === 'firstLoadError' ? (
+        <DetailLoadError
+          copy={SPENDING_PLAN_DETAIL_LOAD_ERROR_COPY}
+          testID={SPENDING_PLAN_DETAIL_LOAD_ERROR_TEST_ID}
+          onRetry={retry}
+        />
       ) : null}
 
-      {state.viewState === 'ready' && plan ? (
+      {state.showsBody && plan ? (
         <>
           <ScreenScroll showsVerticalScrollIndicator={false}>
             <View className="pb-6">
@@ -118,6 +117,15 @@ export default function SpendingPlanDetailScreen() {
             onSaved={retry}
           />
         </>
+      ) : null}
+
+      {state.viewState === 'refreshErrorWithData' ? (
+        <DetailLoadError
+          copy={SPENDING_PLAN_DETAIL_LOAD_ERROR_COPY}
+          testID={SPENDING_PLAN_DETAIL_LOAD_ERROR_TEST_ID}
+          floating
+          onRetry={retry}
+        />
       ) : null}
     </Screen>
   );
