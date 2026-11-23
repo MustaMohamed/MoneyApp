@@ -591,7 +591,6 @@ export const Strings = {
   budgetDetailLimitLegend: (amount: string) => `limit ${amount}`,
   budgetDetailPlanned: 'Planned',
   budgetDetailPartOf: (part: string | number, whole: string | number) => `${part} of ${whole}`,
-  budgetDetailSoFarSuffix: ' · so far',
   budgetDetailMonthsShort: (n: number) => `${n} mo`,
   budgetDetailCompleted: 'Complete',
   budgetToolCopy: 'Copy',

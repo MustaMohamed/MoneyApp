@@ -12,5 +12,5 @@ export function resolveLedgerMonthColumnWidth(fontScale: number): number {
   return scaledFontSize(Size.budgetLedgerMonthColumn, fontScale);
 }
 
-/** The chart's month labels stop growing at the display headline's stop, so twelve of them draw at one size in their columns. */
+/** The chart's month labels stop growing at the display headline's stop, so six of them draw at one size in their columns. */
 export const BUDGET_CHART_LABEL_MAX_FONT_SCALE = DISPLAY_HEADLINE_MAX_FONT_SCALE;
