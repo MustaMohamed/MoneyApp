@@ -469,6 +469,12 @@ export const Strings = {
   budgetTitle: 'Budget',
   budgetLoadError: 'Could not load your budget.',
   budgetLoadRetry: 'Try again',
+  budgetCategoryDetailNotFoundTitle: 'This budget is gone',
+  budgetCategoryDetailNotFoundBody: 'It was removed or never existed.',
+  budgetCategoryDetailLoadErrorTitle: "Couldn't load your budget.",
+  budgetCategoryDetailLoadErrorDescription:
+    'Something went wrong reading your data. Nothing was changed.',
+  budgetCategoryDetailRefreshErrorTitle: "Couldn't refresh this budget.",
   budgetAddCategory: 'Add budget',
   amountSuggestionSpentLastMonth: (amount: string) => `${amount} · spent last month`,
   amountSuggestionThreeMonthAverage: (amount: string) => `${amount} · 3-month average`,

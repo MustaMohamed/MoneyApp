@@ -10,11 +10,8 @@ import {
   computeStatus,
   resolveLimitForMonth,
 } from '@/modules/budget/screens/budget/budget.helpers';
+import { resolveCategoryDetailViewState } from '@/modules/budget/screens/budget/category_detail/category_detail.helpers';
 import { useCategoryDetailState } from '@/modules/budget/screens/budget/category_detail/category_detail.state';
-import {
-  BUDGET_TAB_SHEET_OWNER,
-  openSetBudgetEdit,
-} from '@/modules/budget/screens/budget/components/set_budget_sheet.state';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 
@@ -55,7 +52,8 @@ export function useCategoryDetail() {
     useCallback(() => {
       const selectedMonth = validRouteMonth ?? currentYearMonth();
       setMonth(selectedMonth);
-      if (!useCategoryStore.getState().hasLoaded) {
+      const categoryStore = useCategoryStore.getState();
+      if (!categoryStore.hasLoaded || categoryStore.loadError) {
         void loadCategories().catch(() => undefined);
       }
       void load(selectedMonth).catch(() => undefined);
@@ -64,6 +62,11 @@ export function useCategoryDetail() {
 
   const category = useMemo(() => categories.find((c) => c.id === id), [categories, id]);
   const hasLoaded = categoriesLoaded && budgetLoaded && loadedMonth === month;
+  const viewState = resolveCategoryDetailViewState({
+    hasLoaded,
+    hasCategory: category !== undefined,
+    loadError: loadError || categoryLoadError,
+  });
 
   const results: MonthResultVM[] = useMemo(() => {
     if (!hasLoaded || !id) return [];
@@ -95,11 +98,6 @@ export function useCategoryDetail() {
 
   const history = useMemo(() => computeCategoryHistory(results), [results]);
   const liveMonth = useMemo(() => results.find((r) => r.yearMonth === month), [results, month]);
-  const liveMonthBudgets = useMemo(
-    () => budgetRows.filter((row) => row.category_id === id && row.effective_from === month),
-    [budgetRows, id, month],
-  );
-  const editableBudgetId = liveMonthBudgets.length === 1 ? liveMonthBudgets[0]?.id : undefined;
 
   const daysLeft = useMemo(() => {
     if (month !== currentYearMonth()) return undefined;
@@ -111,28 +109,20 @@ export function useCategoryDetail() {
 
   return {
     state: {
-      name: category?.name ?? '',
-      icon: category?.icon ?? 'tag',
       color: category?.color ?? Colors.dark.text2,
       liveMonth,
-      canEditLiveBudget: editableBudgetId !== undefined,
       history,
       daysLeft,
       month,
-      hasLoaded,
-      loadError: !hasLoaded && (loadError || categoryLoadError),
+      viewState,
     },
     goBack: () => router.back(),
     retry: () => {
-      if (!useCategoryStore.getState().hasLoaded) {
+      const categoryStore = useCategoryStore.getState();
+      if (!categoryStore.hasLoaded || categoryStore.loadError) {
         void loadCategories().catch(() => undefined);
       }
       void load(month).catch(() => undefined);
-    },
-    editBudget: () => {
-      if (!editableBudgetId) return;
-      router.back();
-      openSetBudgetEdit(BUDGET_TAB_SHEET_OWNER, editableBudgetId);
     },
   };
 }

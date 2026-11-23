@@ -1,59 +1,92 @@
-import { Card, SkeletonGroup } from 'heroui-native';
-import { View } from 'react-native';
+import { SkeletonGroup } from 'heroui-native';
+import { View, useWindowDimensions } from 'react-native';
 
-import { BackButton } from '@/components/ui/back_button';
+import {
+  DETAIL_HERO_BADGE_GAP,
+  DETAIL_HERO_CAPTION_GAP,
+  DETAIL_HERO_OVERLINE_GAP,
+  DETAIL_HERO_PADDING,
+  DETAIL_HERO_SHELL_STYLE,
+  DETAIL_HERO_TILE_GAP,
+  resolveDetailHeroGeometry,
+} from '@/components/ui/detail_hero.geometry';
+import { HeroShell } from '@/components/ui/hero_shell';
+import { ListCard } from '@/components/ui/list_card';
+import { ScreenScroll } from '@/components/ui/screen';
+import {
+  SECTION_HEADER_MARGIN_BOTTOM,
+  SECTION_HEADER_MARGIN_TOP,
+} from '@/components/ui/section_header.geometry';
 import { ScaledBar } from '@/components/ui/skeleton_bar';
-import { Spacing } from '@/constants/theme';
+import { Radius, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 
-export function CategoryDetailSkeleton({ onBack }: { onBack: () => void }): React.ReactElement {
+export function CategoryDetailSkeleton(): React.ReactElement {
+  const { fontScale } = useWindowDimensions();
+  const hero = resolveDetailHeroGeometry(fontScale);
   return (
-    <SkeletonGroup isLoading isSkeletonOnly>
-      <View className="flex-row items-center gap-2.5 px-4 py-2">
-        <BackButton onPress={onBack} />
-        <SkeletonGroup.Item className="h-[34px] w-[34px] rounded-xl" />
-        <ScaledBar height={18} className="w-32 rounded-lg" />
-      </View>
-
-      <View style={{ paddingHorizontal: Spacing.md }}>
-        <Card
-          className="bg-surface border-border mt-2 rounded-lg border p-0"
-          style={{ boxShadow: 'none' }}
-        >
-          <Card.Body className="gap-2 p-4">
-            <View className="flex-row items-center justify-between">
-              <ScaledBar height={14} className="w-24 rounded-lg" />
-              <ScaledBar height={14} className="w-16 rounded-lg" />
+    <ScreenScroll testID="budget-category-detail-skeleton">
+      <SkeletonGroup isLoading isSkeletonOnly>
+        <HeroShell glowOpacity={0} style={DETAIL_HERO_SHELL_STYLE}>
+          <View
+            testID="budget-category-detail-skeleton-hero"
+            style={{ padding: DETAIL_HERO_PADDING, height: hero.height }}
+          >
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: DETAIL_HERO_TILE_GAP,
+                height: hero.topHeight,
+              }}
+            >
+              <SkeletonGroup.Item
+                style={{
+                  width: Size.detailHeroTile,
+                  height: Size.detailHeroTile,
+                  borderRadius: Radius.md,
+                }}
+              />
+              <View style={{ flex: 1 }}>
+                <SkeletonGroup.Item
+                  className="w-35 rounded-md"
+                  style={{ height: hero.titleLineHeight }}
+                />
+                <SkeletonGroup.Item
+                  className="w-16 rounded-full"
+                  style={{ height: hero.badgeHeight, marginTop: DETAIL_HERO_BADGE_GAP }}
+                />
+              </View>
             </View>
-            <View className="flex-row items-center justify-between">
-              <ScaledBar height={28} className="w-32 rounded-lg" />
-              <ScaledBar height={18} className="w-20 rounded-lg" />
-            </View>
-            <SkeletonGroup.Item className="h-2 w-full rounded-full" />
-            <View className="flex-row items-center justify-between">
-              <ScaledBar height={12} className="w-20 rounded-lg" />
-              <ScaledBar height={12} className="w-20 rounded-lg" />
-            </View>
-          </Card.Body>
-        </Card>
-
-        <View className="mt-4 flex-row gap-2">
-          {[0, 1, 2].map((tile) => (
-            <SkeletonGroup.Item key={tile} className="h-16 flex-1 rounded-lg" />
-          ))}
-        </View>
-
-        <ScaledBar height={11} className="mt-5 w-28 rounded-lg" />
-        <SkeletonGroup.Item className="mt-3 h-16 w-full rounded-lg" />
-        {[0, 1, 2].map((row) => (
-          <View key={row} className="border-separator flex-row items-center border-b py-3">
-            <View className="flex-1 gap-1.5">
-              <ScaledBar height={14} className="w-24 rounded-lg" />
-              <ScaledBar height={11} className="w-32 rounded-lg" />
-            </View>
-            <ScaledBar height={15} className="w-16 rounded-lg" />
+            <SkeletonGroup.Item
+              className="w-15 rounded-md"
+              style={{ height: hero.overlineLineHeight, marginTop: DETAIL_HERO_OVERLINE_GAP }}
+            />
+            <SkeletonGroup.Item className="w-45 rounded-lg" style={{ height: hero.amountHeight }} />
+            <SkeletonGroup.Item
+              className="w-38 rounded-md"
+              style={{ height: hero.captionLineHeight, marginTop: DETAIL_HERO_CAPTION_GAP }}
+            />
           </View>
-        ))}
-      </View>
-    </SkeletonGroup>
+        </HeroShell>
+        <View style={{ paddingHorizontal: Spacing.md }}>
+          <View
+            style={{
+              marginTop: SECTION_HEADER_MARGIN_TOP,
+              marginBottom: SECTION_HEADER_MARGIN_BOTTOM,
+            }}
+          >
+            <ScaledBar height={lineHeightFor(Type.caption)} className="w-28 rounded-md" />
+          </View>
+          <ListCard>
+            <View style={{ padding: Spacing.md }}>
+              <SkeletonGroup.Item
+                className="w-full rounded-lg"
+                style={{ height: Size.budgetMonthlyBarMaxHeight }}
+              />
+            </View>
+          </ListCard>
+        </View>
+      </SkeletonGroup>
+    </ScreenScroll>
   );
 }
