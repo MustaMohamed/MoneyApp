@@ -74,6 +74,7 @@ export function MonthlyResultChart({
               <View key={bar.yearMonth} style={styles.column}>
                 <Text
                   {...amountText}
+                  adjustsFontSizeToFit
                   style={[
                     styles.amount,
                     amountText.style,

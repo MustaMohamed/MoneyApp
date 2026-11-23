@@ -4,6 +4,7 @@ import {
   fullMonthName,
   monthNumberFromYearMonth,
   shiftYearMonth,
+  shortMonthName,
   toYearMonth,
   yearFromYearMonth,
 } from '@/utils/year_month';
@@ -31,6 +32,11 @@ describe('year_month utilities', () => {
 
   it('names the full month', () => {
     expect(fullMonthName('2026-10')).toBe('October');
+  });
+
+  it('names the short month at both ends of the year', () => {
+    expect(shortMonthName('2026-01')).toBe('Jan');
+    expect(shortMonthName('2026-12')).toBe('Dec');
   });
 
   it('counts 0 days left on the last day of a 31-day and a 30-day month', () => {

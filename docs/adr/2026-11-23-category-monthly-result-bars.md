@@ -13,9 +13,10 @@
 ## 1. Colour and over, per month
 
 Each bar takes `budgetBandColor(spent, limit)` (`src/modules/budget/utils/budget_summary.ts`)
-against that month's own limit, its steps at 50, 80 and 90% unchanged. A bar reads over by
-`exceedsToCent(spent, limit)` (`src/utils/money.ts`), so 3,000 against 3,000 is not over and
-3,000.01 is. A month whose limit changed keeps the colour of the limit it had.
+against that month's own limit, its steps at 50, 80 and 90% unchanged. A bar reads over by the
+history row's `status === 'over'`, which `computeStatus` (`budget.helpers.ts`) sets through
+`exceedsToCent`, so 3,000 against 3,000 is not over and 3,000.01 is, and a legacy limit of 0 or
+less is never over. A month whose limit changed keeps the colour of the limit it had.
 
 ## 2. The amount over each bar
 

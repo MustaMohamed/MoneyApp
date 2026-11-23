@@ -1,4 +1,5 @@
 const moreCount = (count: number) => `+${count}`;
+const inProgressMark = '*';
 
 export const Strings = {
   loading: 'Loading...',
@@ -586,8 +587,8 @@ export const Strings = {
   budgetDetailUnder: 'under limit',
   budgetDetailMonthlyResult: 'Monthly result',
   budgetDetailCategories: 'Categories',
-  budgetDetailInProgress: '* in progress',
-  budgetDetailInProgressMark: '*',
+  budgetDetailInProgress: `${inProgressMark} in progress`,
+  budgetDetailInProgressMark: inProgressMark,
   budgetDetailLimitLegend: (amount: string) => `limit ${amount}`,
   budgetDetailPlanned: 'Planned',
   budgetDetailPartOf: (part: string | number, whole: string | number) => `${part} of ${whole}`,

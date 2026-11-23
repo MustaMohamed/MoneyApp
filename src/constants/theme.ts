@@ -218,6 +218,7 @@ export const Size = {
   budgetMonthlyColumnGap: ms(10),
   budgetMonthlyBarMinHeight: ms(3),
   budgetMonthlyLimitDash: ms(3),
+  // Raw 1, never ms(): B1's `.lim` 1px dashed line, one dp at every width.
   budgetMonthlyLimitStroke: 1,
   budgetNamedRing: ms(34),
   budgetRingStroke: ms(3),

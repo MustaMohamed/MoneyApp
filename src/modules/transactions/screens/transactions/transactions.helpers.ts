@@ -32,12 +32,11 @@ import {
 import type { TransactionDateGroup } from '@/utils/group_transactions_by_date';
 import { snapToZero, toCents, wholePercentOf } from '@/utils/money';
 import {
-  MONTHS_SHORT,
   currentYearMonth,
   daysLeftInMonth,
   fullMonthName,
-  monthNumberFromYearMonth,
   shiftYearMonth,
+  shortMonthName,
 } from '@/utils/year_month';
 
 import type { TransactionTotalsStatus } from './transactions.state';
@@ -168,10 +167,7 @@ function lastMonthOutCaption(yearMonth: string, previous: PeriodTotals | null): 
     previous === null || (previous.incomeEgp === 0 && snapToZero(previous.expenseEgp) === 0)
       ? Strings.listHeroUnavailable
       : formatHeroAmount(previous.expenseEgp);
-  return Strings.transactionsHeroLastMonthOut(
-    MONTHS_SHORT[monthNumberFromYearMonth(lastMonth) - 1],
-    amount,
-  );
+  return Strings.transactionsHeroLastMonthOut(shortMonthName(lastMonth), amount);
 }
 
 function heroShareCaption({ state, rawExpenseSharePct }: TotalsPresentation): string | undefined {

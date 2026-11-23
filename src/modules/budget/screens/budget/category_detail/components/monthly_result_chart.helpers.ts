@@ -5,12 +5,11 @@ import { Colors, Size } from '@/constants/theme';
 import type { MonthResultVM } from '@/modules/budget/screens/budget/budget.helpers';
 import { budgetBandColor } from '@/modules/budget/utils/budget_summary';
 import { formatAmount } from '@/utils/format_amount';
-import { exceedsToCent } from '@/utils/money';
-import { MONTHS_SHORT, monthNumberFromYearMonth } from '@/utils/year_month';
+import { shortMonthName } from '@/utils/year_month';
 
 export const MONTHLY_RESULT_BAR_COUNT = 6;
 
-export interface MonthlyBarVM {
+interface MonthlyBarVM {
   yearMonth: string;
   monthLabel: string;
   amountLabel: string;
@@ -21,7 +20,7 @@ export interface MonthlyBarVM {
   amountColor: string;
 }
 
-export interface MonthlyResultVM {
+interface MonthlyResultVM {
   bars: MonthlyBarVM[];
   limitOffsetDp: number | undefined;
   legend: string | undefined;
@@ -48,8 +47,8 @@ export function buildMonthlyResult(
 
   const bars = rows.map((r): MonthlyBarVM => {
     const isSelected = r.yearMonth === selectedMonth;
-    const isOver = exceedsToCent(r.spent, r.limit);
-    const month = MONTHS_SHORT[monthNumberFromYearMonth(r.yearMonth) - 1];
+    const isOver = r.status === 'over';
+    const month = shortMonthName(r.yearMonth);
     return {
       yearMonth: r.yearMonth,
       monthLabel:
