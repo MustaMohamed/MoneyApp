@@ -1,4 +1,4 @@
-import { fireEvent, render, waitFor, within } from '@testing-library/react-native';
+import { act, fireEvent, render, waitFor, within } from '@testing-library/react-native';
 import type { ElementType, ReactNode } from 'react';
 import type { PressableProps } from 'react-native';
 
@@ -447,5 +447,51 @@ describe('SetBudgetSheet', () => {
 
     pendingSave.resolve();
     await waitFor(() => expect(useSetBudgetSheetState.getState().saving).toBe(false));
+  });
+
+  it("shows the added toast from the sheet's close callback after a saved add", async () => {
+    mockToast.show.mockClear();
+    const { getByLabelText, getByTestId } = await render(
+      <SetBudgetSheet
+        owner={BUDGET_TAB_SHEET_OWNER}
+        shownGroupByCategoryId={noShownGroups}
+        budgetableCategories={categories}
+      />,
+    );
+
+    await fireEvent.changeText(getByTestId('budget-name-input'), 'Alexandria Trip Food');
+    await fireEvent.changeText(getByTestId('amount-hero-value'), '1500');
+    await fireEvent.press(getByLabelText(Strings.budgetSaveCta));
+    await waitFor(() => expect(mockSetBudget).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(useSetBudgetSheetState.getState().saving).toBe(false));
+    expect(mockToast.show).not.toHaveBeenCalled();
+
+    await act(() => mockOnCloseComplete?.());
+
+    expect(mockToast.show).toHaveBeenCalledTimes(1);
+    expect(mockToast.show).toHaveBeenCalledWith(
+      expect.objectContaining({ label: Strings.budgetAddedToast }),
+    );
+  });
+
+  it('draws the edit-mode Category row with no button role, and a press leaves the picker closed', async () => {
+    useBudgetState.getState().reset();
+    useBudgetState.getState().openEdit('budget-trip-food');
+    const screen = await render(
+      <SetBudgetSheet
+        owner={BUDGET_TAB_SHEET_OWNER}
+        shownGroupByCategoryId={noShownGroups}
+        budgetableCategories={categories}
+        editingRow={existingBudget}
+      />,
+    );
+
+    const row = screen.getByTestId('category-row');
+    expect(row.props.accessibilityRole).toBeUndefined();
+
+    await fireEvent.press(row);
+
+    expect(useSetBudgetSheetState.getState().pickerExpanded).toBe(false);
+    expect(screen.queryByLabelText('select first budget category')).toBeNull();
   });
 });
