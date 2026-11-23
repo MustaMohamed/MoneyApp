@@ -275,7 +275,6 @@ export function useSetBudgetSheet({
       faults,
       nameTaken,
       footerMessage: resolveSetBudgetFooterMessage(faults, errorMessage),
-      selectedCategory,
       selectedCategoryId,
       pickerExpanded,
       groupValue,

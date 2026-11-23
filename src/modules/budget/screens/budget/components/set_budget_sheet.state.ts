@@ -5,7 +5,7 @@ import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 export const BUDGET_TAB_SHEET_OWNER = 'budget-tab';
 
-export type SetBudgetSaveOutcome = 'added' | 'updated';
+type SetBudgetSaveOutcome = 'added' | 'updated';
 
 interface SetBudgetSheetStateShape {
   openOwner: string | undefined;
