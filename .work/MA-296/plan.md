@@ -1,5 +1,5 @@
 # MA-296 — Group fact row and picker on the add and edit budget sheet
-base: 95bec52a · verify: emulator · flags: none · expected diff: ~175 lines
+base: 95bec52a · verify: emulator · flags: none · expected diff: ~274 lines
 
 ## Steps
 ### 1. The Group label and the three picker captions exist as strings
@@ -37,18 +37,25 @@ base: 95bec52a · verify: emulator · flags: none · expected diff: ~175 lines
 - Change: append the four `new` states of § Screens with their frame, force and proof as written there; in `set-budget sheet fields, large font` (`:45`) add `group-row` to the 44 dp list, read at 2.0 after the Gotchas swipe has scrolled the list until `group-row`'s box stops moving; in `set-budget sheet, duplicate name` (`:68`) the 2.0 scroll runs until `group-row`'s box stops moving and the proof reads `group-row`'s bottom at or above `sheet-footer`'s top, in place of the last radio; in the set-budget Gotcha (`:103`) the swipe repeats until `group-row`'s box stops moving; in `set-budget sheet, add on a month-grouped category` (`:74`) the proof reads `group-row` showing Want in place of "the group radio shows Want".
 - Test: `none` · documentation.
 
+### 8. One shared one-choice card draws the Group picker's rows and the commitments Repeats and Ends rows
+- File: `src/components/ui/radio_choice_card.tsx` (new); `src/modules/budget/screens/budget/components/budget_group_picker.tsx`; `src/modules/commitments/screens/commitments/components/commitment_choice_sheet.tsx`, `repeats_sheet.tsx` (`:93-98`), `ends_sheet.tsx` (`:70-75`); `.claude/skills/emulator-verify/features/add_commitment.md` (`:3`); `docs/adr/2026-10-18-transactions-pieces-leave-screen-folders.md` (`:6`, §1)
+- Change: export `RadioChoiceCard<O extends { value: string; label: string }>(props)` with, in order, `options: readonly O[]`, `value: O['value'] | undefined` (`undefined` marks no row), `onValueChange: (value: O['value']) => void`, `testIDPrefix: string`, `renderLabel: (option: O) => ReactNode`, all required and none `null`, then `accessibilityLabelOf?: (option: O) => string`, optional, `undefined` reading `option.label`. Its body is `CommitmentChoiceOptions`'s as built (`commitment_choice_sheet.tsx:92-117`): the find-then-call handler, `ListCard` over `RadioGroup className="gap-0"` with its one-line `gap-0` comment, one `RadioOptionRow` per option with `testID` `${testIDPrefix}-${option.value}` and `separator` off on the last, and `renderLabel(option)` as the row's child. In `commitment_choice_sheet.tsx` delete `CommitmentChoiceOptions` and its props (`:78-119`) with the `ListCard`, `RadioGroup` and `RadioOptionRow` imports, and export `CommitmentChoiceLabel({ label }: { label: string })` drawing today's one `Text` (`:108-113`). `repeats_sheet.tsx` and `ends_sheet.tsx` render `RadioChoiceCard` with today's `options`, `value`, `onValueChange` and `testIDPrefix`, `renderLabel={(option) => <CommitmentChoiceLabel label={option.label} />}` and no `accessibilityLabelOf`. `BudgetGroupPicker` keeps its props, `Sheet` and body `View`; its handler and `ListCard` block (`:28-31`, `:42-74`) become `RadioChoiceCard` with `options={BUDGET_GROUP_OPTIONS}`, `value={value ?? undefined}`, `onValueChange={onSelect}`, `testIDPrefix="budget-group-option"`, `accessibilityLabelOf` returning `Strings.addTxPickerAccessibility(option.label, option.caption)`, and `renderLabel` returning its two-line `View` (`:57-70`) as built. In `add_commitment.md:3` the parenthesis that names `CommitmentChoiceOptions` names `RadioChoiceCard` (`src/components/ui/radio_choice_card.tsx`). In the ADR, `Applies to:` (`:6`) gains `src/components/ui/radio_choice_card.tsx`, and §1 gains, after the MA-282 line (`:64`), one `**Extended 2026-11-23 (#950, MA-296).**` line: `RadioChoiceCard` is the one-choice card the commitments Repeats and Ends sheets and the budget Group picker draw, it replaces `CommitmentChoiceOptions`, and as a new file it takes no §3 `git mv`. The MA-279 line (`:62`) is corrected in place to name `RadioChoiceCard` where it names `CommitmentChoiceOptions`, as MA-289 corrected its `AccountChips` mention to `ChipRow`.
+- Test: `none` · a new `.tsx` test file is forbidden (`.claude/rules/tests.md`), and the card holds no logic outside render. Step 6's `set_budget_sheet.test.tsx` cases press `budget-group-option-want` (`:327`) and `budget-group-option-need` (`:362`) through the card and pass unchanged; the commitments path has no render suite, so the `add_commitment.md` states in § Screens prove it.
+
 ## Screens
 - `budget.md · set-budget sheet, group row` (new, step 7): frame `MixC1AddBudget` and `MixS11EditBudget`. Force: the tab's `Add budget`, Health picked; then the Name field focused and `group-row` tapped; then a custom category's add and an edit. Proof: `group-row` reads `Group`, the category's month group (`Need` on Health) and a chevron inside the fact card's rounded border, `Not grouped` on a custom category with no month group, and the same row on `Edit budget`; at 1.0 at rest whole above `sheet-footer`'s top and at least 44 dp high in `mqa bounds`; after the tap with Name focused the keyboard is down (`dumpsys input_method` `mInputShown=false`) and `budget-group-picker` is open; no `BUDGET GROUP` node in `mqa read`; one shot.
 - `budget.md · group picker` (new, step 7): frame `MixC2GroupPicker`. Force: `group-row` tapped on the add sheet with Health picked, a name and a limit typed. Proof: title `Group`, rows `Need`, `Want`, `Savings` each with its caption inside the card's rounded border, `budget-group-option-need-selected` the one checked; each row at least 44 dp high; a tap on `budget-group-option-want` closes the picker and `group-row` reads `Want` with the name and limit unchanged; reopened, the close button closes it with `group-row` unchanged; one shot open, one after the choice.
 - `budget.md · group picker, large font` (new, step 7): frame `MixC2GroupPicker`. Force: the `Font scale` force (README) at 1.0 and 2.0, reached as `group picker`. Proof: every title, label and caption node whole or ending in a whole `…`; no text box overlaps another by more than 1 dp; each row at least 44 dp high; crops at 2.0 with no glyph cut.
 - `budget.md · group picker, close the sheet does not carry out` (new, step 7): no frame. Force: the **Undone close** force (README) with the picker open over the add sheet; then the picker's close button, Back, or a drag down from its `sheet-header`. Proof: the **Undone close** proof: the picker reads closed at rest with no `budget-group-option-*` node in `mqa read`, the add sheet under it with `group-row`, name and limit as before, `mqa db` counts unchanged; one shot.
 - `budget.md · set-budget sheet fields, large font`: the existing recipe; `group-row` joins `category-row`, `name-row`, the close button and `Save` at 44 dp, read at 2.0 after the Gotchas swipe brings it above `sheet-footer`, and the overlap read covers it.
+- `add_commitment.md`: `Repeats sheet, presets`, `Repeats sheet and row, large font`, `Ends sheet, never`, `Ends sheet and row, large font`; the existing recipes, whose option cards step 8 draws through `RadioChoiceCard`. `Repeats sheet, presets` holds its `main`-build comparison: row pitch, mark position, label offsets and no separator under `Custom`.
 
 ## Non-goals
 - A Not grouped row in the picker, the every-month note and a Done button (ticket Rules).
 - The month-bound group write (MA-287, `budget.repository.ts:351-353`); this ticket only routes the picker's choice into it.
 - Any other part of the sheet (MA-295), groups on the 50/30/20 view (MA-310).
-- Moving `CommitmentChoiceOptions` into `src/components/ui/` or changing `RadioOptionRow`; either touches commitments and transactions screens.
+- Changing `RadioOptionRow`; it touches the transactions and accounts screens.
+- Moving the transactions budget picker's or the replacement account sheet's rows onto `RadioChoiceCard`; neither draws its rows in a card.
 - A migration that would allow a month's group to be stored as none.
 - Disabling the Group row while a save runs; the Category row has no such state today.
 
@@ -57,6 +64,7 @@ base: 95bec52a · verify: emulator · flags: none · expected diff: ~175 lines
 - The 44 dp touch floor on `group-row` and each picker row: steps 5 and 6 — emulator.
 - The keyboard actually going down on device: step 4's spy proves the call, `set-budget sheet, group row` proves the effect.
 - A drag or Back closing the picker: step 5 — `group picker, close the sheet does not carry out`.
+- The commitments Repeats and Ends option rows drawn through the shared card: step 8 — the `add_commitment.md` states in § Screens.
 
 ## Verification
 - Per commit: `npm run format:check && npm run lint && npm run typecheck && npm test -- --ci`
@@ -70,6 +78,9 @@ base: 95bec52a · verify: emulator · flags: none · expected diff: ~175 lines
 - Step 6's `size="lg"` raises the set-budget sheet's top by 15% of the screen; a `budget.md` set-budget recipe that reads a rest position measured at `md` may read differently.
 - not probed: budget.md · group picker, close the sheet does not carry out
 - not probed: budget.md · set-budget sheet fields, large font
+
+## Amendments
+- `2026-11-23 · step 8 · added: one shared one-choice card in src/components/ui/ for the Group picker and the commitments Repeats and Ends sheets, since the ticket's Rule on a built element puts a repeated piece in the shared piece; the Non-goal that kept CommitmentChoiceOptions in commitments is dropped (triage F6)`
 
 ## Self-assessment
 Step 5 is the least sure. The picker is a new composition of `RadioOptionRow` rows with two lines each, where the shipped one-choice pickers draw one line (commitments) or one line plus an amount (transactions budget picker). Whether a `fitContent` sheet holds three wrapped two-line rows at font scale 2.0 without clipping, stacked over a `liftsAboveKeyboard` sheet, is only provable on the emulator. A wrong sizing choice there would send the implementer back to the `scrollable` path that commitments uses for its footer sheets.
