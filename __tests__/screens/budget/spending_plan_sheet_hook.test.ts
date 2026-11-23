@@ -2,6 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react-native';
 
 import { CategoryType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { SpendingPlanValidationError } from '@/modules/budget/repositories/budget.repository';
 import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
 import { useSpendingPlanSheet } from '@/modules/budget/screens/budget/spending_plan_sheet/spending_plan_sheet.hook';
 import { useSpendingPlanSheetState } from '@/modules/budget/screens/budget/spending_plan_sheet/spending_plan_sheet.state';
@@ -18,6 +19,8 @@ let mockSubmitTotalText = '500';
 let mockFormValid = true;
 type MockFieldErrors = Partial<Record<'nameText' | 'totalText', { message?: string }>>;
 let mockInvalidErrors: MockFieldErrors = {};
+// RHF's `formState.errors`, which `handleSubmit` fills before it calls `onInvalid`.
+let mockFormErrors: MockFieldErrors = {};
 let mockSubmitRejection: Error | undefined;
 const mockHandleSubmit =
   (
@@ -27,6 +30,7 @@ const mockHandleSubmit =
   async () => {
     if (mockSubmitRejection) throw mockSubmitRejection;
     if (!mockFormValid) {
+      mockFormErrors = { ...mockInvalidErrors };
       onInvalid?.(mockInvalidErrors);
       return;
     }
@@ -39,6 +43,7 @@ jest.mock('@/components/ui/sheet', () => ({
 jest.mock('@/utils/use_zod_form.hook', () => ({
   useZodForm: () => ({
     control: {},
+    formState: { errors: mockFormErrors },
     handleSubmit: mockHandleSubmit,
     reset: mockResetForm,
     watch: () => mockTotalText,
@@ -64,6 +69,7 @@ beforeEach(() => {
   mockSubmitTotalText = '500';
   mockFormValid = true;
   mockInvalidErrors = {};
+  mockFormErrors = {};
   mockSubmitRejection = undefined;
   useBudgetState.getState().reset();
   useSpendingPlanSheetState.getState().reset();
@@ -171,7 +177,7 @@ describe('useSpendingPlanSheet', () => {
     expect(budgetSheet.result.current.state.categoryPickerOpen).toBe(false);
   });
 
-  it('puts the name message in the footer when RHF refuses the name at Save', async () => {
+  it('marks the name and counts it in the footer when RHF refuses the name at Save', async () => {
     const { result } = await renderHook(() =>
       useSpendingPlanSheet({ owner: 'budget', budgetableCategories: categories }),
     );
@@ -183,10 +189,11 @@ describe('useSpendingPlanSheet', () => {
 
     await act(async () => result.current.save());
 
-    expect(result.current.state.footerLine).toBe(Strings.budgetPlanNameRequired);
+    expect(result.current.state.nameFault).toBe(Strings.budgetPlanNameRequired);
+    expect(result.current.state.footerLine).toBe(Strings.fixFieldsMarkedAbove(1));
   });
 
-  it('puts the total message in the footer over the name one when RHF refuses both', async () => {
+  it('marks both the name and the total and counts two when RHF refuses both', async () => {
     const { result } = await renderHook(() =>
       useSpendingPlanSheet({ owner: 'budget', budgetableCategories: categories }),
     );
@@ -201,7 +208,9 @@ describe('useSpendingPlanSheet', () => {
 
     await act(async () => result.current.save());
 
-    expect(result.current.state.footerLine).toBe(Strings.budgetPlanAmountInvalid);
+    expect(result.current.state.nameFault).toBe(Strings.budgetPlanNameRequired);
+    expect(result.current.state.totalFault).toBe(Strings.budgetPlanAmountInvalid);
+    expect(result.current.state.footerLine).toBe(Strings.fixFieldsMarkedAbove(2));
   });
 
   it('shows no daily line until a total is typed, then reads it at the add-mode defaults', async () => {
@@ -282,9 +291,8 @@ describe('useSpendingPlanSheet', () => {
     expect(result.current.state.allocationErrors.cat_food).toBe(
       Strings.budgetPlanAllocationBelowMin,
     );
-    expect(useSpendingPlanSheetState.getState().submitError).toBe(
-      Strings.budgetPlanAllocationInvalid,
-    );
+    expect(useSpendingPlanSheetState.getState().submitError).toBeUndefined();
+    expect(result.current.state.footerLine).toBe(Strings.fixFieldsMarkedAbove(1));
   });
 
   it('clears an allocation back to unallocated on blank text and saves it as such', async () => {
@@ -357,9 +365,8 @@ describe('useSpendingPlanSheet', () => {
     expect(result.current.state.allocationErrors.cat_food).toBe(
       Strings.budgetPlanAllocationBelowMin,
     );
-    expect(useSpendingPlanSheetState.getState().submitError).toBe(
-      Strings.budgetPlanAllocationInvalid,
-    );
+    expect(useSpendingPlanSheetState.getState().submitError).toBeUndefined();
+    expect(result.current.state.footerLine).toBe(Strings.fixFieldsMarkedAbove(1));
   });
 
   // `String(1e21)` is '1e+21', which `DECIMAL_PATTERN` rejects, so the total cannot be saved back.
@@ -696,7 +703,7 @@ describe('useSpendingPlanSheet', () => {
     );
 
     it.each(otherEdits)(
-      'a Save the 0.005 row refused leaves no line above Save once %s runs',
+      'a Save the 0.005 row refused keeps the row counted above Save once %s runs',
       async (_name, edit) => {
         const setSpendingPlan = jest.fn().mockResolvedValue(undefined);
         useBudgetStore.setState({ setSpendingPlan });
@@ -710,11 +717,11 @@ describe('useSpendingPlanSheet', () => {
         await act(() => result.current.setAllocationText('cat_food', '0.005'));
         await act(async () => result.current.save());
         expect(setSpendingPlan).not.toHaveBeenCalled();
-        expect(result.current.state.footerLine).toBe(Strings.budgetPlanAllocationInvalid);
+        expect(result.current.state.footerLine).toBe(Strings.fixFieldsMarkedAbove(1));
 
         await act(() => edit(result.current));
 
-        expect(result.current.state.footerLine).toBeUndefined();
+        expect(result.current.state.footerLine).toBe(Strings.fixFieldsMarkedAbove(1));
       },
     );
 
@@ -735,9 +742,8 @@ describe('useSpendingPlanSheet', () => {
 
       expect(setSpendingPlan).not.toHaveBeenCalled();
       expect(result.current.state.allocationErrors.cat_food).toBe(Strings.errAmountInvalid);
-      expect(useSpendingPlanSheetState.getState().submitError).toBe(
-        Strings.budgetPlanAllocationInvalid,
-      );
+      expect(useSpendingPlanSheetState.getState().submitError).toBeUndefined();
+      expect(result.current.state.footerLine).toBe(Strings.fixFieldsMarkedAbove(1));
     });
 
     it('a refused keystroke marks nothing: the row keeps the fault Save raised', async () => {
@@ -843,7 +849,7 @@ describe('useSpendingPlanSheet', () => {
     expect(useSpendingPlanSheetState.getState().saving).toBe(false);
   });
 
-  it('replaces a stale save error when the allocation pre-flight blocks the next Save', async () => {
+  it('replaces a stale save error with the fault count when a limit row blocks the next Save', async () => {
     const setSpendingPlan = jest.fn().mockRejectedValue(new Error('disk is on fire'));
     useBudgetStore.setState({ setSpendingPlan });
     const { result } = await renderHook(() =>
@@ -861,12 +867,11 @@ describe('useSpendingPlanSheet', () => {
     await act(async () => result.current.save());
 
     expect(setSpendingPlan).toHaveBeenCalledTimes(1);
-    expect(useSpendingPlanSheetState.getState().submitError).toBe(
-      Strings.budgetPlanAllocationInvalid,
-    );
+    expect(useSpendingPlanSheetState.getState().submitError).toBeUndefined();
+    expect(result.current.state.footerLine).toBe(Strings.fixFieldsMarkedAbove(1));
   });
 
-  it('clears the footer message on an accepted allocation keystroke', async () => {
+  it('clears the footer count on an accepted allocation keystroke that fixes the row', async () => {
     const { result } = await renderHook(() =>
       useSpendingPlanSheet({ owner: 'budget', budgetableCategories: categories }),
     );
@@ -877,18 +882,16 @@ describe('useSpendingPlanSheet', () => {
     await act(() => result.current.setAllocateByCategory(true));
     await act(() => result.current.setAllocationText('cat_food', '0.005'));
     await act(async () => result.current.save());
-    expect(useSpendingPlanSheetState.getState().submitError).toBe(
-      Strings.budgetPlanAllocationInvalid,
-    );
+    expect(result.current.state.footerLine).toBe(Strings.fixFieldsMarkedAbove(1));
 
     await act(() => result.current.setAllocationText('cat_food', '0.05'));
 
     expect(useSpendingPlanSheetStore.getState().allocations.cat_food).toBe('0.05');
-    expect(useSpendingPlanSheetState.getState().submitError).toBeUndefined();
+    expect(result.current.state.footerLine).toBeUndefined();
   });
 
   // The clear sits below the mask guard: a refused keystroke leaves the offending text in place.
-  it('leaves the footer message standing when the allocation keystroke is refused', async () => {
+  it('leaves the footer count standing when the allocation keystroke is refused', async () => {
     const { result } = await renderHook(() =>
       useSpendingPlanSheet({ owner: 'budget', budgetableCategories: categories }),
     );
@@ -899,16 +902,12 @@ describe('useSpendingPlanSheet', () => {
     await act(() => result.current.setAllocateByCategory(true));
     await act(() => result.current.setAllocationText('cat_food', '0.005'));
     await act(async () => result.current.save());
-    expect(useSpendingPlanSheetState.getState().submitError).toBe(
-      Strings.budgetPlanAllocationInvalid,
-    );
+    expect(result.current.state.footerLine).toBe(Strings.fixFieldsMarkedAbove(1));
 
     await act(() => result.current.setAllocationText('cat_food', '0.0.05'));
 
     expect(useSpendingPlanSheetStore.getState().allocations.cat_food).toBe('0.005');
-    expect(useSpendingPlanSheetState.getState().submitError).toBe(
-      Strings.budgetPlanAllocationInvalid,
-    );
+    expect(result.current.state.footerLine).toBe(Strings.fixFieldsMarkedAbove(1));
   });
 
   // NULL in, NULL out: a blank allocation must not prefill '0' and become a deliberate zero.
@@ -1176,23 +1175,27 @@ describe('useSpendingPlanSheet', () => {
       expect(result.current.state.footerLine).toBe(Strings.budgetPlanLimitsOver('500'));
     });
 
-    const nextEdits: Array<[string, (hook: ReturnType<typeof useSpendingPlanSheet>) => void]> = [
-      ['setAllocationText', (hook) => hook.setAllocationText('cat_food', '5')],
-      ['toggleCategory', (hook) => hook.toggleCategory(health)],
+    const nextEdits: Array<
+      [string, (hook: ReturnType<typeof useSpendingPlanSheet>) => void, number]
+    > = [
+      ['setAllocationText fixing the row', (hook) => hook.setAllocationText('cat_food', '5'), 0],
+      ['toggleCategory', (hook) => hook.toggleCategory(health), 1],
     ];
 
     it.each(nextEdits)(
-      'shows the 0.005 row refusal above Save until %s runs',
-      async (_name, edit) => {
+      'counts the 0.005 row above Save, then after %s counts its faults',
+      async (_name, edit, faultsAfter) => {
         const { result, setSpendingPlan } = await mountLimits();
         await act(() => result.current.setAllocationText('cat_food', '0.005'));
         await act(async () => result.current.save());
         expect(setSpendingPlan).not.toHaveBeenCalled();
-        expect(result.current.state.footerLine).toBe(Strings.budgetPlanAllocationInvalid);
+        expect(result.current.state.footerLine).toBe(Strings.fixFieldsMarkedAbove(1));
 
         await act(() => edit(result.current));
 
-        expect(result.current.state.footerLine).toBeUndefined();
+        expect(result.current.state.footerLine).toBe(
+          faultsAfter === 0 ? undefined : Strings.fixFieldsMarkedAbove(faultsAfter),
+        );
       },
     );
 
@@ -1226,6 +1229,116 @@ describe('useSpendingPlanSheet', () => {
       ];
       expect(input.categories.length).toBeGreaterThan(0);
       for (const entry of input.categories) expect(entry.allocatedAmount).toBeUndefined();
+    });
+  });
+
+  describe('MA-317 field faults', () => {
+    const transport: Category = { ...category, id: 'cat_transport', name: 'Transport' };
+    // Hoisted: `budgetableCategories` is in the seeding effect's deps, so a new array re-seeds.
+    const twoCategories = [category, transport];
+
+    async function mountFaults() {
+      const setSpendingPlan = jest.fn().mockResolvedValue(undefined);
+      useBudgetStore.setState({ setSpendingPlan });
+      const hook = await renderHook(() =>
+        useSpendingPlanSheet({ owner: 'budget', budgetableCategories: twoCategories }),
+      );
+      await waitFor(() =>
+        expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
+      );
+      return { ...hook, setSpendingPlan };
+    }
+
+    it('refuses an end before the start on the Ends row, and an end past the start clears it', async () => {
+      const { result, setSpendingPlan } = await mountFaults();
+      await act(() => result.current.setStartDate('2026-07-10'));
+      await act(() => result.current.setEndDate('2026-07-09'));
+
+      await act(async () => result.current.save());
+
+      expect(setSpendingPlan).not.toHaveBeenCalled();
+      expect(result.current.state.endDateFault).toBe(Strings.budgetPlanDateInvalid);
+      expect(result.current.state.footerLine).toBe(Strings.fixFieldsMarkedAbove(1));
+
+      await act(() => result.current.setEndDate('2026-07-12'));
+
+      expect(result.current.state.endDateFault).toBeUndefined();
+      expect(result.current.state.footerLine).toBeUndefined();
+    });
+
+    it('refuses with the only category toggled off on the Categories row, and toggling it back clears it', async () => {
+      const { result, setSpendingPlan } = await mountFaults();
+      await act(() => result.current.toggleCategory(category));
+      expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual([]);
+
+      await act(async () => result.current.save());
+
+      expect(setSpendingPlan).not.toHaveBeenCalled();
+      expect(result.current.state.categoriesFault).toBe(Strings.budgetPlanCategoryRequired);
+      expect(result.current.state.footerLine).toBe(Strings.fixFieldsMarkedAbove(1));
+
+      await act(() => result.current.toggleCategory(category));
+
+      expect(result.current.state.categoriesFault).toBeUndefined();
+      expect(result.current.state.footerLine).toBeUndefined();
+    });
+
+    it('refuses a 0.005 limit on its row and counts one field', async () => {
+      const { result, setSpendingPlan } = await mountFaults();
+      await act(() => result.current.setAllocateByCategory(true));
+      await act(() => result.current.setAllocationText('cat_food', '0.005'));
+
+      await act(async () => result.current.save());
+
+      expect(setSpendingPlan).not.toHaveBeenCalled();
+      expect(result.current.state.allocationErrors.cat_food).toBe(
+        Strings.budgetPlanAllocationBelowMin,
+      );
+      expect(result.current.state.footerLine).toBe(Strings.fixFieldsMarkedAbove(1));
+    });
+
+    it('shows no Ends fault for an end before the start before any Save', async () => {
+      const { result } = await mountFaults();
+      await act(() => result.current.setStartDate('2026-07-10'));
+      await act(() => result.current.setEndDate('2026-07-09'));
+
+      expect(result.current.state).toHaveProperty('endDateFault', undefined);
+      expect(result.current.state.footerLine).toBeUndefined();
+    });
+
+    it('counts a refused name over the limits over line, and reads the over line once the name clears', async () => {
+      mockTotalText = '5000';
+      mockSubmitTotalText = '5000';
+      const { result, rerender } = await mountFaults();
+      await act(() => result.current.setAllocateByCategory(true));
+      await act(() => result.current.setAllocationText('cat_food', '6000'));
+      expect(result.current.state.footerLine).toBe(Strings.budgetPlanLimitsOver('1,000'));
+      mockFormValid = false;
+      mockInvalidErrors = { nameText: { message: Strings.budgetPlanNameRequired } };
+
+      await act(async () => result.current.save());
+
+      expect(result.current.state.footerLine).toBe(Strings.fixFieldsMarkedAbove(1));
+
+      mockFormErrors = {};
+      await rerender(undefined);
+
+      expect(result.current.state.nameFault).toBeUndefined();
+      expect(result.current.state.footerLine).toBe(Strings.budgetPlanLimitsOver('1,000'));
+    });
+
+    it('puts the overlap refusal in the footer, marks no field and keeps the sheet open', async () => {
+      const { result } = await mountFaults();
+      const overlap = Strings.budgetPlanOverlapError('Food', 'Trip');
+      const setSpendingPlan = jest.fn().mockRejectedValue(new SpendingPlanValidationError(overlap));
+      useBudgetStore.setState({ setSpendingPlan });
+
+      await act(async () => result.current.save());
+
+      expect(setSpendingPlan).toHaveBeenCalledTimes(1);
+      expect(result.current.state.footerLine).toBe(overlap);
+      expect(result.current.state.isOpen).toBe(true);
+      expect(result.current.state).toHaveProperty('categoriesFault', undefined);
     });
   });
 });
