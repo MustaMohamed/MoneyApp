@@ -768,7 +768,6 @@ export const Strings = {
     "Savings moved as transfers won't show as spend — the allocation still reflects your plan.",
   budget5030AllocatedLabel: 'Allocated',
   budget5030TargetLabel: 'Target',
-  budget5030GroupPickerLabel: 'BUDGET GROUP',
   budget5030GroupNeed: 'Need',
   budget5030GroupWant: 'Want',
   budget5030GroupSavings: 'Savings',
