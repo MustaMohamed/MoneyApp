@@ -111,6 +111,7 @@ export function SpendingPlanFactCard({
           testID="spending-plan-starts-row"
           pickerTitle={Strings.budgetPlanStartDate}
           capsAtToday={false}
+          wrapsValue
         />
       </FormFactCell>
       <FormFactCell>
@@ -123,6 +124,7 @@ export function SpendingPlanFactCard({
           testID="spending-plan-ends-row"
           pickerTitle={Strings.budgetPlanEndDate}
           capsAtToday={false}
+          wrapsValue
         />
       </FormFactCell>
       <FormFactCell divider={false}>

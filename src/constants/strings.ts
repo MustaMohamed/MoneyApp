@@ -1,3 +1,5 @@
+const moreCount = (count: number) => `+${count}`;
+
 export const Strings = {
   loading: 'Loading...',
   logoMarkA11y: 'MoneyApp logo',
@@ -589,9 +591,9 @@ export const Strings = {
   budgetPlanEndDate: 'Ends',
   budgetPlanCategories: 'Categories',
   budgetPlanPickCategories: 'Pick categories',
-  budgetPlanMoreCategoriesCount: (count: number) => `+${count}`,
+  budgetPlanMoreCategoriesCount: moreCount,
   budgetPlanCategoriesValue: (names: readonly string[], more: number) =>
-    more > 0 ? `${names.join(', ')} +${more}` : names.join(', '),
+    more > 0 ? `${names.join(', ')} ${moreCount(more)}` : names.join(', '),
   budgetPlanDailyLine: (days: number, amount: string) =>
     `${days} ${days === 1 ? 'day' : 'days'}, ${amount} EGP a day.`,
   budgetPlanAllocateByCategory: 'Allocate by category',

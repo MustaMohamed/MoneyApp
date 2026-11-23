@@ -41,7 +41,7 @@ export function SpendingPlanSheet(props: SpendingPlanSheetProps) {
             label={Strings.budgetPlanSave}
             isLoading={state.saving}
             isDisabled={state.saving}
-            onPress={actions.save}
+            onPress={() => void actions.save()}
           />
         }
       >

@@ -256,13 +256,13 @@ export function useSpendingPlanSheet({
   );
 
   // Any rejection the submit rethrows still reaches the footer and frees Save.
-  const save = () => {
-    submit().catch(() => {
+  const save = () =>
+    submit().catch((error: unknown) => {
+      console.error('[spendingPlanSheet] save failed:', error);
       const failed = useSpendingPlanSheetState.getState();
       failed.setSubmitError(Strings.budgetPlanSaveError);
       failed.setSaving(false);
     });
-  };
 
   const { allocated, buffer, isOver, hasCents } = allocationHelper;
   const fmt = (value: number) => formatLimitsFigure(value, hasCents);
@@ -315,7 +315,6 @@ export function useSpendingPlanSheet({
       budgetableCategories,
       selectedCategoryIds,
     },
-    submit,
     save,
     onFocus,
     onBlur,

@@ -88,7 +88,7 @@ describe('useSpendingPlanSheet', () => {
     await waitFor(() =>
       expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
     );
-    await act(async () => result.current.submit());
+    await act(async () => result.current.save());
 
     expect(setSpendingPlan).toHaveBeenCalledTimes(1);
     expect(onSaved).toHaveBeenCalledTimes(1);
@@ -142,15 +142,16 @@ describe('useSpendingPlanSheet', () => {
     const twoCategories = [category, transport];
     useBudgetState.getState().closePlan();
 
-    const budgetSheet = await renderHook(() =>
-      useSpendingPlanSheet({ owner: 'budget', budgetableCategories: twoCategories }),
-    );
+    // Plan detail renders first, so a write from the closed budget sheet would land last.
     const detailSheet = await renderHook(() =>
       useSpendingPlanSheet({
         owner: 'planDetail',
         budgetableCategories: twoCategories,
         editingPlan,
       }),
+    );
+    const budgetSheet = await renderHook(() =>
+      useSpendingPlanSheet({ owner: 'budget', budgetableCategories: twoCategories }),
     );
 
     await act(() => useBudgetState.getState().openEditPlan('planDetail', 'plan-alex'));
@@ -180,7 +181,7 @@ describe('useSpendingPlanSheet', () => {
     mockFormValid = false;
     mockInvalidErrors = { nameText: { message: Strings.budgetPlanNameRequired } };
 
-    await act(async () => result.current.submit());
+    await act(async () => result.current.save());
 
     expect(result.current.state.footerLine).toBe(Strings.budgetPlanNameRequired);
   });
@@ -198,7 +199,7 @@ describe('useSpendingPlanSheet', () => {
       totalText: { message: Strings.budgetPlanAmountInvalid },
     };
 
-    await act(async () => result.current.submit());
+    await act(async () => result.current.save());
 
     expect(result.current.state.footerLine).toBe(Strings.budgetPlanAmountInvalid);
   });
@@ -275,7 +276,7 @@ describe('useSpendingPlanSheet', () => {
     // Read before `submit()`: a successful save closes the sheet and resets the draft store.
     expect(useSpendingPlanSheetStore.getState().allocations.cat_food).toBe('0.005');
 
-    await act(async () => result.current.submit());
+    await act(async () => result.current.save());
 
     expect(setSpendingPlan).not.toHaveBeenCalled();
     expect(result.current.state.allocationErrors.cat_food).toBe(
@@ -303,7 +304,7 @@ describe('useSpendingPlanSheet', () => {
     await act(() => result.current.setAllocationText('cat_food', ''));
     expect(useSpendingPlanSheetStore.getState().allocations.cat_food).toBe('');
 
-    await act(async () => result.current.submit());
+    await act(async () => result.current.save());
 
     expect(setSpendingPlan).toHaveBeenCalledTimes(1);
     const [input] = setSpendingPlan.mock.calls[0] as [
@@ -350,7 +351,7 @@ describe('useSpendingPlanSheet', () => {
     );
     expect(useSpendingPlanSheetStore.getState().allocateByCategory).toBe(true);
 
-    await act(async () => result.current.submit());
+    await act(async () => result.current.save());
 
     expect(setSpendingPlan).not.toHaveBeenCalled();
     expect(result.current.state.allocationErrors.cat_food).toBe(
@@ -443,7 +444,7 @@ describe('useSpendingPlanSheet', () => {
     expect(useSpendingPlanSheetStore.getState().allocations.cat_food).toBe('1.');
     expect(result.current.state.allocationErrors.cat_food).toBeUndefined();
 
-    await act(async () => result.current.submit());
+    await act(async () => result.current.save());
 
     expect(setSpendingPlan).not.toHaveBeenCalled();
     expect(result.current.state.allocationErrors.cat_food).toBe(Strings.errAmountInvalid);
@@ -464,7 +465,7 @@ describe('useSpendingPlanSheet', () => {
     expect(result.current.state.allocationErrors.cat_food).toBeUndefined();
 
     mockFormValid = false;
-    await act(async () => result.current.submit());
+    await act(async () => result.current.save());
 
     expect(setSpendingPlan).not.toHaveBeenCalled();
     expect(result.current.state.allocationErrors.cat_food).toBe(Strings.errAmountInvalid);
@@ -576,7 +577,7 @@ describe('useSpendingPlanSheet', () => {
       expect(result.current.state.allocationErrors.cat_food).toBeUndefined();
     }
 
-    await act(async () => result.current.submit());
+    await act(async () => result.current.save());
 
     expect(setSpendingPlan).not.toHaveBeenCalled();
     expect(result.current.state.allocationErrors.cat_food).toBe(Strings.errAmountInvalid);
@@ -629,7 +630,7 @@ describe('useSpendingPlanSheet', () => {
       await act(() => result.current.setAllocateByCategory(true));
       await act(() => result.current.setAllocationText('cat_food', '1.'));
       await act(() => result.current.setAllocationText('cat_transport', transportText));
-      await act(async () => result.current.submit());
+      await act(async () => result.current.save());
       expect(setSpendingPlan).not.toHaveBeenCalled();
       expect(result.current.state.allocationErrors.cat_food).toBe(Strings.errAmountInvalid);
       return { result, setSpendingPlan };
@@ -707,7 +708,7 @@ describe('useSpendingPlanSheet', () => {
         );
         await act(() => result.current.setAllocateByCategory(true));
         await act(() => result.current.setAllocationText('cat_food', '0.005'));
-        await act(async () => result.current.submit());
+        await act(async () => result.current.save());
         expect(setSpendingPlan).not.toHaveBeenCalled();
         expect(result.current.state.footerLine).toBe(Strings.budgetPlanAllocationInvalid);
 
@@ -730,7 +731,7 @@ describe('useSpendingPlanSheet', () => {
       const { result, setSpendingPlan } = await mountRefused();
       await act(() => result.current.setAllocationText('cat_food', '48.'));
 
-      await act(async () => result.current.submit());
+      await act(async () => result.current.save());
 
       expect(setSpendingPlan).not.toHaveBeenCalled();
       expect(result.current.state.allocationErrors.cat_food).toBe(Strings.errAmountInvalid);
@@ -760,7 +761,7 @@ describe('useSpendingPlanSheet', () => {
       await act(() => result.current.setAllocateByCategory(true));
       await act(() => result.current.setAllocationText('cat_food', text));
 
-      await act(async () => result.current.submit());
+      await act(async () => result.current.save());
 
       expect(setSpendingPlan).toHaveBeenCalledTimes(1);
       const [input] = setSpendingPlan.mock.calls[0] as [
@@ -785,7 +786,7 @@ describe('useSpendingPlanSheet', () => {
     await act(() => result.current.setAllocationText('cat_food', '40'));
     await act(() => result.current.setAllocationText('cat_transport', '0.005'));
 
-    await act(async () => result.current.submit());
+    await act(async () => result.current.save());
 
     // The call count lives on the spy, which no reset touches.
     expect(setSpendingPlan).toHaveBeenCalledTimes(1);
@@ -802,7 +803,7 @@ describe('useSpendingPlanSheet', () => {
       expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
     );
 
-    await act(async () => result.current.submit());
+    await act(async () => result.current.save());
 
     expect(setSpendingPlan).toHaveBeenCalledTimes(1);
     const [input] = setSpendingPlan.mock.calls[0] as [{ totalAmount: number }];
@@ -820,7 +821,7 @@ describe('useSpendingPlanSheet', () => {
       expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
     );
 
-    await act(async () => result.current.submit());
+    await act(async () => result.current.save());
 
     expect(setSpendingPlan).not.toHaveBeenCalled();
     expect(useSpendingPlanSheetState.getState().submitError).toBe(Strings.budgetPlanSaveError);
@@ -836,7 +837,7 @@ describe('useSpendingPlanSheet', () => {
       expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
     );
 
-    await act(async () => result.current.submit());
+    await act(async () => result.current.save());
 
     expect(useSpendingPlanSheetState.getState().submitError).toBe(Strings.budgetPlanSaveError);
     expect(useSpendingPlanSheetState.getState().saving).toBe(false);
@@ -852,12 +853,12 @@ describe('useSpendingPlanSheet', () => {
       expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
     );
 
-    await act(async () => result.current.submit());
+    await act(async () => result.current.save());
     expect(useSpendingPlanSheetState.getState().submitError).toBe(Strings.budgetPlanSaveError);
 
     await act(() => result.current.setAllocateByCategory(true));
     await act(() => result.current.setAllocationText('cat_food', '0.005'));
-    await act(async () => result.current.submit());
+    await act(async () => result.current.save());
 
     expect(setSpendingPlan).toHaveBeenCalledTimes(1);
     expect(useSpendingPlanSheetState.getState().submitError).toBe(
@@ -875,7 +876,7 @@ describe('useSpendingPlanSheet', () => {
 
     await act(() => result.current.setAllocateByCategory(true));
     await act(() => result.current.setAllocationText('cat_food', '0.005'));
-    await act(async () => result.current.submit());
+    await act(async () => result.current.save());
     expect(useSpendingPlanSheetState.getState().submitError).toBe(
       Strings.budgetPlanAllocationInvalid,
     );
@@ -897,7 +898,7 @@ describe('useSpendingPlanSheet', () => {
 
     await act(() => result.current.setAllocateByCategory(true));
     await act(() => result.current.setAllocationText('cat_food', '0.005'));
-    await act(async () => result.current.submit());
+    await act(async () => result.current.save());
     expect(useSpendingPlanSheetState.getState().submitError).toBe(
       Strings.budgetPlanAllocationInvalid,
     );
@@ -952,7 +953,7 @@ describe('useSpendingPlanSheet', () => {
     // Read before `submit()`: a successful save closes the sheet and resets the draft store.
     expect(useSpendingPlanSheetStore.getState().allocations.cat_transport ?? '').toBe('');
 
-    await act(async () => result.current.submit());
+    await act(async () => result.current.save());
 
     expect(setSpendingPlan).toHaveBeenCalledTimes(1);
     const [input] = setSpendingPlan.mock.calls[0] as [
@@ -1168,7 +1169,7 @@ describe('useSpendingPlanSheet', () => {
       await act(() => result.current.setAllocationText('cat_food', '2000'));
       await act(() => result.current.setAllocationText('cat_transport', '3500'));
 
-      await act(async () => result.current.submit());
+      await act(async () => result.current.save());
 
       expect(setSpendingPlan).not.toHaveBeenCalled();
       expect(useSpendingPlanSheetState.getState().submitError).toBeUndefined();
@@ -1185,7 +1186,7 @@ describe('useSpendingPlanSheet', () => {
       async (_name, edit) => {
         const { result, setSpendingPlan } = await mountLimits();
         await act(() => result.current.setAllocationText('cat_food', '0.005'));
-        await act(async () => result.current.submit());
+        await act(async () => result.current.save());
         expect(setSpendingPlan).not.toHaveBeenCalled();
         expect(result.current.state.footerLine).toBe(Strings.budgetPlanAllocationInvalid);
 
@@ -1217,7 +1218,7 @@ describe('useSpendingPlanSheet', () => {
       expect(result.current.state.allocationIsOver).toBe(false);
       expect(result.current.state.footerLine).toBeUndefined();
 
-      await act(async () => result.current.submit());
+      await act(async () => result.current.save());
 
       expect(setSpendingPlan).toHaveBeenCalledTimes(1);
       const [input] = setSpendingPlan.mock.calls[0] as [
