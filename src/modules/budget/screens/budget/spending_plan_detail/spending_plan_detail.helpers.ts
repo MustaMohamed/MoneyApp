@@ -10,7 +10,7 @@ export type SpendingPlanDetailViewState =
   | 'refreshErrorWithData'
   | 'ready';
 
-export interface SpendingPlanDetailViewStateInput {
+interface SpendingPlanDetailViewStateInput {
   /** The data entry for the route's id holds a plan. */
   hasPlan: boolean;
   /** The UI entry's load belongs to the plan now on the route. */

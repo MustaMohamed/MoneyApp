@@ -22,7 +22,7 @@ import { useSpendingPlanDetail } from '@/modules/budget/screens/budget/spending_
 import { SpendingPlanSheet } from '@/modules/budget/screens/budget/spending_plan_sheet';
 
 export default function SpendingPlanDetailScreen() {
-  const { state, goBack, editPlan, retry } = useSpendingPlanDetail();
+  const { state, goBack, editPlan, retry, reload } = useSpendingPlanDetail();
   const plan = state.plan;
 
   return (
@@ -106,7 +106,7 @@ export default function SpendingPlanDetailScreen() {
             budgetableCategories={state.budgetableCategories}
             editingPlan={plan}
             owner="planDetail"
-            onSaved={retry}
+            onSaved={reload}
           />
         </>
       ) : null}

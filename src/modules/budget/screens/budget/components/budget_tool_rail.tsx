@@ -3,8 +3,10 @@ import { PressableFeedback, Typography } from 'heroui-native';
 import { View } from 'react-native';
 
 import { Strings } from '@/constants/strings';
-import { Colors } from '@/constants/theme';
+import { Colors, Size, touchFloorHitSlop } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
+
+const TOOL_BUTTON_HIT_SLOP = touchFloorHitSlop(Size.budgetToolTrack);
 
 type ToolIcon = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -34,6 +36,7 @@ function ToolButton(props: ToolButtonProps) {
       accessibilityLabel={props.accessibilityLabel}
       accessibilityState={{ disabled: props.isDisabled }}
       isDisabled={props.isDisabled}
+      hitSlop={TOOL_BUTTON_HIT_SLOP}
       onPress={() => {
         if (!props.isDisabled) props.onPress();
       }}
