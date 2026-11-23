@@ -249,8 +249,8 @@ describe('useSpendingPlanSheet', () => {
     );
 
     await act(async () => {
-      result.current.save();
-      result.current.save();
+      void result.current.save();
+      void result.current.save();
     });
 
     expect(setSpendingPlan).toHaveBeenCalledTimes(1);
