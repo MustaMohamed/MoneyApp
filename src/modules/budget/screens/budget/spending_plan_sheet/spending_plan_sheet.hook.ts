@@ -1,5 +1,5 @@
-import type { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 import { useEffect, useMemo } from 'react';
+import type { FieldErrors } from 'react-hook-form';
 import { useShallow } from 'zustand/react/shallow';
 
 import { useBottomSheetAwareHandlers } from '@/components/ui/sheet';
@@ -8,15 +8,17 @@ import {
   SpendingPlanValidationError,
   type SetSpendingPlanInput,
 } from '@/modules/budget/repositories/budget.repository';
-import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
+import {
+  type SpendingPlanSheetOwner,
+  useBudgetState,
+} from '@/modules/budget/screens/budget/budget.state';
 import {
   formatLimitsFigure,
+  formatPlanCategoriesValue,
+  resolvePlanDailyLine,
   validateAllocationText,
 } from '@/modules/budget/screens/budget/spending_plan_sheet/spending_plan_sheet.helpers';
-import {
-  type SpendingPlanDatePickerTarget,
-  useSpendingPlanSheetState,
-} from '@/modules/budget/screens/budget/spending_plan_sheet/spending_plan_sheet.state';
+import { useSpendingPlanSheetState } from '@/modules/budget/screens/budget/spending_plan_sheet/spending_plan_sheet.state';
 import { useSpendingPlanSheetStore } from '@/modules/budget/screens/budget/spending_plan_sheet/spending_plan_sheet.store';
 import {
   computeAllocationHelper,
@@ -25,7 +27,6 @@ import {
 import type { SpendingPlanRowVM } from '@/modules/budget/screens/budget/spending_plans.types';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import type { Category } from '@/modules/categories/entities/category.entity';
-import { toLocalDateString } from '@/utils/format_date';
 import {
   formatStoredMoneyText,
   maskMoneyFieldText,
@@ -43,21 +44,25 @@ import { useZodForm } from '@/utils/use_zod_form.hook';
 export interface SpendingPlanSheetProps {
   budgetableCategories: Category[];
   editingPlan?: SpendingPlanRowVM;
+  owner: SpendingPlanSheetOwner;
   onSaved?: () => Promise<void> | void;
 }
 
 export function useSpendingPlanSheet({
   budgetableCategories,
   editingPlan,
+  owner,
   onSaved,
 }: SpendingPlanSheetProps) {
-  const { planSheetVisible, planSheetMode, selectedMonth } = useBudgetState(
+  const { planSheetVisible, planSheetMode, planSheetOwner, selectedMonth } = useBudgetState(
     useShallow((state) => ({
       planSheetVisible: state.planSheetVisible,
       planSheetMode: state.planSheetMode,
+      planSheetOwner: state.planSheetOwner,
       selectedMonth: state.selectedMonth,
     })),
   );
+  const isOpen = planSheetVisible && planSheetOwner === owner;
   const { startDate, endDate, selectedCategoryIds, allocations, allocateByCategory } =
     useSpendingPlanSheetStore(
       useShallow((state) => ({
@@ -70,7 +75,6 @@ export function useSpendingPlanSheet({
     );
   const {
     pickerExpanded,
-    datePickerTarget,
     submitError,
     saving,
     allocationSubmitAttempted,
@@ -79,7 +83,6 @@ export function useSpendingPlanSheet({
   } = useSpendingPlanSheetState(
     useShallow((state) => ({
       pickerExpanded: state.pickerExpanded,
-      datePickerTarget: state.datePickerTarget,
       submitError: state.submitError,
       saving: state.saving,
       allocationSubmitAttempted: state.allocationSubmitAttempted,
@@ -141,6 +144,8 @@ export function useSpendingPlanSheet({
       resetState();
       return;
     }
+    // Both mounts share the draft, so the closed owner's sheet must not write it.
+    if (!isOpen) return;
     if (planSheetMode === 'edit' && editingPlan) {
       // Not raw `String()`: a total of 1e21 prefills as '1e+21', which `DECIMAL_PATTERN` rejects.
       resetForm({
@@ -169,6 +174,7 @@ export function useSpendingPlanSheet({
   }, [
     budgetableCategories,
     editingPlan,
+    isOpen,
     planSheetMode,
     planSheetVisible,
     resetForm,
@@ -240,16 +246,24 @@ export function useSpendingPlanSheet({
         state.setSaving(false);
       }
     },
-    () => {
+    (errors: FieldErrors<SpendingPlanFormValues>) => {
       // Also set here: a Save blocked by the plan total never reaches the valid callback.
-      useSpendingPlanSheetState.getState().setAllocationSubmitAttempted(true);
+      const refused = useSpendingPlanSheetState.getState();
+      refused.setAllocationSubmitAttempted(true);
+      // The hero sits above Name, so the total's message wins until MA-317 moves both onto their fields.
+      refused.setSubmitError(errors.totalText?.message ?? errors.nameText?.message);
     },
   );
 
-  const pickerDate =
-    datePickerTarget === 'end'
-      ? endDate || `${selectedMonth}-01`
-      : startDate || `${selectedMonth}-01`;
+  // Any rejection the submit rethrows still reaches the footer and frees Save.
+  const save = () =>
+    submit().catch((error: unknown) => {
+      console.error('[spendingPlanSheet] save failed:', error);
+      const failed = useSpendingPlanSheetState.getState();
+      failed.setSubmitError(Strings.budgetPlanSaveError);
+      failed.setSaving(false);
+    });
+
   const { allocated, buffer, isOver, hasCents } = allocationHelper;
   const fmt = (value: number) => formatLimitsFigure(value, hasCents);
   // The two clauses below are one condition; narrowing either does not narrow the other.
@@ -277,13 +291,12 @@ export function useSpendingPlanSheet({
 
   return {
     state: {
-      isOpen: planSheetVisible,
+      isOpen,
       title: planSheetMode === 'edit' ? Strings.budgetPlanEditTitle : Strings.budgetPlanSetTitle,
       control,
-      startDate,
-      endDate,
-      datePickerTarget,
-      datePickerValue: new Date(`${pickerDate}T12:00:00`),
+      // The draft resets both to '' on close, and `DateRow` formats its value unguarded.
+      startDate: startDate || `${selectedMonth}-01`,
+      endDate: endDate || `${selectedMonth}-01`,
       selectedCategories,
       allocateByCategory,
       allocations,
@@ -293,12 +306,16 @@ export function useSpendingPlanSheet({
       totalCarriesOverRing,
       overRingedCategoryId,
       footerLine: submitError ?? overLine,
+      dailyLine: resolvePlanDailyLine(totalAmount, startDate, endDate),
+      categoriesValue: formatPlanCategoriesValue(
+        selectedCategories.map((category) => category.name),
+      ),
       saving,
-      categoryPickerOpen: planSheetVisible && pickerExpanded,
+      categoryPickerOpen: isOpen && pickerExpanded,
       budgetableCategories,
       selectedCategoryIds,
     },
-    submit,
+    save,
     onFocus,
     onBlur,
     closeSheet: () => useBudgetState.getState().closePlan(),
@@ -333,20 +350,13 @@ export function useSpendingPlanSheet({
       endEdit();
       useSpendingPlanSheetState.getState().setLastEditedAmountField({ kind: 'total' });
     },
-    openDatePicker: (target: SpendingPlanDatePickerTarget) =>
-      useSpendingPlanSheetState.getState().openDatePicker(target),
-    // datetimepicker 9 split `onChange` in two; both legs must close or cancel leaves it mounted.
-    selectDate: (
-      target: SpendingPlanDatePickerTarget,
-      _event: DateTimePickerChangeEvent,
-      date: Date,
-    ) => {
-      const next = toLocalDateString(date);
+    setStartDate: (next: string) => {
       endEdit();
-      if (target === 'start') useSpendingPlanSheetStore.getState().setStartDate(next);
-      if (target === 'end') useSpendingPlanSheetStore.getState().setEndDate(next);
-      useSpendingPlanSheetState.getState().closeDatePicker();
+      useSpendingPlanSheetStore.getState().setStartDate(next);
     },
-    dismissDatePicker: () => useSpendingPlanSheetState.getState().closeDatePicker(),
+    setEndDate: (next: string) => {
+      endEdit();
+      useSpendingPlanSheetStore.getState().setEndDate(next);
+    },
   };
 }

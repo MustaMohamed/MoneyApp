@@ -114,6 +114,7 @@ export default function SpendingPlanDetailScreen() {
           <SpendingPlanSheet
             budgetableCategories={state.budgetableCategories}
             editingPlan={plan}
+            owner="planDetail"
             onSaved={retry}
           />
         </>

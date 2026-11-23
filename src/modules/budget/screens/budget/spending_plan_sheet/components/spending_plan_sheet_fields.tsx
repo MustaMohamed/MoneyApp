@@ -1,12 +1,17 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { useId } from 'react';
 import { Controller, type Control, type UseFormReturn } from 'react-hook-form';
-import type { BlurEvent, FocusEvent, KeyboardTypeOptions } from 'react-native';
-import { useWindowDimensions } from 'react-native';
 
-import { Input } from '@/components/ui/input';
-import { Text } from '@/components/ui/text';
+import { AmountHero } from '@/components/ui/amount_hero';
+import { DateRow } from '@/components/ui/date_row';
+import { FormFactCell } from '@/components/ui/form_fact_cell';
+import { FormPickerRow } from '@/components/ui/form_picker_row';
+import { ListCard } from '@/components/ui/list_card';
+import { NoteFactRow } from '@/components/ui/note_fact_row';
+import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { resolveSpendingPlanFieldGeometry } from '@/modules/budget/screens/budget/spending_plan_sheet/spending_plan_sheet.helpers';
-import { maskFieldText } from '@/utils/money_text';
+import { Size } from '@/constants/theme';
+import { CoreTokens } from '@/constants/theme_tokens';
 import {
   PLAN_TOTAL_REFUSES_ZERO,
   type SpendingPlanFormValues,
@@ -15,118 +20,129 @@ import { holdStillTypingDecimal } from '@/utils/use_zod_form.hook';
 
 type SpendingPlanHoldForm = Pick<UseFormReturn<SpendingPlanFormValues>, 'setValue' | 'clearErrors'>;
 
-interface SpendingPlanFieldProps {
+interface SpendingPlanTotalHeroProps {
   control: Control<SpendingPlanFormValues>;
   form: SpendingPlanHoldForm;
-  name: 'nameText' | 'totalText';
-  label: string;
-  testID: string;
-  placeholder: string;
-  keyboardType?: KeyboardTypeOptions;
-  variant: 'name' | 'amount';
-  suffix?: string;
-  carriesOverRing: boolean;
-  onEdit: () => void;
-  onFocus: (event: FocusEvent) => void;
-  onBlur: (event: BlurEvent) => void;
+  onTotalEdit: () => void;
+  totalCarriesOverRing: boolean;
 }
 
-function SpendingPlanField(props: SpendingPlanFieldProps) {
-  const geometry = resolveSpendingPlanFieldGeometry(props.variant, useWindowDimensions().fontScale);
+export function SpendingPlanTotalHero({
+  control,
+  form,
+  onTotalEdit,
+  totalCarriesOverRing,
+}: SpendingPlanTotalHeroProps) {
   return (
     <Controller
-      control={props.control}
-      name={props.name}
-      render={({ field: { value, onChange }, fieldState }) => (
-        <Input
-          testID={props.testID}
-          value={value}
-          onChangeText={(text) => {
-            // `maskFieldText` diffs the new text against `value`, the prior text on screen.
-            const masked = maskFieldText(props.variant, value, text);
-            if (masked === undefined) return;
-            // Clearing above the guard would let a refused keystroke wipe a live error.
-            props.onEdit();
-            const held =
-              props.variant === 'amount' &&
-              holdStillTypingDecimal(props.form, props.name, masked, PLAN_TOTAL_REFUSES_ZERO);
-            if (!held) onChange(masked);
+      control={control}
+      name="totalText"
+      render={({ field }) => (
+        <AmountHero
+          value={field.value}
+          onChange={(masked) => {
+            // The hero has already refused a bad keystroke, so this edit is a real one.
+            onTotalEdit();
+            const held = holdStillTypingDecimal(form, 'totalText', masked, PLAN_TOTAL_REFUSES_ZERO);
+            if (!held) field.onChange(masked);
           }}
-          onFocus={props.onFocus}
-          onBlur={props.onBlur}
-          keyboardType={props.keyboardType}
-          placeholder={props.placeholder}
-          label={props.label}
-          accessibilityLabel={props.label}
-          isInvalid={fieldState.invalid || props.carriesOverRing}
-          errorMessage={fieldState.error?.message}
-          allowFontScaling={geometry.text === undefined}
-          style={{ height: geometry.height, ...geometry.text }}
-          className={
-            props.variant === 'amount'
-              ? 'border-border bg-background font-sora-bold text-foreground min-h-0 px-3 text-[15px]'
-              : 'border-border bg-background font-inter-semibold text-foreground min-h-0 px-3 text-[14px]'
-          }
-          suffix={
-            props.suffix ? (
-              <Text className="font-inter-semibold text-muted text-[12px]">{props.suffix}</Text>
-            ) : undefined
-          }
+          tone="foreground"
+          currency={Currency.EGP}
+          caption={Strings.budgetPlanAmountLabel}
+          invalid={totalCarriesOverRing}
+          accessibilityLabel={Strings.budgetPlanAmountLabel}
         />
       )}
     />
   );
 }
 
-interface SpendingPlanFormFieldsProps {
+interface SpendingPlanFactCardProps {
   control: Control<SpendingPlanFormValues>;
-  form: SpendingPlanHoldForm;
+  startDate: string;
+  endDate: string;
+  categoriesValue: string;
   onEdit: () => void;
-  onTotalEdit: () => void;
-  totalCarriesOverRing: boolean;
-  onFocus: (event: FocusEvent) => void;
-  onBlur: (event: BlurEvent) => void;
+  onStartDateChange: (next: string) => void;
+  onEndDateChange: (next: string) => void;
+  onCategoriesPress: () => void;
 }
 
-export function SpendingPlanFormFields({
+export function SpendingPlanFactCard({
   control,
-  form,
+  startDate,
+  endDate,
+  categoriesValue,
   onEdit,
-  onTotalEdit,
-  totalCarriesOverRing,
-  onFocus,
-  onBlur,
-}: SpendingPlanFormFieldsProps) {
+  onStartDateChange,
+  onEndDateChange,
+  onCategoriesPress,
+}: SpendingPlanFactCardProps) {
+  const startsOwnerId = useId();
+  const endsOwnerId = useId();
   return (
-    <>
-      <SpendingPlanField
-        control={control}
-        form={form}
-        name="nameText"
-        label={Strings.budgetPlanNameLabel}
-        testID="spending-plan-name-input"
-        placeholder={Strings.budgetPlanNamePlaceholder}
-        variant="name"
-        carriesOverRing={false}
-        onEdit={onEdit}
-        onFocus={onFocus}
-        onBlur={onBlur}
-      />
-      <SpendingPlanField
-        control={control}
-        form={form}
-        name="totalText"
-        label={Strings.budgetPlanAmountLabel}
-        testID="spending-plan-total-input"
-        placeholder={Strings.zeroAmountPlaceholder}
-        keyboardType="decimal-pad"
-        variant="amount"
-        suffix={Strings.currencyEgp}
-        carriesOverRing={totalCarriesOverRing}
-        onEdit={onTotalEdit}
-        onFocus={onFocus}
-        onBlur={onBlur}
-      />
-    </>
+    <ListCard testID="spending-plan-fact-group">
+      <FormFactCell>
+        <Controller
+          control={control}
+          name="nameText"
+          render={({ field: { value, onChange, onBlur } }) => (
+            <NoteFactRow
+              inset={false}
+              label={Strings.budgetPlanNameLabel}
+              placeholder={Strings.budgetPlanNamePlaceholder}
+              value={value}
+              onChangeText={(text) => {
+                onEdit();
+                onChange(text);
+              }}
+              onBlur={onBlur}
+            />
+          )}
+        />
+      </FormFactCell>
+      <FormFactCell>
+        <DateRow
+          ownerId={startsOwnerId}
+          value={startDate}
+          onChange={onStartDateChange}
+          divider={false}
+          label={Strings.budgetPlanStartDate}
+          testID="spending-plan-starts-row"
+          pickerTitle={Strings.budgetPlanStartDate}
+          capsAtToday={false}
+          wrapsValue
+        />
+      </FormFactCell>
+      <FormFactCell>
+        <DateRow
+          ownerId={endsOwnerId}
+          value={endDate}
+          onChange={onEndDateChange}
+          divider={false}
+          label={Strings.budgetPlanEndDate}
+          testID="spending-plan-ends-row"
+          pickerTitle={Strings.budgetPlanEndDate}
+          capsAtToday={false}
+          wrapsValue
+        />
+      </FormFactCell>
+      <FormFactCell divider={false}>
+        <FormPickerRow
+          testID="spending-plan-categories-row"
+          divider={false}
+          label={Strings.budgetPlanCategories}
+          value={categoriesValue}
+          onPress={onCategoriesPress}
+          suffix={
+            <MaterialCommunityIcons
+              name="chevron-right"
+              size={Size.iconSm}
+              color={CoreTokens.text2}
+            />
+          }
+        />
+      </FormFactCell>
+    </ListCard>
   );
 }

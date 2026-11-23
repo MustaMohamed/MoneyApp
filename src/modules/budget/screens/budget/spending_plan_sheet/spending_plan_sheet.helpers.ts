@@ -7,12 +7,13 @@ import { CURRENCY_CONFIG } from '@/constants/currency';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Size, Type } from '@/constants/theme';
-import { formatAmount } from '@/utils/format_amount';
+import { formatAmount, formatDisplayMagnitude } from '@/utils/format_amount';
 import {
   isStillTypingDecimal,
   parseDecimalText,
   parseNonNegativeDecimal,
 } from '@/utils/parse_decimal';
+import { calendarDaysBetween } from '@/utils/year_month';
 
 /** 2dp overrides EGP's 0dp on the limits summary once any figure has cents, where `45.40` would render as `45`. */
 const SPENDING_PLAN_ALLOCATION_DECIMALS = 2;
@@ -22,6 +23,26 @@ export function formatLimitsFigure(value: number, hasCents: boolean): string {
     value,
     hasCents ? SPENDING_PLAN_ALLOCATION_DECIMALS : CURRENCY_CONFIG[Currency.EGP].decimals,
   );
+}
+
+/** Display only: total over the inclusive days, unrounded before the formatter (ADR 2026-08-21 §2.1). */
+export function resolvePlanDailyLine(
+  totalAmount: number | undefined,
+  startDate: string,
+  endDate: string,
+): string | undefined {
+  if (totalAmount === undefined || startDate === '' || endDate === '') return undefined;
+  const days = calendarDaysBetween(startDate, endDate) + 1;
+  if (days < 1) return undefined;
+  return Strings.budgetPlanDailyLine(
+    days,
+    formatDisplayMagnitude(totalAmount / days, Currency.EGP).text,
+  );
+}
+
+export function formatPlanCategoriesValue(names: readonly string[]): string {
+  if (names.length === 0) return Strings.budgetPlanPickCategories;
+  return Strings.budgetPlanCategoriesValue(names.slice(0, 2), Math.max(0, names.length - 2));
 }
 
 export type SpendingPlanFieldKind = 'name' | 'amount' | 'allocation';

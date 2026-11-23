@@ -110,7 +110,7 @@ export function useSpendingPlanDetail() {
     goBack: () => router.back(),
     retry: loadPlan,
     editPlan: () => {
-      if (plan) openEditPlan(plan.id);
+      if (plan) openEditPlan('planDetail', plan.id);
     },
   };
 }
