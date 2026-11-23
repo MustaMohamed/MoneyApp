@@ -3,7 +3,7 @@ import { Keyboard } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
 import { useToast } from '@/components/ui/toast';
-import { BudgetGroup } from '@/constants/enums';
+import type { BudgetGroup } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { BudgetMonthGroupMap } from '@/modules/budget/entities/budget.entity';
 import { BudgetNameTakenError } from '@/modules/budget/repositories/budget.repository';
@@ -59,12 +59,6 @@ export interface SetBudgetSheetOptions {
   budgetableCategories: Category[];
   editingRow?: BudgetEditTargetVM;
   shownGroupByCategoryId: BudgetMonthGroupMap;
-}
-
-const BUDGET_GROUP_VALUES: readonly string[] = Object.values(BudgetGroup);
-
-function isBudgetGroup(value: string): value is BudgetGroup {
-  return BUDGET_GROUP_VALUES.includes(value);
 }
 
 export function useSetBudgetSheet({
@@ -250,8 +244,8 @@ export function useSetBudgetSheet({
   );
 
   const selectGroup = useCallback(
-    (value: string) => {
-      if (isBudgetGroup(value)) chooseGroup(value);
+    (value: BudgetGroup) => {
+      chooseGroup(value);
     },
     [chooseGroup],
   );

@@ -19,7 +19,7 @@ export function resolveSetBudgetFooterMessage(
   return count > 0 ? Strings.fixFieldsMarkedAbove(count) : saveError;
 }
 
-export interface BudgetGroupOption {
+interface BudgetGroupOption {
   value: BudgetGroup;
   label: string;
   caption: string;
@@ -44,7 +44,6 @@ export const BUDGET_GROUP_OPTIONS: readonly BudgetGroupOption[] = [
 ];
 
 export function resolveBudgetGroupRowValue(group: BudgetGroup | null): string {
-  if (group === null) return Strings.budget5030NotGroupedMetric;
   return (
     BUDGET_GROUP_OPTIONS.find((option) => option.value === group)?.label ??
     Strings.budget5030NotGroupedMetric

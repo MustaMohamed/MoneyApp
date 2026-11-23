@@ -1,8 +1,6 @@
-import { RadioGroup } from 'heroui-native';
 import { View } from 'react-native';
 
-import { ListCard } from '@/components/ui/list_card';
-import { RadioOptionRow } from '@/components/ui/radio_option_row';
+import { RadioChoiceCard } from '@/components/ui/radio_choice_card';
 import { Sheet } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import type { BudgetGroup } from '@/constants/enums';
@@ -25,10 +23,6 @@ export function BudgetGroupPicker({
   onSelect,
   onOpenChange,
 }: BudgetGroupPickerProps): React.ReactElement {
-  const handleValueChange = (next: string) => {
-    const picked = BUDGET_GROUP_OPTIONS.find((option) => String(option.value) === next);
-    if (picked !== undefined) onSelect(picked.value);
-  };
   return (
     <Sheet isOpen={isOpen} onOpenChange={onOpenChange} title={Strings.budgetGroupLabel} fitContent>
       <View
@@ -39,39 +33,31 @@ export function BudgetGroupPicker({
           paddingBottom: Spacing.xl,
         }}
       >
-        <ListCard>
-          {/* `gap-0`: the root's own gap would open 12 dp between the rows. */}
-          <RadioGroup
-            value={value ?? undefined}
-            onValueChange={handleValueChange}
-            className="gap-0"
-          >
-            {BUDGET_GROUP_OPTIONS.map((option, index) => (
-              <RadioOptionRow
-                key={option.value}
-                value={option.value}
-                testID={`budget-group-option-${option.value}`}
-                accessibilityLabel={Strings.addTxPickerAccessibility(option.label, option.caption)}
-                separator={index < BUDGET_GROUP_OPTIONS.length - 1}
+        <RadioChoiceCard
+          options={BUDGET_GROUP_OPTIONS}
+          value={value ?? undefined}
+          onValueChange={onSelect}
+          testIDPrefix="budget-group-option"
+          accessibilityLabelOf={(option) =>
+            Strings.addTxPickerAccessibility(option.label, option.caption)
+          }
+          renderLabel={(option) => (
+            <View style={{ flex: 1 }}>
+              <Text
+                className="font-sora-semibold text-foreground"
+                style={{ fontSize: Type.body, lineHeight: lineHeightFor(Type.body) }}
               >
-                <View style={{ flex: 1 }}>
-                  <Text
-                    className="font-sora-semibold text-foreground"
-                    style={{ fontSize: Type.body, lineHeight: lineHeightFor(Type.body) }}
-                  >
-                    {option.label}
-                  </Text>
-                  <Text
-                    className="font-inter text-muted"
-                    style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
-                  >
-                    {option.caption}
-                  </Text>
-                </View>
-              </RadioOptionRow>
-            ))}
-          </RadioGroup>
-        </ListCard>
+                {option.label}
+              </Text>
+              <Text
+                className="font-inter text-muted"
+                style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
+              >
+                {option.caption}
+              </Text>
+            </View>
+          )}
+        />
       </View>
     </Sheet>
   );

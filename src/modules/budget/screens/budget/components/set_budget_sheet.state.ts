@@ -61,6 +61,10 @@ const INITIAL_STATE: SetBudgetSheetStateShape = {
   closeOutcome: undefined,
 };
 
+function groupChange(group: BudgetGroup | null) {
+  return { groupValue: group, errorMessage: undefined, nameTaken: false };
+}
+
 export const useSetBudgetSheetState = createMoneyAppSelectors(
   create<SetBudgetSheetState>((set, get) => {
     const refusesInit = (owner: string, sessionKey: string | undefined): boolean => {
@@ -115,17 +119,10 @@ export const useSetBudgetSheetState = createMoneyAppSelectors(
           errorMessage: undefined,
           nameTaken: false,
         }),
-      setGroupValue: (group) =>
-        set({ groupValue: group, errorMessage: undefined, nameTaken: false }),
+      setGroupValue: (group) => set(groupChange(group)),
       showGroupPicker: () => set({ groupPickerOpen: true }),
       hideGroupPicker: () => set({ groupPickerOpen: false }),
-      chooseGroup: (group) =>
-        set({
-          groupValue: group,
-          groupPickerOpen: false,
-          errorMessage: undefined,
-          nameTaken: false,
-        }),
+      chooseGroup: (group) => set({ ...groupChange(group), groupPickerOpen: false }),
       setSaving: (saving) => set({ saving }),
       setErrorMessage: (errorMessage, nameTaken = false) => set({ errorMessage, nameTaken }),
       clearError: () => set({ errorMessage: undefined, nameTaken: false }),

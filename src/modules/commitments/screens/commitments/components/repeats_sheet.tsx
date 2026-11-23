@@ -3,6 +3,7 @@ import { View, useWindowDimensions } from 'react-native';
 
 import { resolveTypeTabsGeometry } from '@/components/ui/form_sheet.geometry';
 import { FormSheetFooter } from '@/components/ui/form_sheet_footer';
+import { RadioChoiceCard } from '@/components/ui/radio_choice_card';
 import { Stepper } from '@/components/ui/stepper';
 import { SegmentedTabs, type TabSegment } from '@/components/ui/tabs';
 import { RecurrencePeriod, type RecurrencePreset } from '@/constants/enums';
@@ -19,7 +20,7 @@ import {
 } from '../commitment_form.shared';
 import {
   CommitmentChoiceBlock,
-  CommitmentChoiceOptions,
+  CommitmentChoiceLabel,
   CommitmentChoiceSheet,
 } from './commitment_choice_sheet';
 import { REPEATS_UNIT_MIN_WIDTH } from './commitment_form.geometry';
@@ -90,11 +91,12 @@ export function RepeatsSheet({
     >
       {draft === undefined ? null : (
         <>
-          <CommitmentChoiceOptions<RecurrencePreset>
+          <RadioChoiceCard
             options={REPEATS_OPTIONS}
             value={draft.preset}
             onValueChange={pickPreset}
             testIDPrefix="repeats-option"
+            renderLabel={(option) => <CommitmentChoiceLabel label={option.label} />}
           />
           {isCustom ? (
             <CommitmentChoiceBlock
