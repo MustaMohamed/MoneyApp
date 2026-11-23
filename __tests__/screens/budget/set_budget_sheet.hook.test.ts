@@ -582,7 +582,8 @@ describe('the redrawn sheet resolves its title, month line, faults and footer (M
     const { result } = await mountEditHealth();
 
     expect(result.current.state.title).toBe(Strings.budgetEditTitle);
-    expect(result.current.state.rowCategory?.id).toBe('cat_health');
+    const { icon, color } = makeTestBudgetEditTarget();
+    expect(result.current.state.editGlyph).toEqual({ icon, color });
     expect(result.current.state.rowCategoryName).toBe('Health');
   });
 

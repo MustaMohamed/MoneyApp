@@ -223,9 +223,7 @@ export function useSetBudgetSheet({
     });
   }, [completeClose, owner, toast]);
 
-  const rowCategory = isEdit
-    ? budgetableCategories.find((category) => category.id === editingRow?.categoryId)
-    : selectedCategory;
+  const rowCategory = isEdit ? undefined : selectedCategory;
   const faults: SetBudgetFaults = {
     category:
       isSubmitted && resolvedCategoryId === undefined ? Strings.budgetPickCategory : undefined,
