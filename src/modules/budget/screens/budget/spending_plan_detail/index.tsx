@@ -2,14 +2,15 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import React from 'react';
 import { View } from 'react-native';
 
-import { Button } from '@/components/ui/button';
+import { DetailEditAction } from '@/components/ui/detail_edit_action';
 import { DetailLoadError } from '@/components/ui/detail_load_error';
-import { HeaderIconAction } from '@/components/ui/header_icon_action';
+import { DetailNotFoundState } from '@/components/ui/detail_not_found_state';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { StackHeader } from '@/components/ui/stack_header';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { Colors, Size } from '@/constants/theme';
+import { SpendingPlanDetailActions } from '@/modules/budget/screens/budget/spending_plan_detail/components/spending_plan_detail_actions';
 import { SpendingPlanDetailCategoryRow } from '@/modules/budget/screens/budget/spending_plan_detail/components/spending_plan_detail_category_row';
 import { SpendingPlanDetailSkeleton } from '@/modules/budget/screens/budget/spending_plan_detail/components/spending_plan_detail_skeleton';
 import { SpendingPlanDetailSummary } from '@/modules/budget/screens/budget/spending_plan_detail/components/spending_plan_detail_summary';
@@ -30,12 +31,9 @@ export default function SpendingPlanDetailScreen() {
         title={plan?.name ?? Strings.budgetPlansDetailTitle}
         onBack={goBack}
         right={
-          state.viewState === 'ready' && plan ? (
-            <HeaderIconAction
-              icon="pencil-outline"
-              iconSize={Size.iconSm}
-              iconColor={Colors.dark.gold}
-              accessibilityLabel={`${Strings.budgetPlanEditTitle} ${plan.name}`}
+          state.showsBody && plan ? (
+            <DetailEditAction
+              accessibilityLabel={Strings.budgetPlansDetailEditAccessibility}
               onPress={editPlan}
             />
           ) : undefined
@@ -51,18 +49,11 @@ export default function SpendingPlanDetailScreen() {
       ) : null}
 
       {state.viewState === 'notFound' ? (
-        <View className="flex-1 items-center justify-center gap-4 px-6">
-          <Text className="font-sora-semibold text-muted text-center text-[14px]">
-            {Strings.budgetPlansDetailNotFound}
-          </Text>
-          <Button
-            variant="secondary"
-            size="sm"
-            label={Strings.budgetPlansDetailBack}
-            accessibilityLabel={Strings.budgetPlansDetailBack}
-            onPress={goBack}
-          />
-        </View>
+        <DetailNotFoundState
+          title={Strings.budgetPlansDetailNotFoundTitle}
+          body={Strings.budgetPlansDetailNotFoundBody}
+          testID="spending-plan-detail-not-found"
+        />
       ) : null}
 
       {state.viewState === 'firstLoadError' ? (
@@ -108,6 +99,7 @@ export default function SpendingPlanDetailScreen() {
                   </View>
                 ) : null}
               </View>
+              <SpendingPlanDetailActions onEdit={editPlan} />
             </View>
           </ScreenScroll>
           <SpendingPlanSheet

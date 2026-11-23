@@ -705,10 +705,7 @@ export const Strings = {
   budgetPlansDetailRefreshErrorTitle: "Couldn't refresh this plan.",
   budgetPlansDetailLoadErrorDescription:
     'Something went wrong reading your data. Nothing was changed.',
-  budgetPlansDetailNotFound: 'This spending plan is no longer available.',
-  budgetPlansDetailLoadError: 'Could not load this spending plan.',
   budgetPlansDetailRetry: 'Try again',
-  budgetPlansDetailBack: 'Back to plans',
   budgetPlansDetailCategories: 'Category limits',
   budgetPlansDetailTotalSpent: (amount: string) => `${amount} spent`,
   budgetPlansDetailUnassigned: 'Unassigned plan budget',
