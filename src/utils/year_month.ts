@@ -58,6 +58,10 @@ export function fullMonthName(yearMonth: string): string {
   return new Date(`${yearMonth}-01T12:00:00`).toLocaleDateString('en-US', { month: 'long' });
 }
 
+export function shortMonthName(yearMonth: string): string {
+  return MONTHS_SHORT[monthNumberFromYearMonth(yearMonth) - 1];
+}
+
 export function daysLeftInMonth(yearMonth: string, today: string): number | undefined {
   if (today.slice(0, 7) !== yearMonth) return undefined;
   const lastDay = new Date(

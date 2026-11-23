@@ -8,21 +8,11 @@ import { HeaderIconAction } from '@/components/ui/header_icon_action';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import {
-  Colors,
-  FontFamily,
-  Radius,
-  Size,
-  Spacing,
-  Type,
-  lineHeightFor,
-  withAlpha,
-} from '@/constants/theme';
+import { Colors, Radius, Size, Spacing, withAlpha } from '@/constants/theme';
 import { useCategoryDetail } from '@/modules/budget/screens/budget/category_detail/category_detail.hook';
 import { CategoryDetailSkeleton } from '@/modules/budget/screens/budget/category_detail/components/category_detail_skeleton';
 import { CategoryDetailTitle } from '@/modules/budget/screens/budget/category_detail/components/category_detail_title';
 import { LiveMonthCard } from '@/modules/budget/screens/budget/category_detail/components/live_month_card';
-import { MonthLedger } from '@/modules/budget/screens/budget/category_detail/components/month_ledger';
 import { MonthlyResultChart } from '@/modules/budget/screens/budget/category_detail/components/monthly_result_chart';
 import { StatTiles } from '@/modules/budget/screens/budget/category_detail/components/stat_tiles';
 import { toIconName } from '@/utils/icon_name_guard';
@@ -87,15 +77,7 @@ export default function CategoryBudgetDetailScreen() {
         {state.history.monthsTotal > 0 && (
           <>
             <StatTiles history={state.history} />
-            <Text style={styles.section}>{Strings.budgetDetailMonthlyResult}</Text>
-            {/* One month renders as a single full-width bar that reads as an empty box. */}
-            {state.history.monthsTotal >= 2 && (
-              <>
-                <MonthlyResultChart results={state.history.results} />
-                <View style={{ height: Spacing.sm }} />
-              </>
-            )}
-            <MonthLedger results={state.history.results} />
+            <MonthlyResultChart history={state.history} month={state.month} />
           </>
         )}
       </ScreenScroll>
@@ -119,14 +101,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   content: { paddingHorizontal: Spacing.md, paddingBottom: ms(96) },
-  section: {
-    fontFamily: FontFamily.interMedium,
-    fontSize: Type.micro,
-    lineHeight: lineHeightFor(Type.micro),
-    color: Colors.dark.text2,
-    textTransform: 'uppercase',
-    letterSpacing: 0.7,
-    marginTop: Spacing.md,
-    marginBottom: Spacing.xs,
-  },
 });
