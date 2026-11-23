@@ -1,4 +1,5 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
+import { useWatch } from 'react-hook-form';
 import { AppState, Keyboard } from 'react-native';
 
 import { BudgetGroup } from '@/constants/enums';
@@ -819,7 +820,12 @@ describe('the redrawn sheet resolves its title, month line, faults and footer (M
 });
 
 describe('the sheet derives its chips and status line from the month snapshot (MA-319)', () => {
-  type SetBudgetHookResult = { current: ReturnType<typeof useSetBudgetSheet> };
+  function useSheetWithLimitText(options: Parameters<typeof useSetBudgetSheet>[0]) {
+    const sheet = useSetBudgetSheet(options);
+    const limitText = useWatch({ control: sheet.control, name: 'limitText' });
+    return { ...sheet, limitText };
+  }
+  type SetBudgetHookResult = { current: ReturnType<typeof useSheetWithLimitText> };
 
   const health = makeTestBudgetableCategory({ id: 'cat_health', name: 'Health' });
   const food = makeTestBudgetableCategory({ id: 'cat_food', name: 'Food' });
@@ -853,7 +859,7 @@ describe('the sheet derives its chips and status line from the month snapshot (M
     useBudgetState.getState().setSelectedMonth('2026-08');
     openWith();
     const { result } = await renderHook(() =>
-      useSetBudgetSheet({
+      useSheetWithLimitText({
         owner: BUDGET_TAB_SHEET_OWNER,
         budgetableCategories: [health, food],
         shownGroupByCategoryId: {},
@@ -867,7 +873,7 @@ describe('the sheet derives its chips and status line from the month snapshot (M
     useBudgetState.getState().setSelectedMonth(month);
     useBudgetState.getState().openEdit(editingHealth.id);
     const hook = await renderHook(() =>
-      useSetBudgetSheet({
+      useSheetWithLimitText({
         owner: BUDGET_TAB_SHEET_OWNER,
         budgetableCategories: [health, food],
         editingRow: editingHealth,
@@ -982,7 +988,7 @@ describe('the sheet derives its chips and status line from the month snapshot (M
 
     await settle(() => result.current.setLimitText('2500'));
 
-    expect(result.current.control._formValues.limitText).toBe('2500');
+    expect(result.current.limitText).toBe('2500');
     expect(result.current.state.footerStatus).toBe(expected);
   });
 
@@ -994,7 +1000,7 @@ describe('the sheet derives its chips and status line from the month snapshot (M
 
     await settle(() => result.current.selectSuggestion('640'));
 
-    expect(result.current.control._formValues.limitText).toBe('640');
+    expect(result.current.limitText).toBe('640');
     expect(result.current.state.faults.limit).toBeUndefined();
   });
 

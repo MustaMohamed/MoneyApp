@@ -1,4 +1,7 @@
-import type { AmountSuggestion } from '@/components/ui/amount_suggestions.helpers';
+import type {
+  AmountSuggestion,
+  AmountSuggestionKind,
+} from '@/components/ui/amount_suggestions.helpers';
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { BudgetGroup, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -79,13 +82,23 @@ export function resolveSetBudgetStatusLine(
     : Strings.budgetStatusSpent(spent, limit, monthName);
 }
 
+const SUGGESTION_ORDER = {
+  spentLastMonth: 0,
+  threeMonthAverage: 1,
+} satisfies Record<AmountSuggestionKind, number>;
+
+function isSuggestionKind(key: string): key is AmountSuggestionKind {
+  return key in SUGGESTION_ORDER;
+}
+
+const SUGGESTION_KINDS = Object.keys(SUGGESTION_ORDER)
+  .filter(isSuggestionKind)
+  .sort((a, b) => SUGGESTION_ORDER[a] - SUGGESTION_ORDER[b]);
+
 export function resolveSetBudgetSuggestions(
   month: string,
   categorySpendByMonth: Readonly<Record<string, number>> | undefined,
 ): AmountSuggestion[] {
   const amounts = resolveSuggestedAmounts(month, categorySpendByMonth);
-  return [
-    { kind: 'spentLastMonth', amount: amounts.spentLastMonth },
-    { kind: 'threeMonthAverage', amount: amounts.threeMonthAverage },
-  ];
+  return SUGGESTION_KINDS.map((kind) => ({ kind, amount: amounts[kind] }));
 }
