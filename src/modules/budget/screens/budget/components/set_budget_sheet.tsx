@@ -5,6 +5,7 @@ import { Controller } from 'react-hook-form';
 import { View } from 'react-native';
 
 import { AmountHero } from '@/components/ui/amount_hero';
+import { AmountHeroSuggestions } from '@/components/ui/amount_hero_suggestions';
 import { FactRow } from '@/components/ui/fact_row';
 import { FormFactCell } from '@/components/ui/form_fact_cell';
 import { FormPickerRow } from '@/components/ui/form_picker_row';
@@ -39,6 +40,7 @@ export function SetBudgetSheet(props: SetBudgetSheetProps) {
     control,
     submit,
     setLimitText,
+    selectSuggestion,
     selectCategory,
     selectGroup,
     openGroupPicker,
@@ -67,6 +69,7 @@ export function SetBudgetSheet(props: SetBudgetSheetProps) {
             statusTestID="set-budget-status"
             showsStatusTrack
             message={state.footerMessage}
+            footnote={state.footerStatus}
             label={Strings.budgetSaveCta}
             isLoading={state.saving}
             isDisabled={state.saving}
@@ -101,6 +104,18 @@ export function SetBudgetSheet(props: SetBudgetSheetProps) {
           >
             {state.monthLine}
           </Text>
+          <Controller
+            control={control}
+            name="limitText"
+            render={({ field: { value } }) => (
+              <AmountHeroSuggestions
+                suggestions={state.suggestions}
+                value={value}
+                currency={Currency.EGP}
+                onSelect={selectSuggestion}
+              />
+            )}
+          />
           <ValidationSlot
             testID="limit-error-slot"
             liveTestID="limit-error-live"
