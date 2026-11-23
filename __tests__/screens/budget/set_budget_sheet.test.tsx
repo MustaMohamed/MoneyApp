@@ -72,12 +72,20 @@ jest.mock('@/components/ui/button', () => ({
     );
   },
 }));
+const mockBudgetSnapshot = {
+  loaded: true,
+  loadedMonth: '2026-01',
+  rows: [] as unknown[],
+  spendByMonth: {} as Record<string, Record<string, number>>,
+};
 jest.mock('@/modules/budget/store/budget.store', () => {
   mockSetBudget = jest.fn<Promise<void>, [unknown]>().mockResolvedValue(undefined);
+  const state = () => ({ ...mockBudgetSnapshot, setBudget: mockSetBudget, setLimit: jest.fn() });
   return {
-    useBudgetStore: {
-      getState: jest.fn(() => ({ setBudget: mockSetBudget, setLimit: jest.fn() })),
-    },
+    useBudgetStore: Object.assign(
+      (selector: (snapshot: ReturnType<typeof state>) => unknown) => selector(state()),
+      { getState: jest.fn(state) },
+    ),
   };
 });
 jest.mock('@/modules/categories/components/category_picker_sheet', () => ({

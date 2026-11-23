@@ -1,5 +1,5 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
-import { Keyboard } from 'react-native';
+import { AppState, Keyboard } from 'react-native';
 
 import { BudgetGroup } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -16,6 +16,7 @@ import {
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import { makeTestBudgetEditTarget, makeTestBudgetableCategory } from '@/test_helpers/budget';
 import { deferred } from '@/test_helpers/deferred';
+import { makeTestBudget } from '@/test_helpers/transaction';
 import { MoneyTextMappingError, parseRequiredMoneyText } from '@/utils/money_text';
 
 // `useBottomSheetAwareHandlers` needs a mounted sheet context `renderHook` does not provide.
@@ -814,5 +815,227 @@ describe('the redrawn sheet resolves its title, month line, faults and footer (M
     } finally {
       useSetBudgetSheetState.setState({ completeSave: original });
     }
+  });
+});
+
+describe('the sheet derives its chips and status line from the month snapshot (MA-319)', () => {
+  type SetBudgetHookResult = { current: ReturnType<typeof useSetBudgetSheet> };
+
+  const health = makeTestBudgetableCategory({ id: 'cat_health', name: 'Health' });
+  const food = makeTestBudgetableCategory({ id: 'cat_food', name: 'Food' });
+  const healthSpend = { '2026-07': 640, '2026-06': 900, '2026-05': 590 };
+  const foodSpend = { '2026-07': 300, '2026-06': 600, '2026-05': 900 };
+  const editingHealth = makeTestBudgetEditTarget({
+    categoryId: 'cat_health',
+    categoryName: 'Health',
+    name: 'Yoga',
+    planned: 2000,
+    limit: 2000,
+    spent: 900,
+  });
+
+  function loadSnapshot(month: string, rows = [] as ReturnType<typeof makeTestBudget>[]) {
+    useBudgetStore.setState({
+      setBudget: jest.fn().mockResolvedValue(undefined),
+      loaded: true,
+      loadedMonth: month,
+      rows,
+      spendByMonth: { cat_health: healthSpend, cat_food: foodSpend },
+    });
+  }
+
+  function healthBudget(id: string, month = '2026-08') {
+    return makeTestBudget({ id, category_id: 'cat_health', name: id, effective_from: month });
+  }
+
+  // `2026-08` is behind the wall clock, so the edit line reads the past form without fake timers.
+  async function mountAdd(openWith: () => void = () => useBudgetState.getState().openAdd()) {
+    useBudgetState.getState().setSelectedMonth('2026-08');
+    openWith();
+    const { result } = await renderHook(() =>
+      useSetBudgetSheet({
+        owner: BUDGET_TAB_SHEET_OWNER,
+        budgetableCategories: [health, food],
+        shownGroupByCategoryId: {},
+      }),
+    );
+    await waitFor(() => expect(useSetBudgetSheetState.getState().sessionKey).toBeDefined());
+    return result;
+  }
+
+  async function mountEdit(month = '2026-08') {
+    useBudgetState.getState().setSelectedMonth(month);
+    useBudgetState.getState().openEdit(editingHealth.id);
+    const hook = await renderHook(() =>
+      useSetBudgetSheet({
+        owner: BUDGET_TAB_SHEET_OWNER,
+        budgetableCategories: [health, food],
+        editingRow: editingHealth,
+        shownGroupByCategoryId: {},
+      }),
+    );
+    await act(async () => {});
+    return hook.result;
+  }
+
+  async function settle(run: () => void) {
+    await act(async () => {
+      run();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+  }
+
+  afterEach(() => {
+    jest.useRealTimers();
+    useBudgetStore.setState({ loaded: false, loadedMonth: undefined, rows: [], spendByMonth: {} });
+  });
+
+  it('adding on a category with no budget in the month shows both chips and the no-budget line', async () => {
+    loadSnapshot('2026-08');
+    const result = await mountAdd();
+
+    expect(result.current.state.suggestions).toEqual([
+      { kind: 'spentLastMonth', amount: 640 },
+      { kind: 'threeMonthAverage', amount: 710 },
+    ]);
+    expect(result.current.state.footerStatus).toBe(
+      Strings.budgetStatusNoBudget('Health', 'August'),
+    );
+  });
+
+  it('a snapshot with one then two budgets on the category reads the count line', async () => {
+    loadSnapshot('2026-08', [healthBudget('Gym'), healthBudget('Old', '2026-07')]);
+    const result = await mountAdd();
+    const one = result.current.state.footerStatus;
+
+    await act(async () => {
+      loadSnapshot('2026-08', [healthBudget('Gym'), healthBudget('Pharmacy')]);
+    });
+    const two = result.current.state.footerStatus;
+
+    expect(one).toBe(Strings.budgetStatusBudgetCount('Health', 1, 'August'));
+    expect(two).toBe(Strings.budgetStatusBudgetCount('Health', 2, 'August'));
+    expect(one).not.toBe(two);
+  });
+
+  it('choosing another category changes both the chips and the status line', async () => {
+    loadSnapshot('2026-08', [
+      makeTestBudget({ id: 'b1', category_id: 'cat_food', effective_from: '2026-08' }),
+    ]);
+    const result = await mountAdd();
+    const before = result.current.state;
+
+    await act(async () => result.current.selectCategory(food));
+
+    expect(result.current.state.suggestions).toEqual([
+      { kind: 'spentLastMonth', amount: 300 },
+      { kind: 'threeMonthAverage', amount: 600 },
+    ]);
+    expect(result.current.state.footerStatus).toBe(
+      Strings.budgetStatusBudgetCount('Food', 1, 'August'),
+    );
+    expect(result.current.state.suggestions).not.toEqual(before.suggestions);
+    expect(result.current.state.footerStatus).not.toBe(before.footerStatus);
+  });
+
+  it('adding with no category chosen shows neither chips nor a status line', async () => {
+    loadSnapshot('2026-08');
+    const result = await mountAdd(() =>
+      useBudgetState.getState().openAddWithContext(undefined, BudgetGroup.Need),
+    );
+
+    expect(result.current.state.selectedCategoryId).toBeUndefined();
+    expect(result.current.state.suggestions).toBeUndefined();
+    expect(result.current.state.footerStatus).toBeUndefined();
+
+    await act(async () => result.current.selectCategory(health));
+
+    expect(result.current.state.suggestions).toHaveLength(2);
+    expect(result.current.state.footerStatus).toBe(
+      Strings.budgetStatusNoBudget('Health', 'August'),
+    );
+  });
+
+  it("a snapshot loaded for another month shows neither chips nor that month's figures", async () => {
+    loadSnapshot('2026-07', [healthBudget('Gym')]);
+    const result = await mountAdd();
+
+    expect(result.current.state.selectedCategoryId).toBe('cat_health');
+    expect(result.current.state.suggestions).toBeUndefined();
+    expect(result.current.state.footerStatus).toBeUndefined();
+
+    await act(async () => loadSnapshot('2026-08'));
+
+    expect(result.current.state.suggestions).toHaveLength(2);
+    expect(result.current.state.footerStatus).toBe(
+      Strings.budgetStatusNoBudget('Health', 'August'),
+    );
+  });
+
+  it("editing shows no chips and reads the budget's spending against its saved limit, unchanged by typing", async () => {
+    loadSnapshot('2026-08');
+    const result = await mountEdit();
+    const expected = Strings.budgetStatusSpent('900', '2,000', 'August');
+
+    expect(result.current.state.suggestions).toBeUndefined();
+    expect(result.current.state.footerStatus).toBe(expected);
+
+    await settle(() => result.current.setLimitText('2500'));
+
+    expect(result.current.control._formValues.limitText).toBe('2500');
+    expect(result.current.state.footerStatus).toBe(expected);
+  });
+
+  it('after a refused Save on an empty limit, taking a suggestion clears the limit fault', async () => {
+    loadSnapshot('2026-08');
+    const result: SetBudgetHookResult = await mountAdd();
+    await act(async () => result.current.submit());
+    expect(result.current.state.faults.limit).toBeDefined();
+
+    await settle(() => result.current.selectSuggestion('640'));
+
+    expect(result.current.control._formValues.limitText).toBe('640');
+    expect(result.current.state.faults.limit).toBeUndefined();
+  });
+
+  describe('across local midnight', () => {
+    async function openEditAt(minuteBefore: Date, month: string) {
+      jest.useFakeTimers({ now: minuteBefore });
+      (AppState as { currentState: string }).currentState = 'active';
+      loadSnapshot(month);
+      return mountEdit(month);
+    }
+
+    async function passMidnight() {
+      await act(async () => {
+        jest.advanceTimersByTime(2 * 60_000);
+      });
+    }
+
+    it('the edit line moves from so far to the past form as the budget month ends', async () => {
+      const result = await openEditAt(new Date(2026, 10, 30, 23, 59), '2026-11');
+      expect(result.current.state.footerStatus).toBe(
+        Strings.budgetStatusSpentSoFar('900', '2,000', 'November'),
+      );
+
+      await passMidnight();
+
+      expect(result.current.state.footerStatus).toBe(
+        Strings.budgetStatusSpent('900', '2,000', 'November'),
+      );
+    });
+
+    it('a sheet open for the next month moves from the past form to so far', async () => {
+      const result = await openEditAt(new Date(2026, 10, 30, 23, 59), '2026-12');
+      expect(result.current.state.footerStatus).toBe(
+        Strings.budgetStatusSpent('900', '2,000', 'December'),
+      );
+
+      await passMidnight();
+
+      expect(result.current.state.footerStatus).toBe(
+        Strings.budgetStatusSpentSoFar('900', '2,000', 'December'),
+      );
+    });
   });
 });
