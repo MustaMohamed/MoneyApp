@@ -1,26 +1,34 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { cn, Input, PressableFeedback, RadioGroup } from 'heroui-native';
+import { RadioGroup } from 'heroui-native';
 import React from 'react';
 import { Controller } from 'react-hook-form';
-import { View, useWindowDimensions } from 'react-native';
+import { View } from 'react-native';
 
-import { Button } from '@/components/ui/button';
-import { INPUT_NO_FOCUS_BORDER_COLOR } from '@/components/ui/input';
+import { AmountHero } from '@/components/ui/amount_hero';
+import { FactRow } from '@/components/ui/fact_row';
+import { FormFactCell } from '@/components/ui/form_fact_cell';
+import {
+  AMOUNT_MESSAGE_TEXT_STYLE,
+  FORM_SHEET_CONTENT_CONTAINER_STYLE,
+} from '@/components/ui/form_sheet.geometry';
+import { FormSheetFooter } from '@/components/ui/form_sheet_footer';
+import { ListCard } from '@/components/ui/list_card';
+import { NoteFactRow } from '@/components/ui/note_fact_row';
 import { Sheet } from '@/components/ui/sheet';
-import { SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet.helpers';
 import { Text } from '@/components/ui/text';
-import { BudgetGroup } from '@/constants/enums';
+import { ValidationSlot } from '@/components/ui/validation_slot';
+import { BudgetGroup, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Type, lineHeightFor, withAlpha } from '@/constants/theme';
-import { resolveSetBudgetFieldGeometry } from '@/modules/budget/screens/budget/components/set_budget_sheet.geometry';
+import { Size } from '@/constants/theme';
+import { CoreTokens } from '@/constants/theme_tokens';
 import {
   useSetBudgetSheet,
   type SetBudgetSheetOptions,
 } from '@/modules/budget/screens/budget/components/set_budget_sheet.hook';
+import { CategoryPickerRow } from '@/modules/categories/components/category_picker_row';
 import { CategoryPickerSheet } from '@/modules/categories/components/category_picker_sheet';
 import { toIconName } from '@/utils/icon_name_guard';
-import { ms } from '@/utils/responsive';
 
 export type SetBudgetSheetProps = SetBudgetSheetOptions;
 
@@ -41,13 +49,10 @@ export function SetBudgetSheet(props: SetBudgetSheetProps) {
     togglePicker,
     collapsePicker,
     clearError,
-    onFocus,
-    onBlur,
     onOpenChange,
+    handleCloseComplete,
   } = useSetBudgetSheet(props);
-  const { fontScale } = useWindowDimensions();
-  const nameField = resolveSetBudgetFieldGeometry(Type.body, fontScale);
-  const limitField = resolveSetBudgetFieldGeometry(Type.bodyStrong, fontScale);
+  const { faults } = state;
 
   return (
     <>
@@ -55,183 +60,112 @@ export function SetBudgetSheet(props: SetBudgetSheetProps) {
         isOpen={state.sheetVisible}
         isDismissable={!state.saving}
         onOpenChange={onOpenChange}
-        title={state.isEdit ? Strings.budgetEditTitle : Strings.budgetSetTitle}
+        onCloseComplete={handleCloseComplete}
+        title={state.title}
         size="md"
         scrollable
+        liftsAboveKeyboard
         footer={
-          <>
-            {state.errorMessage ? (
-              <Text className="font-inter-medium text-danger mb-2 text-sm">
-                {state.errorMessage}
-              </Text>
-            ) : null}
-            <Button
-              variant="primary"
-              label={Strings.budgetSaveCta}
-              isLoading={state.saving}
-              isDisabled={state.saving}
-              onPress={() => void submit()}
-            />
-          </>
+          <FormSheetFooter
+            statusTestID="set-budget-status"
+            showsStatusTrack
+            message={state.footerMessage}
+            label={Strings.budgetSaveCta}
+            isLoading={state.saving}
+            isDisabled={state.saving}
+            onPress={() => void submit()}
+          />
         }
       >
-        <BottomSheetScrollView showsVerticalScrollIndicator={false}>
-          <View className="px-4 pt-1" style={{ paddingBottom: SHEET_FOOTER_CLEARANCE }}>
-            {state.isEdit ? (
-              <View className="bg-default border-border mb-3 flex-row items-center justify-between rounded-lg border px-2 py-2 opacity-70">
-                <Text
-                  className="font-inter-semibold text-foreground"
-                  style={{ fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) }}
-                >
-                  {state.editingCategoryName ?? Strings.budgetPickCategory}
-                </Text>
-              </View>
-            ) : (
-              <PressableFeedback
-                className="bg-default border-border mb-3 flex-row items-center justify-between rounded-lg border px-2 py-2"
-                onPress={togglePicker}
-                accessibilityRole="button"
-                accessibilityLabel={Strings.budgetPickCategory}
-              >
-                {state.selectedCategory ? (
-                  <View className="flex-row items-center gap-1">
-                    <View
-                      className="h-7 w-7 items-center justify-center rounded-md"
-                      style={{ backgroundColor: withAlpha(state.selectedCategory.color, '22') }}
-                    >
-                      <MaterialCommunityIcons
-                        name={toIconName(state.selectedCategory.icon, 'tag-outline')}
-                        size={ms(13)}
-                        color={state.selectedCategory.color}
-                      />
-                    </View>
-                    <Text
-                      className="font-inter-semibold text-foreground"
-                      style={{ fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) }}
-                    >
-                      {state.selectedCategory.name}
-                    </Text>
-                  </View>
-                ) : (
-                  <Text
-                    className="font-inter-semibold text-muted"
-                    style={{ fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) }}
-                  >
-                    {Strings.budgetPickCategory}
-                  </Text>
-                )}
-                <Text
-                  className="font-inter text-muted"
-                  style={{ fontSize: Type.body, lineHeight: lineHeightFor(Type.body) }}
-                >
-                  {'›'}
-                </Text>
-              </PressableFeedback>
+        <BottomSheetScrollView
+          style={{ flex: 1 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <Controller
+            control={control}
+            name="limitText"
+            render={({ field: { value } }) => (
+              <AmountHero
+                value={value}
+                onChange={setLimitText}
+                tone="foreground"
+                currency={Currency.EGP}
+                invalid={faults.limit !== undefined}
+                accessibilityLabel={Strings.budgetMonthlyLimitLabel}
+              />
             )}
+          />
+          <Text
+            testID="set-budget-month-line"
+            className="font-inter text-muted px-4"
+            numberOfLines={1}
+            style={AMOUNT_MESSAGE_TEXT_STYLE}
+          >
+            {state.monthLine}
+          </Text>
+          <ValidationSlot
+            testID="limit-error-slot"
+            liveTestID="limit-error-live"
+            message={faults.limit}
+          />
 
-            <Text className="font-inter-medium text-muted mb-1 text-[11px]">
-              {Strings.budgetNameLabel}
-            </Text>
-            <Controller
-              control={control}
-              name="nameText"
-              render={({ field: { value, onChange }, fieldState }) => (
-                <>
-                  <View
-                    className={cn(
-                      'bg-background border-accent flex-row items-center rounded-md border px-3 py-1',
-                      fieldState.error && 'border-danger',
-                    )}
-                  >
-                    <Input
+          <View style={FORM_SHEET_CONTENT_CONTAINER_STYLE}>
+            <ListCard testID="set-budget-fact-group">
+              <FormFactCell fault={faults.category} ringTestID="category-ring">
+                {state.isEdit ? (
+                  <FactRow
+                    testID="category-row"
+                    label={Strings.budgetCategoryLabel}
+                    value={state.rowCategoryName}
+                    leading={
+                      <MaterialCommunityIcons
+                        name={
+                          state.editGlyph ? toIconName(state.editGlyph.icon, 'tag') : 'tag-outline'
+                        }
+                        size={Size.filterSegmentIcon}
+                        color={state.editGlyph?.color ?? CoreTokens.text1}
+                      />
+                    }
+                    inset={false}
+                    showDivider={false}
+                  />
+                ) : (
+                  <CategoryPickerRow
+                    testID="category-row"
+                    label={Strings.budgetCategoryLabel}
+                    category={state.rowCategory}
+                    onPress={togglePicker}
+                    accessibilityHint={faults.category}
+                  />
+                )}
+              </FormFactCell>
+              <FormFactCell divider={false} fault={state.nameFault} ringTestID="name-ring">
+                <Controller
+                  control={control}
+                  name="nameText"
+                  render={({ field: { value, onChange, onBlur } }) => (
+                    <NoteFactRow
+                      testID="name-row"
+                      inset={false}
+                      label={Strings.budgetNameLabel}
+                      placeholder={Strings.budgetNamePlaceholder}
+                      accessibilityHint={faults.name}
                       value={value}
                       onChangeText={(text) => {
                         clearError();
                         onChange(text);
                       }}
-                      onFocus={onFocus}
                       onBlur={onBlur}
-                      placeholder={Strings.budgetNamePlaceholder}
-                      placeholderColorClassName="text-muted"
-                      allowFontScaling={false}
-                      className="min-h-0 flex-1 border-0 bg-transparent p-0"
-                      style={{
-                        flex: 1,
-                        fontFamily: FontFamily.interSemi,
-                        ...nameField.text,
-                        color: Colors.dark.text1,
-                        borderColor: INPUT_NO_FOCUS_BORDER_COLOR,
-                        height: nameField.height,
-                        padding: 0,
-                        includeFontPadding: false,
-                        textAlignVertical: 'center',
-                      }}
-                      accessibilityLabel={Strings.budgetNameLabel}
                     />
-                  </View>
-                  {fieldState.error ? (
-                    <Text className="font-inter text-danger mt-1 text-[11px]">
-                      {fieldState.error.message}
-                    </Text>
-                  ) : null}
-                </>
-              )}
-            />
+                  )}
+                />
+              </FormFactCell>
+            </ListCard>
+          </View>
 
-            <Text className="font-inter-medium text-muted mt-3 mb-1 text-[11px]">
-              {Strings.budgetMonthlyLimitLabel}
-            </Text>
-            <Controller
-              control={control}
-              name="limitText"
-              render={({ field: { value }, fieldState }) => (
-                <>
-                  <View
-                    className={cn(
-                      'bg-background border-accent flex-row items-center rounded-md border px-3 py-1',
-                      fieldState.error && 'border-danger',
-                    )}
-                  >
-                    <Input
-                      value={value}
-                      onChangeText={setLimitText}
-                      onFocus={onFocus}
-                      onBlur={onBlur}
-                      keyboardType="decimal-pad"
-                      placeholder={Strings.zeroAmountPlaceholder}
-                      placeholderColorClassName="text-muted"
-                      allowFontScaling={false}
-                      className="min-h-0 flex-1 border-0 bg-transparent p-0"
-                      style={{
-                        flex: 1,
-                        fontFamily: FontFamily.soraBold,
-                        ...limitField.text,
-                        color: Colors.dark.text1,
-                        borderColor: INPUT_NO_FOCUS_BORDER_COLOR,
-                        height: limitField.height,
-                        padding: 0,
-                        includeFontPadding: false,
-                        textAlignVertical: 'center',
-                      }}
-                      accessibilityLabel={Strings.budgetMonthlyLimitLabel}
-                    />
-                    <Text
-                      className="font-inter-semibold text-muted"
-                      style={{ fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) }}
-                    >
-                      {Strings.currencyEgp}
-                    </Text>
-                  </View>
-                  {fieldState.error ? (
-                    <Text className="font-inter text-danger mt-1 text-[11px]">
-                      {fieldState.error.message}
-                    </Text>
-                  ) : null}
-                </>
-              )}
-            />
-
-            <Text className="font-inter-medium text-muted mt-4 mb-1 text-[11px]">
+          <View className="px-4 pt-4">
+            <Text className="font-inter-medium text-muted mb-1 text-[11px]">
               {Strings.budget5030GroupPickerLabel}
             </Text>
             <RadioGroup

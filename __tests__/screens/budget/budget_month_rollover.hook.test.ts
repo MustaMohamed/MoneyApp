@@ -64,6 +64,10 @@ let budgetLoadErrorState: boolean;
 
 import { useBudget } from '@/modules/budget/screens/budget/budget.hook';
 import { useCategoryDetail } from '@/modules/budget/screens/budget/category_detail/category_detail.hook';
+import {
+  BUDGET_TAB_SHEET_OWNER,
+  useSetBudgetSheetState,
+} from '@/modules/budget/screens/budget/components/set_budget_sheet.state';
 
 function previousYearMonth(yearMonth: string): string {
   const [year, month] = yearMonth.split('-').map(Number);
@@ -191,6 +195,7 @@ beforeEach(() => {
   jest.useFakeTimers();
   runAfterInteractions.mockClear();
   setupStores();
+  useSetBudgetSheetState.getState().reset();
   mockRouteMonth = undefined;
 });
 
@@ -387,6 +392,8 @@ describe('useCategoryDetail — month rollover', () => {
 
     expect(mockRouterBack).toHaveBeenCalledTimes(1);
     expect(openEditMock).toHaveBeenCalledWith('budget-food-main');
+    expect(useSetBudgetSheetState.getState().openOwner).toBeDefined();
+    expect(useSetBudgetSheetState.getState().openOwner).toBe(BUDGET_TAB_SHEET_OWNER);
   });
 
   it('does not open aggregate edit when the live month has multiple named budgets', async () => {

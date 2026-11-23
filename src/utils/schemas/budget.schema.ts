@@ -11,7 +11,7 @@ export const budgetFormSchema = z.object({
     .string()
     .min(1, Strings.budgetAmountRequired)
     .refine((s) => parseDecimalText(s) !== undefined, Strings.errAmountInvalid)
-    .refine((s) => parsePositiveDecimal(s) !== undefined, Strings.budgetAmountInvalid),
+    .refine((s) => parsePositiveDecimal(s) !== undefined, Strings.budgetAmountRequired),
 });
 
 export type BudgetFormValues = z.infer<typeof budgetFormSchema>;

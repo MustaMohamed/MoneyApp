@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
-import { useBottomSheetAwareHandlers } from '@/components/ui/sheet';
+import { useToast } from '@/components/ui/toast';
 import { BudgetGroup } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { BudgetMonthGroupMap } from '@/modules/budget/entities/budget.entity';
@@ -10,11 +10,13 @@ import type { BudgetEditTargetVM } from '@/modules/budget/screens/budget/budget.
 import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import type { Category } from '@/modules/categories/entities/category.entity';
-import { formatStoredMoneyText, maskFieldText, parseRequiredMoneyText } from '@/utils/money_text';
+import { formatMonthYear } from '@/utils/format_date';
+import { formatStoredMoneyText, parseRequiredMoneyText } from '@/utils/money_text';
 import { budgetFormSchema, type BudgetFormValues } from '@/utils/schemas/budget.schema';
 import { setTypedDecimal, useZodForm } from '@/utils/use_zod_form.hook';
 import { fullMonthName } from '@/utils/year_month';
 
+import { resolveSetBudgetFooterMessage, type SetBudgetFaults } from './set_budget_sheet.helpers';
 import { useSetBudgetSheetState } from './set_budget_sheet.state';
 
 export function useSetBudgetSheetSave() {
@@ -32,9 +34,10 @@ export function useSetBudgetSheetSave() {
         await operation();
         return true;
       } catch (error) {
+        const refused = refusalMessage?.(error);
         useSetBudgetSheetState
           .getState()
-          .setErrorMessage(refusalMessage?.(error) ?? Strings.budgetSaveError);
+          .setErrorMessage(refused ?? Strings.budgetSaveError, refused !== undefined);
         return false;
       } finally {
         useSetBudgetSheetState.getState().setSaving(false);
@@ -47,6 +50,7 @@ export function useSetBudgetSheetSave() {
 }
 
 export interface SetBudgetSheetOptions {
+  owner: string;
   budgetableCategories: Category[];
   editingRow?: BudgetEditTargetVM;
   shownGroupByCategoryId: BudgetMonthGroupMap;
@@ -59,6 +63,7 @@ function isBudgetGroup(value: string): value is BudgetGroup {
 }
 
 export function useSetBudgetSheet({
+  owner,
   budgetableCategories,
   editingRow,
   shownGroupByCategoryId,
@@ -72,16 +77,26 @@ export function useSetBudgetSheet({
       addBudgetGroup: state.addBudgetGroup,
     })),
   );
-  const { selectedCategoryId, pickerExpanded, groupValue, saving, errorMessage } =
-    useSetBudgetSheetState(
-      useShallow((state) => ({
-        selectedCategoryId: state.selectedCategoryId,
-        pickerExpanded: state.pickerExpanded,
-        groupValue: state.groupValue,
-        saving: state.saving,
-        errorMessage: state.errorMessage,
-      })),
-    );
+  const {
+    openOwner,
+    selectedCategoryId,
+    pickerExpanded,
+    groupValue,
+    saving,
+    errorMessage,
+    nameTaken,
+  } = useSetBudgetSheetState(
+    useShallow((state) => ({
+      openOwner: state.openOwner,
+      selectedCategoryId: state.selectedCategoryId,
+      pickerExpanded: state.pickerExpanded,
+      groupValue: state.groupValue,
+      saving: state.saving,
+      errorMessage: state.errorMessage,
+      nameTaken: state.nameTaken,
+    })),
+  );
+  const open = sheetVisible && openOwner === owner;
   const close = useBudgetState.getState().close;
   const setBudget = useBudgetStore.getState().setBudget;
   const initAddMode = useSetBudgetSheetState.getState().initAddMode;
@@ -91,9 +106,12 @@ export function useSetBudgetSheet({
   const togglePicker = useSetBudgetSheetState.getState().togglePicker;
   const collapsePicker = useSetBudgetSheetState.getState().collapsePicker;
   const clearError = useSetBudgetSheetState.getState().clearError;
-  const resetState = useSetBudgetSheetState.getState().reset;
+  const releaseState = useSetBudgetSheetState.getState().release;
+  const completeSave = useSetBudgetSheetState.getState().completeSave;
+  const completeClose = useSetBudgetSheetState.getState().completeClose;
+  const setErrorMessage = useSetBudgetSheetState.getState().setErrorMessage;
+  const { toast } = useToast();
   const { runSave } = useSetBudgetSheetSave();
-  const { onFocus, onBlur } = useBottomSheetAwareHandlers();
   const isEdit = mode === 'edit';
 
   const {
@@ -110,22 +128,23 @@ export function useSetBudgetSheet({
   });
   // Read during render: `formState` is a proxy and only refreshes keys read while rendering.
   const isSubmitted = formState.isSubmitted;
+  const errors = formState.errors;
 
   const selectedCategory = useMemo(
     () => budgetableCategories.find((category) => category.id === selectedCategoryId),
     [budgetableCategories, selectedCategoryId],
   );
-  const sessionKey = `${mode}:${editingRow?.id ?? addCategoryId ?? 'new'}:${addBudgetGroup ?? 'ungrouped'}:${selectedMonth}`;
+  const sessionKey = `${owner}:${mode}:${editingRow?.id ?? addCategoryId ?? 'new'}:${addBudgetGroup ?? 'ungrouped'}:${selectedMonth}`;
 
   useEffect(() => {
-    if (!sheetVisible) {
-      resetState();
+    if (!open) {
+      releaseState(owner);
       return;
     }
 
     let initialized: boolean;
     if (isEdit) {
-      initialized = initEditMode(editingRow?.categoryGroup ?? null, sessionKey);
+      initialized = initEditMode(owner, editingRow?.categoryGroup ?? null, sessionKey);
     } else {
       const contextualCategory = budgetableCategories.find(
         (category) => category.id === addCategoryId,
@@ -133,6 +152,7 @@ export function useSetBudgetSheet({
       const initialCategory =
         contextualCategory ?? (addBudgetGroup === undefined ? budgetableCategories[0] : undefined);
       initialized = initAddMode(
+        owner,
         initialCategory?.id,
         addBudgetGroup ??
           (initialCategory ? shownGroupByCategoryId[initialCategory.id] : undefined) ??
@@ -155,16 +175,17 @@ export function useSetBudgetSheet({
     initAddMode,
     initEditMode,
     isEdit,
+    open,
+    owner,
+    releaseState,
     resetForm,
-    resetState,
     sessionKey,
-    sheetVisible,
     shownGroupByCategoryId,
   ]);
 
   const resolvedCategoryId = isEdit ? editingRow?.categoryId : selectedCategoryId;
   const resolvedCategoryName = isEdit ? editingRow?.categoryName : selectedCategory?.name;
-  const submit = handleSubmit(async (values) => {
+  const onValid = async (values: BudgetFormValues) => {
     if (!resolvedCategoryId) return;
     const monthName = fullMonthName(selectedMonth);
     const nameTakenMessage = (error: unknown) =>
@@ -181,8 +202,34 @@ export function useSetBudgetSheet({
         categoryGroup: groupValue ?? undefined,
       });
     }, nameTakenMessage);
-    if (saved) close();
-  });
+    if (!saved) return;
+    completeSave(owner, isEdit ? 'updated' : 'added');
+    close();
+  };
+  const submit = async (): Promise<void> => {
+    try {
+      await handleSubmit(onValid)();
+    } catch {
+      setErrorMessage(Strings.budgetSaveError);
+    }
+  };
+
+  const handleCloseComplete = useCallback(() => {
+    const outcome = completeClose(owner);
+    if (outcome === undefined) return;
+    toast.show({
+      label: outcome === 'added' ? Strings.budgetAddedToast : Strings.budgetUpdatedToast,
+      variant: 'success',
+    });
+  }, [completeClose, owner, toast]);
+
+  const rowCategory = isEdit ? undefined : selectedCategory;
+  const faults: SetBudgetFaults = {
+    category:
+      isSubmitted && resolvedCategoryId === undefined ? Strings.budgetPickCategory : undefined,
+    name: errors.nameText?.message,
+    limit: errors.limitText?.message,
+  };
 
   const selectCategory = useCallback(
     (category: Category) => {
@@ -208,27 +255,31 @@ export function useSetBudgetSheet({
 
   const setLimitText = useCallback(
     (text: string) => {
-      // Mask before `clearError`: a refused keystroke must not wipe the error.
-      const masked = maskFieldText('amount', getValues('limitText'), text);
-      if (masked === undefined) return;
       clearError();
       const form = { setValue, clearErrors, getValues, trigger };
-      setTypedDecimal(form, 'limitText', masked, true, isSubmitted);
+      setTypedDecimal(form, 'limitText', text, true, isSubmitted);
     },
     [clearError, clearErrors, getValues, isSubmitted, setValue, trigger],
   );
 
   return {
     state: {
-      sheetVisible,
+      sheetVisible: open,
       isEdit,
-      selectedCategory,
+      title: isEdit ? Strings.budgetEditTitle : Strings.budgetSetTitle,
+      monthLine: Strings.budgetMonthlyLimitLine(formatMonthYear(selectedMonth)),
+      rowCategory,
+      rowCategoryName: isEdit ? editingRow?.categoryName : undefined,
+      editGlyph:
+        isEdit && editingRow ? { icon: editingRow.icon, color: editingRow.color } : undefined,
+      faults,
+      nameTaken,
+      nameFault: faults.name ?? (nameTaken ? errorMessage : undefined),
+      footerMessage: resolveSetBudgetFooterMessage(faults, errorMessage),
       selectedCategoryId,
       pickerExpanded,
       groupValue,
       saving,
-      errorMessage,
-      editingCategoryName: editingRow?.categoryName,
     },
     control,
     submit,
@@ -238,8 +289,7 @@ export function useSetBudgetSheet({
     togglePicker,
     collapsePicker,
     clearError,
-    onFocus,
-    onBlur,
     onOpenChange,
+    handleCloseComplete,
   };
 }

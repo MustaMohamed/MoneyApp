@@ -1,23 +1,24 @@
-import { fireEvent, render, waitFor, within } from '@testing-library/react-native';
-import type { ReactNode } from 'react';
-import { Dimensions } from 'react-native';
+import { act, fireEvent, render, waitFor, within } from '@testing-library/react-native';
+import type { ElementType, ReactNode } from 'react';
 import type { PressableProps } from 'react-native';
 
 import { BudgetGroup } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Type } from '@/constants/theme';
 import type { BudgetMonthGroupMap } from '@/modules/budget/entities/budget.entity';
 import { BudgetNameTakenError } from '@/modules/budget/repositories/budget.repository';
 import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
 import { SetBudgetSheet } from '@/modules/budget/screens/budget/components/set_budget_sheet';
-import { resolveSetBudgetFieldGeometry } from '@/modules/budget/screens/budget/components/set_budget_sheet.geometry';
-import { useSetBudgetSheetState } from '@/modules/budget/screens/budget/components/set_budget_sheet.state';
+import {
+  BUDGET_TAB_SHEET_OWNER,
+  useSetBudgetSheetState,
+} from '@/modules/budget/screens/budget/components/set_budget_sheet.state';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { makeTestBudgetEditTarget, makeTestBudgetableCategory } from '@/test_helpers/budget';
 import { deferred } from '@/test_helpers/deferred';
-import { ms } from '@/utils/responsive';
 
 let mockSetBudget: jest.Mock<Promise<void>, [unknown]>;
+const mockToast = { show: jest.fn() };
+let mockOnCloseComplete: (() => void) | undefined;
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => {
   const { View } = jest.requireActual<typeof import('react-native')>('react-native');
@@ -38,13 +39,16 @@ jest.mock('@/components/ui/sheet', () => ({
     children,
     footer,
     isDismissable = true,
+    onCloseComplete,
   }: {
     isOpen: boolean;
     children?: ReactNode;
     footer?: ReactNode;
     isDismissable?: boolean;
+    onCloseComplete?: () => void;
   }) => {
     const { View } = jest.requireActual<typeof import('react-native')>('react-native');
+    mockOnCloseComplete = onCloseComplete;
     return isOpen ? (
       <View testID="set-budget-sheet" accessibilityState={{ disabled: !isDismissable }}>
         {children}
@@ -52,6 +56,10 @@ jest.mock('@/components/ui/sheet', () => ({
       </View>
     ) : null;
   },
+}));
+// The wrapper, not HeroUI: the suite's heroui-native mock exports no useToast.
+jest.mock('@/components/ui/toast', () => ({
+  useToast: () => ({ toast: mockToast, isToastVisible: false }),
 }));
 jest.mock('@/components/ui/button', () => ({
   Button: ({ label, onPress }: { label: string; onPress: () => void }) => {
@@ -98,6 +106,20 @@ jest.mock('heroui-native', () => {
   // `requireActual` because a jest.mock factory cannot close over an out-of-scope import.
   const { Strings: ActualStrings } =
     jest.requireActual<typeof import('@/constants/strings')>('@/constants/strings');
+  const passThrough = (Component: ElementType) => {
+    const Wrapped = ({ children, ...props }: { children?: ReactNode }) => (
+      <Component {...props}>{children}</Component>
+    );
+    return Wrapped;
+  };
+  const ListGroup = Object.assign(passThrough(View), {
+    Item: passThrough(View),
+    ItemPrefix: passThrough(View),
+    ItemContent: passThrough(View),
+    ItemTitle: passThrough(Text),
+    ItemDescription: passThrough(Text),
+    ItemSuffix: passThrough(View),
+  });
   let onRadioValueChange: ((value: string) => void) | undefined;
   const RadioGroup = ({
     children,
@@ -134,6 +156,10 @@ jest.mock('heroui-native', () => {
       <Pressable {...props}>{children}</Pressable>
     ),
     RadioGroup,
+    ListGroup,
+    Separator: (props: Record<string, unknown>) => <View testID="separator" {...props} />,
+    Typography: passThrough(Text),
+    FieldError: passThrough(Text),
   };
 });
 
@@ -148,53 +174,21 @@ beforeEach(() => {
   // `reset()` re-seeds `selectedMonth` from the system clock; pin a month that can never be now.
   useBudgetState.getState().setSelectedMonth('2026-01');
   useSetBudgetSheetState.getState().reset();
+  useSetBudgetSheetState.getState().openFor(BUDGET_TAB_SHEET_OWNER);
   mockSetBudget.mockClear();
   useBudgetState.getState().openAdd();
 });
 
 describe('SetBudgetSheet', () => {
-  it('keeps the category selector compact inside the sheet', async () => {
-    const { getByTestId, getByText } = await render(
-      <SetBudgetSheet shownGroupByCategoryId={noShownGroups} budgetableCategories={categories} />,
-    );
-
-    expect(getByTestId('icon-home')).toHaveStyle({ width: ms(13), height: ms(13) });
-    expect(getByText('Housing')).toHaveStyle({ fontSize: Type.caption });
-  });
-
-  it('sizes the amount input and its text from the field geometry at the window font scale', async () => {
-    const { text, height } = resolveSetBudgetFieldGeometry(
-      Type.bodyStrong,
-      Dimensions.get('window').fontScale,
-    );
-    const { getByTestId } = await render(
-      <SetBudgetSheet shownGroupByCategoryId={noShownGroups} budgetableCategories={categories} />,
-    );
-
-    const input = getByTestId('budget-limit-input');
-    expect(input).toHaveStyle({ ...text, height });
-    expect(input).toHaveProp('allowFontScaling', false);
-  });
-
-  it('sizes the budget name input and its text from the field geometry at the window font scale', async () => {
-    const { text, height } = resolveSetBudgetFieldGeometry(
-      Type.body,
-      Dimensions.get('window').fontScale,
-    );
-    const { getByTestId } = await render(
-      <SetBudgetSheet shownGroupByCategoryId={noShownGroups} budgetableCategories={categories} />,
-    );
-
-    const input = getByTestId('budget-name-input');
-    expect(input).toHaveStyle({ ...text, height });
-    expect(input).toHaveProp('allowFontScaling', false);
-  });
-
   it('requires category selection when a contextual group has no matching category', async () => {
     useBudgetState.getState().openAddWithContext(undefined, BudgetGroup.Want);
 
     await render(
-      <SetBudgetSheet shownGroupByCategoryId={noShownGroups} budgetableCategories={categories} />,
+      <SetBudgetSheet
+        owner={BUDGET_TAB_SHEET_OWNER}
+        shownGroupByCategoryId={noShownGroups}
+        budgetableCategories={categories}
+      />,
     );
 
     expect(useSetBudgetSheetState.getState()).toMatchObject({
@@ -206,10 +200,14 @@ describe('SetBudgetSheet', () => {
   it('preserves the contextual rule group when selecting a category', async () => {
     useBudgetState.getState().openAddWithContext(undefined, BudgetGroup.Want);
     const screen = await render(
-      <SetBudgetSheet shownGroupByCategoryId={noShownGroups} budgetableCategories={categories} />,
+      <SetBudgetSheet
+        owner={BUDGET_TAB_SHEET_OWNER}
+        shownGroupByCategoryId={noShownGroups}
+        budgetableCategories={categories}
+      />,
     );
 
-    await fireEvent.press(screen.getByLabelText(Strings.budgetPickCategory));
+    await fireEvent.press(screen.getByTestId('category-row'));
     await fireEvent.press(screen.getByLabelText('select first budget category'));
 
     expect(useSetBudgetSheetState.getState()).toMatchObject({
@@ -221,11 +219,15 @@ describe('SetBudgetSheet', () => {
   it('adds a named budget for the selected month', async () => {
     useBudgetState.getState().setSelectedMonth('2026-08');
     const { getByLabelText, getByTestId } = await render(
-      <SetBudgetSheet shownGroupByCategoryId={noShownGroups} budgetableCategories={categories} />,
+      <SetBudgetSheet
+        owner={BUDGET_TAB_SHEET_OWNER}
+        shownGroupByCategoryId={noShownGroups}
+        budgetableCategories={categories}
+      />,
     );
 
     await fireEvent.changeText(getByTestId('budget-name-input'), 'Alexandria Trip Food');
-    await fireEvent.changeText(getByTestId('budget-limit-input'), '1500');
+    await fireEvent.changeText(getByTestId('amount-hero-value'), '1500');
     await fireEvent.press(getByLabelText(Strings.budgetSaveCta));
 
     await waitFor(() =>
@@ -242,11 +244,15 @@ describe('SetBudgetSheet', () => {
     mockSetBudget.mockRejectedValueOnce(new BudgetNameTakenError('Gym'));
     useBudgetState.getState().setSelectedMonth('2026-08');
     const { getByLabelText, getByTestId } = await render(
-      <SetBudgetSheet shownGroupByCategoryId={noShownGroups} budgetableCategories={categories} />,
+      <SetBudgetSheet
+        owner={BUDGET_TAB_SHEET_OWNER}
+        shownGroupByCategoryId={noShownGroups}
+        budgetableCategories={categories}
+      />,
     );
 
     await fireEvent.changeText(getByTestId('budget-name-input'), 'Gym');
-    await fireEvent.changeText(getByTestId('budget-limit-input'), '500');
+    await fireEvent.changeText(getByTestId('amount-hero-value'), '500');
     await fireEvent.press(getByLabelText(Strings.budgetSaveCta));
 
     await waitFor(() =>
@@ -262,13 +268,14 @@ describe('SetBudgetSheet', () => {
   it("saves the category's shown 50/30/20 group for the month", async () => {
     const { getByLabelText, getByTestId } = await render(
       <SetBudgetSheet
+        owner={BUDGET_TAB_SHEET_OWNER}
         shownGroupByCategoryId={{ housing: BudgetGroup.Need }}
         budgetableCategories={categories}
       />,
     );
 
     await fireEvent.changeText(getByTestId('budget-name-input'), 'Monthly housing');
-    await fireEvent.changeText(getByTestId('budget-limit-input'), '700');
+    await fireEvent.changeText(getByTestId('amount-hero-value'), '700');
     await fireEvent.press(getByLabelText(Strings.budgetSaveCta));
 
     await waitFor(() =>
@@ -289,6 +296,7 @@ describe('SetBudgetSheet', () => {
 
     const { getByLabelText, getByTestId, getByText } = await render(
       <SetBudgetSheet
+        owner={BUDGET_TAB_SHEET_OWNER}
         shownGroupByCategoryId={noShownGroups}
         budgetableCategories={categories}
         editingRow={existingBudget}
@@ -296,12 +304,12 @@ describe('SetBudgetSheet', () => {
     );
 
     expect(getByTestId('budget-name-input')).toHaveProp('value', 'Alexandria Trip Food');
-    expect(getByTestId('budget-limit-input')).toHaveProp('value', '1500');
+    expect(getByTestId('amount-hero-value')).toHaveProp('value', '1500');
     expect(getByText(Strings.budget5030GroupPickerLabel)).toBeTruthy();
     expect(useSetBudgetSheetState.getState().groupValue).toBe(BudgetGroup.Need);
 
     await fireEvent.changeText(getByTestId('budget-name-input'), 'Weekend Food');
-    await fireEvent.changeText(getByTestId('budget-limit-input'), '1750');
+    await fireEvent.changeText(getByTestId('amount-hero-value'), '1750');
     await fireEvent.press(getByLabelText(Strings.budget5030GroupWant));
     await fireEvent.press(getByLabelText(Strings.budgetSaveCta));
 
@@ -319,7 +327,11 @@ describe('SetBudgetSheet', () => {
 
   it('carries a typed comma on the limit to a decimal point, and leaves the name alone', async () => {
     const { getByTestId } = await render(
-      <SetBudgetSheet shownGroupByCategoryId={noShownGroups} budgetableCategories={categories} />,
+      <SetBudgetSheet
+        owner={BUDGET_TAB_SHEET_OWNER}
+        shownGroupByCategoryId={noShownGroups}
+        budgetableCategories={categories}
+      />,
     );
 
     // Assert after every step; a final-only check passes even if the comma is refused outright.
@@ -329,8 +341,8 @@ describe('SetBudgetSheet', () => {
       ['1.5', '1.5'],
       ['1.50', '1.50'],
     ] as const) {
-      await fireEvent.changeText(getByTestId('budget-limit-input'), delivered);
-      expect(getByTestId('budget-limit-input')).toHaveProp('value', held);
+      await fireEvent.changeText(getByTestId('amount-hero-value'), delivered);
+      expect(getByTestId('amount-hero-value')).toHaveProp('value', held);
     }
 
     await fireEvent.changeText(getByTestId('budget-name-input'), 'Alexandria, Trip');
@@ -342,13 +354,17 @@ describe('SetBudgetSheet', () => {
     'refuses %p on the limit and keeps the accepted text',
     async (delivered) => {
       const { getByTestId } = await render(
-        <SetBudgetSheet shownGroupByCategoryId={noShownGroups} budgetableCategories={categories} />,
+        <SetBudgetSheet
+          owner={BUDGET_TAB_SHEET_OWNER}
+          shownGroupByCategoryId={noShownGroups}
+          budgetableCategories={categories}
+        />,
       );
 
-      await fireEvent.changeText(getByTestId('budget-limit-input'), '1.5');
-      await fireEvent.changeText(getByTestId('budget-limit-input'), delivered);
+      await fireEvent.changeText(getByTestId('amount-hero-value'), '1.5');
+      await fireEvent.changeText(getByTestId('amount-hero-value'), delivered);
 
-      expect(getByTestId('budget-limit-input')).toHaveProp('value', '1.5');
+      expect(getByTestId('amount-hero-value')).toHaveProp('value', '1.5');
     },
   );
 
@@ -360,6 +376,7 @@ describe('SetBudgetSheet', () => {
 
     const { getByTestId } = await render(
       <SetBudgetSheet
+        owner={BUDGET_TAB_SHEET_OWNER}
         shownGroupByCategoryId={noShownGroups}
         budgetableCategories={categories}
         editingRow={{ ...existingBudget, limit: 1e-7 }}
@@ -367,12 +384,12 @@ describe('SetBudgetSheet', () => {
     );
 
     const prefilled = '0.0000001';
-    expect(getByTestId('budget-limit-input')).toHaveProp('value', prefilled);
+    expect(getByTestId('amount-hero-value')).toHaveProp('value', prefilled);
     // The second assertion pins `prefilled` as positional digits, not the '1e-7' `String()` emits.
     expect(prefilled).not.toMatch(/e/i);
 
-    await fireEvent.changeText(getByTestId('budget-limit-input'), prefilled.slice(0, -1));
-    expect(getByTestId('budget-limit-input')).toHaveProp('value', '0.000000');
+    await fireEvent.changeText(getByTestId('amount-hero-value'), prefilled.slice(0, -1));
+    expect(getByTestId('amount-hero-value')).toHaveProp('value', '0.000000');
   });
 
   // Blank, never '5': the mask refuses '-5' and every edit of it, so a verbatim prefill freezes.
@@ -383,16 +400,17 @@ describe('SetBudgetSheet', () => {
 
     const { getByTestId } = await render(
       <SetBudgetSheet
+        owner={BUDGET_TAB_SHEET_OWNER}
         shownGroupByCategoryId={noShownGroups}
         budgetableCategories={categories}
         editingRow={{ ...existingBudget, limit: -5 }}
       />,
     );
 
-    expect(getByTestId('budget-limit-input')).toHaveProp('value', '');
+    expect(getByTestId('amount-hero-value')).toHaveProp('value', '');
 
-    await fireEvent.changeText(getByTestId('budget-limit-input'), '5');
-    expect(getByTestId('budget-limit-input')).toHaveProp('value', '5');
+    await fireEvent.changeText(getByTestId('amount-hero-value'), '5');
+    expect(getByTestId('amount-hero-value')).toHaveProp('value', '5');
   });
 
   it('keeps an in-flight edit save locked when refreshed props arrive', async () => {
@@ -403,6 +421,7 @@ describe('SetBudgetSheet', () => {
 
     const screen = await render(
       <SetBudgetSheet
+        owner={BUDGET_TAB_SHEET_OWNER}
         shownGroupByCategoryId={noShownGroups}
         budgetableCategories={categories}
         editingRow={existingBudget}
@@ -417,6 +436,7 @@ describe('SetBudgetSheet', () => {
 
     await screen.rerender(
       <SetBudgetSheet
+        owner={BUDGET_TAB_SHEET_OWNER}
         shownGroupByCategoryId={noShownGroups}
         budgetableCategories={[...categories]}
         editingRow={{ ...existingBudget }}
@@ -427,5 +447,51 @@ describe('SetBudgetSheet', () => {
 
     pendingSave.resolve();
     await waitFor(() => expect(useSetBudgetSheetState.getState().saving).toBe(false));
+  });
+
+  it("shows the added toast from the sheet's close callback after a saved add", async () => {
+    mockToast.show.mockClear();
+    const { getByLabelText, getByTestId } = await render(
+      <SetBudgetSheet
+        owner={BUDGET_TAB_SHEET_OWNER}
+        shownGroupByCategoryId={noShownGroups}
+        budgetableCategories={categories}
+      />,
+    );
+
+    await fireEvent.changeText(getByTestId('budget-name-input'), 'Alexandria Trip Food');
+    await fireEvent.changeText(getByTestId('amount-hero-value'), '1500');
+    await fireEvent.press(getByLabelText(Strings.budgetSaveCta));
+    await waitFor(() => expect(mockSetBudget).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(useSetBudgetSheetState.getState().saving).toBe(false));
+    expect(mockToast.show).not.toHaveBeenCalled();
+
+    await act(() => mockOnCloseComplete?.());
+
+    expect(mockToast.show).toHaveBeenCalledTimes(1);
+    expect(mockToast.show).toHaveBeenCalledWith(
+      expect.objectContaining({ label: Strings.budgetAddedToast }),
+    );
+  });
+
+  it('draws the edit-mode Category row with no button role, and a press leaves the picker closed', async () => {
+    useBudgetState.getState().reset();
+    useBudgetState.getState().openEdit('budget-trip-food');
+    const screen = await render(
+      <SetBudgetSheet
+        owner={BUDGET_TAB_SHEET_OWNER}
+        shownGroupByCategoryId={noShownGroups}
+        budgetableCategories={categories}
+        editingRow={existingBudget}
+      />,
+    );
+
+    const row = screen.getByTestId('category-row');
+    expect(row.props.accessibilityRole).toBeUndefined();
+
+    await fireEvent.press(row);
+
+    expect(useSetBudgetSheetState.getState().pickerExpanded).toBe(false);
+    expect(screen.queryByLabelText('select first budget category')).toBeNull();
   });
 });

@@ -33,7 +33,7 @@ describe('text-amount schemas share the parse floor and DECIMAL_PATTERN', () => 
           budgetFormSchema.safeParse({ nameText: 'Monthly Food', limitText: text }),
         ),
       requiredMessage: Strings.budgetAmountRequired,
-      floorMessage: Strings.budgetAmountInvalid,
+      floorMessage: Strings.budgetAmountRequired,
     },
     {
       label: 'incomeFormSchema.amountText',
