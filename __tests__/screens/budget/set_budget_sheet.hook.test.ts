@@ -1,4 +1,5 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
+import { Keyboard } from 'react-native';
 
 import { BudgetGroup } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -471,6 +472,78 @@ describe('the sheet starts on the group the category shows for the month (MA-287
         categoryGroup: BudgetGroup.Want,
       }),
     );
+  });
+
+  describe('the Group row opens its picker and takes a choice (MA-296)', () => {
+    const typeNameAndLimit = async (result: { current: ReturnType<typeof useSetBudgetSheet> }) => {
+      await act(async () => {
+        await result.current.control
+          .register('nameText')
+          .onChange({ target: { name: 'nameText', value: 'Gym' }, type: 'change' });
+        result.current.setLimitText('500');
+      });
+    };
+
+    afterEach(() => jest.restoreAllMocks());
+
+    it('openGroupPicker closes the keyboard and opens the picker', async () => {
+      const dismiss = jest.spyOn(Keyboard, 'dismiss');
+      const { result } = await mountAdd();
+
+      await act(async () => result.current.openGroupPicker());
+
+      expect(result.current.state.groupPickerOpen).toBe(true);
+      expect(dismiss).toHaveBeenCalledTimes(1);
+    });
+
+    it('a choice closes the picker, shows the group and keeps the category and the typed name', async () => {
+      const { result, setBudget } = await mountAdd();
+      await typeNameAndLimit(result);
+
+      await act(async () => result.current.openGroupPicker());
+      await act(async () => result.current.selectGroup(BudgetGroup.Savings));
+
+      expect(result.current.state.groupPickerOpen).toBe(false);
+      expect(result.current.state.groupRowValue).toBe(Strings.budget5030GroupSavings);
+      expect(result.current.state.selectedCategoryId).toBe('cat_health');
+
+      await act(async () => result.current.submit());
+      expect(setBudget).toHaveBeenCalledWith(expect.objectContaining({ name: 'Gym' }));
+    });
+
+    it('closing the picker without a choice leaves the group unchanged', async () => {
+      const { result } = await mountAdd();
+
+      await act(async () => result.current.openGroupPicker());
+      await act(async () => result.current.onGroupPickerOpenChange(false));
+
+      expect(result.current.state.groupPickerOpen).toBe(false);
+      expect(result.current.state.groupValue).toBe(BudgetGroup.Want);
+    });
+
+    it('a category with no group for the month reads not grouped on the row', async () => {
+      const { result } = await mountAdd([gifts]);
+
+      expect(result.current.state.groupRowValue).toBe(Strings.budget5030NotGroupedMetric);
+    });
+
+    it("a save after choosing Savings writes Savings for the budget's month", async () => {
+      const { result, setBudget } = await mountAdd();
+      await typeNameAndLimit(result);
+
+      await act(async () => result.current.openGroupPicker());
+      await act(async () => result.current.selectGroup(BudgetGroup.Savings));
+      await act(async () => result.current.submit());
+
+      expect(setBudget).toHaveBeenCalledTimes(1);
+      expect(setBudget).toHaveBeenCalledWith(
+        expect.objectContaining({
+          categoryId: 'cat_health',
+          yearMonth: '2026-11',
+          categoryGroup: BudgetGroup.Savings,
+        }),
+      );
+    });
   });
 });
 
