@@ -171,3 +171,47 @@ describe('the sheet slot is keyed by the screen that opens it (MA-295, Invariant
     expect(sheet().nameTaken).toBe(false);
   });
 });
+
+describe('the Group picker opens and closes on the sheet state (MA-296)', () => {
+  const sheet = () => useSetBudgetSheetState.getState();
+
+  it('a choice sets the group and closes the picker, the category stays', () => {
+    sheet().initAddMode('a', 'cat_food', BudgetGroup.Need, 'a:add');
+    sheet().showGroupPicker();
+    expect(sheet().groupPickerOpen).toBe(true);
+
+    sheet().chooseGroup(BudgetGroup.Savings);
+
+    expect(sheet()).toMatchObject({
+      groupValue: BudgetGroup.Savings,
+      groupPickerOpen: false,
+      selectedCategoryId: 'cat_food',
+    });
+  });
+
+  it('closing the picker without a choice leaves the group as it was', () => {
+    sheet().initAddMode('a', 'cat_food', BudgetGroup.Want, 'a:add');
+    sheet().showGroupPicker();
+
+    sheet().hideGroupPicker();
+
+    expect(sheet()).toMatchObject({ groupValue: BudgetGroup.Want, groupPickerOpen: false });
+  });
+
+  it('release by the holder closes an open picker', () => {
+    sheet().initAddMode('a', 'cat_food', null, 'a:add');
+    sheet().showGroupPicker();
+
+    sheet().release('a');
+
+    expect(sheet().groupPickerOpen).toBe(false);
+  });
+
+  it('chooseGroup clears a taken-name mark', () => {
+    sheet().setErrorMessage('taken', true);
+
+    sheet().chooseGroup(BudgetGroup.Need);
+
+    expect(sheet()).toMatchObject({ errorMessage: undefined, nameTaken: false });
+  });
+});

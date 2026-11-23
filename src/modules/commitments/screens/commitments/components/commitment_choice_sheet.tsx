@@ -1,10 +1,7 @@
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { RadioGroup } from 'heroui-native';
 import type { ReactNode } from 'react';
 import { View, useWindowDimensions } from 'react-native';
 
-import { ListCard } from '@/components/ui/list_card';
-import { RadioOptionRow } from '@/components/ui/radio_option_row';
 import { Sheet } from '@/components/ui/sheet';
 import { SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet.helpers';
 import { Text } from '@/components/ui/text';
@@ -75,46 +72,15 @@ export function CommitmentChoiceSheet({
   );
 }
 
-interface CommitmentChoiceOptionsProps<T extends string> {
-  options: readonly { value: T; label: string }[];
-  value: T;
-  onValueChange: (value: T) => void;
-  testIDPrefix: string;
-}
-
-/** One card of radio rows, drawn as the budget picker draws its rows, but the last row takes no separator: the card's border closes it. */
-export function CommitmentChoiceOptions<T extends string>({
-  options,
-  value,
-  onValueChange,
-  testIDPrefix,
-}: CommitmentChoiceOptionsProps<T>): React.ReactElement {
-  const handleValueChange = (next: string) => {
-    const picked = options.find((option) => option.value === next);
-    if (picked !== undefined) onValueChange(picked.value);
-  };
+/** The commitments option row's one line: the title names the choice, so the row draws no caption. */
+export function CommitmentChoiceLabel({ label }: { label: string }): React.ReactElement {
   return (
-    <ListCard>
-      {/* `gap-0`: the root's own gap would open 12 dp between the rows. */}
-      <RadioGroup value={value} onValueChange={handleValueChange} className="gap-0">
-        {options.map((option, index) => (
-          <RadioOptionRow
-            key={option.value}
-            value={option.value}
-            testID={`${testIDPrefix}-${option.value}`}
-            accessibilityLabel={option.label}
-            separator={index < options.length - 1}
-          >
-            <Text
-              className="font-sora-semibold text-foreground"
-              style={{ flex: 1, fontSize: Type.body, lineHeight: lineHeightFor(Type.body) }}
-            >
-              {option.label}
-            </Text>
-          </RadioOptionRow>
-        ))}
-      </RadioGroup>
-    </ListCard>
+    <Text
+      className="font-sora-semibold text-foreground"
+      style={{ flex: 1, fontSize: Type.body, lineHeight: lineHeightFor(Type.body) }}
+    >
+      {label}
+    </Text>
   );
 }
 

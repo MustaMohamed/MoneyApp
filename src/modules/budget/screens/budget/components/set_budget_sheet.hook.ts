@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo } from 'react';
+import { Keyboard } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
 import { useToast } from '@/components/ui/toast';
-import { BudgetGroup } from '@/constants/enums';
+import type { BudgetGroup } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { BudgetMonthGroupMap } from '@/modules/budget/entities/budget.entity';
 import { BudgetNameTakenError } from '@/modules/budget/repositories/budget.repository';
@@ -16,7 +17,11 @@ import { budgetFormSchema, type BudgetFormValues } from '@/utils/schemas/budget.
 import { setTypedDecimal, useZodForm } from '@/utils/use_zod_form.hook';
 import { fullMonthName } from '@/utils/year_month';
 
-import { resolveSetBudgetFooterMessage, type SetBudgetFaults } from './set_budget_sheet.helpers';
+import {
+  resolveBudgetGroupRowValue,
+  resolveSetBudgetFooterMessage,
+  type SetBudgetFaults,
+} from './set_budget_sheet.helpers';
 import { useSetBudgetSheetState } from './set_budget_sheet.state';
 
 export function useSetBudgetSheetSave() {
@@ -56,12 +61,6 @@ export interface SetBudgetSheetOptions {
   shownGroupByCategoryId: BudgetMonthGroupMap;
 }
 
-const BUDGET_GROUP_VALUES: readonly string[] = Object.values(BudgetGroup);
-
-function isBudgetGroup(value: string): value is BudgetGroup {
-  return BUDGET_GROUP_VALUES.includes(value);
-}
-
 export function useSetBudgetSheet({
   owner,
   budgetableCategories,
@@ -82,6 +81,7 @@ export function useSetBudgetSheet({
     selectedCategoryId,
     pickerExpanded,
     groupValue,
+    groupPickerOpen,
     saving,
     errorMessage,
     nameTaken,
@@ -91,6 +91,7 @@ export function useSetBudgetSheet({
       selectedCategoryId: state.selectedCategoryId,
       pickerExpanded: state.pickerExpanded,
       groupValue: state.groupValue,
+      groupPickerOpen: state.groupPickerOpen,
       saving: state.saving,
       errorMessage: state.errorMessage,
       nameTaken: state.nameTaken,
@@ -103,6 +104,9 @@ export function useSetBudgetSheet({
   const initEditMode = useSetBudgetSheetState.getState().initEditMode;
   const setSelectedCategoryId = useSetBudgetSheetState.getState().setSelectedCategoryId;
   const setGroupValue = useSetBudgetSheetState.getState().setGroupValue;
+  const showGroupPicker = useSetBudgetSheetState.getState().showGroupPicker;
+  const hideGroupPicker = useSetBudgetSheetState.getState().hideGroupPicker;
+  const chooseGroup = useSetBudgetSheetState.getState().chooseGroup;
   const togglePicker = useSetBudgetSheetState.getState().togglePicker;
   const collapsePicker = useSetBudgetSheetState.getState().collapsePicker;
   const clearError = useSetBudgetSheetState.getState().clearError;
@@ -240,10 +244,22 @@ export function useSetBudgetSheet({
   );
 
   const selectGroup = useCallback(
-    (value: string) => {
-      if (isBudgetGroup(value)) setGroupValue(value);
+    (value: BudgetGroup) => {
+      chooseGroup(value);
     },
-    [setGroupValue],
+    [chooseGroup],
+  );
+
+  const openGroupPicker = useCallback(() => {
+    Keyboard.dismiss();
+    showGroupPicker();
+  }, [showGroupPicker]);
+
+  const onGroupPickerOpenChange = useCallback(
+    (isOpen: boolean) => {
+      if (!isOpen) hideGroupPicker();
+    },
+    [hideGroupPicker],
   );
 
   const onOpenChange = useCallback(
@@ -279,6 +295,8 @@ export function useSetBudgetSheet({
       selectedCategoryId,
       pickerExpanded,
       groupValue,
+      groupPickerOpen,
+      groupRowValue: resolveBudgetGroupRowValue(groupValue),
       saving,
     },
     control,
@@ -286,6 +304,8 @@ export function useSetBudgetSheet({
     setLimitText,
     selectCategory,
     selectGroup,
+    openGroupPicker,
+    onGroupPickerOpenChange,
     togglePicker,
     collapsePicker,
     clearError,

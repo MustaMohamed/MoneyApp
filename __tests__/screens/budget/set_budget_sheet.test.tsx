@@ -48,7 +48,8 @@ jest.mock('@/components/ui/sheet', () => ({
     onCloseComplete?: () => void;
   }) => {
     const { View } = jest.requireActual<typeof import('react-native')>('react-native');
-    mockOnCloseComplete = onCloseComplete;
+    // The Group picker's Sheet renders after the main one and passes no close callback.
+    if (onCloseComplete) mockOnCloseComplete = onCloseComplete;
     return isOpen ? (
       <View testID="set-budget-sheet" accessibilityState={{ disabled: !isDismissable }}>
         {children}
@@ -131,13 +132,24 @@ jest.mock('heroui-native', () => {
     onRadioValueChange = onValueChange;
     return <View>{children}</View>;
   };
-  RadioGroup.Item = ({ children, value }: { children?: ReactNode; value: string }) => (
+  RadioGroup.Item = ({
+    children,
+    value,
+    testID,
+    accessibilityLabel,
+  }: {
+    children?: ReactNode;
+    value: string;
+    testID?: string;
+    accessibilityLabel?: string;
+  }) => (
     <Pressable
       accessibilityRole="radio"
-      accessibilityLabel={String(children)}
+      testID={testID}
+      accessibilityLabel={accessibilityLabel}
       onPress={() => onRadioValueChange?.(value)}
     >
-      <Text>{children}</Text>
+      {children}
     </Pressable>
   );
   return {
@@ -152,6 +164,7 @@ jest.mock('heroui-native', () => {
         {...props}
       />
     ),
+    Radio: ({ testID }: { testID?: string }) => <View testID={testID} />,
     PressableFeedback: ({ children, ...props }: PressableProps & { children?: ReactNode }) => (
       <Pressable {...props}>{children}</Pressable>
     ),
@@ -294,7 +307,7 @@ describe('SetBudgetSheet', () => {
     useBudgetState.getState().setSelectedMonth('2026-08');
     useBudgetState.getState().openEdit('budget-trip-food');
 
-    const { getByLabelText, getByTestId, getByText } = await render(
+    const { getByLabelText, getByTestId } = await render(
       <SetBudgetSheet
         owner={BUDGET_TAB_SHEET_OWNER}
         shownGroupByCategoryId={noShownGroups}
@@ -305,12 +318,13 @@ describe('SetBudgetSheet', () => {
 
     expect(getByTestId('budget-name-input')).toHaveProp('value', 'Alexandria Trip Food');
     expect(getByTestId('amount-hero-value')).toHaveProp('value', '1500');
-    expect(getByText(Strings.budget5030GroupPickerLabel)).toBeTruthy();
+    expect(within(getByTestId('group-row')).getByText(Strings.budget5030GroupNeed)).toBeTruthy();
     expect(useSetBudgetSheetState.getState().groupValue).toBe(BudgetGroup.Need);
 
     await fireEvent.changeText(getByTestId('budget-name-input'), 'Weekend Food');
     await fireEvent.changeText(getByTestId('amount-hero-value'), '1750');
-    await fireEvent.press(getByLabelText(Strings.budget5030GroupWant));
+    await fireEvent.press(getByTestId('group-row'));
+    await fireEvent.press(getByTestId('budget-group-option-want'));
     await fireEvent.press(getByLabelText(Strings.budgetSaveCta));
 
     await waitFor(() =>
@@ -323,6 +337,34 @@ describe('SetBudgetSheet', () => {
         categoryGroup: BudgetGroup.Want,
       }),
     );
+  });
+
+  it('opens the Group picker from the Group row, and a choice closes it and keeps the typed values', async () => {
+    const { getByTestId, queryByTestId } = await render(
+      <SetBudgetSheet
+        owner={BUDGET_TAB_SHEET_OWNER}
+        shownGroupByCategoryId={noShownGroups}
+        budgetableCategories={categories}
+      />,
+    );
+
+    expect(
+      within(getByTestId('group-row')).getByText(Strings.budget5030NotGroupedMetric),
+    ).toBeTruthy();
+    expect(queryByTestId('budget-group-picker')).toBeNull();
+
+    await fireEvent.changeText(getByTestId('budget-name-input'), 'Alexandria Trip Food');
+    await fireEvent.changeText(getByTestId('amount-hero-value'), '1500');
+    await fireEvent.press(getByTestId('group-row'));
+
+    expect(getByTestId('budget-group-picker')).toBeTruthy();
+
+    await fireEvent.press(getByTestId('budget-group-option-need'));
+
+    expect(queryByTestId('budget-group-picker')).toBeNull();
+    expect(within(getByTestId('group-row')).getByText(Strings.budget5030GroupNeed)).toBeTruthy();
+    expect(getByTestId('amount-hero-value')).toHaveProp('value', '1500');
+    expect(getByTestId('budget-name-input')).toHaveProp('value', 'Alexandria Trip Food');
   });
 
   it('carries a typed comma on the limit to a decimal point, and leaves the name alone', async () => {

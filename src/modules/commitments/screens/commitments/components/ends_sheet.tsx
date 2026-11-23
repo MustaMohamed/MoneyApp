@@ -5,6 +5,7 @@ import { DateRow } from '@/components/ui/date_row';
 import { FormFactCell } from '@/components/ui/form_fact_cell';
 import { FormSheetFooter } from '@/components/ui/form_sheet_footer';
 import { ListCard } from '@/components/ui/list_card';
+import { RadioChoiceCard } from '@/components/ui/radio_choice_card';
 import { Stepper } from '@/components/ui/stepper';
 import { DurationType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -13,7 +14,7 @@ import { type CommitmentFormSchedule, resolveEndsOptions } from '../commitment_f
 import { type CommitmentFormValues, ENDS_AFTER_COUNT_MIN } from '../commitment_form.shared';
 import {
   CommitmentChoiceBlock,
-  CommitmentChoiceOptions,
+  CommitmentChoiceLabel,
   CommitmentChoiceSheet,
 } from './commitment_choice_sheet';
 import { useEndsSheet } from './ends_sheet.hook';
@@ -67,11 +68,12 @@ export function EndsSheet({
     >
       {draft === undefined ? null : (
         <>
-          <CommitmentChoiceOptions<DurationType>
+          <RadioChoiceCard
             options={ENDS_OPTIONS}
             value={draft.type}
             onValueChange={pickType}
             testIDPrefix="ends-option"
+            renderLabel={(option) => <CommitmentChoiceLabel label={option.label} />}
           />
           {draft.type === DurationType.AfterCount ? (
             <CommitmentChoiceBlock
