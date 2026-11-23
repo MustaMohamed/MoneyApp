@@ -207,6 +207,9 @@ An amount half a cent or more off zero keeps its own colour, icon and word where
 figure prints it as `0`, as §2 holds. `docs/adr/2026-10-04-half-cent-zero-and-cent-ties.md` lists
 the figures.
 
+**Extended 2026-11-23 (MA-316, #970).** The plan sheet's daily line, the total divided by the
+inclusive days, prints through `formatDisplayMagnitude` in EGP. It is display only; nothing is stored.
+
 ## 3. Four decimals constants, allowed to diverge
 
 - **`EXCHANGE_RATE_DECIMALS`** (`src/utils/format_amount.ts`) owns rate precision for

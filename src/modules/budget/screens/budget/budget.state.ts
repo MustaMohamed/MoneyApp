@@ -7,6 +7,7 @@ import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 export type BudgetSheetMode = 'add' | 'edit';
 export type SpendingPlanSheetMode = 'add' | 'edit';
+export type SpendingPlanSheetOwner = 'budget' | 'planDetail';
 export type LensTab = 'categories' | 'plans' | 'fiftythirty';
 
 interface BudgetStateShape {
@@ -17,6 +18,7 @@ interface BudgetStateShape {
   addBudgetGroup: BudgetGroup | undefined;
   planSheetVisible: boolean;
   planSheetMode: SpendingPlanSheetMode;
+  planSheetOwner: SpendingPlanSheetOwner | undefined;
   targetPlanId: string | undefined;
   lensTab: LensTab;
   selectedMonth: string;
@@ -35,8 +37,8 @@ type BudgetState = BudgetStateShape & {
   openAddWithContext: (categoryId: string | undefined, group: BudgetGroup) => void;
   openEdit: (budgetId: string) => void;
   close: () => void;
-  openAddPlan: () => void;
-  openEditPlan: (planId: string) => void;
+  openAddPlan: (owner: SpendingPlanSheetOwner) => void;
+  openEditPlan: (owner: SpendingPlanSheetOwner, planId: string) => void;
   closePlan: () => void;
   setLensTab: (tab: LensTab) => void;
   setSelectedMonth: (month: string) => void;
@@ -65,6 +67,7 @@ function initialState(): BudgetStateShape {
     addBudgetGroup: undefined,
     planSheetVisible: false,
     planSheetMode: 'add',
+    planSheetOwner: undefined,
     targetPlanId: undefined,
     lensTab: 'categories',
     selectedMonth,
@@ -107,19 +110,22 @@ export const useBudgetState = createMoneyAppSelectors(
         addBudgetGroup: undefined,
       }),
     close: () => set({ sheetVisible: false, addCategoryId: undefined, addBudgetGroup: undefined }),
-    openAddPlan: () =>
+    openAddPlan: (owner) =>
       set({
         planSheetVisible: true,
         planSheetMode: 'add',
+        planSheetOwner: owner,
         targetPlanId: undefined,
       }),
-    openEditPlan: (planId) =>
+    openEditPlan: (owner, planId) =>
       set({
         planSheetVisible: true,
         planSheetMode: 'edit',
+        planSheetOwner: owner,
         targetPlanId: planId,
       }),
-    closePlan: () => set({ planSheetVisible: false, targetPlanId: undefined }),
+    closePlan: () =>
+      set({ planSheetVisible: false, planSheetOwner: undefined, targetPlanId: undefined }),
     setLensTab: (tab) => set({ lensTab: tab }),
     setSelectedMonth: (month) =>
       set({

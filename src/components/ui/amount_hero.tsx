@@ -8,7 +8,7 @@ import { Text } from '@/components/ui/text';
 import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import type { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Type } from '@/constants/theme';
+import { Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 import { maskMoneyFieldText } from '@/utils/money_text';
 
@@ -44,6 +44,8 @@ interface Props {
   currency: Currency;
   invalid?: boolean;
   accessibilityLabel: string;
+  /** A centred line under the number; it takes the hero's bottom hairline. */
+  caption?: string;
 }
 
 export function AmountHero({
@@ -53,15 +55,16 @@ export function AmountHero({
   currency,
   invalid = false,
   accessibilityLabel,
+  caption,
 }: Props): React.ReactElement {
   const { onFocus, onBlur } = useBottomSheetAwareHandlers();
   const { fontScale } = useWindowDimensions();
 
   // Two equal columns flank the input and centre the number: the right one holds the code unseen, and an amount wider than the room between them shrinks the input, which scrolls it.
-  return (
+  const row = (
     <View
       style={{ flexDirection: 'row', alignItems: 'baseline' }}
-      className="border-separator border-b py-4"
+      className={caption === undefined ? 'border-separator border-b py-4' : 'pt-4'}
     >
       <View style={{ ...AMOUNT_FLANK_STYLE, alignItems: 'flex-end' }}>
         <Text className="font-inter text-muted mr-2" style={AMOUNT_CODE_STYLE}>
@@ -110,6 +113,25 @@ export function AmountHero({
           accessibilityElementsHidden
         >
           {currency}
+        </Text>
+      </View>
+    </View>
+  );
+  if (caption === undefined) return row;
+  return (
+    <View>
+      {row}
+      <View className="border-separator border-b" style={{ paddingBottom: Spacing.xs }}>
+        <Text
+          className="font-sora text-content-secondary"
+          style={{
+            fontSize: Type.caption,
+            lineHeight: lineHeightFor(Type.caption),
+            textAlign: 'center',
+          }}
+          allowFontScaling
+        >
+          {caption}
         </Text>
       </View>
     </View>

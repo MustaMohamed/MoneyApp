@@ -590,6 +590,10 @@ export const Strings = {
   budgetPlanCategories: 'Categories',
   budgetPlanPickCategories: 'Pick categories',
   budgetPlanMoreCategoriesCount: (count: number) => `+${count}`,
+  budgetPlanCategoriesValue: (names: readonly string[], more: number) =>
+    more > 0 ? `${names.join(', ')} +${more}` : names.join(', '),
+  budgetPlanDailyLine: (days: number, amount: string) =>
+    `${days} ${days === 1 ? 'day' : 'days'}, ${amount} EGP a day.`,
   budgetPlanAllocateByCategory: 'Allocate by category',
   budgetPlanAllocationOver: 'Allocations exceed the plan total.',
   budgetPlanLimitNone: 'No limit',
