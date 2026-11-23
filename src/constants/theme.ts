@@ -212,7 +212,6 @@ export const Size = {
   budgetRuleValueColumn: ms(72),
   budgetRuleChevronColumn: ms(18),
   budgetRuleRowMinHeight: ms(62),
-  budgetLedgerMonthColumn: ms(54),
   budgetMonthlyBarMaxHeight: ms(100),
   budgetMonthlyBarMaxWidth: ms(30),
   budgetMonthlyBarRadius: ms(6),
