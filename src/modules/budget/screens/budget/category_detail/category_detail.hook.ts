@@ -12,6 +12,10 @@ import {
 } from '@/modules/budget/screens/budget/budget.helpers';
 import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
 import { useCategoryDetailState } from '@/modules/budget/screens/budget/category_detail/category_detail.state';
+import {
+  BUDGET_TAB_SHEET_OWNER,
+  useSetBudgetSheetState,
+} from '@/modules/budget/screens/budget/components/set_budget_sheet.state';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 
@@ -130,6 +134,7 @@ export function useCategoryDetail() {
     editBudget: () => {
       if (!editableBudgetId) return;
       router.back();
+      useSetBudgetSheetState.getState().openFor(BUDGET_TAB_SHEET_OWNER);
       openEdit(editableBudgetId);
     },
   };

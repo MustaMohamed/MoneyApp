@@ -24,6 +24,10 @@ import {
 } from '@/modules/budget/screens/budget/budget_buckets.helpers';
 import type { NamedBudgetVM } from '@/modules/budget/screens/budget/budget_categories.types';
 import { useIncomeSheetState } from '@/modules/budget/screens/budget/components/income_sheet.state';
+import {
+  BUDGET_TAB_SHEET_OWNER,
+  useSetBudgetSheetState,
+} from '@/modules/budget/screens/budget/components/set_budget_sheet.state';
 import { buildSpendingPlanRows } from '@/modules/budget/screens/budget/spending_plans.helpers';
 import { computeSpendingPlansSummary } from '@/modules/budget/screens/budget/spending_plans_summary.helpers';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
@@ -44,6 +48,21 @@ export interface BudgetEditTargetVM extends NamedBudgetVM {
   icon: string;
   color: string;
   limit: number;
+}
+
+function openAdd(): void {
+  useSetBudgetSheetState.getState().openFor(BUDGET_TAB_SHEET_OWNER);
+  useBudgetState.getState().openAdd();
+}
+
+function openAddWithContext(categoryId: string | undefined, group: BudgetGroup): void {
+  useSetBudgetSheetState.getState().openFor(BUDGET_TAB_SHEET_OWNER);
+  useBudgetState.getState().openAddWithContext(categoryId, group);
+}
+
+function openEdit(budgetId: string): void {
+  useSetBudgetSheetState.getState().openFor(BUDGET_TAB_SHEET_OWNER);
+  useBudgetState.getState().openEdit(budgetId);
 }
 
 export function useBudget() {
@@ -102,9 +121,6 @@ export function useBudget() {
   const removeBudget = useBudgetStore.getState().removeBudget;
   const setSpendingPlan = useBudgetStore.getState().setSpendingPlan;
   const removeSpendingPlan = useBudgetStore.getState().removeSpendingPlan;
-  const openAdd = useBudgetState.getState().openAdd;
-  const openAddWithContext = useBudgetState.getState().openAddWithContext;
-  const openEdit = useBudgetState.getState().openEdit;
   const openAddPlan = useBudgetState.getState().openAddPlan;
   const openEditPlan = useBudgetState.getState().openEditPlan;
   const {
@@ -467,7 +483,6 @@ export function useBudget() {
       activeBudgetGroupByCategoryId,
       categories,
       hasConfiguredIncome,
-      openAddWithContext,
       rows,
       ruleLens.buckets,
       setExpandedCategoryId,

@@ -20,6 +20,7 @@ import { CategoryBudgetRow } from '@/modules/budget/screens/budget/components/ca
 import { FiftyThirtyTwentyLens } from '@/modules/budget/screens/budget/components/fifty_thirty_twenty';
 import { IncomeSheet } from '@/modules/budget/screens/budget/components/income_sheet';
 import { SetBudgetSheet } from '@/modules/budget/screens/budget/components/set_budget_sheet';
+import { BUDGET_TAB_SHEET_OWNER } from '@/modules/budget/screens/budget/components/set_budget_sheet.state';
 import { SpendingPlanDeleteConfirmSheet } from '@/modules/budget/screens/budget/components/spending_plan_delete_confirm_sheet';
 import { SpendingPlansLens } from '@/modules/budget/screens/budget/components/spending_plans_lens';
 import { SummaryCard } from '@/modules/budget/screens/budget/components/summary_card';
@@ -264,6 +265,7 @@ export default function BudgetScreen() {
       />
 
       <SetBudgetSheet
+        owner={BUDGET_TAB_SHEET_OWNER}
         budgetableCategories={state.budgetableCategories}
         editingRow={state.editingRow}
         shownGroupByCategoryId={state.budgetSheetGroupByCategoryId}
