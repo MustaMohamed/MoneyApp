@@ -189,7 +189,6 @@ export const Size = {
   spendingPlanAllocationErrorRoom: 26,
   // The shared input's `py-2` on each edge (`src/components/ui/input.tsx`); unscaled, never `ms()`.
   inputPaddingY: 8,
-  setBudgetFieldTrack: ms(28),
   headerHeight: ms(56),
   // Estimate excluding the safe-area inset; ignores landscape collapse and scaled tab labels.
   tabBarHeight: Platform.select({ ios: ms(49), default: ms(56) }),

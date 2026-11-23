@@ -211,15 +211,6 @@ describe('useSetBudgetSheet — MA-115 a half-typed limit', () => {
     expect(limitError(result)).toBe(Strings.budgetAmountRequired);
   });
 
-  it('a refused keystroke leaves the save error standing', async () => {
-    const { result } = await mountRejected();
-
-    await typeLimit(result, '1500x');
-
-    expect(useSetBudgetSheetState.getState().errorMessage).toBe(Strings.budgetSaveError);
-    expect(limitError(result)).toBeUndefined();
-  });
-
   it('before any Save "0.001" and a limit typed and then cleared raise nothing', async () => {
     const { result } = await mountEdit();
 

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
-import { useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { useToast } from '@/components/ui/toast';
 import { BudgetGroup } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -12,7 +11,7 @@ import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { formatMonthYear } from '@/utils/format_date';
-import { formatStoredMoneyText, maskFieldText, parseRequiredMoneyText } from '@/utils/money_text';
+import { formatStoredMoneyText, parseRequiredMoneyText } from '@/utils/money_text';
 import { budgetFormSchema, type BudgetFormValues } from '@/utils/schemas/budget.schema';
 import { setTypedDecimal, useZodForm } from '@/utils/use_zod_form.hook';
 import { fullMonthName } from '@/utils/year_month';
@@ -113,7 +112,6 @@ export function useSetBudgetSheet({
   const setErrorMessage = useSetBudgetSheetState.getState().setErrorMessage;
   const { toast } = useToast();
   const { runSave } = useSetBudgetSheetSave();
-  const { onFocus, onBlur } = useBottomSheetAwareHandlers();
   const isEdit = mode === 'edit';
 
   const {
@@ -259,12 +257,9 @@ export function useSetBudgetSheet({
 
   const setLimitText = useCallback(
     (text: string) => {
-      // Mask before `clearError`: a refused keystroke must not wipe the error.
-      const masked = maskFieldText('amount', getValues('limitText'), text);
-      if (masked === undefined) return;
       clearError();
       const form = { setValue, clearErrors, getValues, trigger };
-      setTypedDecimal(form, 'limitText', masked, true, isSubmitted);
+      setTypedDecimal(form, 'limitText', text, true, isSubmitted);
     },
     [clearError, clearErrors, getValues, isSubmitted, setValue, trigger],
   );
@@ -285,8 +280,6 @@ export function useSetBudgetSheet({
       pickerExpanded,
       groupValue,
       saving,
-      errorMessage,
-      editingCategoryName: editingRow?.categoryName,
     },
     control,
     submit,
@@ -296,8 +289,6 @@ export function useSetBudgetSheet({
     togglePicker,
     collapsePicker,
     clearError,
-    onFocus,
-    onBlur,
     onOpenChange,
     handleCloseComplete,
   };
