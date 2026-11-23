@@ -22,6 +22,7 @@ interface Props {
   capsAtToday?: boolean;
   minimumDate?: string; // YYYY-MM-DD
   disabled?: boolean;
+  wrapsValue?: boolean;
 }
 
 export function DateRow({
@@ -35,6 +36,7 @@ export function DateRow({
   capsAtToday = true,
   minimumDate,
   disabled,
+  wrapsValue = false,
 }: Props): React.ReactElement {
   const picker = useDateRowPicker(ownerId, value, onChange, { capsAtToday, minimumDate });
   const formatted = formatWeekdayDate(value);
@@ -48,6 +50,7 @@ export function DateRow({
         onPress={picker.open}
         disabled={disabled}
         divider={divider}
+        wrapsValue={wrapsValue}
         accessibilityLabel={`${label}: ${formatted}`}
         suffix={
           <MaterialCommunityIcons name="calendar" size={Size.iconSm} color={CoreTokens.text2} />

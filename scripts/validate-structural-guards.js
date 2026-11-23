@@ -209,8 +209,6 @@ const NAMED_ROWS = [
       `${BUDGET}/spending_plan_detail/components/spending_plan_detail_summary.tsx`,
       `${BUDGET}/spending_plan_sheet/index.tsx`,
       `${BUDGET}/spending_plan_sheet/components/spending_plan_allocations.tsx`,
-      `${BUDGET}/spending_plan_sheet/components/spending_plan_category_selector.tsx`,
-      `${BUDGET}/spending_plan_sheet/components/spending_plan_date_range.tsx`,
       `${BUDGET}/spending_plan_sheet/components/spending_plan_sheet_fields.tsx`,
     ],
     banned: [identifier('StyleSheet')],

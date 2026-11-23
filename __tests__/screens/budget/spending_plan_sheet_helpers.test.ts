@@ -3,8 +3,10 @@ import { Strings } from '@/constants/strings';
 import { Size, Type } from '@/constants/theme';
 import {
   formatLimitsFigure,
+  formatPlanCategoriesValue,
   resolveAllocationSlotMinHeight,
   resolveAllocationSlotWidth,
+  resolvePlanDailyLine,
   resolveSpendingPlanFieldGeometry,
   showsAllocationSuffix,
   validateAllocationText,
@@ -151,5 +153,82 @@ describe('showsAllocationSuffix', () => {
     ['0', 2],
   ])('hides the suffix once %p is typed at font scale %s', (text, fontScale) => {
     expect(showsAllocationSuffix(text, fontScale)).toBe(false);
+  });
+});
+
+describe('resolvePlanDailyLine', () => {
+  it('divides the total by the inclusive days', () => {
+    expect(resolvePlanDailyLine(5000, '2026-11-12', '2026-11-15')).toBe(
+      Strings.budgetPlanDailyLine(4, '1,250'),
+    );
+  });
+
+  it('counts a plan that starts and ends on one day as one day', () => {
+    expect(resolvePlanDailyLine(500, '2026-11-12', '2026-11-12')).toBe(
+      Strings.budgetPlanDailyLine(1, '500'),
+    );
+  });
+
+  it('counts across a 30-day month end', () => {
+    expect(resolvePlanDailyLine(1000, '2026-04-30', '2026-05-01')).toBe(
+      Strings.budgetPlanDailyLine(2, '500'),
+    );
+  });
+
+  it('counts the leap day', () => {
+    expect(resolvePlanDailyLine(3000, '2028-02-28', '2028-03-01')).toBe(
+      Strings.budgetPlanDailyLine(3, '1,000'),
+    );
+  });
+
+  it('prints a fractional daily amount in whole EGP', () => {
+    expect(resolvePlanDailyLine(1000, '2026-11-12', '2026-11-14')).toBe(
+      Strings.budgetPlanDailyLine(3, '333'),
+    );
+  });
+
+  it('escalates once to the cent when the whole amount would print as 0', () => {
+    expect(resolvePlanDailyLine(1, '2026-11-12', '2026-11-14')).toBe(
+      Strings.budgetPlanDailyLine(3, '0.33'),
+    );
+  });
+
+  it('prints an amount under half a cent as 0.00', () => {
+    expect(resolvePlanDailyLine(0.01, '2026-11-12', '2026-11-14')).toBe(
+      Strings.budgetPlanDailyLine(3, '0.00'),
+    );
+  });
+
+  it.each<[string, number | undefined, string, string]>([
+    ['an undefined total', undefined, '2026-11-12', '2026-11-15'],
+    ['an empty start', 5000, '', '2026-11-15'],
+    ['an empty end', 5000, '2026-11-12', ''],
+    ['an end before the start', 5000, '2026-11-15', '2026-11-12'],
+  ])('shows no line for %s', (_case, total, start, end) => {
+    expect(resolvePlanDailyLine(total, start, end)).toBeUndefined();
+  });
+});
+
+describe('formatPlanCategoriesValue', () => {
+  it('reads the pick prompt with no categories', () => {
+    expect(formatPlanCategoriesValue([])).toBe(Strings.budgetPlanPickCategories);
+  });
+
+  it('reads one name alone', () => {
+    expect(formatPlanCategoriesValue(['Dining Out'])).toBe(
+      Strings.budgetPlanCategoriesValue(['Dining Out'], 0),
+    );
+  });
+
+  it('reads two names with nothing more', () => {
+    expect(formatPlanCategoriesValue(['Dining Out', 'Transport'])).toBe(
+      Strings.budgetPlanCategoriesValue(['Dining Out', 'Transport'], 0),
+    );
+  });
+
+  it('reads the first two names and counts the rest', () => {
+    expect(formatPlanCategoriesValue(['Dining Out', 'Transport', 'Groceries'])).toBe(
+      Strings.budgetPlanCategoriesValue(['Dining Out', 'Transport'], 1),
+    );
   });
 });

@@ -1,3 +1,5 @@
+const moreCount = (count: number) => `+${count}`;
+
 export const Strings = {
   loading: 'Loading...',
   logoMarkA11y: 'MoneyApp logo',
@@ -583,16 +585,20 @@ export const Strings = {
   budgetToolPlanComingSoonA11y: 'Temporary budget plans coming in Phase 2',
   budgetPlansTab: 'Plans',
   budgetPlansBody: 'Plan travel, a week, or another short period in a future phase.',
-  budgetPlanSetTitle: 'Create plan',
+  budgetPlanSetTitle: 'Add plan',
   budgetPlanEditTitle: 'Edit plan',
-  budgetPlanNameLabel: 'Plan name',
+  budgetPlanNameLabel: 'Name',
   budgetPlanNamePlaceholder: 'e.g. Alexandria weekend',
   budgetPlanAmountLabel: 'Plan total',
-  budgetPlanStartDate: 'Start date',
-  budgetPlanEndDate: 'End date',
+  budgetPlanStartDate: 'Starts',
+  budgetPlanEndDate: 'Ends',
   budgetPlanCategories: 'Categories',
   budgetPlanPickCategories: 'Pick categories',
-  budgetPlanMoreCategoriesCount: (count: number) => `+${count}`,
+  budgetPlanMoreCategoriesCount: moreCount,
+  budgetPlanCategoriesValue: (names: readonly string[], more: number) =>
+    more > 0 ? `${names.join(', ')} ${moreCount(more)}` : names.join(', '),
+  budgetPlanDailyLine: (days: number, amount: string) =>
+    `${days} ${days === 1 ? 'day' : 'days'}, ${amount} EGP a day.`,
   budgetPlanAllocateByCategory: 'Allocate by category',
   budgetPlanAllocationOver: 'Allocations exceed the plan total.',
   budgetPlanLimitNone: 'No limit',
@@ -607,13 +613,13 @@ export const Strings = {
   budgetPlanExpenseCategoriesOnly: 'Select expense categories only.',
   budgetPlanOverlapError: (categoryName: string, planName: string) =>
     `${categoryName} overlaps ${planName}`,
-  budgetPlanSave: 'Save plan',
+  budgetPlanSave: 'Save',
   budgetPlanNameRequired: 'Enter a plan name',
   budgetPlanAmountRequired: 'Enter a plan amount',
   budgetPlanAmountInvalid: 'Amount must be at least 0.01',
   budgetPlanDateInvalid: 'End date must be on or after start date',
   budgetPlanCategoryRequired: 'Select at least one category',
-  budgetPlanSaveError: 'Could not save plan. Try again.',
+  budgetPlanSaveError: "Couldn't save this plan. Nothing was changed. Try again.",
   budgetPlanDuplicateCategory: 'Select each category once.',
   zeroAmountPlaceholder: '0.00',
   budgetPlanDeleteConfirmTitle: 'Remove plan?',

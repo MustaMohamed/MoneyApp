@@ -1,14 +1,15 @@
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import { View } from 'react-native';
 
-import { Button } from '@/components/ui/button';
+import { FORM_SHEET_CONTENT_CONTAINER_STYLE } from '@/components/ui/form_sheet.geometry';
+import { FormSheetFooter } from '@/components/ui/form_sheet_footer';
 import { Sheet } from '@/components/ui/sheet';
-import { SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet.helpers';
-import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { SpendingPlanAllocations } from '@/modules/budget/screens/budget/spending_plan_sheet/components/spending_plan_allocations';
-import { SpendingPlanCategorySelector } from '@/modules/budget/screens/budget/spending_plan_sheet/components/spending_plan_category_selector';
-import { SpendingPlanDateRange } from '@/modules/budget/screens/budget/spending_plan_sheet/components/spending_plan_date_range';
-import { SpendingPlanFormFields } from '@/modules/budget/screens/budget/spending_plan_sheet/components/spending_plan_sheet_fields';
+import {
+  SpendingPlanFactCard,
+  SpendingPlanTotalHero,
+} from '@/modules/budget/screens/budget/spending_plan_sheet/components/spending_plan_sheet_fields';
 import {
   type SpendingPlanSheetProps,
   useSpendingPlanSheet,
@@ -30,67 +31,52 @@ export function SpendingPlanSheet(props: SpendingPlanSheetProps) {
         title={state.title}
         size="lg"
         scrollable
+        liftsAboveKeyboard
         footer={
-          <>
-            {state.footerLine ? (
-              <Text
-                testID="spending-plan-footer-line"
-                accessibilityLiveRegion="polite"
-                className="font-inter text-danger text-[11px]"
-              >
-                {state.footerLine}
-              </Text>
-            ) : null}
-            <Button
-              variant="primary"
-              label={Strings.budgetPlanSave}
-              onPress={() => void actions.submit()}
-              isLoading={state.saving}
-              isDisabled={state.saving}
-            />
-          </>
+          <FormSheetFooter
+            statusTestID="spending-plan-status"
+            showsStatusTrack
+            footnote={state.dailyLine}
+            message={state.footerLine}
+            label={Strings.budgetPlanSave}
+            isLoading={state.saving}
+            isDisabled={state.saving}
+            onPress={() => void actions.save()}
+          />
         }
       >
-        <BottomSheetScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerClassName="px-4 pt-2"
-          contentContainerStyle={{ paddingBottom: SHEET_FOOTER_CLEARANCE }}
-        >
-          <SpendingPlanFormFields
+        <BottomSheetScrollView showsVerticalScrollIndicator={false}>
+          <SpendingPlanTotalHero
             control={state.control}
             form={{ setValue: actions.setValue, clearErrors: actions.clearErrors }}
-            onEdit={actions.clearSubmitError}
             onTotalEdit={actions.editTotal}
             totalCarriesOverRing={state.totalCarriesOverRing}
-            onFocus={actions.onFocus}
-            onBlur={actions.onBlur}
           />
-          <SpendingPlanDateRange
-            startDate={state.startDate}
-            endDate={state.endDate}
-            datePickerTarget={state.datePickerTarget}
-            datePickerValue={state.datePickerValue}
-            openDatePicker={actions.openDatePicker}
-            onDatePickerSelect={actions.selectDate}
-            onDatePickerDismiss={actions.dismissDatePicker}
-          />
-          <SpendingPlanCategorySelector
-            selectedCategories={state.selectedCategories}
-            onPress={actions.openCategoryPicker}
-          />
-          <SpendingPlanAllocations
-            isEnabled={state.allocateByCategory}
-            onEnabledChange={actions.setAllocateByCategory}
-            selectedCategories={state.selectedCategories}
-            values={state.allocations}
-            errors={state.allocationErrors}
-            summaryText={state.allocationSummaryText}
-            isOver={state.allocationIsOver}
-            overRingedCategoryId={state.overRingedCategoryId}
-            onAllocationTextChange={actions.setAllocationText}
-            onFocus={actions.onFocus}
-            onBlur={actions.onBlur}
-          />
+          <View style={FORM_SHEET_CONTENT_CONTAINER_STYLE}>
+            <SpendingPlanFactCard
+              control={state.control}
+              startDate={state.startDate}
+              endDate={state.endDate}
+              categoriesValue={state.categoriesValue}
+              onEdit={actions.clearSubmitError}
+              onStartDateChange={actions.setStartDate}
+              onEndDateChange={actions.setEndDate}
+              onCategoriesPress={actions.openCategoryPicker}
+            />
+            <SpendingPlanAllocations
+              isEnabled={state.allocateByCategory}
+              onEnabledChange={actions.setAllocateByCategory}
+              selectedCategories={state.selectedCategories}
+              values={state.allocations}
+              errors={state.allocationErrors}
+              summaryText={state.allocationSummaryText}
+              isOver={state.allocationIsOver}
+              overRingedCategoryId={state.overRingedCategoryId}
+              onAllocationTextChange={actions.setAllocationText}
+              onFocus={actions.onFocus}
+              onBlur={actions.onBlur}
+            />
+          </View>
         </BottomSheetScrollView>
       </Sheet>
 

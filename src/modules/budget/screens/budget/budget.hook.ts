@@ -52,6 +52,14 @@ export interface BudgetEditTargetVM extends NamedBudgetVM {
   limit: number;
 }
 
+function openAddPlan(): void {
+  useBudgetState.getState().openAddPlan('budget');
+}
+
+function openEditPlan(planId: string): void {
+  useBudgetState.getState().openEditPlan('budget', planId);
+}
+
 export function useBudget() {
   const router = useRouter();
 
@@ -108,8 +116,6 @@ export function useBudget() {
   const removeBudget = useBudgetStore.getState().removeBudget;
   const setSpendingPlan = useBudgetStore.getState().setSpendingPlan;
   const removeSpendingPlan = useBudgetStore.getState().removeSpendingPlan;
-  const openAddPlan = useBudgetState.getState().openAddPlan;
-  const openEditPlan = useBudgetState.getState().openEditPlan;
   const {
     selectedMonth,
     copySourceMonth,
@@ -426,7 +432,7 @@ export function useBudget() {
       return;
     }
     setLensTab('plans');
-  }, [lensTab, openAddPlan, setLensTab]);
+  }, [lensTab, setLensTab]);
 
   const openPlanDetails = useCallback(
     (planId: string) => {

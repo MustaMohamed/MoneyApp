@@ -273,6 +273,7 @@ export default function BudgetScreen() {
       <SpendingPlanSheet
         budgetableCategories={state.budgetableCategories}
         editingPlan={state.editingPlan}
+        owner="budget"
       />
       <BudgetDeleteConfirmSheet
         isOpen={pendingDelete !== null}
