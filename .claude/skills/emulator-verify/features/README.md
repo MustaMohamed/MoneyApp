@@ -38,7 +38,7 @@ Four sections, in this order: `Reach it` (route, user path, deep link), `States`
 | [categories.md](categories.md) | `/settings/categories`, and its add and edit sheet | not redesigned |
 | [budget.md](budget.md) | `/budget`, and its copy sheet | not redesigned |
 | [goals.md](goals.md) | `/goals` | not redesigned |
-| [spending_plan_detail.md](spending_plan_detail.md) | `/budget/plans/[id]` | not redesigned |
+| [spending_plan_detail.md](spending_plan_detail.md) | `/budget/plans/[id]` | D2 (budget canvas): header, load states and Edit foot |
 | [budget_category_detail.md](budget_category_detail.md) | `/budget/[id]` | not redesigned |
 | [currency.md](currency.md) | `/settings/currency` | not redesigned |
 | [onboarding.md](onboarding.md) | `/welcome`, `/add_account`, `/more_accounts`, `/ready` | not redesigned |
