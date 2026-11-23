@@ -109,7 +109,7 @@ The user adds this to `permissions.allow` in `settings.local.json`, in `.claude/
 
 Once the log holds 10 distinct tickets, each pass reads two measures before a `ship` start. One ticket that asks is that ticket's miss; three in the window are the process's.
 
-Window start: none, the whole log.
+Window start: #978.
 
 When that line names a PR, the window starts at its merge, read once a pass, and an unmerged PR starts nothing:
 
