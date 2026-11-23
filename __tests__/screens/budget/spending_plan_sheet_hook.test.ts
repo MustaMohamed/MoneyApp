@@ -8,6 +8,7 @@ import { useSpendingPlanSheetState } from '@/modules/budget/screens/budget/spend
 import { useSpendingPlanSheetStore } from '@/modules/budget/screens/budget/spending_plan_sheet/spending_plan_sheet.store';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import type { Category } from '@/modules/categories/entities/category.entity';
+import { deferred } from '@/test_helpers/deferred';
 import { parseNonNegativeDecimal } from '@/utils/parse_decimal';
 
 const mockResetForm = jest.fn();
@@ -15,14 +16,18 @@ let mockTotalText = '500';
 let mockSubmitTotalText = '500';
 // RHF's `handleSubmit(onValid, onInvalid)` runs exactly one of its two arguments.
 let mockFormValid = true;
+type MockFieldErrors = Partial<Record<'nameText' | 'totalText', { message?: string }>>;
+let mockInvalidErrors: MockFieldErrors = {};
+let mockSubmitRejection: Error | undefined;
 const mockHandleSubmit =
   (
     submit: (values: { nameText: string; totalText: string }) => Promise<void>,
-    onInvalid?: () => void,
+    onInvalid?: (errors: MockFieldErrors) => void,
   ) =>
   async () => {
+    if (mockSubmitRejection) throw mockSubmitRejection;
     if (!mockFormValid) {
-      onInvalid?.();
+      onInvalid?.(mockInvalidErrors);
       return;
     }
     await submit({ nameText: 'Trip', totalText: mockSubmitTotalText });
@@ -58,11 +63,13 @@ beforeEach(() => {
   mockTotalText = '500';
   mockSubmitTotalText = '500';
   mockFormValid = true;
+  mockInvalidErrors = {};
+  mockSubmitRejection = undefined;
   useBudgetState.getState().reset();
   useSpendingPlanSheetState.getState().reset();
   useSpendingPlanSheetStore.getState().reset();
   useBudgetState.getState().setSelectedMonth('2026-07');
-  useBudgetState.getState().openAddPlan();
+  useBudgetState.getState().openAddPlan('budget');
 });
 
 afterEach(() => {
@@ -75,7 +82,7 @@ describe('useSpendingPlanSheet', () => {
     useBudgetStore.setState({ setSpendingPlan });
     const onSaved = jest.fn().mockResolvedValue(undefined);
     const { result } = await renderHook(() =>
-      useSpendingPlanSheet({ budgetableCategories: categories, onSaved }),
+      useSpendingPlanSheet({ owner: 'budget', budgetableCategories: categories, onSaved }),
     );
 
     await waitFor(() =>
@@ -91,7 +98,7 @@ describe('useSpendingPlanSheet', () => {
   // Both datetimepicker 9 callbacks must clear `datePickerTarget`, or the picker stays mounted.
   it('closes the date picker on dismiss without changing either date', async () => {
     const { result } = await renderHook(() =>
-      useSpendingPlanSheet({ budgetableCategories: categories }),
+      useSpendingPlanSheet({ owner: 'budget', budgetableCategories: categories }),
     );
     await waitFor(() =>
       expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
@@ -109,7 +116,7 @@ describe('useSpendingPlanSheet', () => {
 
   it('applies a selected date to the targeted field and closes the picker', async () => {
     const { result } = await renderHook(() =>
-      useSpendingPlanSheet({ budgetableCategories: categories }),
+      useSpendingPlanSheet({ owner: 'budget', budgetableCategories: categories }),
     );
     await waitFor(() =>
       expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
@@ -130,11 +137,160 @@ describe('useSpendingPlanSheet', () => {
     expect(useSpendingPlanSheetState.getState().datePickerTarget).toBeUndefined();
   });
 
+  it('sets the end date from setEndDate and keeps the start', async () => {
+    const { result } = await renderHook(() =>
+      useSpendingPlanSheet({ owner: 'budget', budgetableCategories: categories }),
+    );
+    await waitFor(() =>
+      expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
+    );
+    const { startDate } = useSpendingPlanSheetStore.getState();
+
+    await act(() => result.current.setEndDate('2026-07-21'));
+
+    expect(useSpendingPlanSheetStore.getState().endDate).toBe('2026-07-21');
+    expect(useSpendingPlanSheetStore.getState().startDate).toBe(startDate);
+  });
+
+  it('opens only the plan detail sheet, with the plan values, when plan detail opens edit', async () => {
+    const editingPlan = {
+      id: 'plan-alex',
+      name: 'Alex weekend',
+      startDate: '2026-09-12',
+      endDate: '2026-09-15',
+      totalAmount: 5000,
+      categoryChips: [
+        { id: 'cat_transport', name: 'Transport', icon: 'car', color: '#000', spent: 0 },
+      ],
+      allocationRows: [],
+    } as unknown as Parameters<typeof useSpendingPlanSheet>[0]['editingPlan'];
+    const transport: Category = { ...category, id: 'cat_transport', name: 'Transport' };
+    const twoCategories = [category, transport];
+    useBudgetState.getState().closePlan();
+
+    const budgetSheet = await renderHook(() =>
+      useSpendingPlanSheet({ owner: 'budget', budgetableCategories: twoCategories }),
+    );
+    const detailSheet = await renderHook(() =>
+      useSpendingPlanSheet({
+        owner: 'planDetail',
+        budgetableCategories: twoCategories,
+        editingPlan,
+      }),
+    );
+
+    await act(() => useBudgetState.getState().openEditPlan('planDetail', 'plan-alex'));
+
+    await waitFor(() => expect(useSpendingPlanSheetStore.getState().startDate).toBe('2026-09-12'));
+    expect(detailSheet.result.current.state.isOpen).toBe(true);
+    expect(budgetSheet.result.current.state.isOpen).toBe(false);
+    expect(useSpendingPlanSheetStore.getState()).toMatchObject({
+      startDate: '2026-09-12',
+      endDate: '2026-09-15',
+      selectedCategoryIds: ['cat_transport'],
+    });
+
+    await act(() => detailSheet.result.current.openCategoryPicker());
+
+    expect(detailSheet.result.current.state.categoryPickerOpen).toBe(true);
+    expect(budgetSheet.result.current.state.categoryPickerOpen).toBe(false);
+  });
+
+  it('puts the name message in the footer when RHF refuses the name at Save', async () => {
+    const { result } = await renderHook(() =>
+      useSpendingPlanSheet({ owner: 'budget', budgetableCategories: categories }),
+    );
+    await waitFor(() =>
+      expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
+    );
+    mockFormValid = false;
+    mockInvalidErrors = { nameText: { message: Strings.budgetPlanNameRequired } };
+
+    await act(async () => result.current.submit());
+
+    expect(result.current.state.footerLine).toBe(Strings.budgetPlanNameRequired);
+  });
+
+  it('puts the total message in the footer over the name one when RHF refuses both', async () => {
+    const { result } = await renderHook(() =>
+      useSpendingPlanSheet({ owner: 'budget', budgetableCategories: categories }),
+    );
+    await waitFor(() =>
+      expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
+    );
+    mockFormValid = false;
+    mockInvalidErrors = {
+      nameText: { message: Strings.budgetPlanNameRequired },
+      totalText: { message: Strings.budgetPlanAmountInvalid },
+    };
+
+    await act(async () => result.current.submit());
+
+    expect(result.current.state.footerLine).toBe(Strings.budgetPlanAmountInvalid);
+  });
+
+  it('shows no daily line until a total is typed, then reads it at the add-mode defaults', async () => {
+    mockTotalText = '';
+    const { result, rerender } = await renderHook(() =>
+      useSpendingPlanSheet({ owner: 'budget', budgetableCategories: categories }),
+    );
+    await waitFor(() =>
+      expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
+    );
+    expect(result.current.state.dailyLine).toBeUndefined();
+
+    mockTotalText = '500';
+    await rerender(undefined);
+
+    expect(result.current.state.dailyLine).toBe(Strings.budgetPlanDailyLine(1, '500'));
+  });
+
+  it('turns a rejected Save into the save error and clears the busy state', async () => {
+    const { result } = await renderHook(() =>
+      useSpendingPlanSheet({ owner: 'budget', budgetableCategories: categories }),
+    );
+    await waitFor(() =>
+      expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
+    );
+    mockSubmitRejection = new Error('unexpected');
+
+    await act(async () => result.current.save());
+
+    await waitFor(() =>
+      expect(useSpendingPlanSheetState.getState().submitError).toBe(Strings.budgetPlanSaveError),
+    );
+    expect(useSpendingPlanSheetState.getState().saving).toBe(false);
+  });
+
+  it('saves once on a double tap and reads busy until the save settles', async () => {
+    const pending = deferred();
+    const setSpendingPlan = jest.fn(() => pending.promise);
+    useBudgetStore.setState({ setSpendingPlan });
+    const { result } = await renderHook(() =>
+      useSpendingPlanSheet({ owner: 'budget', budgetableCategories: categories }),
+    );
+    await waitFor(() =>
+      expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
+    );
+
+    await act(async () => {
+      result.current.save();
+      result.current.save();
+    });
+
+    expect(setSpendingPlan).toHaveBeenCalledTimes(1);
+    expect(result.current.state.saving).toBe(true);
+
+    await act(async () => pending.resolve());
+
+    expect(useSpendingPlanSheetState.getState().saving).toBe(false);
+  });
+
   it('rejects a sub-cent allocation at submit and leaves the plan unsaved (Layla row 19)', async () => {
     const setSpendingPlan = jest.fn().mockResolvedValue(undefined);
     useBudgetStore.setState({ setSpendingPlan });
     const { result } = await renderHook(() =>
-      useSpendingPlanSheet({ budgetableCategories: categories }),
+      useSpendingPlanSheet({ owner: 'budget', budgetableCategories: categories }),
     );
     await waitFor(() =>
       expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
@@ -160,7 +316,7 @@ describe('useSpendingPlanSheet', () => {
     const setSpendingPlan = jest.fn().mockResolvedValue(undefined);
     useBudgetStore.setState({ setSpendingPlan });
     const { result } = await renderHook(() =>
-      useSpendingPlanSheet({ budgetableCategories: categories }),
+      useSpendingPlanSheet({ owner: 'budget', budgetableCategories: categories }),
     );
     await waitFor(() =>
       expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
@@ -211,9 +367,9 @@ describe('useSpendingPlanSheet', () => {
       ],
     } as unknown as Parameters<typeof useSpendingPlanSheet>[0]['editingPlan'];
 
-    useBudgetState.getState().openEditPlan('plan-legacy');
+    useBudgetState.getState().openEditPlan('budget', 'plan-legacy');
     const { result } = await renderHook(() =>
-      useSpendingPlanSheet({ budgetableCategories: categories, editingPlan }),
+      useSpendingPlanSheet({ owner: 'budget', budgetableCategories: categories, editingPlan }),
     );
     await waitFor(() =>
       expect(useSpendingPlanSheetStore.getState().allocations.cat_food).toBe('0.005'),
@@ -245,8 +401,10 @@ describe('useSpendingPlanSheet', () => {
     } as unknown as Parameters<typeof useSpendingPlanSheet>[0]['editingPlan'];
 
     mockResetForm.mockClear();
-    useBudgetState.getState().openEditPlan('plan-huge');
-    await renderHook(() => useSpendingPlanSheet({ budgetableCategories: categories, editingPlan }));
+    useBudgetState.getState().openEditPlan('budget', 'plan-huge');
+    await renderHook(() =>
+      useSpendingPlanSheet({ owner: 'budget', budgetableCategories: categories, editingPlan }),
+    );
 
     await waitFor(() => expect(mockResetForm).toHaveBeenCalled());
     const [prefill] = mockResetForm.mock.calls[0] as [{ nameText: string; totalText: string }];
@@ -256,7 +414,7 @@ describe('useSpendingPlanSheet', () => {
   it('hides the limits summary and reads nothing over while no plan total has been entered', async () => {
     mockTotalText = '5000';
     const { result, rerender } = await renderHook(() =>
-      useSpendingPlanSheet({ budgetableCategories: categories }),
+      useSpendingPlanSheet({ owner: 'budget', budgetableCategories: categories }),
     );
     await waitFor(() =>
       expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
@@ -280,7 +438,7 @@ describe('useSpendingPlanSheet', () => {
 
   it('ignores an allocation on a category that is not selected', async () => {
     const { result } = await renderHook(() =>
-      useSpendingPlanSheet({ budgetableCategories: categories }),
+      useSpendingPlanSheet({ owner: 'budget', budgetableCategories: categories }),
     );
     await waitFor(() =>
       expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
@@ -297,7 +455,7 @@ describe('useSpendingPlanSheet', () => {
     const setSpendingPlan = jest.fn().mockResolvedValue(undefined);
     useBudgetStore.setState({ setSpendingPlan });
     const { result } = await renderHook(() =>
-      useSpendingPlanSheet({ budgetableCategories: categories }),
+      useSpendingPlanSheet({ owner: 'budget', budgetableCategories: categories }),
     );
     await waitFor(() =>
       expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
@@ -321,7 +479,7 @@ describe('useSpendingPlanSheet', () => {
     const setSpendingPlan = jest.fn().mockResolvedValue(undefined);
     useBudgetStore.setState({ setSpendingPlan });
     const { result } = await renderHook(() =>
-      useSpendingPlanSheet({ budgetableCategories: categories }),
+      useSpendingPlanSheet({ owner: 'budget', budgetableCategories: categories }),
     );
     await waitFor(() =>
       expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
@@ -341,7 +499,7 @@ describe('useSpendingPlanSheet', () => {
   // The four keystrokes a comma-decimal keyboard sends for "one and a half" end at '1.50'.
   it('carries a typed comma on an allocation row to a decimal point', async () => {
     const { result } = await renderHook(() =>
-      useSpendingPlanSheet({ budgetableCategories: categories }),
+      useSpendingPlanSheet({ owner: 'budget', budgetableCategories: categories }),
     );
     await waitFor(() =>
       expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
@@ -368,7 +526,7 @@ describe('useSpendingPlanSheet', () => {
     'refuses %p on an allocation row, a second separator',
     async (delivered) => {
       const { result } = await renderHook(() =>
-        useSpendingPlanSheet({ budgetableCategories: categories }),
+        useSpendingPlanSheet({ owner: 'budget', budgetableCategories: categories }),
       );
       await waitFor(() =>
         expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
@@ -388,7 +546,7 @@ describe('useSpendingPlanSheet', () => {
     'refuses the comma-bearing paste %p, leaving the row on its last accepted text',
     async (delivered) => {
       const { result } = await renderHook(() =>
-        useSpendingPlanSheet({ budgetableCategories: categories }),
+        useSpendingPlanSheet({ owner: 'budget', budgetableCategories: categories }),
       );
       await waitFor(() =>
         expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
@@ -405,7 +563,7 @@ describe('useSpendingPlanSheet', () => {
 
   it('never flashes a message while a decimal amount is being typed', async () => {
     const { result } = await renderHook(() =>
-      useSpendingPlanSheet({ budgetableCategories: categories }),
+      useSpendingPlanSheet({ owner: 'budget', budgetableCategories: categories }),
     );
     await waitFor(() =>
       expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
@@ -430,7 +588,7 @@ describe('useSpendingPlanSheet', () => {
     const setSpendingPlan = jest.fn().mockResolvedValue(undefined);
     useBudgetStore.setState({ setSpendingPlan });
     const { result } = await renderHook(() =>
-      useSpendingPlanSheet({ budgetableCategories: categories }),
+      useSpendingPlanSheet({ owner: 'budget', budgetableCategories: categories }),
     );
     await waitFor(() =>
       expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
@@ -456,7 +614,7 @@ describe('useSpendingPlanSheet', () => {
     // Hoisted: `budgetableCategories` is in the seeding effect's deps, so a new array re-seeds.
     const twoCategories = [category, transport];
     const { result } = await renderHook(() =>
-      useSpendingPlanSheet({ budgetableCategories: twoCategories }),
+      useSpendingPlanSheet({ owner: 'budget', budgetableCategories: twoCategories }),
     );
     await waitFor(() =>
       expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
@@ -488,7 +646,7 @@ describe('useSpendingPlanSheet', () => {
       const setSpendingPlan = jest.fn().mockResolvedValue(undefined);
       useBudgetStore.setState({ setSpendingPlan });
       const { result } = await renderHook(() =>
-        useSpendingPlanSheet({ budgetableCategories: threeCategories }),
+        useSpendingPlanSheet({ owner: 'budget', budgetableCategories: threeCategories }),
       );
       await waitFor(() =>
         expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
@@ -546,6 +704,7 @@ describe('useSpendingPlanSheet', () => {
           hook.setAllocateByCategory(true);
         },
       ],
+      ['setEndDate', (hook) => hook.setEndDate('2026-07-21')],
       [
         'selectDate',
         (hook) =>
@@ -576,7 +735,7 @@ describe('useSpendingPlanSheet', () => {
         const setSpendingPlan = jest.fn().mockResolvedValue(undefined);
         useBudgetStore.setState({ setSpendingPlan });
         const { result } = await renderHook(() =>
-          useSpendingPlanSheet({ budgetableCategories: threeCategories }),
+          useSpendingPlanSheet({ owner: 'budget', budgetableCategories: threeCategories }),
         );
         await waitFor(() =>
           expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
@@ -628,7 +787,7 @@ describe('useSpendingPlanSheet', () => {
       const setSpendingPlan = jest.fn().mockResolvedValue(undefined);
       useBudgetStore.setState({ setSpendingPlan });
       const { result } = await renderHook(() =>
-        useSpendingPlanSheet({ budgetableCategories: categories }),
+        useSpendingPlanSheet({ owner: 'budget', budgetableCategories: categories }),
       );
       await waitFor(() =>
         expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
@@ -651,7 +810,7 @@ describe('useSpendingPlanSheet', () => {
     const setSpendingPlan = jest.fn().mockResolvedValue(undefined);
     useBudgetStore.setState({ setSpendingPlan });
     const { result } = await renderHook(() =>
-      useSpendingPlanSheet({ budgetableCategories: categories }),
+      useSpendingPlanSheet({ owner: 'budget', budgetableCategories: categories }),
     );
     await waitFor(() =>
       expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
@@ -672,7 +831,7 @@ describe('useSpendingPlanSheet', () => {
     const setSpendingPlan = jest.fn().mockResolvedValue(undefined);
     useBudgetStore.setState({ setSpendingPlan });
     const { result } = await renderHook(() =>
-      useSpendingPlanSheet({ budgetableCategories: categories }),
+      useSpendingPlanSheet({ owner: 'budget', budgetableCategories: categories }),
     );
     await waitFor(() =>
       expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
@@ -690,7 +849,7 @@ describe('useSpendingPlanSheet', () => {
     useBudgetStore.setState({ setSpendingPlan });
     mockSubmitTotalText = 'not-a-number';
     const { result } = await renderHook(() =>
-      useSpendingPlanSheet({ budgetableCategories: categories }),
+      useSpendingPlanSheet({ owner: 'budget', budgetableCategories: categories }),
     );
     await waitFor(() =>
       expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
@@ -706,7 +865,7 @@ describe('useSpendingPlanSheet', () => {
     const setSpendingPlan = jest.fn().mockRejectedValue(new Error('disk is on fire'));
     useBudgetStore.setState({ setSpendingPlan });
     const { result } = await renderHook(() =>
-      useSpendingPlanSheet({ budgetableCategories: categories }),
+      useSpendingPlanSheet({ owner: 'budget', budgetableCategories: categories }),
     );
     await waitFor(() =>
       expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
@@ -722,7 +881,7 @@ describe('useSpendingPlanSheet', () => {
     const setSpendingPlan = jest.fn().mockRejectedValue(new Error('disk is on fire'));
     useBudgetStore.setState({ setSpendingPlan });
     const { result } = await renderHook(() =>
-      useSpendingPlanSheet({ budgetableCategories: categories }),
+      useSpendingPlanSheet({ owner: 'budget', budgetableCategories: categories }),
     );
     await waitFor(() =>
       expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
@@ -743,7 +902,7 @@ describe('useSpendingPlanSheet', () => {
 
   it('clears the footer message on an accepted allocation keystroke', async () => {
     const { result } = await renderHook(() =>
-      useSpendingPlanSheet({ budgetableCategories: categories }),
+      useSpendingPlanSheet({ owner: 'budget', budgetableCategories: categories }),
     );
     await waitFor(() =>
       expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
@@ -765,7 +924,7 @@ describe('useSpendingPlanSheet', () => {
   // The clear sits below the mask guard: a refused keystroke leaves the offending text in place.
   it('leaves the footer message standing when the allocation keystroke is refused', async () => {
     const { result } = await renderHook(() =>
-      useSpendingPlanSheet({ budgetableCategories: categories }),
+      useSpendingPlanSheet({ owner: 'budget', budgetableCategories: categories }),
     );
     await waitFor(() =>
       expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
@@ -816,10 +975,10 @@ describe('useSpendingPlanSheet', () => {
       ],
     } as unknown as Parameters<typeof useSpendingPlanSheet>[0]['editingPlan'];
 
-    useBudgetState.getState().openEditPlan('plan-null');
+    useBudgetState.getState().openEditPlan('budget', 'plan-null');
     const twoCategories = [category, transport];
     const { result } = await renderHook(() =>
-      useSpendingPlanSheet({ budgetableCategories: twoCategories, editingPlan }),
+      useSpendingPlanSheet({ owner: 'budget', budgetableCategories: twoCategories, editingPlan }),
     );
     await waitFor(() =>
       expect(useSpendingPlanSheetStore.getState().allocations.cat_food).toBe('40'),
@@ -864,8 +1023,10 @@ describe('useSpendingPlanSheet', () => {
       ],
     } as unknown as Parameters<typeof useSpendingPlanSheet>[0]['editingPlan'];
 
-    useBudgetState.getState().openEditPlan('plan-exponent');
-    await renderHook(() => useSpendingPlanSheet({ budgetableCategories: categories, editingPlan }));
+    useBudgetState.getState().openEditPlan('budget', 'plan-exponent');
+    await renderHook(() =>
+      useSpendingPlanSheet({ owner: 'budget', budgetableCategories: categories, editingPlan }),
+    );
 
     await waitFor(() =>
       expect(useSpendingPlanSheetStore.getState().allocations.cat_food).toBe('0.0000001'),
@@ -879,7 +1040,7 @@ describe('useSpendingPlanSheet', () => {
   ])('renders the limits summary to the cent for %p', async (text, assigned, flexible) => {
     mockTotalText = '100';
     const { result } = await renderHook(() =>
-      useSpendingPlanSheet({ budgetableCategories: categories }),
+      useSpendingPlanSheet({ owner: 'budget', budgetableCategories: categories }),
     );
     await waitFor(() =>
       expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
@@ -898,7 +1059,7 @@ describe('useSpendingPlanSheet', () => {
   it('renders the over figure as a magnitude once the limits exceed the total', async () => {
     mockTotalText = '100';
     const { result } = await renderHook(() =>
-      useSpendingPlanSheet({ budgetableCategories: categories }),
+      useSpendingPlanSheet({ owner: 'budget', budgetableCategories: categories }),
     );
     await waitFor(() =>
       expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
@@ -919,7 +1080,7 @@ describe('useSpendingPlanSheet', () => {
   it('recomputes the limits summary on every keystroke, mid-typing states included', async () => {
     mockTotalText = '100';
     const { result } = await renderHook(() =>
-      useSpendingPlanSheet({ budgetableCategories: categories }),
+      useSpendingPlanSheet({ owner: 'budget', budgetableCategories: categories }),
     );
     await waitFor(() =>
       expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
@@ -954,7 +1115,7 @@ describe('useSpendingPlanSheet', () => {
       const setSpendingPlan = jest.fn().mockResolvedValue(undefined);
       useBudgetStore.setState({ setSpendingPlan });
       const hook = await renderHook(() =>
-        useSpendingPlanSheet({ budgetableCategories: threeCategories }),
+        useSpendingPlanSheet({ owner: 'budget', budgetableCategories: threeCategories }),
       );
       await waitFor(() =>
         expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),

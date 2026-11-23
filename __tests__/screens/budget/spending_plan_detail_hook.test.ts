@@ -92,6 +92,19 @@ describe('useSpendingPlanDetail', () => {
     expect(result.current.state.plan?.name).toBe('Alex weekend');
   });
 
+  it('opens edit on the plan detail owner with the loaded plan id', async () => {
+    const { result } = await renderHook(() => useSpendingPlanDetail());
+    await act(async () => {
+      mockFocusEffect.mock.calls[0][0]();
+    });
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+
+    await act(async () => result.current.editPlan());
+
+    expect(mockOpenEditPlan).toHaveBeenCalledTimes(1);
+    expect(mockOpenEditPlan).toHaveBeenCalledWith('planDetail', 'plan_trip');
+  });
+
   it('exposes an error state and retries a failed load', async () => {
     mockGetDetails
       .mockRejectedValueOnce(new Error('database unavailable'))
