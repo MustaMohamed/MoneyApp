@@ -587,6 +587,8 @@ export const Strings = {
   budgetDetailMonthlyResult: 'Monthly result',
   budgetDetailCategories: 'Categories',
   budgetDetailInProgress: '* in progress',
+  budgetDetailInProgressMark: '*',
+  budgetDetailLimitLegend: (amount: string) => `limit ${amount}`,
   budgetDetailPlanned: 'Planned',
   budgetDetailPartOf: (part: string | number, whole: string | number) => `${part} of ${whole}`,
   budgetDetailSoFarSuffix: ' · so far',

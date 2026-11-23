@@ -42,6 +42,7 @@ const PERMITTED = {
   exceedsToCent: [
     'src/modules/accounts/domain/is_over_limit.ts',
     'src/modules/budget/screens/budget/budget.helpers.ts',
+    'src/modules/budget/screens/budget/category_detail/components/monthly_result_chart.helpers.ts',
     'src/modules/budget/screens/budget/spending_plans.helpers.ts',
     'src/modules/budget/utils/budget_summary.ts',
     'src/modules/dashboard/screens/dashboard/dashboard.helpers.ts',

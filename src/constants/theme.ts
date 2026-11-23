@@ -63,7 +63,7 @@ export const Colors = {
 } as const;
 
 /** The alpha suffixes in use, as `#RRGGBBAA` hex pairs. New values are a deliberate edit here. */
-export type AlphaHex = '1A' | '1F' | '22' | '2E' | '40' | '55' | '73' | '75' | '80' | 'CC';
+export type AlphaHex = '1A' | '1F' | '22' | '2E' | '40' | '55' | '66' | '73' | '75' | '80' | 'CC';
 
 /**
  * `#RRGGBB` token or runtime colour (account swatch, category colour) + alpha pair → `#RRGGBBAA`.
@@ -213,6 +213,13 @@ export const Size = {
   budgetRuleChevronColumn: ms(18),
   budgetRuleRowMinHeight: ms(62),
   budgetLedgerMonthColumn: ms(54),
+  budgetMonthlyBarMaxHeight: ms(100),
+  budgetMonthlyBarMaxWidth: ms(30),
+  budgetMonthlyBarRadius: ms(6),
+  budgetMonthlyColumnGap: ms(10),
+  budgetMonthlyBarMinHeight: ms(3),
+  budgetMonthlyLimitDash: ms(3),
+  budgetMonthlyLimitStroke: 1,
   budgetNamedRing: ms(34),
   budgetRingStroke: ms(3),
   listRowHeight: ms(58),
