@@ -269,6 +269,22 @@ describe('spending plan helpers', () => {
     expect(completedOver.card).not.toHaveProperty('elapsedMarkerPercentage');
   });
 
+  it('reads ends tomorrow for an active plan with one day left and counts days beyond it', () => {
+    const [oneDay, twoDays] = buildSpendingPlanRows({
+      plans: [
+        planFixture({ id: 'one_day', startDate: '2026-07-08', endDate: '2026-07-14' }),
+        planFixture({ id: 'two_days', startDate: '2026-07-08', endDate: '2026-07-15' }),
+      ],
+      categories,
+      spendByPlanId: { one_day: { cat_food: 0 }, two_days: { cat_food: 0 } },
+      selectedMonth: '2026-07',
+      today: '2026-07-13',
+    });
+
+    expect(oneDay.card.dateLabel).toBe('Jul 8 - Jul 14 · ends tomorrow');
+    expect(twoDays.card.dateLabel).toBe('Jul 8 - Jul 15 · 2 days left');
+  });
+
   it('derives unallocated category chip spend without limit or percentage values', () => {
     const row = buildSpendingPlanRows({
       plans: [

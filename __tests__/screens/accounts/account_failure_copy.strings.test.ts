@@ -30,7 +30,6 @@ const UNREDESIGNED_OLD_VOICE_KEYS = [
   'dashboardLoadRetry',
   'budgetLoadError',
   'budgetPlanDeleteError',
-  'budgetPlansDetailLoadError',
   'budgetCopyPreviewError',
   'budgetCopyError',
   'budgetDeleteError',

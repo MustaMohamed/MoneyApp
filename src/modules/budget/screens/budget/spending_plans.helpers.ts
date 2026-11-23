@@ -90,9 +90,9 @@ function planLifecycleLabel(timing: SpendingPlanTimingVM): string {
       ? Strings.budgetPlansEndedYesterday
       : Strings.budgetPlansEndedDaysAgo(timing.daysValue);
   }
-  return timing.daysValue === 0
-    ? Strings.budgetPlansEndsToday
-    : Strings.budgetPlansDaysLeft(timing.daysValue);
+  if (timing.daysValue === 0) return Strings.budgetPlansEndsToday;
+  if (timing.daysValue === 1) return Strings.budgetPlansEndsTomorrow;
+  return Strings.budgetPlansDaysLeft(timing.daysValue);
 }
 
 function activePlanPaceLabel(pacePoints: number): string {

@@ -2,21 +2,27 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import React from 'react';
 import { View } from 'react-native';
 
-import { Button } from '@/components/ui/button';
-import { HeaderIconAction } from '@/components/ui/header_icon_action';
+import { DetailEditAction } from '@/components/ui/detail_edit_action';
+import { DetailLoadError } from '@/components/ui/detail_load_error';
+import { DetailNotFoundState } from '@/components/ui/detail_not_found_state';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { StackHeader } from '@/components/ui/stack_header';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { Colors, Size } from '@/constants/theme';
+import { SpendingPlanDetailActions } from '@/modules/budget/screens/budget/spending_plan_detail/components/spending_plan_detail_actions';
 import { SpendingPlanDetailCategoryRow } from '@/modules/budget/screens/budget/spending_plan_detail/components/spending_plan_detail_category_row';
 import { SpendingPlanDetailSkeleton } from '@/modules/budget/screens/budget/spending_plan_detail/components/spending_plan_detail_skeleton';
 import { SpendingPlanDetailSummary } from '@/modules/budget/screens/budget/spending_plan_detail/components/spending_plan_detail_summary';
+import {
+  SPENDING_PLAN_DETAIL_LOAD_ERROR_COPY,
+  SPENDING_PLAN_DETAIL_LOAD_ERROR_TEST_ID,
+} from '@/modules/budget/screens/budget/spending_plan_detail/spending_plan_detail.helpers';
 import { useSpendingPlanDetail } from '@/modules/budget/screens/budget/spending_plan_detail/spending_plan_detail.hook';
 import { SpendingPlanSheet } from '@/modules/budget/screens/budget/spending_plan_sheet';
 
 export default function SpendingPlanDetailScreen() {
-  const { state, goBack, editPlan, retry } = useSpendingPlanDetail();
+  const { state, goBack, editPlan, retry, reload } = useSpendingPlanDetail();
   const plan = state.plan;
 
   return (
@@ -25,12 +31,9 @@ export default function SpendingPlanDetailScreen() {
         title={plan?.name ?? Strings.budgetPlansDetailTitle}
         onBack={goBack}
         right={
-          state.viewState === 'ready' && plan ? (
-            <HeaderIconAction
-              icon="pencil-outline"
-              iconSize={Size.iconSm}
-              iconColor={Colors.dark.gold}
-              accessibilityLabel={`${Strings.budgetPlanEditTitle} ${plan.name}`}
+          state.showsBody && plan ? (
+            <DetailEditAction
+              accessibilityLabel={Strings.budgetPlansDetailEditAccessibility}
               onPress={editPlan}
             />
           ) : undefined
@@ -46,35 +49,22 @@ export default function SpendingPlanDetailScreen() {
       ) : null}
 
       {state.viewState === 'notFound' ? (
-        <View className="flex-1 items-center justify-center gap-4 px-6">
-          <Text className="font-sora-semibold text-muted text-center text-[14px]">
-            {Strings.budgetPlansDetailNotFound}
-          </Text>
-          <Button
-            variant="secondary"
-            size="sm"
-            label={Strings.budgetPlansDetailBack}
-            accessibilityLabel={Strings.budgetPlansDetailBack}
-            onPress={goBack}
-          />
-        </View>
+        <DetailNotFoundState
+          title={Strings.budgetPlansDetailNotFoundTitle}
+          body={Strings.budgetPlansDetailNotFoundBody}
+          testID="spending-plan-detail-not-found"
+        />
       ) : null}
 
-      {state.viewState === 'error' ? (
-        <View className="flex-1 items-center justify-center gap-4 px-6">
-          <Text className="font-sora-semibold text-muted text-center text-[14px]">
-            {state.errorMessage}
-          </Text>
-          <Button
-            variant="secondary"
-            size="sm"
-            label={Strings.budgetPlansDetailRetry}
-            onPress={() => void retry()}
-          />
-        </View>
+      {state.viewState === 'firstLoadError' ? (
+        <DetailLoadError
+          copy={SPENDING_PLAN_DETAIL_LOAD_ERROR_COPY}
+          testID={SPENDING_PLAN_DETAIL_LOAD_ERROR_TEST_ID}
+          onRetry={retry}
+        />
       ) : null}
 
-      {state.viewState === 'ready' && plan ? (
+      {state.showsBody && plan ? (
         <>
           <ScreenScroll showsVerticalScrollIndicator={false}>
             <View className="pb-6">
@@ -109,15 +99,25 @@ export default function SpendingPlanDetailScreen() {
                   </View>
                 ) : null}
               </View>
+              <SpendingPlanDetailActions onEdit={editPlan} />
             </View>
           </ScreenScroll>
           <SpendingPlanSheet
             budgetableCategories={state.budgetableCategories}
             editingPlan={plan}
             owner="planDetail"
-            onSaved={retry}
+            onSaved={reload}
           />
         </>
+      ) : null}
+
+      {state.viewState === 'refreshErrorWithData' ? (
+        <DetailLoadError
+          copy={SPENDING_PLAN_DETAIL_LOAD_ERROR_COPY}
+          testID={SPENDING_PLAN_DETAIL_LOAD_ERROR_TEST_ID}
+          floating
+          onRetry={retry}
+        />
       ) : null}
     </Screen>
   );
