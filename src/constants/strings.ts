@@ -567,6 +567,16 @@ export const Strings = {
   budgetUpdatedToast: 'Budget updated',
   budgetNameTaken: (category: string, name: string, month: string) =>
     `${category} already has a ${name} budget in ${month}.`,
+  budgetStatusNoBudget: (category: string, month: string) =>
+    `${category} has no budget in ${month} yet.`,
+  budgetStatusBudgetCount: (category: string, count: number, month: string) =>
+    count === 1
+      ? `${category} has 1 budget in ${month}.`
+      : `${category} has ${count} budgets in ${month}.`,
+  budgetStatusSpentSoFar: (spent: string, limit: string, month: string) =>
+    `${spent} of ${limit} spent so far in ${month}.`,
+  budgetStatusSpent: (spent: string, limit: string, month: string) =>
+    `${spent} of ${limit} spent in ${month}.`,
   budgetRemoveCta: 'Remove budget',
   budgetNameRequired: 'Enter a budget name',
   budgetAmountRequired: 'Enter a limit above 0.',

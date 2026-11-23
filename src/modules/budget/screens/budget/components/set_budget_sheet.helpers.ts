@@ -1,5 +1,10 @@
-import { BudgetGroup } from '@/constants/enums';
+import type { AmountSuggestion } from '@/components/ui/amount_suggestions.helpers';
+import { CURRENCY_CONFIG } from '@/constants/currency';
+import { BudgetGroup, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { resolveSuggestedAmounts } from '@/modules/budget/screens/budget/suggested_amounts.helpers';
+import { formatAmount } from '@/utils/format_amount';
+import { fullMonthName } from '@/utils/year_month';
 
 export interface SetBudgetFaults {
   category: string | undefined;
@@ -48,4 +53,39 @@ export function resolveBudgetGroupRowValue(group: BudgetGroup | null): string {
     BUDGET_GROUP_OPTIONS.find((option) => option.value === group)?.label ??
     Strings.budget5030NotGroupedMetric
   );
+}
+
+export type SetBudgetStatusSubject =
+  | { kind: 'add'; categoryName: string; budgetCount: number }
+  | { kind: 'edit'; spent: number; limit: number };
+
+export function resolveSetBudgetStatusLine(
+  subject: SetBudgetStatusSubject | undefined,
+  month: string,
+  today: string,
+): string | undefined {
+  if (subject === undefined) return undefined;
+  const monthName = fullMonthName(month);
+  if (subject.kind === 'add') {
+    return subject.budgetCount === 0
+      ? Strings.budgetStatusNoBudget(subject.categoryName, monthName)
+      : Strings.budgetStatusBudgetCount(subject.categoryName, subject.budgetCount, monthName);
+  }
+  const decimals = CURRENCY_CONFIG[Currency.EGP].decimals;
+  const spent = formatAmount(subject.spent, decimals);
+  const limit = formatAmount(subject.limit, decimals);
+  return today.slice(0, 7) === month
+    ? Strings.budgetStatusSpentSoFar(spent, limit, monthName)
+    : Strings.budgetStatusSpent(spent, limit, monthName);
+}
+
+export function resolveSetBudgetSuggestions(
+  month: string,
+  categorySpendByMonth: Readonly<Record<string, number>> | undefined,
+): AmountSuggestion[] {
+  const amounts = resolveSuggestedAmounts(month, categorySpendByMonth);
+  return [
+    { kind: 'spentLastMonth', amount: amounts.spentLastMonth },
+    { kind: 'threeMonthAverage', amount: amounts.threeMonthAverage },
+  ];
 }

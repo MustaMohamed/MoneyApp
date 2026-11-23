@@ -2,25 +2,31 @@ import { useCallback, useEffect, useMemo } from 'react';
 import { Keyboard } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
+import type { AmountSuggestion } from '@/components/ui/amount_suggestions.helpers';
 import { useToast } from '@/components/ui/toast';
 import type { BudgetGroup } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { BudgetMonthGroupMap } from '@/modules/budget/entities/budget.entity';
 import { BudgetNameTakenError } from '@/modules/budget/repositories/budget.repository';
+import { getBudgetsForCategoryMonth } from '@/modules/budget/screens/budget/budget.helpers';
 import type { BudgetEditTargetVM } from '@/modules/budget/screens/budget/budget.hook';
 import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import type { Category } from '@/modules/categories/entities/category.entity';
-import { formatMonthYear } from '@/utils/format_date';
+import { formatMonthYear, toLocalDateString } from '@/utils/format_date';
 import { formatStoredMoneyText, parseRequiredMoneyText } from '@/utils/money_text';
 import { budgetFormSchema, type BudgetFormValues } from '@/utils/schemas/budget.schema';
+import { useLocalToday } from '@/utils/use_local_today.hook';
 import { setTypedDecimal, useZodForm } from '@/utils/use_zod_form.hook';
 import { fullMonthName } from '@/utils/year_month';
 
 import {
   resolveBudgetGroupRowValue,
   resolveSetBudgetFooterMessage,
+  resolveSetBudgetStatusLine,
+  resolveSetBudgetSuggestions,
   type SetBudgetFaults,
+  type SetBudgetStatusSubject,
 } from './set_budget_sheet.helpers';
 import { useSetBudgetSheetState } from './set_budget_sheet.state';
 
@@ -97,7 +103,17 @@ export function useSetBudgetSheet({
       nameTaken: state.nameTaken,
     })),
   );
+  const { loaded, loadedMonth, rows, spendByMonth } = useBudgetStore(
+    useShallow((state) => ({
+      loaded: state.loaded,
+      loadedMonth: state.loadedMonth,
+      rows: state.rows,
+      spendByMonth: state.spendByMonth,
+    })),
+  );
   const open = sheetVisible && openOwner === owner;
+  const monthLoaded = loaded && loadedMonth === selectedMonth;
+  const today = useLocalToday(toLocalDateString(new Date()), open);
   const close = useBudgetState.getState().close;
   const setBudget = useBudgetStore.getState().setBudget;
   const initAddMode = useSetBudgetSheetState.getState().initAddMode;
@@ -269,6 +285,21 @@ export function useSetBudgetSheet({
     [close, saving],
   );
 
+  let statusSubject: SetBudgetStatusSubject | undefined;
+  if (monthLoaded && isEdit && editingRow) {
+    statusSubject = { kind: 'edit', spent: editingRow.spent, limit: editingRow.limit };
+  } else if (monthLoaded && !isEdit && selectedCategory) {
+    statusSubject = {
+      kind: 'add',
+      categoryName: selectedCategory.name,
+      budgetCount: getBudgetsForCategoryMonth(rows, selectedCategory.id, selectedMonth).length,
+    };
+  }
+  const suggestions: AmountSuggestion[] | undefined =
+    isEdit || !monthLoaded || selectedCategoryId === undefined
+      ? undefined
+      : resolveSetBudgetSuggestions(selectedMonth, spendByMonth[selectedCategoryId]);
+
   const setLimitText = useCallback(
     (text: string) => {
       clearError();
@@ -292,6 +323,8 @@ export function useSetBudgetSheet({
       nameTaken,
       nameFault: faults.name ?? (nameTaken ? errorMessage : undefined),
       footerMessage: resolveSetBudgetFooterMessage(faults, errorMessage),
+      footerStatus: resolveSetBudgetStatusLine(statusSubject, selectedMonth, today),
+      suggestions,
       selectedCategoryId,
       pickerExpanded,
       groupValue,
@@ -302,6 +335,7 @@ export function useSetBudgetSheet({
     control,
     submit,
     setLimitText,
+    selectSuggestion: setLimitText,
     selectCategory,
     selectGroup,
     openGroupPicker,
