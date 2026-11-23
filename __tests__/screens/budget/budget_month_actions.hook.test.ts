@@ -3,6 +3,10 @@ import { act, renderHook } from '@testing-library/react-native';
 import { BudgetGroup, CategoryType } from '@/constants/enums';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 import { useIncomeSheetState } from '@/modules/budget/screens/budget/components/income_sheet.state';
+import {
+  BUDGET_TAB_SHEET_OWNER,
+  useSetBudgetSheetState,
+} from '@/modules/budget/screens/budget/components/set_budget_sheet.state';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
@@ -189,6 +193,7 @@ function setupStores(
 
 beforeEach(() => {
   useIncomeSheetState.getState().reset();
+  useSetBudgetSheetState.getState().reset();
   setupStores();
 });
 
@@ -228,6 +233,21 @@ describe('useBudget month actions', () => {
     expect(setLensTabMock).toHaveBeenCalledWith('categories');
     expect(setExpandedCategoryIdMock).toHaveBeenCalledWith(undefined);
     expect(openAddWithContextMock).toHaveBeenCalledWith('car', BudgetGroup.Want);
+    expect(useSetBudgetSheetState.getState().openOwner).toBeDefined();
+    expect(useSetBudgetSheetState.getState().openOwner).toBe(BUDGET_TAB_SHEET_OWNER);
+  });
+
+  it('stamps the budget tab as the sheet owner on add and on edit (MA-295)', async () => {
+    const { result } = await renderHook(() => useBudget());
+
+    await act(() => result.current.openAdd());
+    expect(useSetBudgetSheetState.getState().openOwner).toBeDefined();
+    expect(useSetBudgetSheetState.getState().openOwner).toBe(BUDGET_TAB_SHEET_OWNER);
+
+    useSetBudgetSheetState.getState().reset();
+    await act(() => result.current.openEdit('b1'));
+    expect(useSetBudgetSheetState.getState().openOwner).toBeDefined();
+    expect(useSetBudgetSheetState.getState().openOwner).toBe(BUDGET_TAB_SHEET_OWNER);
   });
 
   it('uses the category default when editing before monthly group snapshots exist', async () => {

@@ -1,0 +1,38 @@
+import { Strings } from '@/constants/strings';
+import {
+  countSetBudgetFaults,
+  resolveSetBudgetFooterMessage,
+  type SetBudgetFaults,
+} from '@/modules/budget/screens/budget/components/set_budget_sheet.helpers';
+
+const NO_FAULTS: SetBudgetFaults = { category: undefined, name: undefined, limit: undefined };
+
+describe('resolveSetBudgetFooterMessage (MA-295)', () => {
+  it('with no faults passes the save error through', () => {
+    expect(resolveSetBudgetFooterMessage(NO_FAULTS, 'write failed')).toBe('write failed');
+  });
+
+  it('with no faults and no save error reads nothing', () => {
+    expect(resolveSetBudgetFooterMessage(NO_FAULTS, undefined)).toBeUndefined();
+  });
+
+  it('with the category and the limit marked counts two fields', () => {
+    const faults: SetBudgetFaults = { ...NO_FAULTS, category: 'pick', limit: 'limit' };
+
+    expect(countSetBudgetFaults(faults)).toBe(2);
+    expect(resolveSetBudgetFooterMessage(faults, undefined)).toBe(Strings.fixFieldsMarkedAbove(2));
+  });
+
+  it('a marked field wins over a save error, counting one', () => {
+    const faults: SetBudgetFaults = { ...NO_FAULTS, name: 'blank' };
+
+    expect(countSetBudgetFaults(faults)).toBe(1);
+    expect(resolveSetBudgetFooterMessage(faults, 'write failed')).toBe(
+      Strings.fixFieldsMarkedAbove(1),
+    );
+  });
+
+  it('counts all three fields when every one is marked', () => {
+    expect(countSetBudgetFaults({ category: 'pick', name: 'blank', limit: 'limit' })).toBe(3);
+  });
+});

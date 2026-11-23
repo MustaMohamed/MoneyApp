@@ -11,13 +11,17 @@ import { BudgetNameTakenError } from '@/modules/budget/repositories/budget.repos
 import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
 import { SetBudgetSheet } from '@/modules/budget/screens/budget/components/set_budget_sheet';
 import { resolveSetBudgetFieldGeometry } from '@/modules/budget/screens/budget/components/set_budget_sheet.geometry';
-import { useSetBudgetSheetState } from '@/modules/budget/screens/budget/components/set_budget_sheet.state';
+import {
+  BUDGET_TAB_SHEET_OWNER,
+  useSetBudgetSheetState,
+} from '@/modules/budget/screens/budget/components/set_budget_sheet.state';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { makeTestBudgetEditTarget, makeTestBudgetableCategory } from '@/test_helpers/budget';
 import { deferred } from '@/test_helpers/deferred';
 import { ms } from '@/utils/responsive';
 
 let mockSetBudget: jest.Mock<Promise<void>, [unknown]>;
+const mockToast = { show: jest.fn() };
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => {
   const { View } = jest.requireActual<typeof import('react-native')>('react-native');
@@ -52,6 +56,10 @@ jest.mock('@/components/ui/sheet', () => ({
       </View>
     ) : null;
   },
+}));
+// The wrapper, not HeroUI: the suite's heroui-native mock exports no useToast.
+jest.mock('@/components/ui/toast', () => ({
+  useToast: () => ({ toast: mockToast, isToastVisible: false }),
 }));
 jest.mock('@/components/ui/button', () => ({
   Button: ({ label, onPress }: { label: string; onPress: () => void }) => {
@@ -148,6 +156,7 @@ beforeEach(() => {
   // `reset()` re-seeds `selectedMonth` from the system clock; pin a month that can never be now.
   useBudgetState.getState().setSelectedMonth('2026-01');
   useSetBudgetSheetState.getState().reset();
+  useSetBudgetSheetState.getState().openFor(BUDGET_TAB_SHEET_OWNER);
   mockSetBudget.mockClear();
   useBudgetState.getState().openAdd();
 });
@@ -155,7 +164,11 @@ beforeEach(() => {
 describe('SetBudgetSheet', () => {
   it('keeps the category selector compact inside the sheet', async () => {
     const { getByTestId, getByText } = await render(
-      <SetBudgetSheet shownGroupByCategoryId={noShownGroups} budgetableCategories={categories} />,
+      <SetBudgetSheet
+        owner={BUDGET_TAB_SHEET_OWNER}
+        shownGroupByCategoryId={noShownGroups}
+        budgetableCategories={categories}
+      />,
     );
 
     expect(getByTestId('icon-home')).toHaveStyle({ width: ms(13), height: ms(13) });
@@ -168,7 +181,11 @@ describe('SetBudgetSheet', () => {
       Dimensions.get('window').fontScale,
     );
     const { getByTestId } = await render(
-      <SetBudgetSheet shownGroupByCategoryId={noShownGroups} budgetableCategories={categories} />,
+      <SetBudgetSheet
+        owner={BUDGET_TAB_SHEET_OWNER}
+        shownGroupByCategoryId={noShownGroups}
+        budgetableCategories={categories}
+      />,
     );
 
     const input = getByTestId('budget-limit-input');
@@ -182,7 +199,11 @@ describe('SetBudgetSheet', () => {
       Dimensions.get('window').fontScale,
     );
     const { getByTestId } = await render(
-      <SetBudgetSheet shownGroupByCategoryId={noShownGroups} budgetableCategories={categories} />,
+      <SetBudgetSheet
+        owner={BUDGET_TAB_SHEET_OWNER}
+        shownGroupByCategoryId={noShownGroups}
+        budgetableCategories={categories}
+      />,
     );
 
     const input = getByTestId('budget-name-input');
@@ -194,7 +215,11 @@ describe('SetBudgetSheet', () => {
     useBudgetState.getState().openAddWithContext(undefined, BudgetGroup.Want);
 
     await render(
-      <SetBudgetSheet shownGroupByCategoryId={noShownGroups} budgetableCategories={categories} />,
+      <SetBudgetSheet
+        owner={BUDGET_TAB_SHEET_OWNER}
+        shownGroupByCategoryId={noShownGroups}
+        budgetableCategories={categories}
+      />,
     );
 
     expect(useSetBudgetSheetState.getState()).toMatchObject({
@@ -206,7 +231,11 @@ describe('SetBudgetSheet', () => {
   it('preserves the contextual rule group when selecting a category', async () => {
     useBudgetState.getState().openAddWithContext(undefined, BudgetGroup.Want);
     const screen = await render(
-      <SetBudgetSheet shownGroupByCategoryId={noShownGroups} budgetableCategories={categories} />,
+      <SetBudgetSheet
+        owner={BUDGET_TAB_SHEET_OWNER}
+        shownGroupByCategoryId={noShownGroups}
+        budgetableCategories={categories}
+      />,
     );
 
     await fireEvent.press(screen.getByLabelText(Strings.budgetPickCategory));
@@ -221,7 +250,11 @@ describe('SetBudgetSheet', () => {
   it('adds a named budget for the selected month', async () => {
     useBudgetState.getState().setSelectedMonth('2026-08');
     const { getByLabelText, getByTestId } = await render(
-      <SetBudgetSheet shownGroupByCategoryId={noShownGroups} budgetableCategories={categories} />,
+      <SetBudgetSheet
+        owner={BUDGET_TAB_SHEET_OWNER}
+        shownGroupByCategoryId={noShownGroups}
+        budgetableCategories={categories}
+      />,
     );
 
     await fireEvent.changeText(getByTestId('budget-name-input'), 'Alexandria Trip Food');
@@ -242,7 +275,11 @@ describe('SetBudgetSheet', () => {
     mockSetBudget.mockRejectedValueOnce(new BudgetNameTakenError('Gym'));
     useBudgetState.getState().setSelectedMonth('2026-08');
     const { getByLabelText, getByTestId } = await render(
-      <SetBudgetSheet shownGroupByCategoryId={noShownGroups} budgetableCategories={categories} />,
+      <SetBudgetSheet
+        owner={BUDGET_TAB_SHEET_OWNER}
+        shownGroupByCategoryId={noShownGroups}
+        budgetableCategories={categories}
+      />,
     );
 
     await fireEvent.changeText(getByTestId('budget-name-input'), 'Gym');
@@ -262,6 +299,7 @@ describe('SetBudgetSheet', () => {
   it("saves the category's shown 50/30/20 group for the month", async () => {
     const { getByLabelText, getByTestId } = await render(
       <SetBudgetSheet
+        owner={BUDGET_TAB_SHEET_OWNER}
         shownGroupByCategoryId={{ housing: BudgetGroup.Need }}
         budgetableCategories={categories}
       />,
@@ -289,6 +327,7 @@ describe('SetBudgetSheet', () => {
 
     const { getByLabelText, getByTestId, getByText } = await render(
       <SetBudgetSheet
+        owner={BUDGET_TAB_SHEET_OWNER}
         shownGroupByCategoryId={noShownGroups}
         budgetableCategories={categories}
         editingRow={existingBudget}
@@ -319,7 +358,11 @@ describe('SetBudgetSheet', () => {
 
   it('carries a typed comma on the limit to a decimal point, and leaves the name alone', async () => {
     const { getByTestId } = await render(
-      <SetBudgetSheet shownGroupByCategoryId={noShownGroups} budgetableCategories={categories} />,
+      <SetBudgetSheet
+        owner={BUDGET_TAB_SHEET_OWNER}
+        shownGroupByCategoryId={noShownGroups}
+        budgetableCategories={categories}
+      />,
     );
 
     // Assert after every step; a final-only check passes even if the comma is refused outright.
@@ -342,7 +385,11 @@ describe('SetBudgetSheet', () => {
     'refuses %p on the limit and keeps the accepted text',
     async (delivered) => {
       const { getByTestId } = await render(
-        <SetBudgetSheet shownGroupByCategoryId={noShownGroups} budgetableCategories={categories} />,
+        <SetBudgetSheet
+          owner={BUDGET_TAB_SHEET_OWNER}
+          shownGroupByCategoryId={noShownGroups}
+          budgetableCategories={categories}
+        />,
       );
 
       await fireEvent.changeText(getByTestId('budget-limit-input'), '1.5');
@@ -360,6 +407,7 @@ describe('SetBudgetSheet', () => {
 
     const { getByTestId } = await render(
       <SetBudgetSheet
+        owner={BUDGET_TAB_SHEET_OWNER}
         shownGroupByCategoryId={noShownGroups}
         budgetableCategories={categories}
         editingRow={{ ...existingBudget, limit: 1e-7 }}
@@ -383,6 +431,7 @@ describe('SetBudgetSheet', () => {
 
     const { getByTestId } = await render(
       <SetBudgetSheet
+        owner={BUDGET_TAB_SHEET_OWNER}
         shownGroupByCategoryId={noShownGroups}
         budgetableCategories={categories}
         editingRow={{ ...existingBudget, limit: -5 }}
@@ -403,6 +452,7 @@ describe('SetBudgetSheet', () => {
 
     const screen = await render(
       <SetBudgetSheet
+        owner={BUDGET_TAB_SHEET_OWNER}
         shownGroupByCategoryId={noShownGroups}
         budgetableCategories={categories}
         editingRow={existingBudget}
@@ -417,6 +467,7 @@ describe('SetBudgetSheet', () => {
 
     await screen.rerender(
       <SetBudgetSheet
+        owner={BUDGET_TAB_SHEET_OWNER}
         shownGroupByCategoryId={noShownGroups}
         budgetableCategories={[...categories]}
         editingRow={{ ...existingBudget }}
