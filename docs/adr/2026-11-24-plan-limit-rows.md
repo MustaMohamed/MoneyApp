@@ -16,4 +16,4 @@ The bar takes `budgetBandColor(spent, limit)` unchanged. A limit of 0 with spend
 
 ## 3. The printed amount
 
-Caption and amount print through `formatAmount`, EGP's 0 dp from `CURRENCY_CONFIG`. The left or over figure is `remainingLabel(limit - spent).magnitude`. The row adds no rounding point. 
+Caption and amount print through `formatAmount`, EGP's 0 dp from `CURRENCY_CONFIG`. The left or over figure is `remainingLabel(limit - spent).magnitude`. The row adds no rounding point.

@@ -39,8 +39,8 @@ import type {
   SpendingPlanStatusTone,
   SpendingPlanTimingVM,
 } from '@/modules/budget/screens/budget/spending_plans.types';
+import { rankedBy } from '@/modules/budget/utils/budget_row_order';
 import { BUDGET_WARNING_PERCENT, budgetBandColor } from '@/modules/budget/utils/budget_summary';
-import { rankedBy } from '@/modules/budget/utils/rank_order';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { formatAmount, formatCurrencyAmount } from '@/utils/format_amount';
 import { formatShortDate } from '@/utils/format_date';

@@ -28,12 +28,16 @@ interface Props {
 const MICRO_TEXT = { fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) };
 const NAME_TEXT = { fontSize: Type.bodyStrong, lineHeight: lineHeightFor(Type.bodyStrong) };
 const TILE_STYLE = { width: Size.spendingPlanLimitTile, height: Size.spendingPlanLimitTile };
+const BODY_STYLE = { flex: 1, columnGap: Spacing.sm, rowGap: Spacing.xxs };
 const TICK_WIDTH = Spacing.xxxs + 2 * Size.hairline;
 const TICK_STYLE: Readonly<ViewStyle> = Object.freeze({
   position: 'absolute',
   bottom: (Size.spendingPlanLimitTrack - Size.spendingPlanLimitTick) / 2 - Size.hairline,
   width: TICK_WIDTH,
   height: Size.spendingPlanLimitTick + 2 * Size.hairline,
+  borderWidth: Size.hairline,
+  borderRadius: Size.hairline,
+  borderColor: CoreTokens.surface,
   backgroundColor: withAlpha(CoreTokens.text1, 'CC'),
 });
 
@@ -52,8 +56,8 @@ function LimitRow({ row, tickPercentage }: Props & { row: SpendingPlanDetailLimi
       accessible
       accessibilityRole="text"
       accessibilityLabel={row.accessibilityLabel}
-      style={{ flexDirection: 'row', minHeight: Size.spendingPlanLimitRowHeight }}
-      className="items-center gap-3 px-4 py-2.5"
+      style={{ flexDirection: 'row', gap: Spacing.sm, minHeight: Size.spendingPlanLimitRowHeight }}
+      className="items-center px-4 py-2.5"
     >
       <View
         className="items-center justify-center"
@@ -67,16 +71,16 @@ function LimitRow({ row, tickPercentage }: Props & { row: SpendingPlanDetailLimi
         />
       </View>
       <View
-        className="min-w-0 gap-x-3 gap-y-1"
-        style={{ flex: 1, flexDirection: 'row', flexWrap: stacked ? 'wrap' : 'nowrap' }}
+        className="min-w-0"
+        style={[BODY_STYLE, { flexDirection: 'row', flexWrap: stacked ? 'wrap' : 'nowrap' }]}
       >
         <View
           className="min-w-0 justify-center"
           style={stacked ? { flexGrow: 1, flexShrink: 1 } : { flex: 1 }}
         >
           <View
-            className={stacked ? 'items-start gap-1' : 'items-center gap-1'}
-            style={{ flexDirection: stacked ? 'column' : 'row' }}
+            className={stacked ? 'items-start' : 'items-center'}
+            style={{ flexDirection: stacked ? 'column' : 'row', gap: Spacing.xxs }}
           >
             <Text
               className="font-inter-medium text-foreground"
@@ -106,14 +110,13 @@ function LimitRow({ row, tickPercentage }: Props & { row: SpendingPlanDetailLimi
                 accessibilityElementsHidden
                 importantForAccessibility="no-hide-descendants"
                 pointerEvents="none"
-                className="border-surface rounded-xs border"
                 style={[TICK_STYLE, tickAt(tickPercentage)]}
               />
             )}
           </View>
         </View>
         <View className="items-end justify-center">
-          <View className="items-baseline gap-1" style={{ flexDirection: 'row' }}>
+          <View className="items-baseline" style={{ flexDirection: 'row', gap: Spacing.xxs }}>
             <Text className="font-sora text-foreground" style={NAME_TEXT}>
               {row.amountLabel}
             </Text>

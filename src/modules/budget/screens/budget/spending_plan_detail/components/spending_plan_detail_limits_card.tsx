@@ -8,7 +8,9 @@ import { Size } from '@/constants/theme';
 import { SpendingPlanDetailCategoryRow } from '@/modules/budget/screens/budget/spending_plan_detail/components/spending_plan_detail_category_row';
 import type { SpendingPlanDetailVM } from '@/modules/budget/screens/budget/spending_plans.types';
 
-type Props = { card: NonNullable<SpendingPlanDetailVM['limitsCard']> };
+interface Props {
+  card: NonNullable<SpendingPlanDetailVM['limitsCard']>;
+}
 
 export function SpendingPlanDetailLimitsCard({ card }: Props): React.ReactElement {
   return (
