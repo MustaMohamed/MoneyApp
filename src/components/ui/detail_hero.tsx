@@ -14,7 +14,6 @@ import {
   DETAIL_HERO_BAR_TICK_WIDTH,
   DETAIL_HERO_CODE_GAP,
   DETAIL_HERO_CODE_OPACITY,
-  DETAIL_HERO_OVERLINE_GAP,
   DETAIL_HERO_PADDING,
   DETAIL_HERO_SHELL_STYLE,
   DETAIL_HERO_TILE_GAP,
@@ -74,6 +73,7 @@ function DetailHeroBarRow({ bar }: { bar: DetailHeroBar }): React.ReactElement {
   return (
     <View
       className="bg-foreground/12"
+      accessible
       accessibilityRole="progressbar"
       accessibilityValue={{
         min: 0,
@@ -203,7 +203,7 @@ export function DetailHero({ hero, testID, entering }: Props): React.ReactElemen
             numberOfLines={1}
             className="font-inter text-foreground/70 tracking-wider uppercase"
             style={{
-              marginTop: DETAIL_HERO_OVERLINE_GAP,
+              marginTop: geometry.overlineMarginTop,
               fontSize: geometry.overlineFontSize,
               lineHeight: lineHeightFor(geometry.overlineFontSize),
             }}

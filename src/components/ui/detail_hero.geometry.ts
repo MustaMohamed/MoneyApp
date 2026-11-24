@@ -44,6 +44,7 @@ interface DetailHeroGeometry {
   badgeHeight: number;
   topHeight: number;
   amountHeight: number;
+  overlineMarginTop: number;
   amountMarginTop: number;
   captionGap: number;
   height: number;
@@ -66,7 +67,8 @@ export function resolveDetailHeroGeometry(
   );
   const amountHeight = amount.lineHeight + FITTED_LINE_SLACK;
   const hidesOverline = layout.hidesOverline === true;
-  const overlineBlock = hidesOverline ? 0 : DETAIL_HERO_OVERLINE_GAP + micro.lineHeight;
+  const overlineMarginTop = DETAIL_HERO_OVERLINE_GAP;
+  const overlineBlock = hidesOverline ? 0 : overlineMarginTop + micro.lineHeight;
   const amountMarginTop = hidesOverline ? DETAIL_HERO_OVERLINE_GAP : 0;
   const captionGap = layout.bar === true ? DETAIL_HERO_BAR_CAPTION_GAP : DETAIL_HERO_CAPTION_GAP;
   const barRowHeight = layout.bar === true ? DETAIL_HERO_BAR_GAP + DETAIL_HERO_BAR_HEIGHT : 0;
@@ -92,6 +94,7 @@ export function resolveDetailHeroGeometry(
     badgeHeight,
     topHeight,
     amountHeight,
+    overlineMarginTop,
     amountMarginTop,
     captionGap,
     height,
