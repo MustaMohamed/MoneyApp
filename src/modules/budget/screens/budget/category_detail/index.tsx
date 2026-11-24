@@ -49,9 +49,7 @@ export default function CategoryBudgetDetailScreen() {
                 color={state.color}
               />
             )}
-            {state.history.results.length > 0 && (
-              <MonthlyResultChart history={state.history} month={state.month} />
-            )}
+            <MonthlyResultChart history={state.history} month={state.month} />
           </ScreenScroll>
 
           {state.viewState === 'refreshErrorWithData' ? (

@@ -78,33 +78,17 @@ export function useCategoryDetail() {
       const limit = resolveLimitForMonth(budgetRows, id, ym);
       if (limit === null && ym !== month) continue; // only months the budget was active, and the selected one
       const spent = spendByMonth[id]?.[ym] ?? 0;
-      const lifecycle =
+      const lifecycle: MonthResultVM['lifecycle'] =
         ym < actualCurrentMonth
           ? 'completed'
           : ym === actualCurrentMonth
             ? 'provisional'
             : 'planned';
-      const isProvisional = lifecycle === 'provisional';
+      const base = { yearMonth: ym, spent, isProvisional: lifecycle === 'provisional', lifecycle };
       out.push(
         limit === null
-          ? {
-              yearMonth: ym,
-              spent,
-              isProvisional,
-              lifecycle,
-              limit: undefined,
-              delta: undefined,
-              status: undefined,
-            }
-          : {
-              yearMonth: ym,
-              limit,
-              spent,
-              delta: limit - spent,
-              status: computeStatus(spent, limit),
-              isProvisional,
-              lifecycle,
-            },
+          ? { ...base, limit: undefined, delta: undefined, status: undefined }
+          : { ...base, limit, delta: limit - spent, status: computeStatus(spent, limit) },
       );
     }
     return out;

@@ -426,13 +426,12 @@ export function buildBudgetCopyRows({
 
 /** `results` is oldest first and ends at the selected month; see docs/adr/2026-11-24-category-history-completed-months.md. */
 export function computeCategoryHistory(results: readonly CategoryMonthVM[]): CategoryHistoryVM {
-  const bars = results
-    .slice(-MONTHLY_RESULT_BAR_COUNT)
-    .map((result): CategoryMonthVM =>
-      result.limit === undefined
-        ? { ...result, spent: snapToZero(result.spent) }
-        : { ...result, delta: snapToZero(result.delta), spent: snapToZero(result.spent) },
-    );
+  const bars = results.slice(-MONTHLY_RESULT_BAR_COUNT).map((result): CategoryMonthVM => {
+    const spent = snapToZero(result.spent);
+    return result.limit === undefined
+      ? { ...result, spent }
+      : { ...result, spent, delta: snapToZero(result.delta) };
+  });
   let netBanked = 0;
   let completedSpent = 0;
   let monthsCompleted = 0;

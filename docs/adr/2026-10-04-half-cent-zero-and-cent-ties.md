@@ -41,7 +41,7 @@ Each figure below passes through `snapToZero` in the pure function that returns 
 | Figure | Returned by | Read by |
 |---|---|---|
 | the magnitude and the word of a balance | `remainingLabel` | the category rows, the named budget rows, the Categories and Plans summary cards, the plan and plan-category balances |
-| `results[].delta`, `results[].spent` and `netBanked` | `computeCategoryHistory` | `stat_tiles.tsx`, `month_ledger.tsx`, `monthly_result_chart.tsx` |
+| `results[].delta`, `results[].spent` and `netBanked` | `computeCategoryHistory` | `monthly_result_chart.helpers.ts` (`buildMonthFigures`), `month_ledger.tsx`, `monthly_result_chart.tsx` |
 | `unassignedSpend` | `buildCategoryBudgetRows` | `category_budget_row.tsx` |
 | `unbudgetedSpend` | `buildBudgetCategoriesSummary` | `summary_card.tsx` |
 | `left` | `buildDashboardBudgetSummary` | `budget_card.tsx` |
