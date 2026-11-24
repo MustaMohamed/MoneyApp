@@ -35,8 +35,27 @@ export function SectionHeader({ title, meta, count, action }: SectionHeaderProps
   const { fontScale } = useWindowDimensions();
   const caption = scaledTextStyle(Type.caption, fontScale);
   const captionLine = resolveOneLineTextProps(caption);
-  // Above scale 1 a header with meta wraps whole: the meta and the pill drop under the title.
   const wraps = meta !== undefined && resolveRowStacking(fontScale) === 'stacked';
+  const countPill =
+    count !== undefined && count > 0 ? (
+      <View
+        className="rounded-full px-2 py-0.5"
+        style={{
+          backgroundColor: Colors.dark.goldTint,
+        }}
+      >
+        <Typography
+          className="font-sora-bold"
+          style={{
+            color: Colors.shared.cairoGold,
+            fontSize: Type.caption,
+            lineHeight: lineHeightFor(Type.caption),
+          }}
+        >
+          {count}
+        </Typography>
+      </View>
+    ) : null;
   return (
     <View
       className="flex-row items-center justify-between"
@@ -46,8 +65,7 @@ export function SectionHeader({ title, meta, count, action }: SectionHeaderProps
         marginTop: SECTION_HEADER_MARGIN_TOP,
         marginBottom: SECTION_HEADER_MARGIN_BOTTOM,
         gap: Spacing.xs,
-        // Wrapped, the meta and the pill start the second line side by side.
-        ...(wraps ? { flexWrap: 'wrap', justifyContent: 'flex-start' } : {}),
+        ...(wraps ? { flexWrap: 'wrap' } : {}),
       }}
     >
       <Typography
@@ -56,40 +74,26 @@ export function SectionHeader({ title, meta, count, action }: SectionHeaderProps
         className="font-inter-semibold text-muted tracking-wide uppercase"
         style={{
           ...captionLine.style,
-          // Wrapping, the title keeps its words whole and the meta drops under it instead.
+          // Wrapping, the title keeps its words whole and the meta with the pill drops under it.
           ...(wraps ? { flexGrow: 1, flexShrink: 0, maxWidth: '100%' } : { flex: 1 }),
         }}
       >
         {title}
       </Typography>
-      {meta === undefined ? null : (
-        <Typography
-          allowFontScaling={false}
-          className="font-sora text-content-secondary"
-          style={caption}
-        >
-          {meta}
-        </Typography>
-      )}
-      {count !== undefined && count > 0 ? (
-        <View
-          className="rounded-full px-2 py-0.5"
-          style={{
-            backgroundColor: Colors.dark.goldTint,
-          }}
-        >
+      {meta === undefined ? (
+        countPill
+      ) : (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs }}>
           <Typography
-            className="font-sora-bold"
-            style={{
-              color: Colors.shared.cairoGold,
-              fontSize: Type.caption,
-              lineHeight: lineHeightFor(Type.caption),
-            }}
+            allowFontScaling={false}
+            className="font-sora text-content-secondary"
+            style={caption}
           >
-            {count}
+            {meta}
           </Typography>
+          {countPill}
         </View>
-      ) : null}
+      )}
       {action ? (
         <LinkButton
           size="sm"

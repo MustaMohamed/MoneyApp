@@ -40,6 +40,7 @@ import type {
   SpendingPlanTimingVM,
 } from '@/modules/budget/screens/budget/spending_plans.types';
 import { BUDGET_WARNING_PERCENT, budgetBandColor } from '@/modules/budget/utils/budget_summary';
+import { rankedBy } from '@/modules/budget/utils/rank_order';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { formatAmount, formatCurrencyAmount } from '@/utils/format_amount';
 import { formatShortDate } from '@/utils/format_date';
@@ -68,11 +69,8 @@ export type {
   SpendingPlanDetailCategoryRowVM,
   SpendingPlanDetailCategoryVM,
   SpendingPlanDetailInsightVM,
-  SpendingPlanDetailLimitRowVM,
-  SpendingPlanDetailUnlimitedRowVM,
   SpendingPlanDetailVM,
   SpendingPlanLifecycle,
-  SpendingPlanLimitTagVM,
   SpendingPlanRowVM,
   SpendingPlansSummaryVM,
   SpendingPlanStatus,
@@ -112,8 +110,10 @@ export function resolveCategoryTileColors(color: string): { tileFill: string; gl
   return { tileFill, glyphColor };
 }
 
+type LimitTagStatus = Extract<SpendingPlanStatus, 'watch' | 'over'>;
+
 function limitTag(
-  label: string,
+  status: LimitTagStatus,
   icon: SpendingPlanLimitTagVM['icon'],
   tone: string,
 ): SpendingPlanLimitTagVM {
@@ -123,27 +123,20 @@ function limitTag(
     fillShare: LIMIT_TAG_FILL_SHARE,
     inkShare: 1,
   });
-  return { label, icon, fill, foreground };
+  return { label: PLAN_STATUS_PRESENTATION[status].label, icon, fill, foreground };
 }
 
-const LIMIT_WATCH_TAG = limitTag(Strings.budgetPlansStatusWatch, 'trending-up', Colors.dark.gold);
-const LIMIT_OVER_TAG = limitTag(
-  Strings.budgetPlansStatusOver,
-  'alert-circle',
-  Colors.dark.negative,
-);
+const LIMIT_TAGS: Record<LimitTagStatus, SpendingPlanLimitTagVM> = {
+  watch: limitTag('watch', 'trending-up', Colors.dark.gold),
+  over: limitTag('over', 'alert-circle', Colors.dark.negative),
+};
 
-function compareLimitRows(left: LimitedCategory, right: LimitedCategory): number {
-  if (left.allocatedAmount !== right.allocatedAmount) {
-    return right.allocatedAmount - left.allocatedAmount;
-  }
-  if (left.spent !== right.spent) return right.spent - left.spent;
-  if (left.categoryName < right.categoryName) return -1;
-  if (left.categoryName > right.categoryName) return 1;
-  if (left.categoryId < right.categoryId) return -1;
-  if (left.categoryId > right.categoryId) return 1;
-  return 0;
-}
+const compareLimitRows = rankedBy((row: LimitedCategory) => ({
+  amount: row.allocatedAmount,
+  spent: row.spent,
+  name: row.categoryName,
+  id: row.categoryId,
+}));
 
 function planLifecycleLabel(timing: SpendingPlanTimingVM): string {
   if (timing.lifecycle === 'upcoming') {
@@ -370,7 +363,11 @@ function buildDetailCategoryRow(
   const amountLabel = formatAmount(balance.magnitude);
   const balanceLabel =
     balance.label === 'over' ? Strings.budgetPlansOverStatus : Strings.budgetPlansLeftStatus;
-  const tag = row.isOver ? LIMIT_OVER_TAG : row.isWarning && isActive ? LIMIT_WATCH_TAG : undefined;
+  const tag = row.isOver
+    ? LIMIT_TAGS.over
+    : row.isWarning && isActive
+      ? LIMIT_TAGS.watch
+      : undefined;
   return {
     kind: 'allocated',
     categoryId: row.categoryId,
@@ -508,7 +505,7 @@ function buildSpendingPlanDetail({
       : {
           limitsCard: {
             assignedLabel: Strings.budgetPlansDetailLimitsAssigned(formatAmount(allocatedTotal)),
-            ...(isActive && card.elapsedMarkerPercentage !== undefined
+            ...(card.elapsedMarkerPercentage !== undefined
               ? { tickPercentage: card.elapsedMarkerPercentage }
               : {}),
             rows: limitRows,

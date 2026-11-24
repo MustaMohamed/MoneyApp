@@ -5,6 +5,7 @@ import type { Category } from '@/database/entities/category.entity';
 import type { Budget, BudgetMonthGroupMap } from '@/modules/budget/entities/budget.entity';
 import { resolveLimitForMonth } from '@/modules/budget/screens/budget/budget.helpers';
 import { budgetBandColor } from '@/modules/budget/utils/budget_summary';
+import { rankedBy } from '@/modules/budget/utils/rank_order';
 import { formatAmount } from '@/utils/format_amount';
 import { formatMonthYear } from '@/utils/format_date';
 import { snapToZero, wholePercent } from '@/utils/money';
@@ -535,18 +536,12 @@ function buildSummaryPresentation({
   };
 }
 
-function compareContributors(
-  left: Omit<BudgetRuleContributorVM, 'presentation'>,
-  right: Omit<BudgetRuleContributorVM, 'presentation'>,
-): number {
-  if (left.planned !== right.planned) return right.planned - left.planned;
-  if ((left.spent ?? 0) !== (right.spent ?? 0)) return (right.spent ?? 0) - (left.spent ?? 0);
-  if (left.name < right.name) return -1;
-  if (left.name > right.name) return 1;
-  if (left.categoryId < right.categoryId) return -1;
-  if (left.categoryId > right.categoryId) return 1;
-  return 0;
-}
+const compareContributors = rankedBy((row: Omit<BudgetRuleContributorVM, 'presentation'>) => ({
+  amount: row.planned,
+  spent: row.spent ?? 0,
+  name: row.name,
+  id: row.categoryId,
+}));
 
 export function buildBudgetRuleLens({
   income,

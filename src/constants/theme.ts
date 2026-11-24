@@ -207,6 +207,7 @@ export const Size = {
   spendingPlanLimitTile: ms(28),
   spendingPlanLimitTrack: ms(3),
   spendingPlanLimitTick: ms(9),
+  spendingPlanLimitRowHeight: ms(64),
   spendingPlanDetailRowHeight: ms(46),
   spendingPlanFlexibleRowHeight: ms(39),
   budgetToolHeight: ms(38),
