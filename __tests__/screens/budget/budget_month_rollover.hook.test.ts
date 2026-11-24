@@ -337,7 +337,7 @@ describe('useCategoryDetail — month rollover', () => {
     const { result } = await renderHook(() => useCategoryDetail());
 
     expect(result.current.state.viewState).toBe('loading');
-    expect(result.current.state.liveMonth).toBeUndefined();
+    expect(result.current.state.hero).toBeUndefined();
     expect(result.current.state.history.monthsTotal).toBe(0);
   });
 
@@ -444,11 +444,12 @@ describe('useCategoryDetail — month rollover', () => {
 
     const { result } = await renderHook(() => useCategoryDetail());
 
-    expect(result.current.state.liveMonth?.lifecycle).toBe(lifecycle);
-    expect(result.current.state.daysLeft).toBe(lifecycle === 'provisional' ? 16 : undefined);
+    expect(
+      result.current.state.history.results.find((r) => r.yearMonth === selectedMonth)?.lifecycle,
+    ).toBe(lifecycle);
   });
 
-  it('draws the selected month with no budget as its own bar and gives it no live card', async () => {
+  it('draws the selected month with no budget as its own bar and the no-budget hero', async () => {
     jest.setSystemTime(new Date('2026-05-15T12:00:00'));
     mockRouteMonth = '2026-05';
     categoriesState = [category('cat-1')];
@@ -460,7 +461,8 @@ describe('useCategoryDetail — month rollover', () => {
 
     const { result } = await renderHook(() => useCategoryDetail());
 
-    expect(result.current.state.liveMonth).toBeUndefined();
+    expect(result.current.state.hero).toBeDefined();
+    expect(result.current.state.hero?.amountValue).toBe(Strings.budgetCategoryDetailHeroNoBudget);
     const bars = result.current.state.history.results;
     expect(bars.map((r) => r.yearMonth)).toEqual(['2026-03', '2026-04', '2026-05']);
     expect(bars[2].limit).toBeUndefined();
@@ -487,20 +489,6 @@ describe('useCategoryDetail — month rollover', () => {
       ['2026-07', 'planned'],
     ]);
     expect(history.monthsTotal).toBe(1);
-  });
-
-  it('refreshes month when the screen regains focus after a month boundary', async () => {
-    jest.setSystemTime(new Date('2026-05-15T12:00:00'));
-    const { result } = await renderHook(() => useCategoryDetail());
-    expect(result.current.state.month).toBe('2026-05');
-
-    jest.setSystemTime(new Date('2026-06-15T12:00:00'));
-    await act(async () => {
-      capturedFocusCallback?.();
-      await Promise.resolve();
-    });
-
-    expect(result.current.state.month).toBe('2026-06');
   });
 });
 
@@ -532,9 +520,9 @@ describe('useCategoryDetail — hero', () => {
   });
 
   it.each([
-    ['2026-04', () => Strings.budgetHeroLeftUnspent, false],
-    ['2026-05', () => Strings.budgetHeroLeftThisMonth, true],
-    ['2026-06', () => Strings.budgetHeroLeftToSpend, false],
+    ['2026-04', (): string => Strings.budgetHeroLeftUnspent, false],
+    ['2026-05', (): string => Strings.budgetHeroLeftThisMonth, true],
+    ['2026-06', (): string => Strings.budgetHeroLeftToSpend, false],
   ] as const)(
     'labels selected %s by its place against today',
     async (selectedMonth, overline, ticks) => {
@@ -579,7 +567,7 @@ describe('useCategoryDetail — hero', () => {
     jest.setSystemTime(new Date('2026-05-31T12:00:00'));
     loadedMay();
 
-    await renderHook(() => useCategoryDetail());
+    const { result } = await renderHook(() => useCategoryDetail());
     const beforeCallback = capturedFocusCallback;
 
     jest.setSystemTime(new Date('2026-06-01T00:00:01'));
@@ -587,6 +575,7 @@ describe('useCategoryDetail — hero', () => {
       emitLocalDay('2026-06-01');
     });
 
+    expect(result.current.state.month).toBe('2026-06');
     expect(capturedFocusCallback).not.toBe(beforeCallback);
     loadBudgetMock.mockClear();
     await act(async () => {

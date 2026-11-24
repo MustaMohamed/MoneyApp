@@ -166,18 +166,24 @@ describe('buildCategoryDetailHero', () => {
     [
       'On track',
       1150,
-      () => Strings.budgetCategoriesStatusOnTrack,
+      (): string => Strings.budgetCategoriesStatusOnTrack,
       'check-circle',
       Colors.dark.positive,
     ],
     [
       'Watch at exactly 80%',
       2400,
-      () => Strings.budgetCategoriesStatusWatch,
+      (): string => Strings.budgetCategoriesStatusWatch,
       'trending-up',
       Colors.dark.gold,
     ],
-    ['Over', 3300, () => Strings.budgetCategoriesStatusOver, 'alert-circle', Colors.dark.negative],
+    [
+      'Over',
+      3300,
+      (): string => Strings.budgetCategoriesStatusOver,
+      'alert-circle',
+      Colors.dark.negative,
+    ],
   ] as const)(
     'reads a future month %s with no tick and no days left',
     (_label, spent, label, icon, tone) => {
