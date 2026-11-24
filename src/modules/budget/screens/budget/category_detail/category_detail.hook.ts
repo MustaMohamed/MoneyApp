@@ -2,8 +2,9 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
+import type { DetailHeroModel } from '@/components/ui/detail_hero';
 import { Colors } from '@/constants/theme';
-import { currentYearMonth, lastMonths } from '@/modules/budget/repositories/budget.repository';
+import { lastMonths } from '@/modules/budget/repositories/budget.repository';
 import {
   type CategoryMonthVM,
   type MonthResultVM,
@@ -11,10 +12,19 @@ import {
   computeStatus,
   resolveLimitForMonth,
 } from '@/modules/budget/screens/budget/budget.helpers';
-import { resolveCategoryDetailViewState } from '@/modules/budget/screens/budget/category_detail/category_detail.helpers';
+import {
+  hasBudgetRuleIncome,
+  resolveBudgetRuleGroup,
+} from '@/modules/budget/screens/budget/budget_buckets.helpers';
+import {
+  buildCategoryDetailHero,
+  resolveCategoryDetailViewState,
+} from '@/modules/budget/screens/budget/category_detail/category_detail.helpers';
 import { useCategoryDetailState } from '@/modules/budget/screens/budget/category_detail/category_detail.state';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
+import { toLocalDateString } from '@/utils/format_date';
+import { useLocalToday } from '@/utils/use_local_today.hook';
 
 const HISTORY_MONTHS = 12;
 
@@ -27,7 +37,8 @@ export function useCategoryDetail() {
     typeof routeMonth === 'string' && /^\d{4}-(0[1-9]|1[0-2])$/.test(routeMonth)
       ? routeMonth
       : undefined;
-  const currentMonth = currentYearMonth();
+  const today = useLocalToday(toLocalDateString(new Date()), true);
+  const currentMonth = today.slice(0, 7);
   const month = validRouteMonth ?? (storedMonth === currentMonth ? storedMonth : currentMonth);
 
   const { categories, categoriesLoaded, categoryLoadError } = useCategoryStore(
@@ -38,27 +49,37 @@ export function useCategoryDetail() {
     })),
   );
   const loadCategories = useCategoryStore.getState().loadCategories;
-  const { budgetRows, spendByMonth, budgetLoaded, loadedMonth, loadError } = useBudgetStore(
+  const {
+    budgetRows,
+    spendByMonth,
+    budgetLoaded,
+    loadedMonth,
+    loadError,
+    expectedIncome,
+    budgetGroupByCategoryId,
+  } = useBudgetStore(
     useShallow((s) => ({
       budgetRows: s.rows,
       spendByMonth: s.spendByMonth,
       budgetLoaded: s.loaded,
       loadedMonth: s.loadedMonth,
       loadError: s.loadError,
+      expectedIncome: s.expectedIncome,
+      budgetGroupByCategoryId: s.budgetGroupByCategoryId,
     })),
   );
   const load = useBudgetStore.getState().load;
 
   useFocusEffect(
     useCallback(() => {
-      const selectedMonth = validRouteMonth ?? currentYearMonth();
+      const selectedMonth = validRouteMonth ?? currentMonth;
       setMonth(selectedMonth);
       const categoryStore = useCategoryStore.getState();
       if (!categoryStore.hasLoaded || categoryStore.loadError) {
         void loadCategories().catch(() => undefined);
       }
       void load(selectedMonth).catch(() => undefined);
-    }, [loadCategories, load, setMonth, validRouteMonth]),
+    }, [currentMonth, loadCategories, load, setMonth, validRouteMonth]),
   );
 
   const category = useMemo(() => categories.find((c) => c.id === id), [categories, id]);
@@ -72,18 +93,13 @@ export function useCategoryDetail() {
   const results: CategoryMonthVM[] = useMemo(() => {
     if (!hasLoaded || !id) return [];
     const months = lastMonths(month, HISTORY_MONTHS);
-    const actualCurrentMonth = currentYearMonth();
     const out: CategoryMonthVM[] = [];
     for (const ym of months) {
       const limit = resolveLimitForMonth(budgetRows, id, ym);
       if (limit === null && ym !== month) continue; // only months the budget was active, and the selected one
       const spent = spendByMonth[id]?.[ym] ?? 0;
       const lifecycle: MonthResultVM['lifecycle'] =
-        ym < actualCurrentMonth
-          ? 'completed'
-          : ym === actualCurrentMonth
-            ? 'provisional'
-            : 'planned';
+        ym < currentMonth ? 'completed' : ym === currentMonth ? 'provisional' : 'planned';
       const base = { yearMonth: ym, spent, isProvisional: lifecycle === 'provisional', lifecycle };
       out.push(
         limit === null
@@ -92,7 +108,7 @@ export function useCategoryDetail() {
       );
     }
     return out;
-  }, [budgetRows, hasLoaded, id, month, spendByMonth]);
+  }, [budgetRows, currentMonth, hasLoaded, id, month, spendByMonth]);
 
   const history = useMemo(() => computeCategoryHistory(results), [results]);
   const liveMonth = useMemo(
@@ -101,12 +117,36 @@ export function useCategoryDetail() {
   );
 
   const daysLeft = useMemo(() => {
-    if (month !== currentYearMonth()) return undefined;
+    if (month !== currentMonth) return undefined;
     const [y, m] = month.split('-').map(Number);
     const lastDay = new Date(y, m, 0).getDate();
-    const today = new Date();
-    return Math.max(0, lastDay - today.getDate());
-  }, [month]);
+    return Math.max(0, lastDay - Number(today.slice(8, 10)));
+  }, [currentMonth, month, today]);
+
+  const hero: DetailHeroModel | undefined = useMemo(() => {
+    if (!hasLoaded || category === undefined) return undefined;
+    return buildCategoryDetailHero({
+      category,
+      limit: resolveLimitForMonth(budgetRows, category.id, month),
+      spent: spendByMonth[category.id]?.[month] ?? 0,
+      month,
+      today,
+      group: resolveBudgetRuleGroup(
+        category,
+        budgetGroupByCategoryId,
+        hasBudgetRuleIncome(expectedIncome),
+      ),
+    });
+  }, [
+    budgetGroupByCategoryId,
+    budgetRows,
+    category,
+    expectedIncome,
+    hasLoaded,
+    month,
+    spendByMonth,
+    today,
+  ]);
 
   return {
     state: {
@@ -114,6 +154,7 @@ export function useCategoryDetail() {
       liveMonth,
       history,
       daysLeft,
+      hero,
       month,
       viewState,
     },
