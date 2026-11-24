@@ -2,7 +2,10 @@ import { fireEvent, render, within } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 import { Dimensions } from 'react-native';
 
-import { resolveDetailHeroGeometry } from '@/components/ui/detail_hero.geometry';
+import {
+  DETAIL_HERO_BAR_HEIGHT,
+  resolveDetailHeroGeometry,
+} from '@/components/ui/detail_hero.geometry';
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { resolveFitAmountTextProps, scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { BudgetGroup, CategoryType } from '@/constants/enums';
@@ -375,13 +378,14 @@ describe('budget skeletons at the window font scale', () => {
       .getAllByTestId('skeleton-bar')
       .map(barHeight)
       .filter((height) => height !== undefined);
-    const hero = resolveDetailHeroGeometry(fontScale);
+    const hero = resolveDetailHeroGeometry(fontScale, { bar: true });
     expect(scaled).toEqual([
       Size.detailHeroTile,
       hero.titleLineHeight,
       hero.badgeHeight,
       hero.overlineLineHeight,
       hero.amountHeight,
+      DETAIL_HERO_BAR_HEIGHT,
       hero.captionLineHeight,
       bar(lineHeightFor(Type.caption)),
       Size.budgetMonthlyBarMaxHeight,

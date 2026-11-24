@@ -3,7 +3,7 @@
 - **Date:** 2026-10-04
 - **Status:** accepted
 - **Ticket:** #624 (MA-136), under #585
-- **Applies to:** `src/utils/format_amount.ts`, `src/modules/accounts/utils/account_info_rows.ts`, `src/modules/accounts/screens/accounts/detail/components/balance_hero.helpers.ts`, `src/modules/transactions/screens/transactions/transactions.helpers.ts`, `src/modules/budget/screens/budget/category_detail/components/live_month_card.helpers.ts`, `scripts/validate-money-formatting.js`
+- **Applies to:** `src/utils/format_amount.ts`, `src/modules/accounts/utils/account_info_rows.ts`, `src/modules/accounts/screens/accounts/detail/components/balance_hero.helpers.ts`, `src/modules/transactions/screens/transactions/transactions.helpers.ts`, `scripts/validate-money-formatting.js`
 
 The owned-sign composer sat in dashboard's `utils/`, its owed twins in the net worth sheet helpers, and transactions, budget and the account detail each composed the same owned sign on their own. A change to the sign rule (ADR 2026-08-27 decision 1, the zero-gated sign of #332) had five places to land. The account card row builders sat in dashboard while accounts read them and they read accounts' store type and domain.
 

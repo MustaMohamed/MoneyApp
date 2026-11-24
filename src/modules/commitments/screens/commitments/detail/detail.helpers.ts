@@ -2,12 +2,11 @@ import { type DetailFact, detailFact } from '@/components/ui/detail_fact_row.hel
 import type { DetailHeroBadge, DetailHeroModel } from '@/components/ui/detail_hero';
 import type { DetailLoadErrorCopy } from '@/components/ui/detail_load_error.helpers';
 import { formatConvertedAmount } from '@/components/ui/form_sheet.helpers';
-import { HERO_GRADIENT_COLORS } from '@/components/ui/hero_gradient';
+import { DETAIL_HERO_BADGE_COLORS } from '@/components/ui/hero_gradient_badge';
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AccountType, AmountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { CoreTokens } from '@/constants/theme_tokens';
-import { resolveBadgeColors } from '@/modules/accounts/constants/account_badge_color';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import {
@@ -387,15 +386,6 @@ export const COMMITMENT_DETAIL_LOAD_ERROR_COPY: DetailLoadErrorCopy = {
 
 export const COMMITMENT_DETAIL_LOAD_ERROR_TEST_ID = 'commitment-detail-load-error';
 
-// Frame C1 `.badge`: `text2` at a 0.22 share of the fill over the hero gradient's middle stop, `text1` ink.
-const CADENCE_BADGE_COLORS = resolveBadgeColors({
-  tone: CoreTokens.text2,
-  backdrop: HERO_GRADIENT_COLORS[1],
-  fillShare: 0.22,
-  ink: CoreTokens.text1,
-  inkShare: 1,
-});
-
 function resolveCadenceBadgeLabel(
   commitment: Pick<Commitment, 'amount_type' | 'recurrence_every' | 'recurrence_period'>,
   lifecycle: CommitmentLifecycle,
@@ -425,8 +415,8 @@ export function resolveCommitmentCadenceBadge(
   return {
     badgeLabel: resolveCadenceBadgeLabel(commitment, lifecycle),
     badgeIcon: 'clock-outline',
-    badgeFill: CADENCE_BADGE_COLORS.fill,
-    badgeForeground: CADENCE_BADGE_COLORS.foreground,
+    badgeFill: DETAIL_HERO_BADGE_COLORS.fill,
+    badgeForeground: DETAIL_HERO_BADGE_COLORS.foreground,
   };
 }
 

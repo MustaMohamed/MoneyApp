@@ -49,12 +49,14 @@ const PERMITTED = {
   ],
   ratioHeldAtTie: [
     'src/modules/budget/screens/budget/budget.helpers.ts',
+    'src/modules/budget/screens/budget/category_detail/category_detail.helpers.ts',
     'src/modules/budget/screens/budget/spending_plans.helpers.ts',
     'src/utils/money.ts',
   ],
   wholePercent: [
     'src/modules/budget/screens/budget/budget.helpers.ts',
     'src/modules/budget/screens/budget/budget_buckets.helpers.ts',
+    'src/modules/budget/screens/budget/category_detail/category_detail.helpers.ts',
     'src/modules/budget/screens/budget/spending_plans.helpers.ts',
     'src/modules/budget/screens/budget/spending_plans_summary.helpers.ts',
     'src/modules/commitments/screens/commitments/components/commitments_hero.helpers.ts',
