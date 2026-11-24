@@ -3,7 +3,6 @@ import { useCallback, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import type { DetailHeroModel } from '@/components/ui/detail_hero';
-import { Colors } from '@/constants/theme';
 import { lastMonths } from '@/modules/budget/repositories/budget.repository';
 import {
   type CategoryMonthVM,
@@ -111,18 +110,6 @@ export function useCategoryDetail() {
   }, [budgetRows, currentMonth, hasLoaded, id, month, spendByMonth]);
 
   const history = useMemo(() => computeCategoryHistory(results), [results]);
-  const liveMonth = useMemo(
-    () => results.find((r): r is MonthResultVM => r.yearMonth === month && r.limit !== undefined),
-    [results, month],
-  );
-
-  const daysLeft = useMemo(() => {
-    if (month !== currentMonth) return undefined;
-    const [y, m] = month.split('-').map(Number);
-    const lastDay = new Date(y, m, 0).getDate();
-    return Math.max(0, lastDay - Number(today.slice(8, 10)));
-  }, [currentMonth, month, today]);
-
   const hero: DetailHeroModel | undefined = useMemo(() => {
     if (!hasLoaded || category === undefined) return undefined;
     return buildCategoryDetailHero({
@@ -150,10 +137,7 @@ export function useCategoryDetail() {
 
   return {
     state: {
-      color: category?.color ?? Colors.dark.text2,
-      liveMonth,
       history,
-      daysLeft,
       hero,
       month,
       viewState,

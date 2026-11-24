@@ -1,6 +1,7 @@
 import React from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+import { DetailHero } from '@/components/ui/detail_hero';
 import { DetailLoadError } from '@/components/ui/detail_load_error';
 import { DetailNotFoundState } from '@/components/ui/detail_not_found_state';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
@@ -8,13 +9,13 @@ import { StackHeader } from '@/components/ui/stack_header';
 import { Strings } from '@/constants/strings';
 import { Spacing } from '@/constants/theme';
 import {
+  BUDGET_CATEGORY_DETAIL_HERO_TEST_ID,
   BUDGET_CATEGORY_DETAIL_LOAD_ERROR_COPY,
   BUDGET_CATEGORY_DETAIL_LOAD_ERROR_TEST_ID,
   BUDGET_CATEGORY_DETAIL_NOT_FOUND_TEST_ID,
 } from '@/modules/budget/screens/budget/category_detail/category_detail.helpers';
 import { useCategoryDetail } from '@/modules/budget/screens/budget/category_detail/category_detail.hook';
 import { CategoryDetailSkeleton } from '@/modules/budget/screens/budget/category_detail/components/category_detail_skeleton';
-import { LiveMonthCard } from '@/modules/budget/screens/budget/category_detail/components/live_month_card';
 import { MonthlyResultChart } from '@/modules/budget/screens/budget/category_detail/components/monthly_result_chart';
 import { ms } from '@/utils/responsive';
 
@@ -42,14 +43,12 @@ export default function CategoryBudgetDetailScreen() {
       ) : (
         <>
           <ScreenScroll contentContainerStyle={styles.content}>
-            {state.liveMonth && (
-              <LiveMonthCard
-                result={state.liveMonth}
-                daysLeft={state.daysLeft}
-                color={state.color}
-              />
+            {state.hero && (
+              <DetailHero hero={state.hero} testID={BUDGET_CATEGORY_DETAIL_HERO_TEST_ID} />
             )}
-            <MonthlyResultChart history={state.history} month={state.month} />
+            <View style={styles.chart}>
+              <MonthlyResultChart history={state.history} month={state.month} />
+            </View>
           </ScreenScroll>
 
           {state.viewState === 'refreshErrorWithData' ? (
@@ -67,5 +66,6 @@ export default function CategoryBudgetDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: Spacing.md, paddingBottom: ms(96) },
+  content: { paddingBottom: ms(96) },
+  chart: { paddingHorizontal: Spacing.md },
 });
