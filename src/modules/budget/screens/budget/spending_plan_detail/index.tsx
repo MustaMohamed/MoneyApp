@@ -12,6 +12,7 @@ import { Strings } from '@/constants/strings';
 import { Colors, Size } from '@/constants/theme';
 import { SpendingPlanDetailActions } from '@/modules/budget/screens/budget/spending_plan_detail/components/spending_plan_detail_actions';
 import { SpendingPlanDetailCategoryRow } from '@/modules/budget/screens/budget/spending_plan_detail/components/spending_plan_detail_category_row';
+import { SpendingPlanDetailLimitsCard } from '@/modules/budget/screens/budget/spending_plan_detail/components/spending_plan_detail_limits_card';
 import { SpendingPlanDetailSkeleton } from '@/modules/budget/screens/budget/spending_plan_detail/components/spending_plan_detail_skeleton';
 import { SpendingPlanDetailSummary } from '@/modules/budget/screens/budget/spending_plan_detail/components/spending_plan_detail_summary';
 import {
@@ -70,14 +71,9 @@ export default function SpendingPlanDetailScreen() {
             <View className="pb-6">
               <SpendingPlanDetailSummary detail={plan.detail} />
 
-              <View className="mt-3 flex-row items-center justify-between gap-3 px-4">
-                <Text className="font-inter-semibold text-content-secondary shrink text-[13px] uppercase">
-                  {Strings.budgetPlansDetailCategories}
-                </Text>
-                <Text className="font-inter-medium text-content-secondary shrink-0 text-[13px]">
-                  {plan.detail.totalSpentLabel}
-                </Text>
-              </View>
+              {plan.detail.limitsCard ? (
+                <SpendingPlanDetailLimitsCard card={plan.detail.limitsCard} />
+              ) : null}
               <View className="mt-1 px-4">
                 {plan.detail.categoryRows.map((row) => (
                   <SpendingPlanDetailCategoryRow key={row.categoryId} row={row} />

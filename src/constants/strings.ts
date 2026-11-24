@@ -715,25 +715,18 @@ export const Strings = {
     'Something went wrong reading your data. Nothing was changed.',
   budgetPlansDetailRetry: 'Try again',
   budgetPlansDetailCategories: 'Category limits',
-  budgetPlansDetailTotalSpent: (amount: string) => `${amount} spent`,
+  budgetPlansDetailLimitsAssigned: (amount: string) => `${amount} assigned`,
   budgetPlansDetailUnassigned: 'Unassigned plan budget',
   budgetPlansDetailNoCategoryLimit: 'Included · no category limit',
   budgetPlansDetailSpent: (amount: string) => `${amount} spent`,
   budgetPlansDetailBalance: (amount: string, status: string) => `${amount} ${status}`,
-  budgetPlansDetailCategoryStatus: (percentage: number, status: string) =>
-    `${percentage}% used · ${status.toLocaleLowerCase()}`,
+  budgetPlansDetailLimitSpentOf: (spent: string, limit: string) => `${spent} of ${limit} spent`,
   budgetPlansDetailCategoryPressure: (category: string, percentage: number) =>
     `${category} has used ${percentage}% of its limit`,
   budgetPlansDetailCategoryOver: (category: string, amount: string) =>
     `${category} is ${amount} over its limit`,
-  budgetPlansDetailCategoryA11y: (
-    category: string,
-    spent: string,
-    allocated: string,
-    percentage: number,
-    balance: string,
-    status: string,
-  ) => `${category}, ${spent} of ${allocated}, ${percentage}% used, ${balance}, ${status}`,
+  budgetPlansDetailCategoryA11y: (name: string, caption: string, balance: string, tag?: string) =>
+    `${name}, ${caption}, ${balance}${tag === undefined ? '' : `, ${tag}`}`,
   budgetPlansDetailUnallocatedA11y: (category: string, spent: string) =>
     `${category}, ${spent} spent, included with no category limit`,
   budgetPlansAllocationChipA11y: (

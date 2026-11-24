@@ -2,7 +2,11 @@ import { LinkButton, Typography } from 'heroui-native';
 import React from 'react';
 import { View, useWindowDimensions } from 'react-native';
 
-import { resolveOneLineTextProps, scaledTextStyle } from '@/components/ui/text_scale.geometry';
+import {
+  resolveOneLineTextProps,
+  resolveRowStacking,
+  scaledTextStyle,
+} from '@/components/ui/text_scale.geometry';
 import {
   Colors,
   HIT_SLOP_UNCLIPPED_STYLE,
@@ -16,6 +20,7 @@ import { SECTION_HEADER_MARGIN_BOTTOM, SECTION_HEADER_MARGIN_TOP } from './secti
 
 interface SectionHeaderCommonProps {
   title: string;
+  meta?: string;
 }
 
 // The count badge and the link share the one right slot, so the union keeps them exclusive.
@@ -26,10 +31,26 @@ export type SectionHeaderProps =
       count?: never;
     });
 
-export function SectionHeader({ title, count, action }: SectionHeaderProps) {
-  const captionLine = resolveOneLineTextProps(
-    scaledTextStyle(Type.caption, useWindowDimensions().fontScale),
-  );
+export function SectionHeader({ title, meta, count, action }: SectionHeaderProps) {
+  const { fontScale } = useWindowDimensions();
+  const caption = scaledTextStyle(Type.caption, fontScale);
+  const captionLine = resolveOneLineTextProps(caption);
+  const wraps = meta !== undefined && resolveRowStacking(fontScale) === 'stacked';
+  const countPill =
+    count !== undefined && count > 0 ? (
+      <View className="rounded-full px-2 py-0.5" style={{ backgroundColor: Colors.dark.goldTint }}>
+        <Typography
+          className="font-sora-bold"
+          style={{
+            color: Colors.shared.cairoGold,
+            fontSize: Type.caption,
+            lineHeight: lineHeightFor(Type.caption),
+          }}
+        >
+          {count}
+        </Typography>
+      </View>
+    ) : null;
   return (
     <View
       className="flex-row items-center justify-between"
@@ -39,34 +60,35 @@ export function SectionHeader({ title, count, action }: SectionHeaderProps) {
         marginTop: SECTION_HEADER_MARGIN_TOP,
         marginBottom: SECTION_HEADER_MARGIN_BOTTOM,
         gap: Spacing.xs,
+        ...(wraps ? { flexWrap: 'wrap' } : {}),
       }}
     >
       <Typography
         {...captionLine}
+        {...(wraps ? { numberOfLines: undefined } : {})}
         className="font-inter-semibold text-muted tracking-wide uppercase"
-        style={{ ...captionLine.style, flex: 1 }}
+        style={{
+          ...captionLine.style,
+          // Wrapping, the title keeps its words whole and the meta with the pill drops under it.
+          ...(wraps ? { flexGrow: 1, flexShrink: 0, maxWidth: '100%' } : { flex: 1 }),
+        }}
       >
         {title}
       </Typography>
-      {count !== undefined && count > 0 ? (
-        <View
-          className="rounded-full px-2 py-0.5"
-          style={{
-            backgroundColor: Colors.dark.goldTint,
-          }}
-        >
+      {meta === undefined ? (
+        countPill
+      ) : (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs }}>
           <Typography
-            className="font-sora-bold"
-            style={{
-              color: Colors.shared.cairoGold,
-              fontSize: Type.caption,
-              lineHeight: lineHeightFor(Type.caption),
-            }}
+            allowFontScaling={false}
+            className="font-sora text-content-secondary"
+            style={caption}
           >
-            {count}
+            {meta}
           </Typography>
+          {countPill}
         </View>
-      ) : null}
+      )}
       {action ? (
         <LinkButton
           size="sm"
