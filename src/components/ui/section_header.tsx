@@ -46,7 +46,8 @@ export function SectionHeader({ title, meta, count, action }: SectionHeaderProps
         marginTop: SECTION_HEADER_MARGIN_TOP,
         marginBottom: SECTION_HEADER_MARGIN_BOTTOM,
         gap: Spacing.xs,
-        flexWrap: wraps ? 'wrap' : 'nowrap',
+        // Wrapped, the meta and the pill start the second line side by side.
+        ...(wraps ? { flexWrap: 'wrap', justifyContent: 'flex-start' } : {}),
       }}
     >
       <Typography
