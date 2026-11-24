@@ -33,6 +33,7 @@
     "cds-daily-report": "off",
     "cds-ticket": "off",
     "review-radar": "off",
-    "gh-stack": "name-only"
+    "gh-stack": "name-only",
+    "ship-local": "off"
   }
 }
