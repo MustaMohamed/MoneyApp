@@ -3,6 +3,7 @@ import { Typography } from 'heroui-native';
 import React from 'react';
 import { View, useWindowDimensions } from 'react-native';
 
+import { DateTile } from '@/components/ui/date_tile';
 import {
   DETAIL_HERO_BADGE_GAP,
   DETAIL_HERO_BADGE_ROW_GAP,
@@ -14,6 +15,9 @@ import {
   DETAIL_HERO_BAR_TICK_WIDTH,
   DETAIL_HERO_CODE_GAP,
   DETAIL_HERO_CODE_OPACITY,
+  DETAIL_HERO_FIGURES_COLUMN_GAP,
+  DETAIL_HERO_FIGURES_GAP,
+  DETAIL_HERO_FIGURE_VALUE_GAP,
   DETAIL_HERO_PADDING,
   DETAIL_HERO_SHELL_STYLE,
   DETAIL_HERO_TILE_GAP,
@@ -22,20 +26,35 @@ import {
 } from '@/components/ui/detail_hero.geometry';
 import { HeroShell, type HeroShellProps } from '@/components/ui/hero_shell';
 import { StatusBadge } from '@/components/ui/status_badge';
+import {
+  resolveFitAmountTextProps,
+  resolveFitLineTextProps,
+} from '@/components/ui/text_scale.geometry';
 import { Strings } from '@/constants/strings';
-import { Radius, Size, lineHeightFor } from '@/constants/theme';
+import { Radius, Size, Type, lineHeightFor } from '@/constants/theme';
+import type { DateTileParts } from '@/utils/format_date';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
-export interface DetailHeroModel {
+export interface DetailHeroFigure {
+  label: string;
+  value: string;
+}
+
+export type DetailHeroFigures =
+  | readonly [DetailHeroFigure]
+  | readonly [DetailHeroFigure, DetailHeroFigure]
+  | readonly [DetailHeroFigure, DetailHeroFigure, DetailHeroFigure];
+
+export type DetailHeroTileDate = DateTileParts & { ink: string };
+
+interface DetailHeroFields {
   title: string;
   badgeLabel: string;
   badgeIcon?: IconName;
   badgeFill: string;
   badgeForeground: string;
   tileColor: string;
-  tileGlyph: IconName;
-  tileGlyphColor: string;
   amountValue: string;
   amountCode?: string;
   amountColor: string;
@@ -44,8 +63,15 @@ export interface DetailHeroModel {
   /** Absent draws the default overline; `false` hides the line. */
   overline?: string | false;
   tag?: DetailHeroBadge;
+  figures?: DetailHeroFigures;
   bar?: DetailHeroBar;
 }
+
+type DetailHeroTile =
+  | { tileGlyph: IconName; tileGlyphColor: string; tileDate?: never }
+  | { tileDate: DetailHeroTileDate; tileGlyph?: never; tileGlyphColor?: never };
+
+export type DetailHeroModel = DetailHeroFields & DetailHeroTile;
 
 export type DetailHeroBadge = Pick<
   DetailHeroModel,
@@ -66,6 +92,92 @@ interface Props {
 
 function sharePercent(share: number): `${number}%` {
   return `${resolveDetailHeroBarShare(share) * 100}%`;
+}
+
+function DetailHeroTileSlot({ hero }: { hero: DetailHeroModel }): React.ReactElement {
+  if (hero.tileDate !== undefined) {
+    return <DateTile {...hero.tileDate} fill={hero.tileColor} />;
+  }
+  return (
+    <View
+      style={{
+        width: Size.detailHeroTile,
+        height: Size.detailHeroTile,
+        borderRadius: Radius.md,
+        backgroundColor: hero.tileColor,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <MaterialCommunityIcons
+        name={hero.tileGlyph}
+        size={Size.iconLg}
+        color={hero.tileGlyphColor}
+      />
+    </View>
+  );
+}
+
+type FigureAlign = 'flex-start' | 'center' | 'flex-end';
+
+function figureAlign(index: number, count: number): FigureAlign {
+  if (index === 0) return 'flex-start';
+  return index === count - 1 ? 'flex-end' : 'center';
+}
+
+const FIGURE_TEXT_ALIGN = { 'flex-start': 'left', center: 'center', 'flex-end': 'right' } as const;
+
+function DetailHeroFiguresRow({
+  figures,
+  fontScale,
+}: {
+  figures: DetailHeroFigures;
+  fontScale: number;
+}): React.ReactElement {
+  const { style: labelStyle, ...labelProps } = resolveFitLineTextProps(Type.micro, fontScale);
+  const { style: valueStyle, ...valueProps } = resolveFitAmountTextProps(Type.meta, fontScale);
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        gap: DETAIL_HERO_FIGURES_COLUMN_GAP,
+        marginTop: DETAIL_HERO_FIGURES_GAP,
+      }}
+    >
+      {figures.map((figure, index) => {
+        const align = figureAlign(index, figures.length);
+        const textAlign = FIGURE_TEXT_ALIGN[align];
+        return (
+          <View key={figure.label} style={{ flexShrink: 1, alignItems: align }}>
+            <Typography
+              {...labelProps}
+              className="font-inter text-foreground/55"
+              style={{
+                textAlign,
+                fontSize: labelStyle.fontSize,
+                lineHeight: lineHeightFor(labelStyle.fontSize),
+              }}
+            >
+              {figure.label}
+            </Typography>
+            <Typography
+              {...valueProps}
+              className="font-sora-semibold text-foreground tabular-nums"
+              style={{
+                textAlign,
+                marginTop: DETAIL_HERO_FIGURE_VALUE_GAP,
+                fontSize: valueStyle.fontSize,
+                lineHeight: lineHeightFor(valueStyle.fontSize),
+              }}
+            >
+              {figure.value}
+            </Typography>
+          </View>
+        );
+      })}
+    </View>
+  );
 }
 
 // No overflow clip: the tick overhangs the track.
@@ -122,6 +234,7 @@ export function DetailHero({ hero, testID, entering }: Props): React.ReactElemen
   const geometry = resolveDetailHeroGeometry(fontScale, {
     hidesOverline: hero.overline === false,
     bar: hero.bar !== undefined,
+    figures: hero.figures !== undefined,
   });
 
   return (
@@ -135,22 +248,7 @@ export function DetailHero({ hero, testID, entering }: Props): React.ReactElemen
             height: geometry.topHeight,
           }}
         >
-          <View
-            style={{
-              width: Size.detailHeroTile,
-              height: Size.detailHeroTile,
-              borderRadius: Radius.md,
-              backgroundColor: hero.tileColor,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <MaterialCommunityIcons
-              name={hero.tileGlyph}
-              size={Size.iconLg}
-              color={hero.tileGlyphColor}
-            />
-          </View>
+          <DetailHeroTileSlot hero={hero} />
           <View style={{ flex: 1 }}>
             <Typography
               allowFontScaling={false}
@@ -254,6 +352,10 @@ export function DetailHero({ hero, testID, entering }: Props): React.ReactElemen
             </Typography>
           )}
         </View>
+
+        {hero.figures === undefined ? undefined : (
+          <DetailHeroFiguresRow figures={hero.figures} fontScale={fontScale} />
+        )}
 
         {hero.bar === undefined ? undefined : <DetailHeroBarRow bar={hero.bar} />}
 

@@ -284,6 +284,7 @@ describe('buildCategoryDetailHero', () => {
     const hero = build({ category: { ...clothes, color } });
 
     expect(hero.tileColor).toBe(color);
+    if (hero.tileGlyphColor === undefined) throw new Error('expected a glyph tile');
     expect(contrastRatio(hero.tileGlyphColor, hero.tileColor)).toBeGreaterThanOrEqual(
       NON_TEXT_MIN_CONTRAST_RATIO,
     );
