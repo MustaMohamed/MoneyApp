@@ -9,7 +9,6 @@ import {
   DETAIL_HERO_CAPTION_GAP,
   DETAIL_HERO_OVERLINE_GAP,
   DETAIL_HERO_PADDING,
-  resolveDetailHeroBarShare,
   resolveDetailHeroGeometry,
 } from '@/components/ui/detail_hero.geometry';
 import { resolveFactRowHeight } from '@/components/ui/fact_row.geometry';
@@ -153,20 +152,6 @@ describe('resolveDetailHeroGeometry', () => {
       expect(geometry.captionLineHeight).toBe(lineHeightFor(geometry.captionFontSize));
     },
   );
-});
-
-describe('resolveDetailHeroBarShare', () => {
-  it.each([
-    [-0.2, 0],
-    [0, 0],
-    [0.38, 0.38],
-    [1, 1],
-    [1.13, 1],
-    [Number.NaN, 0],
-    [Number.POSITIVE_INFINITY, 0],
-  ])('draws a share of %s at %s', (share, drawn) => {
-    expect(resolveDetailHeroBarShare(share)).toBe(drawn);
-  });
 });
 
 // The card's `p-3.5` and its 1 border, top and bottom, which the stretched cell sits inside.

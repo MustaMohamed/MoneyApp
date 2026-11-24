@@ -23,7 +23,7 @@ export const DETAIL_HERO_BAR_HEIGHT = ms(3);
 export const DETAIL_HERO_BAR_RADIUS = Radius.xs;
 export const DETAIL_HERO_BAR_TICK_WIDTH = ms(2);
 export const DETAIL_HERO_BAR_TICK_OVERHANG = ms(3);
-export const DETAIL_HERO_BAR_TICK_RADIUS = ms(1);
+export const DETAIL_HERO_BAR_TICK_RADIUS = Size.hairline;
 export const DETAIL_HERO_BAR_CAPTION_GAP = Spacing.xs;
 const DETAIL_HERO_BADGE_CHROME = 2 * STATUS_BADGE_PADDING_VERTICAL;
 
@@ -44,6 +44,8 @@ interface DetailHeroGeometry {
   badgeHeight: number;
   topHeight: number;
   amountHeight: number;
+  amountMarginTop: number;
+  captionGap: number;
   height: number;
 }
 
@@ -63,18 +65,19 @@ export function resolveDetailHeroGeometry(
     title.lineHeight + DETAIL_HERO_BADGE_GAP + badgeHeight,
   );
   const amountHeight = amount.lineHeight + FITTED_LINE_SLACK;
-  const overlineHeight = layout.hidesOverline === true ? 0 : micro.lineHeight;
-  const belowAmount =
-    layout.bar === true
-      ? DETAIL_HERO_BAR_GAP + DETAIL_HERO_BAR_HEIGHT + DETAIL_HERO_BAR_CAPTION_GAP
-      : DETAIL_HERO_CAPTION_GAP;
+  const hidesOverline = layout.hidesOverline === true;
+  const overlineBlock = hidesOverline ? 0 : DETAIL_HERO_OVERLINE_GAP + micro.lineHeight;
+  const amountMarginTop = hidesOverline ? DETAIL_HERO_OVERLINE_GAP : 0;
+  const captionGap = layout.bar === true ? DETAIL_HERO_BAR_CAPTION_GAP : DETAIL_HERO_CAPTION_GAP;
+  const barRowHeight = layout.bar === true ? DETAIL_HERO_BAR_GAP + DETAIL_HERO_BAR_HEIGHT : 0;
   const height =
     2 * DETAIL_HERO_PADDING +
     topHeight +
-    DETAIL_HERO_OVERLINE_GAP +
-    overlineHeight +
+    overlineBlock +
+    amountMarginTop +
     amountHeight +
-    belowAmount +
+    barRowHeight +
+    captionGap +
     micro.lineHeight;
 
   return {
@@ -89,6 +92,8 @@ export function resolveDetailHeroGeometry(
     badgeHeight,
     topHeight,
     amountHeight,
+    amountMarginTop,
+    captionGap,
     height,
   };
 }

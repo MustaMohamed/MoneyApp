@@ -6,14 +6,12 @@ import { View, useWindowDimensions } from 'react-native';
 import {
   DETAIL_HERO_BADGE_GAP,
   DETAIL_HERO_BADGE_ROW_GAP,
-  DETAIL_HERO_BAR_CAPTION_GAP,
   DETAIL_HERO_BAR_GAP,
   DETAIL_HERO_BAR_HEIGHT,
   DETAIL_HERO_BAR_RADIUS,
   DETAIL_HERO_BAR_TICK_OVERHANG,
   DETAIL_HERO_BAR_TICK_RADIUS,
   DETAIL_HERO_BAR_TICK_WIDTH,
-  DETAIL_HERO_CAPTION_GAP,
   DETAIL_HERO_CODE_GAP,
   DETAIL_HERO_CODE_OPACITY,
   DETAIL_HERO_OVERLINE_GAP,
@@ -44,8 +42,8 @@ export interface DetailHeroModel {
   amountColor: string;
   amountAccessibilityLabel: string;
   caption: string;
-  overline?: string;
-  hidesOverline?: boolean;
+  /** Absent draws the default overline; `false` hides the line. */
+  overline?: string | false;
   tag?: DetailHeroBadge;
   bar?: DetailHeroBar;
 }
@@ -71,11 +69,58 @@ function sharePercent(share: number): `${number}%` {
   return `${resolveDetailHeroBarShare(share) * 100}%`;
 }
 
+// No overflow clip: the tick overhangs the track.
+function DetailHeroBarRow({ bar }: { bar: DetailHeroBar }): React.ReactElement {
+  return (
+    <View
+      className="bg-foreground/12"
+      accessibilityRole="progressbar"
+      accessibilityValue={{
+        min: 0,
+        max: 100,
+        now: Math.round(resolveDetailHeroBarShare(bar.share) * 100),
+      }}
+      style={{
+        marginTop: DETAIL_HERO_BAR_GAP,
+        height: DETAIL_HERO_BAR_HEIGHT,
+        borderRadius: DETAIL_HERO_BAR_RADIUS,
+      }}
+    >
+      <View
+        style={{
+          width: sharePercent(bar.share),
+          height: DETAIL_HERO_BAR_HEIGHT,
+          borderRadius: DETAIL_HERO_BAR_RADIUS,
+          backgroundColor: bar.color,
+        }}
+      />
+      {bar.tickShare === undefined ? undefined : (
+        <View
+          className="bg-foreground/80"
+          style={{
+            position: 'absolute',
+            left: sharePercent(bar.tickShare),
+            // Slides back by its share of its own width, so it stays on the track at 0 and 1.
+            transform: [
+              {
+                translateX: -DETAIL_HERO_BAR_TICK_WIDTH * resolveDetailHeroBarShare(bar.tickShare),
+              },
+            ],
+            top: -DETAIL_HERO_BAR_TICK_OVERHANG,
+            width: DETAIL_HERO_BAR_TICK_WIDTH,
+            height: DETAIL_HERO_BAR_HEIGHT + 2 * DETAIL_HERO_BAR_TICK_OVERHANG,
+            borderRadius: DETAIL_HERO_BAR_TICK_RADIUS,
+          }}
+        />
+      )}
+    </View>
+  );
+}
+
 export function DetailHero({ hero, testID, entering }: Props): React.ReactElement {
   const { fontScale } = useWindowDimensions();
-  const hidesOverline = hero.hidesOverline === true;
   const geometry = resolveDetailHeroGeometry(fontScale, {
-    hidesOverline,
+    hidesOverline: hero.overline === false,
     bar: hero.bar !== undefined,
   });
 
@@ -128,14 +173,17 @@ export function DetailHero({ hero, testID, entering }: Props): React.ReactElemen
               }}
             >
               {hero.tag === undefined ? undefined : (
-                <StatusBadge
-                  label={hero.tag.badgeLabel}
-                  fill={hero.tag.badgeFill}
-                  foreground={hero.tag.badgeForeground}
-                  icon={hero.tag.badgeIcon}
-                  size="tagMd"
-                  fontScale={fontScale}
-                />
+                // The state tag keeps its whole label; the badge beside it takes the ellipsis.
+                <View style={{ flexShrink: 0 }}>
+                  <StatusBadge
+                    label={hero.tag.badgeLabel}
+                    fill={hero.tag.badgeFill}
+                    foreground={hero.tag.badgeForeground}
+                    icon={hero.tag.badgeIcon}
+                    size="tagMd"
+                    fontScale={fontScale}
+                  />
+                </View>
               )}
               <StatusBadge
                 label={hero.badgeLabel}
@@ -149,7 +197,7 @@ export function DetailHero({ hero, testID, entering }: Props): React.ReactElemen
           </View>
         </View>
 
-        {hidesOverline ? undefined : (
+        {hero.overline === false ? undefined : (
           <Typography
             allowFontScaling={false}
             numberOfLines={1}
@@ -173,7 +221,7 @@ export function DetailHero({ hero, testID, entering }: Props): React.ReactElemen
             alignItems: 'baseline',
             gap: DETAIL_HERO_CODE_GAP,
             height: geometry.amountHeight,
-            marginTop: hidesOverline ? DETAIL_HERO_OVERLINE_GAP : undefined,
+            marginTop: geometry.amountMarginTop,
           }}
         >
           <Typography
@@ -207,47 +255,14 @@ export function DetailHero({ hero, testID, entering }: Props): React.ReactElemen
           )}
         </View>
 
-        {hero.bar === undefined ? undefined : (
-          // No overflow clip: the tick overhangs the track.
-          <View
-            className="bg-foreground/12"
-            style={{
-              marginTop: DETAIL_HERO_BAR_GAP,
-              height: DETAIL_HERO_BAR_HEIGHT,
-              borderRadius: DETAIL_HERO_BAR_RADIUS,
-            }}
-          >
-            <View
-              style={{
-                width: sharePercent(hero.bar.share),
-                height: DETAIL_HERO_BAR_HEIGHT,
-                borderRadius: DETAIL_HERO_BAR_RADIUS,
-                backgroundColor: hero.bar.color,
-              }}
-            />
-            {hero.bar.tickShare === undefined ? undefined : (
-              <View
-                className="bg-foreground/80"
-                style={{
-                  position: 'absolute',
-                  left: sharePercent(hero.bar.tickShare),
-                  top: -DETAIL_HERO_BAR_TICK_OVERHANG,
-                  width: DETAIL_HERO_BAR_TICK_WIDTH,
-                  height: DETAIL_HERO_BAR_HEIGHT + 2 * DETAIL_HERO_BAR_TICK_OVERHANG,
-                  borderRadius: DETAIL_HERO_BAR_TICK_RADIUS,
-                }}
-              />
-            )}
-          </View>
-        )}
+        {hero.bar === undefined ? undefined : <DetailHeroBarRow bar={hero.bar} />}
 
         <Typography
           allowFontScaling={false}
           numberOfLines={1}
           className="font-inter text-foreground/55"
           style={{
-            marginTop:
-              hero.bar === undefined ? DETAIL_HERO_CAPTION_GAP : DETAIL_HERO_BAR_CAPTION_GAP,
+            marginTop: geometry.captionGap,
             fontSize: geometry.captionFontSize,
             lineHeight: lineHeightFor(geometry.captionFontSize),
           }}
