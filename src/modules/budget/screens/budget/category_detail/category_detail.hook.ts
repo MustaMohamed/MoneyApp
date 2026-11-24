@@ -5,6 +5,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { Colors } from '@/constants/theme';
 import { currentYearMonth, lastMonths } from '@/modules/budget/repositories/budget.repository';
 import {
+  type CategoryMonthVM,
   type MonthResultVM,
   computeCategoryHistory,
   computeStatus,
@@ -68,14 +69,14 @@ export function useCategoryDetail() {
     loadError: loadError || categoryLoadError,
   });
 
-  const results: MonthResultVM[] = useMemo(() => {
+  const results: CategoryMonthVM[] = useMemo(() => {
     if (!hasLoaded || !id) return [];
     const months = lastMonths(month, HISTORY_MONTHS);
     const actualCurrentMonth = currentYearMonth();
-    const out: MonthResultVM[] = [];
+    const out: CategoryMonthVM[] = [];
     for (const ym of months) {
       const limit = resolveLimitForMonth(budgetRows, id, ym);
-      if (limit === null) continue; // only months the budget was active
+      if (limit === null && ym !== month) continue; // only months the budget was active, and the selected one
       const spent = spendByMonth[id]?.[ym] ?? 0;
       const lifecycle =
         ym < actualCurrentMonth
@@ -83,21 +84,37 @@ export function useCategoryDetail() {
           : ym === actualCurrentMonth
             ? 'provisional'
             : 'planned';
-      out.push({
-        yearMonth: ym,
-        limit,
-        spent,
-        delta: limit - spent,
-        status: computeStatus(spent, limit),
-        isProvisional: lifecycle === 'provisional',
-        lifecycle,
-      });
+      const isProvisional = lifecycle === 'provisional';
+      out.push(
+        limit === null
+          ? {
+              yearMonth: ym,
+              spent,
+              isProvisional,
+              lifecycle,
+              limit: undefined,
+              delta: undefined,
+              status: undefined,
+            }
+          : {
+              yearMonth: ym,
+              limit,
+              spent,
+              delta: limit - spent,
+              status: computeStatus(spent, limit),
+              isProvisional,
+              lifecycle,
+            },
+      );
     }
     return out;
   }, [budgetRows, hasLoaded, id, month, spendByMonth]);
 
   const history = useMemo(() => computeCategoryHistory(results), [results]);
-  const liveMonth = useMemo(() => results.find((r) => r.yearMonth === month), [results, month]);
+  const liveMonth = useMemo(
+    () => results.find((r): r is MonthResultVM => r.yearMonth === month && r.limit !== undefined),
+    [results, month],
+  );
 
   const daysLeft = useMemo(() => {
     if (month !== currentYearMonth()) return undefined;

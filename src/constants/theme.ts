@@ -28,6 +28,8 @@ export const Colors = {
     budgetWatch: '#E0B341',
     budgetNear: '#E05A42',
     budgetOver: '#B23A28',
+    // Outside the band scale: a month with no limit to colour against, frame B1's `--muted`.
+    budgetNoLimit: '#4A5568',
   },
   light: {
     bg: '#F7F4EF',
@@ -47,6 +49,7 @@ export const Colors = {
     budgetWatch: '#B8922A',
     budgetNear: '#C04030',
     budgetOver: '#8F2818',
+    budgetNoLimit: '#C4BDB7',
   },
   shared: {
     cairoGold: '#C9973A',

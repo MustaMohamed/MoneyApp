@@ -2,12 +2,13 @@ import { PixelRatio } from 'react-native';
 
 import { Strings } from '@/constants/strings';
 import { Colors, Size } from '@/constants/theme';
-import type { MonthResultVM } from '@/modules/budget/screens/budget/budget.helpers';
+import type {
+  CategoryHistoryVM,
+  CategoryMonthVM,
+} from '@/modules/budget/screens/budget/budget.helpers';
 import { budgetBandColor } from '@/modules/budget/utils/budget_summary';
 import { formatAmount } from '@/utils/format_amount';
 import { shortMonthName } from '@/utils/year_month';
-
-export const MONTHLY_RESULT_BAR_COUNT = 6;
 
 interface MonthlyBarVM {
   yearMonth: string;
@@ -37,15 +38,13 @@ function amountColorFor(isOver: boolean, isSelected: boolean): string {
 
 /** `results` is `CategoryHistoryVM.results`, oldest first; see docs/adr/2026-11-23-category-monthly-result-bars.md. */
 export function buildMonthlyResult(
-  results: readonly MonthResultVM[],
+  results: readonly CategoryMonthVM[],
   selectedMonth: string,
 ): MonthlyResultVM {
-  const selected = results.find((r) => r.yearMonth === selectedMonth);
-  const count = selected ? MONTHLY_RESULT_BAR_COUNT : MONTHLY_RESULT_BAR_COUNT - 1;
-  const rows = results.slice(-count);
-  const scale = Math.max(selected?.limit ?? 0, ...rows.map((r) => r.spent));
+  const selectedLimit = results.find((r) => r.yearMonth === selectedMonth)?.limit;
+  const scale = Math.max(selectedLimit ?? 0, ...results.map((r) => r.spent));
 
-  const bars = rows.map((r): MonthlyBarVM => {
+  const bars = results.map((r): MonthlyBarVM => {
     const isSelected = r.yearMonth === selectedMonth;
     const isOver = r.status === 'over';
     const month = shortMonthName(r.yearMonth);
@@ -54,7 +53,7 @@ export function buildMonthlyResult(
       monthLabel:
         r.lifecycle === 'provisional' ? month + Strings.budgetDetailInProgressMark : month,
       amountLabel: formatAmount(r.spent),
-      color: budgetBandColor(r.spent, r.limit),
+      color: r.limit === undefined ? Colors.dark.budgetNoLimit : budgetBandColor(r.spent, r.limit),
       heightDp: PixelRatio.roundToNearestPixel(
         Math.max(Size.budgetMonthlyBarMinHeight, heightFor(r.spent, scale)),
       ),
@@ -65,16 +64,51 @@ export function buildMonthlyResult(
   });
 
   const legendParts: string[] = [];
-  if (selected) legendParts.push(Strings.budgetDetailLimitLegend(formatAmount(selected.limit)));
-  if (rows.some((r) => r.lifecycle === 'provisional')) {
+  if (selectedLimit !== undefined) {
+    legendParts.push(Strings.budgetDetailLimitLegend(formatAmount(selectedLimit)));
+  }
+  if (results.some((r) => r.lifecycle === 'provisional')) {
     legendParts.push(Strings.budgetDetailInProgress);
   }
 
   return {
     bars,
-    limitOffsetDp: selected
-      ? PixelRatio.roundToNearestPixel(heightFor(selected.limit, scale))
-      : undefined,
+    limitOffsetDp:
+      selectedLimit === undefined
+        ? undefined
+        : PixelRatio.roundToNearestPixel(heightFor(selectedLimit, scale)),
     legend: legendParts.length > 0 ? legendParts.join(Strings.listHeroCaptionSeparator) : undefined,
+  };
+}
+
+interface MonthFiguresVM {
+  avgLabel: string;
+  underLabel: string;
+  netLabel: string;
+  netColor: string;
+}
+
+/** Figures count completed months only; see docs/adr/2026-11-24-category-history-completed-months.md. */
+export function buildMonthFigures(history: CategoryHistoryVM): MonthFiguresVM {
+  const avgLabel =
+    history.monthsCompleted === 0
+      ? Strings.budgetDetailNoFigure
+      : formatAmount(Math.round(history.avgPerMonth));
+  if (history.monthsTotal === 0) {
+    return {
+      avgLabel,
+      underLabel: Strings.budgetDetailNoFigure,
+      netLabel: Strings.budgetDetailNoFigure,
+      netColor: Colors.dark.text1,
+    };
+  }
+  const isOver = history.netBanked < 0;
+  return {
+    avgLabel,
+    underLabel: Strings.budgetDetailPartOf(history.monthsUnder, history.monthsTotal),
+    netLabel: isOver
+      ? Strings.budgetDetailNetOver(formatAmount(Math.abs(history.netBanked)))
+      : Strings.budgetDetailNetUnder(formatAmount(history.netBanked)),
+    netColor: isOver ? Colors.dark.negative : Colors.dark.positive,
   };
 }

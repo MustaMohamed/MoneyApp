@@ -30,7 +30,10 @@ import {
 } from '@/constants/theme';
 import type { CategoryHistoryVM } from '@/modules/budget/screens/budget/budget.helpers';
 import { BUDGET_CHART_LABEL_MAX_FONT_SCALE } from '@/modules/budget/screens/budget/budget_text.geometry';
-import { buildMonthlyResult } from '@/modules/budget/screens/budget/category_detail/components/monthly_result_chart.helpers';
+import {
+  buildMonthFigures,
+  buildMonthlyResult,
+} from '@/modules/budget/screens/budget/category_detail/components/monthly_result_chart.helpers';
 
 const AMOUNT_GAP = Spacing.xxs;
 const LIMIT_LINE_Y = Size.budgetMonthlyLimitStroke / 2;
@@ -43,6 +46,7 @@ export function MonthlyResultChart({
   month: string;
 }) {
   const { bars, limitOffsetDp, legend } = buildMonthlyResult(history.results, month);
+  const figures = buildMonthFigures(history);
   const { fontScale } = useWindowDimensions();
   const stacked = resolveRowStacking(fontScale) === 'stacked';
   const titleLine = resolveOneLineTextProps(scaledTextStyle(Type.caption, fontScale));
@@ -127,7 +131,56 @@ export function MonthlyResultChart({
             ))}
           </View>
         </View>
+        <View style={styles.figuresRow}>
+          <MonthFigure
+            label={Strings.budgetDetailAvg}
+            value={figures.avgLabel}
+            align="left"
+            fontScale={fontScale}
+          />
+          <MonthFigure
+            label={Strings.budgetDetailUnder}
+            value={figures.underLabel}
+            align="center"
+            fontScale={fontScale}
+          />
+          <MonthFigure
+            label={Strings.budgetDetailNet}
+            value={figures.netLabel}
+            valueColor={figures.netColor}
+            align="right"
+            fontScale={fontScale}
+          />
+        </View>
       </ListCard>
+    </View>
+  );
+}
+
+function MonthFigure({
+  label,
+  value,
+  valueColor = Colors.dark.text1,
+  align,
+  fontScale,
+}: {
+  label: string;
+  value: string;
+  valueColor?: string;
+  align: 'left' | 'center' | 'right';
+  fontScale: number;
+}) {
+  const valueText = resolveFitAmountTextProps(Type.bodyStrong, fontScale);
+  return (
+    <View style={styles.figure}>
+      <Text style={[styles.figureLabel, { textAlign: align }]}>{label}</Text>
+      <Text
+        {...valueText}
+        numberOfLines={fontScale > 1 ? valueText.numberOfLines : undefined}
+        style={[styles.figureValue, valueText.style, { color: valueColor, textAlign: align }]}
+      >
+        {value}
+      </Text>
     </View>
   );
 }
@@ -191,4 +244,20 @@ const styles = StyleSheet.create({
     color: Colors.dark.text2,
   },
   monthSelected: { fontFamily: FontFamily.interSemi, color: Colors.dark.text1 },
+  figuresRow: {
+    flexDirection: 'row',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderTopWidth: Size.hairline,
+    borderTopColor: Colors.dark.border,
+  },
+  figure: { flex: 1 },
+  figureLabel: {
+    fontFamily: FontFamily.interRegular,
+    fontSize: Type.micro,
+    lineHeight: lineHeightFor(Type.micro),
+    color: Colors.dark.text2,
+  },
+  figureValue: { fontFamily: FontFamily.soraBold, marginTop: Spacing.xxxs },
 });

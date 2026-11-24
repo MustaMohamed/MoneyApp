@@ -31,13 +31,28 @@ export interface MonthResultVM {
   lifecycle: 'completed' | 'provisional' | 'planned';
 }
 
+export interface UnbudgetedMonthResultVM {
+  yearMonth: string;
+  spent: number;
+  isProvisional: boolean;
+  lifecycle: MonthResultVM['lifecycle'];
+  limit: undefined;
+  delta: undefined;
+  status: undefined;
+}
+
+export type CategoryMonthVM = MonthResultVM | UnbudgetedMonthResultVM;
+
+export const MONTHLY_RESULT_BAR_COUNT = 6;
+
 export interface CategoryHistoryVM {
   /** `delta` and `spent` are snapped by `computeCategoryHistory`; a `MonthResultVM` from any other source is raw. */
-  results: MonthResultVM[];
-  netBanked: number;
+  results: CategoryMonthVM[];
   avgPerMonth: number;
   monthsUnder: number;
   monthsTotal: number;
+  monthsCompleted: number;
+  netBanked: number;
 }
 
 export type BudgetCopyStatus = 'new' | 'will-replace';
@@ -409,28 +424,35 @@ export function buildBudgetCopyRows({
   return out;
 }
 
-export function computeCategoryHistory(results: MonthResultVM[]): CategoryHistoryVM {
-  const historicalResults = results
-    .filter((result) => result.lifecycle !== 'planned')
-    .map((result) => ({
-      ...result,
-      delta: snapToZero(result.delta),
-      spent: snapToZero(result.spent),
-    }));
+/** `results` is oldest first and ends at the selected month; see docs/adr/2026-11-24-category-history-completed-months.md. */
+export function computeCategoryHistory(results: readonly CategoryMonthVM[]): CategoryHistoryVM {
+  const bars = results
+    .slice(-MONTHLY_RESULT_BAR_COUNT)
+    .map((result): CategoryMonthVM =>
+      result.limit === undefined
+        ? { ...result, spent: snapToZero(result.spent) }
+        : { ...result, delta: snapToZero(result.delta), spent: snapToZero(result.spent) },
+    );
   let netBanked = 0;
-  let totalSpent = 0;
+  let completedSpent = 0;
+  let monthsCompleted = 0;
   let monthsUnder = 0;
-  for (const r of historicalResults) {
+  let monthsTotal = 0;
+  for (const r of bars) {
+    if (r.lifecycle !== 'completed') continue;
+    monthsCompleted += 1;
+    completedSpent += r.spent;
+    if (r.limit === undefined) continue;
+    monthsTotal += 1;
     netBanked += r.delta;
-    totalSpent += r.spent;
     if (!exceedsToCent(r.spent, r.limit)) monthsUnder += 1;
   }
-  const monthsTotal = historicalResults.length;
   return {
-    results: historicalResults,
-    netBanked: snapToZero(netBanked),
-    avgPerMonth: monthsTotal > 0 ? totalSpent / monthsTotal : 0,
+    results: bars,
+    avgPerMonth: monthsCompleted > 0 ? completedSpent / monthsCompleted : 0,
     monthsUnder,
     monthsTotal,
+    monthsCompleted,
+    netBanked: snapToZero(netBanked),
   };
 }
