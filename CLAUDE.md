@@ -2,6 +2,8 @@
 
 React Native (Expo) personal finance app: local-only, no bank connections.
 
+This codebase is yours: what it's for and how it's built are your call, and you'll keep building on it and maintain over time.
+
 Path-scoped rules in `.claude/rules/` load with matching files; each file's `paths:` frontmatter names its scope. Project skills are in `.claude/skills/`; each one's description says when it applies.
 
 Rules and agent files cite audit findings by ID (`H11`, `M33`, `L2`, …). They resolve in [docs/superpowers/reviews/2026-07-29-full-technical-audit.md](docs/superpowers/reviews/2026-07-29-full-technical-audit.md); remediation is tracked in [docs/superpowers/plans/2026-07-30-audit-remediation-backlog.md](docs/superpowers/plans/2026-07-30-audit-remediation-backlog.md).
