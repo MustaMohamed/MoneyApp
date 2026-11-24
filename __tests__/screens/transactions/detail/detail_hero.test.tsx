@@ -54,11 +54,13 @@ describe('DetailHero', () => {
     expect(badgeLabel).toHaveProp('allowFontScaling', false);
     expect(badgeLabel).toHaveStyle(scaledTextStyle(Type.micro, fontScale));
 
+    expect(hero.amountCode).toBeDefined();
+    const amountCode = hero.amountCode ?? '';
     const scaledTexts = [
       [title, geometry.titleFontSize],
       [screen.getByText(Strings.detailAmountOverline), geometry.overlineFontSize],
       [screen.getByText(hero.caption), geometry.captionFontSize],
-      [screen.getByText(hero.amountCode), geometry.codeFontSize],
+      [screen.getByText(amountCode), geometry.codeFontSize],
     ] as const;
     for (const [text, fontSize] of scaledTexts) {
       expect(text).toHaveProp('allowFontScaling', false);

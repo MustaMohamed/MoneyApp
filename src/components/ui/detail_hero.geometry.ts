@@ -5,7 +5,7 @@ import {
   scaledFontSize,
   scaledTextStyle,
 } from '@/components/ui/text_scale.geometry';
-import { Size, Spacing, Type } from '@/constants/theme';
+import { Radius, Size, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
 export const DETAIL_HERO_AMOUNT_MAX_FONT_SCALE = DISPLAY_HEADLINE_MAX_FONT_SCALE;
@@ -17,7 +17,20 @@ export const DETAIL_HERO_OVERLINE_GAP = Spacing.md;
 export const DETAIL_HERO_CAPTION_GAP = Spacing.xxs;
 export const DETAIL_HERO_CODE_GAP = ms(6);
 export const DETAIL_HERO_CODE_OPACITY = 0.8;
+export const DETAIL_HERO_BADGE_ROW_GAP = ms(6);
+export const DETAIL_HERO_BAR_GAP = Spacing.sm;
+export const DETAIL_HERO_BAR_HEIGHT = ms(3);
+export const DETAIL_HERO_BAR_RADIUS = Radius.xs;
+export const DETAIL_HERO_BAR_TICK_WIDTH = ms(2);
+export const DETAIL_HERO_BAR_TICK_OVERHANG = ms(3);
+export const DETAIL_HERO_BAR_TICK_RADIUS = Size.hairline;
+export const DETAIL_HERO_BAR_CAPTION_GAP = Spacing.xs;
 const DETAIL_HERO_BADGE_CHROME = 2 * STATUS_BADGE_PADDING_VERTICAL;
+
+export interface DetailHeroLayout {
+  hidesOverline?: boolean;
+  bar?: boolean;
+}
 
 interface DetailHeroGeometry {
   titleFontSize: number;
@@ -31,11 +44,17 @@ interface DetailHeroGeometry {
   badgeHeight: number;
   topHeight: number;
   amountHeight: number;
+  overlineMarginTop: number;
+  amountMarginTop: number;
+  captionGap: number;
   height: number;
 }
 
 /** The loaded hero and its skeleton both stand at `height`; the amount line is fitted, so it keeps one device pixel of slack. */
-export function resolveDetailHeroGeometry(fontScale: number): DetailHeroGeometry {
+export function resolveDetailHeroGeometry(
+  fontScale: number,
+  layout: DetailHeroLayout = {},
+): DetailHeroGeometry {
   const title = scaledTextStyle(Type.headline, fontScale);
   // The overline, the caption and the badge label are one step.
   const micro = scaledTextStyle(Type.micro, fontScale);
@@ -47,13 +66,20 @@ export function resolveDetailHeroGeometry(fontScale: number): DetailHeroGeometry
     title.lineHeight + DETAIL_HERO_BADGE_GAP + badgeHeight,
   );
   const amountHeight = amount.lineHeight + FITTED_LINE_SLACK;
+  const hidesOverline = layout.hidesOverline === true;
+  const overlineMarginTop = DETAIL_HERO_OVERLINE_GAP;
+  const overlineBlock = hidesOverline ? 0 : overlineMarginTop + micro.lineHeight;
+  const amountMarginTop = hidesOverline ? DETAIL_HERO_OVERLINE_GAP : 0;
+  const captionGap = layout.bar === true ? DETAIL_HERO_BAR_CAPTION_GAP : DETAIL_HERO_CAPTION_GAP;
+  const barRowHeight = layout.bar === true ? DETAIL_HERO_BAR_GAP + DETAIL_HERO_BAR_HEIGHT : 0;
   const height =
     2 * DETAIL_HERO_PADDING +
     topHeight +
-    DETAIL_HERO_OVERLINE_GAP +
-    micro.lineHeight +
+    overlineBlock +
+    amountMarginTop +
     amountHeight +
-    DETAIL_HERO_CAPTION_GAP +
+    barRowHeight +
+    captionGap +
     micro.lineHeight;
 
   return {
@@ -68,6 +94,14 @@ export function resolveDetailHeroGeometry(fontScale: number): DetailHeroGeometry
     badgeHeight,
     topHeight,
     amountHeight,
+    overlineMarginTop,
+    amountMarginTop,
+    captionGap,
     height,
   };
+}
+
+export function resolveDetailHeroBarShare(share: number): number {
+  if (!Number.isFinite(share)) return 0;
+  return Math.min(Math.max(share, 0), 1);
 }
