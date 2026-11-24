@@ -12,7 +12,7 @@ The hero computes, rounds and formats no money. Its amount, each figure value an
 
 ## 2. A figure value is whole
 
-A figure value draws on one line through `resolveFitAmountTextProps`, which shrinks it to fit above font scale 1 with no floor. An amount never ends in `…`; a long amount at a large font scale draws smaller instead.
+A figure value draws on one line at the size `resolveFitAmountTextProps` gives, with `adjustsFontSizeToFit` at every font scale and no floor, so a value wider than its column shrinks to fit at any scale. An amount never ends in `…`; a long amount draws smaller instead. The line height stays the scaled `Type.meta` line.
 
 ## 3. Colour
 

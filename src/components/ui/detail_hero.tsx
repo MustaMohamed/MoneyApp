@@ -23,6 +23,7 @@ import {
   DETAIL_HERO_PADDING,
   DETAIL_HERO_SHELL_STYLE,
   DETAIL_HERO_TILE_GAP,
+  DETAIL_HERO_TILE_STYLE,
   resolveDetailHeroBarShare,
   resolveDetailHeroGeometry,
 } from '@/components/ui/detail_hero.geometry';
@@ -33,7 +34,7 @@ import {
   resolveFitLineTextProps,
 } from '@/components/ui/text_scale.geometry';
 import { Strings } from '@/constants/strings';
-import { Radius, Size, Type, lineHeightFor } from '@/constants/theme';
+import { Size, Type, lineHeightFor } from '@/constants/theme';
 import type { DateTileParts } from '@/utils/format_date';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -105,16 +106,7 @@ function DetailHeroTileSlot({ hero }: { hero: DetailHeroModel }): React.ReactEle
     return <DateTile {...hero.tileDate} fill={hero.tileColor} />;
   }
   return (
-    <View
-      style={{
-        width: Size.detailHeroTile,
-        height: Size.detailHeroTile,
-        borderRadius: Radius.md,
-        backgroundColor: hero.tileColor,
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
+    <View style={{ ...DETAIL_HERO_TILE_STYLE, backgroundColor: hero.tileColor }}>
       <MaterialCommunityIcons
         name={hero.tileGlyph}
         size={Size.iconLg}
@@ -140,8 +132,8 @@ function DetailHeroFiguresRow({
   figures: DetailHeroFigures;
   fontScale: number;
 }): React.ReactElement {
-  const { style: labelStyle, ...labelProps } = resolveFitLineTextProps(Type.micro, fontScale);
-  const { style: valueStyle, ...valueProps } = resolveFitAmountTextProps(Type.meta, fontScale);
+  const labelText = resolveFitLineTextProps(Type.micro, fontScale);
+  const valueText = resolveFitAmountTextProps(Type.meta, fontScale);
   return (
     <View
       style={{
@@ -155,27 +147,21 @@ function DetailHeroFiguresRow({
         const align = figureAlign(index, figures.length);
         const textAlign = FIGURE_TEXT_ALIGN[align];
         return (
-          <View key={figure.label} style={{ flexShrink: 1, alignItems: align }}>
+          // oxlint-disable-next-line react/no-array-index-key -- figures are a fixed-order tuple with no id.
+          <View key={index} style={{ flexShrink: 1, alignItems: align }}>
             <Typography
-              {...labelProps}
+              {...labelText}
               className="font-inter text-foreground/55"
-              style={{
-                textAlign,
-                fontSize: labelStyle.fontSize,
-                lineHeight: lineHeightFor(labelStyle.fontSize),
-              }}
+              style={{ ...labelText.style, textAlign }}
             >
               {figure.label}
             </Typography>
             <Typography
-              {...valueProps}
+              {...valueText}
+              // Fits at every scale: a figure value never ends in `…`.
+              adjustsFontSizeToFit
               className="font-sora-semibold text-foreground tabular-nums"
-              style={{
-                textAlign,
-                marginTop: DETAIL_HERO_FIGURE_VALUE_GAP,
-                fontSize: valueStyle.fontSize,
-                lineHeight: lineHeightFor(valueStyle.fontSize),
-              }}
+              style={{ ...valueText.style, textAlign, marginTop: DETAIL_HERO_FIGURE_VALUE_GAP }}
             >
               {figure.value}
             </Typography>
@@ -193,7 +179,7 @@ function DetailHeroInfoText({
 }: {
   text: DetailHeroText;
   fontSize: number;
-  style?: { marginTop?: number; flexShrink?: number };
+  style?: { flexShrink?: number };
 }): React.ReactElement {
   return (
     <Typography
@@ -281,6 +267,8 @@ export function DetailHero({ hero, testID, entering }: Props): React.ReactElemen
     figures: hero.figures !== undefined,
     captionEnd: hero.captionEnd !== undefined,
   });
+  const infoRow = hero.captionEnd !== undefined && !geometry.stacksInfo;
+  const infoTextStyle = infoRow ? { flexShrink: 1 } : undefined;
 
   return (
     <HeroShell glowColor={hero.tileColor} style={DETAIL_HERO_SHELL_STYLE} entering={entering}>
@@ -404,40 +392,27 @@ export function DetailHero({ hero, testID, entering }: Props): React.ReactElemen
 
         {hero.bar === undefined ? undefined : <DetailHeroBarRow bar={hero.bar} />}
 
-        {hero.captionEnd === undefined || geometry.stacksInfo ? (
+        <View
+          style={{
+            flexDirection: infoRow ? 'row' : 'column',
+            justifyContent: 'space-between',
+            gap: infoRow ? DETAIL_HERO_INFO_ROW_GAP : DETAIL_HERO_INFO_STACK_GAP,
+            marginTop: geometry.captionGap,
+          }}
+        >
           <DetailHeroInfoText
             text={hero.caption}
             fontSize={geometry.captionFontSize}
-            style={{ marginTop: geometry.captionGap }}
+            style={infoTextStyle}
           />
-        ) : (
-          <View
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              gap: DETAIL_HERO_INFO_ROW_GAP,
-              marginTop: geometry.captionGap,
-            }}
-          >
-            <DetailHeroInfoText
-              text={hero.caption}
-              fontSize={geometry.captionFontSize}
-              style={{ flexShrink: 1 }}
-            />
+          {hero.captionEnd === undefined ? undefined : (
             <DetailHeroInfoText
               text={hero.captionEnd}
               fontSize={geometry.captionFontSize}
-              style={{ flexShrink: 1 }}
+              style={infoTextStyle}
             />
-          </View>
-        )}
-        {hero.captionEnd === undefined || !geometry.stacksInfo ? undefined : (
-          <DetailHeroInfoText
-            text={hero.captionEnd}
-            fontSize={geometry.captionFontSize}
-            style={{ marginTop: DETAIL_HERO_INFO_STACK_GAP }}
-          />
-        )}
+          )}
+        </View>
       </View>
     </HeroShell>
   );

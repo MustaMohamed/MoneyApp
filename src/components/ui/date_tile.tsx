@@ -2,7 +2,8 @@ import { Typography } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
-import { LetterSpacing, Radius, Size, Type, lineHeightFor } from '@/constants/theme';
+import { DETAIL_HERO_TILE_STYLE } from '@/components/ui/detail_hero.geometry';
+import { LetterSpacing, Type, lineHeightFor } from '@/constants/theme';
 import type { DateTileParts } from '@/utils/format_date';
 
 const DATE_TILE_MONTH_OPACITY = 0.85;
@@ -19,14 +20,7 @@ export function DateTile({ month, day, fill, ink }: DateTileProps): React.ReactE
     <View
       importantForAccessibility="no-hide-descendants"
       accessibilityElementsHidden
-      style={{
-        width: Size.detailHeroTile,
-        height: Size.detailHeroTile,
-        borderRadius: Radius.md,
-        backgroundColor: fill,
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
+      style={{ ...DETAIL_HERO_TILE_STYLE, backgroundColor: fill }}
     >
       <Typography
         allowFontScaling={false}

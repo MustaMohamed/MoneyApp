@@ -11,6 +11,13 @@ import { ms } from '@/utils/responsive';
 
 export const DETAIL_HERO_AMOUNT_MAX_FONT_SCALE = DISPLAY_HEADLINE_MAX_FONT_SCALE;
 export const DETAIL_HERO_SHELL_STYLE = { marginTop: Spacing.xs };
+export const DETAIL_HERO_TILE_STYLE = {
+  width: Size.detailHeroTile,
+  height: Size.detailHeroTile,
+  borderRadius: Radius.md,
+  alignItems: 'center',
+  justifyContent: 'center',
+} as const;
 export const DETAIL_HERO_PADDING = Spacing.md;
 export const DETAIL_HERO_TILE_GAP = Spacing.sm;
 export const DETAIL_HERO_BADGE_GAP = Spacing.xxs;
