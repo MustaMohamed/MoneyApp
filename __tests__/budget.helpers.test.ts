@@ -14,6 +14,7 @@ import {
   resolveBudgetPresentation,
   resolveLimitForMonth,
   type MonthResultVM,
+  type UnbudgetedMonthResultVM,
 } from '@/modules/budget/screens/budget/budget.helpers';
 import { BUDGET_WARNING_PERCENT, budgetBandColor } from '@/modules/budget/utils/budget_summary';
 import type { Category } from '@/modules/categories/entities/category.entity';
@@ -366,13 +367,20 @@ describe('computeCategoryHistory', () => {
       lifecycle: 'planned',
     },
   ];
-  it('includes the provisional current month but excludes planned future months', () => {
+  it('keeps every bar and counts the figures over completed months only', () => {
     const h = computeCategoryHistory(results);
-    expect(h.results).toHaveLength(4);
-    expect(h.netBanked).toBe(1250);
-    expect(h.avgPerMonth).toBe((2400 + 3200 + 2750 + 2400) / 4);
-    expect(h.monthsUnder).toBe(3);
-    expect(h.monthsTotal).toBe(4);
+    expect(h.results.map((r) => r.yearMonth)).toEqual([
+      '2026-02',
+      '2026-03',
+      '2026-04',
+      '2026-05',
+      '2026-06',
+    ]);
+    expect(h.monthsTotal).toBe(3);
+    expect(h.monthsCompleted).toBe(3);
+    expect(h.monthsUnder).toBe(2);
+    expect(h.netBanked).toBe(650);
+    expect(h.avgPerMonth).toBe((2400 + 3200 + 2750) / 3);
   });
   it('zero-safe with no months', () => {
     const h = computeCategoryHistory([]);
@@ -382,7 +390,69 @@ describe('computeCategoryHistory', () => {
       avgPerMonth: 0,
       monthsUnder: 0,
       monthsTotal: 0,
+      monthsCompleted: 0,
     });
+  });
+  it('keeps the last six of eight completed rows and counts the figures over those six', () => {
+    const spends = [100, 200, 300, 400, 3500, 600, 700, 800];
+    const rows: MonthResultVM[] = spends.map((spent, i) => ({
+      yearMonth: `2026-0${i + 1}`,
+      limit: 3000,
+      spent,
+      delta: 3000 - spent,
+      status: spent > 3000 ? 'over' : 'under',
+      isProvisional: false,
+      lifecycle: 'completed',
+    }));
+    const h = computeCategoryHistory(rows);
+    expect(h.results.map((r) => r.yearMonth)).toEqual([
+      '2026-03',
+      '2026-04',
+      '2026-05',
+      '2026-06',
+      '2026-07',
+      '2026-08',
+    ]);
+    expect(h.monthsTotal).toBe(6);
+    expect(h.monthsCompleted).toBe(6);
+    expect(h.monthsUnder).toBe(5);
+    expect(h.avgPerMonth).toBe((300 + 400 + 3500 + 600 + 700 + 800) / 6);
+    expect(h.netBanked).toBe(6 * 3000 - (300 + 400 + 3500 + 600 + 700 + 800));
+  });
+  it('draws the first budgeted month in progress alone (S24) with nothing counted', () => {
+    const h = computeCategoryHistory([results[3]]);
+    expect(h.results.map((r) => r.yearMonth)).toEqual(['2026-05']);
+    expect(h.monthsTotal).toBe(0);
+    expect(h.monthsCompleted).toBe(0);
+    expect(h.monthsUnder).toBe(0);
+    expect(h.netBanked).toBe(0);
+    expect(h.avgPerMonth).toBe(0);
+  });
+  it('keeps a planned month alone as its bar', () => {
+    const h = computeCategoryHistory([results[4]]);
+    expect(h.results.map((r) => r.yearMonth)).toEqual(['2026-06']);
+    expect(h.results[0].lifecycle).toBe('planned');
+    expect(h.monthsTotal).toBe(0);
+    expect(h.monthsCompleted).toBe(0);
+  });
+  it('counts a completed selected month with no budget in Avg / mo only', () => {
+    const unbudgeted: UnbudgetedMonthResultVM = {
+      yearMonth: '2026-05',
+      spent: 1300,
+      isProvisional: false,
+      lifecycle: 'completed',
+      limit: undefined,
+      delta: undefined,
+      status: undefined,
+    };
+    const h = computeCategoryHistory([results[0], results[1], unbudgeted]);
+    expect(h.results.map((r) => r.yearMonth)).toEqual(['2026-02', '2026-03', '2026-05']);
+    expect(h.results[2].limit).toBeUndefined();
+    expect(h.monthsCompleted).toBe(3);
+    expect(h.avgPerMonth).toBe((2400 + 3200 + 1300) / 3);
+    expect(h.monthsTotal).toBe(2);
+    expect(h.monthsUnder).toBe(1);
+    expect(h.netBanked).toBe(400);
   });
 });
 

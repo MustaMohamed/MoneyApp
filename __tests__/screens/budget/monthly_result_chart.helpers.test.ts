@@ -3,12 +3,15 @@ import { PixelRatio } from 'react-native';
 import { Strings } from '@/constants/strings';
 import { Colors, Size } from '@/constants/theme';
 import {
+  type CategoryMonthVM,
   computeCategoryHistory,
+  MONTHLY_RESULT_BAR_COUNT,
   type MonthResultVM,
+  type UnbudgetedMonthResultVM,
 } from '@/modules/budget/screens/budget/budget.helpers';
 import {
+  buildMonthFigures,
   buildMonthlyResult,
-  MONTHLY_RESULT_BAR_COUNT,
 } from '@/modules/budget/screens/budget/category_detail/components/monthly_result_chart.helpers';
 import { budgetBandColor } from '@/modules/budget/utils/budget_summary';
 import { formatAmount } from '@/utils/format_amount';
@@ -31,7 +34,24 @@ function row(
   };
 }
 
-const history = (rows: MonthResultVM[]): MonthResultVM[] => computeCategoryHistory(rows).results;
+function noBudget(
+  yearMonth: string,
+  spent: number,
+  lifecycle: MonthResultVM['lifecycle'] = 'completed',
+): UnbudgetedMonthResultVM {
+  return {
+    yearMonth,
+    spent,
+    isProvisional: lifecycle === 'provisional',
+    lifecycle,
+    limit: undefined,
+    delta: undefined,
+    status: undefined,
+  };
+}
+
+const history = (rows: CategoryMonthVM[]): CategoryMonthVM[] =>
+  computeCategoryHistory(rows).results;
 
 const B1_ROWS = history([
   row('2026-06', 2100),
@@ -121,15 +141,14 @@ describe('buildMonthlyResult — the bar window', () => {
     ]);
   });
 
-  it('keeps the last five of seven rows and draws no limit line when no row is the selected month', () => {
+  it('draws five budgeted bars and the no-budget selected month in the neutral fill with no limit line', () => {
     const rows = history([
-      row('2026-01', 100),
-      row('2026-02', 200),
       row('2026-03', 300),
       row('2026-04', 400),
       row('2026-05', 500),
       row('2026-06', 600),
       row('2026-07', 700),
+      noBudget('2026-08', 850),
     ]);
     const result = buildMonthlyResult(rows, '2026-08');
     expect(result.bars.map((b) => b.yearMonth)).toEqual([
@@ -138,9 +157,26 @@ describe('buildMonthlyResult — the bar window', () => {
       '2026-05',
       '2026-06',
       '2026-07',
+      '2026-08',
     ]);
+    const selected = result.bars[5];
+    expect(selected.isSelected).toBe(true);
+    expect(selected.color).toBe(Colors.dark.budgetNoLimit);
+    expect(selected.isOver).toBe(false);
+    expect(selected.amountLabel).toBe(formatAmount(850));
     expect(result.limitOffsetDp).toBeUndefined();
-    expect(result.bars.some((b) => b.isSelected)).toBe(false);
+  });
+
+  it('draws the no-budget selected month alone when no month before it had a budget', () => {
+    const result = buildMonthlyResult(
+      history([noBudget('2026-11', 640, 'provisional')]),
+      '2026-11',
+    );
+    expect(result.bars).toHaveLength(1);
+    expect(result.bars[0].isSelected).toBe(true);
+    expect(result.bars[0].color).toBe(Colors.dark.budgetNoLimit);
+    expect(result.bars[0].amountLabel).toBe(formatAmount(640));
+    expect(result.limitOffsetDp).toBeUndefined();
   });
 
   it('draws one selected bar for the first budgeted month (S24)', () => {
@@ -162,14 +198,18 @@ describe('buildMonthlyResult — legend', () => {
     );
   });
 
-  it('reads the in-progress note alone when no row is the selected month and one is provisional', () => {
-    const rows = history([row('2026-09', 2000), row('2026-10', 2500, 3000, 'provisional')]);
-    expect(buildMonthlyResult(rows, '2026-12').legend).toBe(Strings.budgetDetailInProgress);
+  it('reads the in-progress note alone when the selected month has no budget and is in progress', () => {
+    const rows = history([
+      row('2026-09', 2000),
+      row('2026-10', 2500),
+      noBudget('2026-11', 900, 'provisional'),
+    ]);
+    expect(buildMonthlyResult(rows, '2026-11').legend).toBe(Strings.budgetDetailInProgress);
   });
 
-  it('has no legend when no row is the selected month and none is provisional', () => {
-    const rows = history([row('2026-09', 2000), row('2026-10', 2500)]);
-    expect(buildMonthlyResult(rows, '2026-12').legend).toBeUndefined();
+  it('has no legend when the selected month has no budget and none is in progress', () => {
+    const rows = history([row('2026-09', 2000), row('2026-10', 2500), noBudget('2026-11', 900)]);
+    expect(buildMonthlyResult(rows, '2026-11').legend).toBeUndefined();
   });
 });
 
@@ -208,5 +248,59 @@ describe('buildMonthlyResult — band colour per month', () => {
     expect(bars[1].isOver).toBe(true);
     expect(bars[1].color).toBe(budgetBandColor(3000.01, 3000));
     expect(bars[1].amountColor).toBe(Colors.dark.negative);
+  });
+});
+
+describe('buildMonthFigures', () => {
+  it('reads frame B1 over its five completed months, the month in progress left out', () => {
+    const figures = buildMonthFigures(
+      computeCategoryHistory([
+        row('2026-06', 2100),
+        row('2026-07', 3400),
+        row('2026-08', 1800),
+        row('2026-09', 2950),
+        row('2026-10', 2600),
+        row('2026-11', 1150, 3000, 'provisional'),
+      ]),
+    );
+    expect(figures.avgLabel).toBe(formatAmount(2570));
+    expect(figures.underLabel).toBe(Strings.budgetDetailPartOf(4, 5));
+    expect(figures.netLabel).toBe(Strings.budgetDetailNetUnder(formatAmount(2150)));
+    expect(figures.netColor).toBe(Colors.dark.positive);
+  });
+
+  it('reads the dash for all three in the plain figure colour with no completed month', () => {
+    const figures = buildMonthFigures(
+      computeCategoryHistory([
+        row('2026-11', 400, 3000, 'provisional'),
+        row('2026-12', 0, 3000, 'planned'),
+      ]),
+    );
+    expect(figures.avgLabel).toBe(Strings.budgetDetailNoFigure);
+    expect(figures.underLabel).toBe(Strings.budgetDetailNoFigure);
+    expect(figures.netLabel).toBe(Strings.budgetDetailNoFigure);
+    expect(figures.netColor).toBe(Colors.dark.text1);
+  });
+
+  it('reads a net 0.30 over as 0 over in the negative colour', () => {
+    const figures = buildMonthFigures(computeCategoryHistory([row('2026-10', 3000.3)]));
+    expect(figures.netLabel).toBe(Strings.budgetDetailNetOver(formatAmount(0)));
+    expect(figures.netColor).toBe(Colors.dark.negative);
+  });
+
+  it('reads a net that snaps to zero as 0 under in the positive colour', () => {
+    const figures = buildMonthFigures(
+      computeCategoryHistory([row('2026-09', 3000.004), row('2026-10', 2999.997)]),
+    );
+    expect(figures.netLabel).toBe(Strings.budgetDetailNetUnder(formatAmount(0)));
+    expect(figures.netColor).toBe(Colors.dark.positive);
+  });
+
+  it('reads a completed no-budget month alone as its average with the dash for Under limit and Net', () => {
+    const figures = buildMonthFigures(computeCategoryHistory([noBudget('2026-10', 1234.6)]));
+    expect(figures.avgLabel).toBe(formatAmount(1235));
+    expect(figures.underLabel).toBe(Strings.budgetDetailNoFigure);
+    expect(figures.netLabel).toBe(Strings.budgetDetailNoFigure);
+    expect(figures.netColor).toBe(Colors.dark.text1);
   });
 });

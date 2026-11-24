@@ -428,6 +428,47 @@ describe('useCategoryDetail — month rollover', () => {
     expect(result.current.state.daysLeft).toBe(lifecycle === 'provisional' ? 16 : undefined);
   });
 
+  it('draws the selected month with no budget as its own bar and gives it no live card', async () => {
+    jest.setSystemTime(new Date('2026-05-15T12:00:00'));
+    mockRouteMonth = '2026-05';
+    categoriesState = [category('cat-1')];
+    budgetRowsState = [
+      { ...budget('budget-mar', 'Monthly Food'), effective_from: '2026-03' },
+      { ...budget('budget-apr', 'Monthly Food'), effective_from: '2026-04' },
+    ];
+    spendByMonthState = { 'cat-1': { '2026-05': 250 } };
+
+    const { result } = await renderHook(() => useCategoryDetail());
+
+    expect(result.current.state.liveMonth).toBeUndefined();
+    const bars = result.current.state.history.results;
+    expect(bars.map((r) => r.yearMonth)).toEqual(['2026-03', '2026-04', '2026-05']);
+    expect(bars[2].limit).toBeUndefined();
+    expect(bars[2].spent).toBe(250);
+  });
+
+  it('keeps the future months up to a selected future month as planned bars out of the figures', async () => {
+    jest.setSystemTime(new Date('2026-05-15T12:00:00'));
+    mockRouteMonth = '2026-07';
+    budgetLoadedMonthState = '2026-07';
+    categoriesState = [category('cat-1')];
+    budgetRowsState = ['2026-04', '2026-05', '2026-06', '2026-07'].map((ym) => ({
+      ...budget(`budget-${ym}`, 'Monthly Food'),
+      effective_from: ym,
+    }));
+
+    const { result } = await renderHook(() => useCategoryDetail());
+
+    const { history } = result.current.state;
+    expect(history.results.map((r) => [r.yearMonth, r.lifecycle])).toEqual([
+      ['2026-04', 'completed'],
+      ['2026-05', 'provisional'],
+      ['2026-06', 'planned'],
+      ['2026-07', 'planned'],
+    ]);
+    expect(history.monthsTotal).toBe(1);
+  });
+
   it('refreshes month when the screen regains focus after a month boundary', async () => {
     jest.setSystemTime(new Date('2026-05-15T12:00:00'));
     const { result } = await renderHook(() => useCategoryDetail());
