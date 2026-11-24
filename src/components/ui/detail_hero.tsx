@@ -18,6 +18,8 @@ import {
   DETAIL_HERO_FIGURES_COLUMN_GAP,
   DETAIL_HERO_FIGURES_GAP,
   DETAIL_HERO_FIGURE_VALUE_GAP,
+  DETAIL_HERO_INFO_ROW_GAP,
+  DETAIL_HERO_INFO_STACK_GAP,
   DETAIL_HERO_PADDING,
   DETAIL_HERO_SHELL_STYLE,
   DETAIL_HERO_TILE_GAP,
@@ -35,6 +37,9 @@ import { Radius, Size, Type, lineHeightFor } from '@/constants/theme';
 import type { DateTileParts } from '@/utils/format_date';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+
+export type DetailHeroRun = string | { strong: string };
+export type DetailHeroText = string | readonly DetailHeroRun[];
 
 export interface DetailHeroFigure {
   label: string;
@@ -59,7 +64,8 @@ interface DetailHeroFields {
   amountCode?: string;
   amountColor: string;
   amountAccessibilityLabel: string;
-  caption: string;
+  caption: DetailHeroText;
+  captionEnd?: DetailHeroText;
   /** Absent draws the default overline; `false` hides the line. */
   overline?: string | false;
   tag?: DetailHeroBadge;
@@ -180,6 +186,44 @@ function DetailHeroFiguresRow({
   );
 }
 
+function DetailHeroInfoText({
+  text,
+  fontSize,
+  style,
+}: {
+  text: DetailHeroText;
+  fontSize: number;
+  style?: { marginTop?: number; flexShrink?: number };
+}): React.ReactElement {
+  return (
+    <Typography
+      allowFontScaling={false}
+      numberOfLines={1}
+      className="font-inter text-foreground/55"
+      style={{ ...style, fontSize, lineHeight: lineHeightFor(fontSize) }}
+    >
+      {typeof text === 'string'
+        ? text
+        : text.map((run, index) =>
+            typeof run === 'string' ? (
+              run
+            ) : (
+              // A nested Typography takes HeroUI's body size unless it carries its own pair.
+              <Typography
+                // oxlint-disable-next-line react/no-array-index-key -- runs are a static sequence with no id.
+                key={index}
+                allowFontScaling={false}
+                className="font-inter-semibold text-foreground/80"
+                style={{ fontSize, lineHeight: lineHeightFor(fontSize) }}
+              >
+                {run.strong}
+              </Typography>
+            ),
+          )}
+    </Typography>
+  );
+}
+
 // No overflow clip: the tick overhangs the track.
 function DetailHeroBarRow({ bar }: { bar: DetailHeroBar }): React.ReactElement {
   return (
@@ -235,6 +279,7 @@ export function DetailHero({ hero, testID, entering }: Props): React.ReactElemen
     hidesOverline: hero.overline === false,
     bar: hero.bar !== undefined,
     figures: hero.figures !== undefined,
+    captionEnd: hero.captionEnd !== undefined,
   });
 
   return (
@@ -359,18 +404,40 @@ export function DetailHero({ hero, testID, entering }: Props): React.ReactElemen
 
         {hero.bar === undefined ? undefined : <DetailHeroBarRow bar={hero.bar} />}
 
-        <Typography
-          allowFontScaling={false}
-          numberOfLines={1}
-          className="font-inter text-foreground/55"
-          style={{
-            marginTop: geometry.captionGap,
-            fontSize: geometry.captionFontSize,
-            lineHeight: lineHeightFor(geometry.captionFontSize),
-          }}
-        >
-          {hero.caption}
-        </Typography>
+        {hero.captionEnd === undefined || geometry.stacksInfo ? (
+          <DetailHeroInfoText
+            text={hero.caption}
+            fontSize={geometry.captionFontSize}
+            style={{ marginTop: geometry.captionGap }}
+          />
+        ) : (
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              gap: DETAIL_HERO_INFO_ROW_GAP,
+              marginTop: geometry.captionGap,
+            }}
+          >
+            <DetailHeroInfoText
+              text={hero.caption}
+              fontSize={geometry.captionFontSize}
+              style={{ flexShrink: 1 }}
+            />
+            <DetailHeroInfoText
+              text={hero.captionEnd}
+              fontSize={geometry.captionFontSize}
+              style={{ flexShrink: 1 }}
+            />
+          </View>
+        )}
+        {hero.captionEnd === undefined || !geometry.stacksInfo ? undefined : (
+          <DetailHeroInfoText
+            text={hero.captionEnd}
+            fontSize={geometry.captionFontSize}
+            style={{ marginTop: DETAIL_HERO_INFO_STACK_GAP }}
+          />
+        )}
       </View>
     </HeroShell>
   );
