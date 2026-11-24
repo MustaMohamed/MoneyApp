@@ -53,7 +53,11 @@ export function SectionHeader({ title, meta, count, action }: SectionHeaderProps
         {...captionLine}
         {...(wraps ? { numberOfLines: undefined } : {})}
         className="font-inter-semibold text-muted tracking-wide uppercase"
-        style={{ ...captionLine.style, ...(wraps ? { flexGrow: 1 } : { flex: 1 }) }}
+        style={{
+          ...captionLine.style,
+          // Wrapping, the title keeps its words whole and the meta drops under it instead.
+          ...(wraps ? { flexGrow: 1, flexShrink: 0, maxWidth: '100%' } : { flex: 1 }),
+        }}
       >
         {title}
       </Typography>
