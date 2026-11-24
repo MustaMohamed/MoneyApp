@@ -3,9 +3,13 @@ import { Dimensions, PixelRatio } from 'react-native';
 import {
   DETAIL_HERO_AMOUNT_MAX_FONT_SCALE,
   DETAIL_HERO_BADGE_GAP,
+  DETAIL_HERO_BAR_CAPTION_GAP,
+  DETAIL_HERO_BAR_GAP,
+  DETAIL_HERO_BAR_HEIGHT,
   DETAIL_HERO_CAPTION_GAP,
   DETAIL_HERO_OVERLINE_GAP,
   DETAIL_HERO_PADDING,
+  resolveDetailHeroBarShare,
   resolveDetailHeroGeometry,
 } from '@/components/ui/detail_hero.geometry';
 import { resolveFactRowHeight } from '@/components/ui/fact_row.geometry';
@@ -112,6 +116,33 @@ describe('resolveDetailHeroGeometry', () => {
     );
   });
 
+  it.each([0.85, 1, 1.3, 2, 3])(
+    'MA-322: keeps the height with no layout, drops the overline line and adds the bar row at font scale %s',
+    (fontScale) => {
+      const base = heroHeightAt(fontScale);
+      const overline = lineBox(Type.micro, fontScale);
+      const barRow =
+        DETAIL_HERO_BAR_GAP +
+        DETAIL_HERO_BAR_HEIGHT +
+        DETAIL_HERO_BAR_CAPTION_GAP -
+        DETAIL_HERO_CAPTION_GAP;
+
+      expect({
+        none: resolveDetailHeroGeometry(fontScale).height,
+        empty: resolveDetailHeroGeometry(fontScale, {}).height,
+        hidesOverline: resolveDetailHeroGeometry(fontScale, { hidesOverline: true }).height,
+        bar: resolveDetailHeroGeometry(fontScale, { bar: true }).height,
+        both: resolveDetailHeroGeometry(fontScale, { hidesOverline: true, bar: true }).height,
+      }).toEqual({
+        none: base,
+        empty: base,
+        hidesOverline: base - overline,
+        bar: base + barRow,
+        both: base - overline + barRow,
+      });
+    },
+  );
+
   it.each([0.85, 1, 1.3, 2])(
     'MA-237: gives the title, overline and caption the line boxes of their sizes at font scale %s',
     (fontScale) => {
@@ -122,6 +153,20 @@ describe('resolveDetailHeroGeometry', () => {
       expect(geometry.captionLineHeight).toBe(lineHeightFor(geometry.captionFontSize));
     },
   );
+});
+
+describe('resolveDetailHeroBarShare', () => {
+  it.each([
+    [-0.2, 0],
+    [0, 0],
+    [0.38, 0.38],
+    [1, 1],
+    [1.13, 1],
+    [Number.NaN, 0],
+    [Number.POSITIVE_INFINITY, 0],
+  ])('draws a share of %s at %s', (share, drawn) => {
+    expect(resolveDetailHeroBarShare(share)).toBe(drawn);
+  });
 });
 
 // The card's `p-3.5` and its 1 border, top and bottom, which the stretched cell sits inside.
