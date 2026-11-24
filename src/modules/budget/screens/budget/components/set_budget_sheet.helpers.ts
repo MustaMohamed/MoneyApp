@@ -51,11 +51,11 @@ export const BUDGET_GROUP_OPTIONS: readonly BudgetGroupOption[] = [
   },
 ];
 
-export function resolveBudgetGroupRowValue(group: BudgetGroup | null): string {
-  return (
-    BUDGET_GROUP_OPTIONS.find((option) => option.value === group)?.label ??
-    Strings.budget5030NotGroupedMetric
-  );
+export function resolveBudgetGroupRowValue(
+  group: BudgetGroup | null | undefined,
+  fallback: string = Strings.budget5030NotGroupedMetric,
+): string {
+  return BUDGET_GROUP_OPTIONS.find((option) => option.value === group)?.label ?? fallback;
 }
 
 export type SetBudgetStatusSubject =

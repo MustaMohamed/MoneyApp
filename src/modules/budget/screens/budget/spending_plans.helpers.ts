@@ -95,7 +95,7 @@ type LimitedCategory = SpendingPlanDetailCategoryVM &
 
 // D2 `.cat-tile`: the category colour at alpha 0x26 over the card surface.
 const CATEGORY_TILE_FILL_SHARE = 0x26 / 255;
-const LIMIT_TAG_FILL_SHARE = 0.15;
+export const LIMIT_TAG_FILL_SHARE = 0.15;
 
 /** `color` is a `#RRGGBB`; the glyph steps toward the text colour until it clears 3:1 on the tile. */
 export function resolveCategoryTileColors(color: string): { tileFill: string; glyphColor: string } {

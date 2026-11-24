@@ -6,7 +6,6 @@ import type { DetailHeroModel } from '@/components/ui/detail_hero';
 import { lastMonths } from '@/modules/budget/repositories/budget.repository';
 import {
   type CategoryMonthVM,
-  type MonthResultVM,
   computeCategoryHistory,
   computeStatus,
   resolveLimitForMonth,
@@ -18,6 +17,7 @@ import {
 import {
   buildCategoryDetailHero,
   resolveCategoryDetailViewState,
+  resolveMonthLifecycle,
 } from '@/modules/budget/screens/budget/category_detail/category_detail.helpers';
 import { useCategoryDetailState } from '@/modules/budget/screens/budget/category_detail/category_detail.state';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
@@ -69,16 +69,16 @@ export function useCategoryDetail() {
   );
   const load = useBudgetStore.getState().load;
 
+  const focusMonth = validRouteMonth ?? currentMonth;
   useFocusEffect(
     useCallback(() => {
-      const selectedMonth = validRouteMonth ?? currentMonth;
-      setMonth(selectedMonth);
+      setMonth(focusMonth);
       const categoryStore = useCategoryStore.getState();
       if (!categoryStore.hasLoaded || categoryStore.loadError) {
         void loadCategories().catch(() => undefined);
       }
-      void load(selectedMonth).catch(() => undefined);
-    }, [currentMonth, loadCategories, load, setMonth, validRouteMonth]),
+      void load(focusMonth).catch(() => undefined);
+    }, [focusMonth, loadCategories, load, setMonth]),
   );
 
   const category = useMemo(() => categories.find((c) => c.id === id), [categories, id]);
@@ -97,8 +97,7 @@ export function useCategoryDetail() {
       const limit = resolveLimitForMonth(budgetRows, id, ym);
       if (limit === null && ym !== month) continue; // only months the budget was active, and the selected one
       const spent = spendByMonth[id]?.[ym] ?? 0;
-      const lifecycle: MonthResultVM['lifecycle'] =
-        ym < currentMonth ? 'completed' : ym === currentMonth ? 'provisional' : 'planned';
+      const lifecycle = resolveMonthLifecycle(ym, currentMonth);
       const base = { yearMonth: ym, spent, isProvisional: lifecycle === 'provisional', lifecycle };
       out.push(
         limit === null
@@ -114,7 +113,7 @@ export function useCategoryDetail() {
     if (!hasLoaded || category === undefined) return undefined;
     return buildCategoryDetailHero({
       category,
-      limit: resolveLimitForMonth(budgetRows, category.id, month),
+      limit: resolveLimitForMonth(budgetRows, category.id, month) ?? undefined,
       spent: spendByMonth[category.id]?.[month] ?? 0,
       month,
       today,

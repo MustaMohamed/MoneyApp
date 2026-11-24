@@ -37,7 +37,8 @@ current, a past or a future month, the month compared with the local day's `YYYY
 The caption's percent is `wholePercent(spent, limit)`. The bar's share is
 `ratioHeldAtTie(spent, limit)`, so a float tie (spent `0.1 + 0.2` of 0.3) fills it whole without
 reading over, and its colour is `budgetBandColor` unchanged: steps at 50, 80 and 90%, exactly 100%
-`budgetNear`, over to the cent `budgetOver`.
+`budgetNear`, over to the cent `budgetOver`. Over, the bar is full in `budgetOver`, so a legacy
+zero-limit month with spending (stored before #158) reads a full over bar, not an empty one.
 
 The tag on the current and future months reads `computeBudgetHealth`: On track, Watch from 80%
 (`BUDGET_WARNING_PERCENT`), Over. A past month reads Over or Within limit, since a closed month has

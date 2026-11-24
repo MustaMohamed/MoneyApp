@@ -10,7 +10,6 @@ import {
   contrastRatio,
 } from '@/modules/accounts/constants/account_palette';
 import {
-  BUDGET_CATEGORY_DETAIL_HERO_TEST_ID,
   BUDGET_CATEGORY_DETAIL_LOAD_ERROR_COPY,
   type CategoryDetailViewState,
   buildCategoryDetailHero,
@@ -18,6 +17,7 @@ import {
   resolveCategoryDetailViewState,
 } from '@/modules/budget/screens/budget/category_detail/category_detail.helpers';
 import { BUDGET_GROUP_OPTIONS } from '@/modules/budget/screens/budget/components/set_budget_sheet.helpers';
+import { LIMIT_TAG_FILL_SHARE } from '@/modules/budget/screens/budget/spending_plans.helpers';
 import { makeTestCategory } from '@/test_helpers/transaction';
 import { formatAmount, formatDisplayAmountParts } from '@/utils/format_amount';
 
@@ -65,7 +65,12 @@ describe('buildCategoryDetailHero', () => {
   const EGP = CURRENCY_CONFIG[Currency.EGP].code;
   const clothes = makeTestCategory({ id: 'cat-1', name: 'Clothes', color: '#6FA8DC' });
   const tagColors = (tone: string) =>
-    resolveBadgeColors({ tone, backdrop: HERO_GRADIENT_COLORS[1], fillShare: 0.15, inkShare: 1 });
+    resolveBadgeColors({
+      tone,
+      backdrop: HERO_GRADIENT_COLORS[1],
+      fillShare: LIMIT_TAG_FILL_SHARE,
+      inkShare: 1,
+    });
   const groupLabel = (group: BudgetGroup) =>
     BUDGET_GROUP_OPTIONS.find((option) => option.value === group)?.label;
 
@@ -80,10 +85,6 @@ describe('buildCategoryDetailHero', () => {
       ...overrides,
     });
   }
-
-  it('exports the hero test id', () => {
-    expect(BUDGET_CATEGORY_DETAIL_HERO_TEST_ID).toEqual(expect.any(String));
-  });
 
   it('draws frame B1 on the current month: left figure, On track, Want, bar, tick and days left', () => {
     const hero = build();
@@ -241,6 +242,14 @@ describe('buildCategoryDetailHero', () => {
     expect(hero.bar?.color).toBe(Colors.dark.budgetNear);
   });
 
+  it('fills the bar in the over colour for a zero-limit month with spending', () => {
+    const hero = build({ limit: 0, spent: 50 });
+
+    expect(hero.tag?.badgeLabel).toBe(Strings.budgetCategoriesStatusOver);
+    expect(hero.bar?.share).toBe(1);
+    expect(hero.bar?.color).toBe(Colors.dark.budgetOver);
+  });
+
   it('does not read a spend over the limit by less than a cent as over', () => {
     const hero = build({ limit: 100, spent: 100.004 });
 
@@ -251,7 +260,7 @@ describe('buildCategoryDetailHero', () => {
   });
 
   it('reads no budget in the month as the figure line with the spent caption, keeping the badge', () => {
-    const hero = build({ limit: null });
+    const hero = build({ limit: undefined });
 
     expect(hero.amountValue).toBe(Strings.budgetCategoryDetailHeroNoBudget);
     expect(hero.amountCode).toBeUndefined();
