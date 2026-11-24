@@ -51,7 +51,7 @@ export function SectionHeader({ title, meta, count, action }: SectionHeaderProps
     >
       <Typography
         {...captionLine}
-        {...(wraps ? { numberOfLines: undefined, allowFontScaling: false } : {})}
+        {...(wraps ? { numberOfLines: undefined } : {})}
         className="font-inter-semibold text-muted tracking-wide uppercase"
         style={{ ...captionLine.style, ...(wraps ? { flexGrow: 1 } : { flex: 1 }) }}
       >
