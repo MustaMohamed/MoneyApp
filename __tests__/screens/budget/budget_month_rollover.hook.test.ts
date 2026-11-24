@@ -549,9 +549,9 @@ describe('useCategoryDetail — hero', () => {
     loadedMay();
 
     const { result } = await renderHook(() => useCategoryDetail());
-    expect(result.current.state.hero?.caption.endsWith(Strings.budgetCategoriesDaysLeft(16))).toBe(
-      true,
-    );
+    const openCaption = result.current.state.hero?.caption;
+    if (typeof openCaption !== 'string') throw new Error('expected a plain caption');
+    expect(openCaption.endsWith(Strings.budgetCategoriesDaysLeft(16))).toBe(true);
 
     jest.setSystemTime(new Date('2026-05-16T00:00:01'));
     await act(async () => {
@@ -559,7 +559,9 @@ describe('useCategoryDetail — hero', () => {
     });
 
     const hero = result.current.state.hero;
-    expect(hero?.caption.endsWith(Strings.budgetCategoriesDaysLeft(15))).toBe(true);
+    const nextCaption = hero?.caption;
+    if (typeof nextCaption !== 'string') throw new Error('expected a plain caption');
+    expect(nextCaption.endsWith(Strings.budgetCategoriesDaysLeft(15))).toBe(true);
     expect(hero?.bar?.tickShare).toBe(16 / 31);
   });
 

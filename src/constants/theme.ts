@@ -108,6 +108,8 @@ export const Type = {
   summary: msFont(31),
   dashboardHero: msFont(32),
   detailHero: msFont(30),
+  /** D2 `.dtile.lg .d`, the start-date tile's day. */
+  dateTileDay: msFont(20),
   amountEntry: msFont(40),
   /** N1 headline, mockup § B, `.b-headline`, 42px. */
   display: msFont(42),

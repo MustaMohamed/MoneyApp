@@ -34,6 +34,8 @@ describe('DetailHero', () => {
       tx: makeTestTransaction({ type: TransactionType.Income, category_id: null }),
       account: makeTestAccount({ type: AccountType.CreditCard }),
     });
+    const { caption } = hero;
+    if (typeof caption !== 'string') throw new Error('expected a plain caption');
 
     const screen = await render(<DetailHero hero={hero} testID="transaction-detail-hero" />);
 
@@ -43,7 +45,7 @@ describe('DetailHero', () => {
     const [title, badgeLabel] = cardCredit;
     expect(screen.queryByText(Strings.typeBadgeIncome)).toBeNull();
     expect(screen.getByText(Strings.detailAmountOverline)).toBeTruthy();
-    expect(screen.getByText(hero.caption)).toBeTruthy();
+    expect(screen.getByText(caption)).toBeTruthy();
 
     expect(screen.getByTestId('transaction-detail-hero')).toHaveStyle({ height: geometry.height });
 
@@ -59,7 +61,7 @@ describe('DetailHero', () => {
     const scaledTexts = [
       [title, geometry.titleFontSize],
       [screen.getByText(Strings.detailAmountOverline), geometry.overlineFontSize],
-      [screen.getByText(hero.caption), geometry.captionFontSize],
+      [screen.getByText(caption), geometry.captionFontSize],
       [screen.getByText(amountCode), geometry.codeFontSize],
     ] as const;
     for (const [text, fontSize] of scaledTexts) {

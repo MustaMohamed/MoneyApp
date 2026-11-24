@@ -20,6 +20,17 @@ export function formatShortDate(dateStr: string): string {
   return `${MONTHS_SHORT[month - 1]} ${day}`;
 }
 
+export interface DateTileParts {
+  month: string;
+  day: string;
+}
+
+/** `{ month: 'NOV', day: '12' }` for a start-date tile, the day unpadded. */
+export function formatDateTileParts(dateStr: string): DateTileParts {
+  const [, month, day] = dateStr.split('-').map(Number);
+  return { month: MONTHS_SHORT[month - 1].toUpperCase(), day: String(day) };
+}
+
 /** `Tue 22 Sep 2026`: the weekday of the local calendar date, the day unpadded. */
 export function formatWeekdayDate(dateStr: string): string {
   const [y, month, day] = dateStr.split('-').map(Number);
