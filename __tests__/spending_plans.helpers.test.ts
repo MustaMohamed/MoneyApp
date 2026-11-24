@@ -1,6 +1,13 @@
-import { CategoryType } from '@/constants/enums';
+import { CURRENCY_CONFIG } from '@/constants/currency';
+import { CategoryType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
+import { CoreTokens } from '@/constants/theme_tokens';
+import { mixHex } from '@/modules/accounts/constants/account_badge_color';
+import {
+  contrastRatio,
+  NON_TEXT_MIN_CONTRAST_RATIO,
+} from '@/modules/accounts/constants/account_palette';
 import type { SpendingPlanWithCategories } from '@/modules/budget/entities/budget.entity';
 import { derivePlanStatus } from '@/modules/budget/screens/budget/spending_plan_timing.helpers';
 import {
@@ -9,11 +16,30 @@ import {
   computeAllocationHelper,
   computePlanTiming,
   planIntersectsMonth,
+  resolveCategoryTileColors,
 } from '@/modules/budget/screens/budget/spending_plans.helpers';
 import { computeSpendingPlansSummary } from '@/modules/budget/screens/budget/spending_plans_summary.helpers';
+import { budgetBandColor } from '@/modules/budget/utils/budget_summary';
 import type { Category } from '@/modules/categories/entities/category.entity';
+import { formatAmount } from '@/utils/format_amount';
 
 type PlanRow = ReturnType<typeof buildSpendingPlanRows>[number];
+
+function limitsCardOf(row: PlanRow) {
+  const card = row.detail.limitsCard;
+  if (card === undefined) throw new Error('Expected a Category limits card');
+  return card;
+}
+
+function limitRows(row: PlanRow) {
+  return limitsCardOf(row).rows;
+}
+
+function limitRow(row: PlanRow, categoryId: string) {
+  const found = limitRows(row).find((item) => item.categoryId === categoryId);
+  if (found === undefined) throw new Error(`Expected a limit row for ${categoryId}`);
+  return found;
+}
 
 // The pace reading alone: an active plan that is not over and has no category pressure.
 function paceStatus(row: PlanRow) {
@@ -34,7 +60,7 @@ const categories: Category[] = [
     name: 'Food',
     type: CategoryType.Expense,
     icon: 'food',
-    color: '#f90',
+    color: '#FF9900',
     is_default: 0,
     sort_order: 0,
     budget_group: null,
@@ -46,7 +72,7 @@ const categories: Category[] = [
     name: 'Travel',
     type: CategoryType.Expense,
     icon: 'bag',
-    color: '#09f',
+    color: '#0099FF',
     is_default: 0,
     sort_order: 1,
     budget_group: null,
@@ -58,7 +84,7 @@ const categories: Category[] = [
     name: 'Salary',
     type: CategoryType.Income,
     icon: 'cash',
-    color: '#0f0',
+    color: '#00FF00',
     is_default: 0,
     sort_order: 2,
     budget_group: null,
@@ -180,7 +206,7 @@ describe('spending plan helpers', () => {
       categoryId: 'cat_food',
       categoryName: 'Food',
       icon: 'food',
-      color: '#f90',
+      color: '#FF9900',
       allocatedAmount: 3000,
       spent: 1200,
       left: 1800,
@@ -304,7 +330,7 @@ describe('spending plan helpers', () => {
       id: 'cat_travel',
       name: 'Travel',
       icon: 'bag',
-      color: '#09f',
+      color: '#0099FF',
       spent: 125,
     });
     expect(row.card.chips[0]).toEqual({
@@ -314,7 +340,7 @@ describe('spending plan helpers', () => {
         id: 'cat_travel',
         name: 'Travel',
         icon: 'bag',
-        color: '#09f',
+        color: '#0099FF',
         spent: 125,
         accessibilityLabel: 'Travel, 125 spent',
       },
@@ -524,9 +550,7 @@ describe('spending plan helpers', () => {
     expect(row.detailCategoryRows[0]).toEqual(
       expect.objectContaining({ allocatedAmount: 0, spent: 50, pct: 1, isOver: true }),
     );
-    expect(row.detail.categoryRows[0]).toEqual(
-      expect.objectContaining({ percentageLabel: 'Over', statusLabel: 'Over' }),
-    );
+    expect(limitRow(row, 'cat_food').tag?.label).toBe(Strings.budgetPlansStatusOver);
     expect(row.highestPressureCategory?.categoryId).toBe('cat_food');
     expect(row.status).toBe('watch');
   });
@@ -580,7 +604,7 @@ describe('spending plan helpers', () => {
         categoryId: 'cat_travel',
         categoryName: 'Travel',
         icon: 'bag',
-        color: '#09f',
+        color: '#0099FF',
         spent: 125,
         isOver: false,
         isWarning: false,
@@ -641,28 +665,32 @@ describe('spending plan helpers', () => {
         },
       }),
     );
-    expect(row.detail.categoryRows).toEqual([
+    expect(limitRows(row)).toEqual([
       expect.objectContaining({
         categoryId: 'cat_food',
         kind: 'allocated',
         categoryName: 'Food',
-        amountLabel: '850 / 1,000',
-        percentageLabel: '85%',
-        supportingLabel: '85% used · watch',
-        balanceLabel: '150 left',
-        statusLabel: 'Watch',
+        amountLabel: formatAmount(150),
+        supportingLabel: Strings.budgetPlansDetailLimitSpentOf(
+          formatAmount(850),
+          formatAmount(1000),
+        ),
+        balanceLabel: Strings.budgetPlansLeftStatus,
+        tag: expect.objectContaining({ label: Strings.budgetPlansStatusWatch }),
       }),
+    ]);
+    expect(row.detail.categoryRows).toEqual([
       expect.objectContaining({
         categoryId: 'cat_travel',
         kind: 'unallocated',
         categoryName: 'Travel',
-        amountLabel: '125 spent',
-        supportingLabel: 'Included · no category limit',
+        amountLabel: Strings.budgetPlansDetailSpent(formatAmount(125)),
+        supportingLabel: Strings.budgetPlansDetailNoCategoryLimit,
       }),
     ]);
-    expect(row.detail.categoryRows[1]).not.toHaveProperty('percentageLabel');
-    expect(row.detail.categoryRows[1]).not.toHaveProperty('balanceLabel');
-    expect(row.detail.categoryRows[1]).not.toHaveProperty('progressColor');
+    for (const field of ['pct', 'balanceLabel', 'progressColor', 'tag', 'tileFill']) {
+      expect(row.detail.categoryRows[0]).not.toHaveProperty(field);
+    }
   });
 
   it('limits detail insights and omits the elapsed marker outside active plans', () => {
@@ -962,9 +990,11 @@ describe('a spend that ties its plan or its allocation to the cent is not over (
     });
     expect(over.row.allocationRows[0].isOver).toBe(true);
     expect(over.row.allocationRows[0].pct).toBeGreaterThan(1);
-    expect(over.row.detail.categoryRows[0]).toMatchObject({
+    expect(limitRow(over.row, 'cat_food')).toMatchObject({
       balanceColor: Colors.dark.negative,
-      progressColor: Colors.dark.negative,
+      progressColor: Colors.dark.budgetOver,
+      balanceLabel: Strings.budgetPlansOverStatus,
+      tag: { label: Strings.budgetPlansStatusOver, icon: 'alert-circle' },
     });
     expect(over.summary).toMatchObject({ balanceStatus: 'over', barStatus: 'over', overCount: 1 });
 
@@ -976,9 +1006,12 @@ describe('a spend that ties its plan or its allocation to the cent is not over (
       progressStatus: 'under',
     });
     expect(tie.row.allocationRows[0]).toMatchObject({ isOver: false, pct: 1 });
-    expect(tie.row.detail.categoryRows[0]).toMatchObject({
+    expect(limitRow(tie.row, 'cat_food')).toMatchObject({
       balanceColor: Colors.dark.text2,
       progressColor: Colors.dark.budgetNear,
+      balanceLabel: Strings.budgetPlansLeftStatus,
+      amountLabel: formatAmount(0),
+      tag: { label: Strings.budgetPlansStatusWatch, icon: 'trending-up' },
     });
     expect(tie.summary).toMatchObject({ balanceStatus: 'left', barStatus: 'under', overCount: 0 });
   });
@@ -986,13 +1019,21 @@ describe('a spend that ties its plan or its allocation to the cent is not over (
   it('reads a zero allocation with a spend under half a cent as 0%, and with a spend of 0.01 as over', () => {
     const over = build(0, 0.01, 1000).row;
     expect(over.card.allocationChips[0].percentageLabel).toBe(Strings.budgetPlansStatusOver);
-    expect(over.detail.categoryRows[0]).toMatchObject({
-      percentageLabel: Strings.budgetPlansStatusOver,
+    expect(limitRow(over, 'cat_food')).toMatchObject({
+      progressColor: Colors.dark.budgetOver,
+      balanceLabel: Strings.budgetPlansOverStatus,
+      tag: { label: Strings.budgetPlansStatusOver },
     });
 
     const leftover = build(0, 5.5e-17, 1000).row;
     expect(leftover.card.allocationChips[0].percentageLabel).toBe('0%');
-    expect(leftover.detail.categoryRows[0]).toMatchObject({ percentageLabel: '0%' });
+    const leftoverRow = limitRow(leftover, 'cat_food');
+    expect(leftoverRow).toMatchObject({
+      pct: 0,
+      progressColor: Colors.dark.budgetUnder,
+      balanceLabel: Strings.budgetPlansLeftStatus,
+    });
+    expect(leftoverRow.tag?.label).not.toBe(Strings.budgetPlansStatusOver);
   });
 });
 
@@ -1137,48 +1178,40 @@ describe('plan percents round a half up, the pace line rounds the exact gap, and
     });
   });
 
-  it('an allocation of 200 with 29 spent reads 15% on the chip, on the detail row and in both accessibility labels, and a zero allocation with 50 spent keeps 100% used · over', () => {
+  it('an allocation of 200 with 29 spent reads 15% on the chip and in its accessibility label, and the limit row reads its caption and balance, and a zero allocation with 50 spent reads Over', () => {
     const zero = build({ totalAmount: 2000, allocated: 0, spent: 50 }).row;
-    expect(zero.detail.categoryRows[0]).toMatchObject({
-      supportingLabel: Strings.budgetPlansDetailCategoryStatus(100, Strings.budgetPlansStatusOver),
+    expect(limitRow(zero, 'cat_food')).toMatchObject({
+      progressColor: Colors.dark.budgetOver,
+      tag: { label: Strings.budgetPlansStatusOver },
     });
 
     const { row } = build({ allocated: 200, spent: 29 });
     const chip = row.card.allocationChips[0];
-    const detailRow = row.detail.categoryRows[0];
-    if (detailRow.kind !== 'allocated') throw new Error('Expected an allocated detail row');
+    const detailRow = limitRow(row, 'cat_food');
+    const caption = Strings.budgetPlansDetailLimitSpentOf(formatAmount(29), formatAmount(200));
 
     expect({
       chip: chip.percentageLabel,
       chipA11y: chip.accessibilityLabel,
-      detail: detailRow.percentageLabel,
       detailA11y: detailRow.accessibilityLabel,
     }).toEqual({
       chip: '15%',
       chipA11y: Strings.budgetPlansAllocationChipA11y('Food', '29', '200', 15),
-      detail: '15%',
       detailA11y: Strings.budgetPlansDetailCategoryA11y(
         'Food',
-        '29',
-        '200',
-        15,
-        Strings.budgetPlansDetailBalance('171', Strings.budgetPlansLeftStatus),
-        Strings.budgetPlansStatusOnTrack,
+        caption,
+        Strings.budgetPlansDetailBalance(formatAmount(171), Strings.budgetPlansLeftStatus),
       ),
     });
   });
 
   // 844.9 + 0.05 + 0.05 is 844.9999999999999, which a float quotient prints as 84.
-  it('an allocation of 1,000 with a float sum of 845 spent reads 85% on its row and in the pressure insight', () => {
+  it('an allocation of 1,000 with a float sum of 845 spent reads 85% in the pressure insight', () => {
     const { row } = build({ totalAmount: 5000, allocated: 1000, spent: 844.9 + 0.05 + 0.05 });
 
-    expect({
-      detail: row.detail.categoryRows[0],
-      insight: row.detail.insights.find((item) => item.key === 'category')?.label,
-    }).toMatchObject({
-      detail: { percentageLabel: '85%' },
-      insight: Strings.budgetPlansDetailCategoryPressure('Food', 85),
-    });
+    expect(row.detail.insights.find((item) => item.key === 'category')?.label).toBe(
+      Strings.budgetPlansDetailCategoryPressure('Food', 85),
+    );
   });
 
   // 2399.2 / 2999 is 0.7999999999999999: one float step under the 80% warning.
@@ -1191,4 +1224,207 @@ describe('plan percents round a half up, the pace line rounds the exact gap, and
       oneCentUnder: false,
     });
   });
+});
+
+describe('plan detail draws a Category limits card (MA-326)', () => {
+  const extraCategories: Category[] = [
+    {
+      ...categories[0],
+      id: 'cat_home',
+      name: 'Home',
+      icon: 'home',
+      color: '#2A3A4F',
+      sort_order: 3,
+    },
+    {
+      ...categories[0],
+      id: 'cat_aaa',
+      name: 'Utilities',
+      icon: 'flash',
+      color: '#00FF00',
+      sort_order: 4,
+    },
+  ];
+  const limitCategories = [...categories, ...extraCategories];
+
+  const build = ({
+    startDate = '2026-07-08',
+    endDate = '2026-07-18',
+    today = '2026-07-13',
+    totalAmount = 5000,
+    limits,
+    spend,
+  }: {
+    startDate?: string;
+    endDate?: string;
+    today?: string;
+    totalAmount?: number;
+    limits: Record<string, number | null>;
+    spend: Record<string, number>;
+  }) =>
+    buildSpendingPlanRows({
+      plans: [
+        planFixture({
+          startDate,
+          endDate,
+          totalAmount,
+          categoryRows: Object.entries(limits).map(([categoryId, allocated]) => ({
+            plan_id: 'plan_trip',
+            category_id: categoryId,
+            allocated_amount: allocated,
+          })),
+        }),
+      ],
+      categories: limitCategories,
+      spendByPlanId: { plan_trip: spend },
+      selectedMonth: '2026-07',
+      today,
+    })[0];
+
+  it('states the assigned total, runs the limit rows largest limit first, tags 87.5% Watch, and keeps the null-limit category out of the card', () => {
+    const row = build({
+      limits: { cat_food: 1000, cat_home: null, cat_travel: 2000 },
+      spend: { cat_food: 650, cat_home: 90, cat_travel: 1750 },
+    });
+    const card = row.detail.limitsCard;
+
+    expect(card?.assignedLabel).toBe(Strings.budgetPlansDetailLimitsAssigned(formatAmount(3000)));
+    expect(limitRows(row).map((item) => item.categoryId)).toEqual(['cat_travel', 'cat_food']);
+    expect(row.detail.categoryRows.map((item) => item.categoryId)).toEqual(['cat_home']);
+
+    const caption = Strings.budgetPlansDetailLimitSpentOf(formatAmount(1750), formatAmount(2000));
+    const travel = limitRow(row, 'cat_travel');
+    expect(travel).toMatchObject({
+      kind: 'allocated',
+      supportingLabel: caption,
+      amountLabel: formatAmount(250),
+      amountCode: CURRENCY_CONFIG[Currency.EGP].code,
+      balanceLabel: Strings.budgetPlansLeftStatus,
+      progressColor: budgetBandColor(1750, 2000),
+      tag: { label: Strings.budgetPlansStatusWatch, icon: 'trending-up' },
+      ...resolveCategoryTileColors('#0099FF'),
+    });
+    expect(travel.accessibilityLabel).toBe(
+      Strings.budgetPlansDetailCategoryA11y(
+        'Travel',
+        caption,
+        Strings.budgetPlansDetailBalance(formatAmount(250), Strings.budgetPlansLeftStatus),
+        Strings.budgetPlansStatusWatch,
+      ),
+    );
+
+    const food = limitRow(row, 'cat_food');
+    expect(food.progressColor).toBe(budgetBandColor(650, 1000));
+    expect(food).not.toHaveProperty('tag');
+  });
+
+  it('tags a limit Watch at exactly 80% while the plan is active', () => {
+    const row = build({ limits: { cat_food: 1000 }, spend: { cat_food: 800 } });
+
+    expect(limitRow(row, 'cat_food').tag?.label).toBe(Strings.budgetPlansStatusWatch);
+  });
+
+  it('gives a plan with no category limits no limitsCard key, and the same plan with one limit a card', () => {
+    const spend = { cat_food: 300, cat_travel: 100 };
+    const unlimited = build({ limits: { cat_food: null, cat_travel: null }, spend });
+    const limited = build({ limits: { cat_food: 1000, cat_travel: null }, spend });
+
+    expect(unlimited.detail).not.toHaveProperty('limitsCard');
+    expect(unlimited.detail.categoryRows).toHaveLength(2);
+    expect(limitRows(limited).map((item) => item.categoryId)).toEqual(['cat_food']);
+  });
+
+  it('orders equal limits by spending, largest first, then by name', () => {
+    const row = build({
+      limits: { cat_aaa: 1000, cat_food: 1000, cat_home: 1000, cat_travel: 1000 },
+      spend: { cat_aaa: 300, cat_food: 300, cat_home: 300, cat_travel: 500 },
+    });
+
+    expect(limitRows(row).map((item) => item.categoryName)).toEqual([
+      'Travel',
+      'Food',
+      'Home',
+      'Utilities',
+    ]);
+  });
+
+  it('tags a limit one cent over Over and reads it over', () => {
+    const row = build({ limits: { cat_food: 1000 }, spend: { cat_food: 1000.01 } });
+
+    expect(limitRow(row, 'cat_food')).toMatchObject({
+      balanceLabel: Strings.budgetPlansOverStatus,
+      balanceColor: Colors.dark.negative,
+      progressColor: Colors.dark.budgetOver,
+      tag: { label: Strings.budgetPlansStatusOver, icon: 'alert-circle' },
+    });
+  });
+
+  it('tags a limit of 0 with spending Over in the over band colour', () => {
+    const row = build({ limits: { cat_food: 0 }, spend: { cat_food: 50 } });
+
+    expect(limitRow(row, 'cat_food')).toMatchObject({
+      progressColor: Colors.dark.budgetOver,
+      tag: { label: Strings.budgetPlansStatusOver },
+    });
+  });
+
+  it('draws an ended plan with no tick, its 85% row untagged and its over row Over', () => {
+    const row = build({
+      startDate: '2026-07-01',
+      endDate: '2026-07-12',
+      limits: { cat_food: 1000, cat_travel: 1000 },
+      spend: { cat_food: 850, cat_travel: 1200 },
+    });
+
+    expect(row.timing.lifecycle).toBe('completed');
+    expect(limitsCardOf(row)).not.toHaveProperty('tickPercentage');
+    expect(limitRow(row, 'cat_food')).not.toHaveProperty('tag');
+    expect(limitRow(row, 'cat_travel').tag?.label).toBe(Strings.budgetPlansStatusOver);
+  });
+
+  it('draws an upcoming plan with no tick and no Watch tag', () => {
+    const row = build({
+      startDate: '2026-07-18',
+      endDate: '2026-07-21',
+      limits: { cat_food: 1000 },
+      spend: { cat_food: 850 },
+    });
+
+    expect(row.timing.lifecycle).toBe('upcoming');
+    expect(limitsCardOf(row)).not.toHaveProperty('tickPercentage');
+    expect(limitRow(row, 'cat_food')).not.toHaveProperty('tag');
+  });
+
+  it("moves an active plan's today tick with the day, each day's at its elapsed marker", () => {
+    const onDay = (today: string) =>
+      build({ today, limits: { cat_food: 1000 }, spend: { cat_food: 300 } }).detail;
+    const first = onDay('2026-07-13');
+    const second = onDay('2026-07-14');
+
+    expect(first.limitsCard?.tickPercentage).toBeDefined();
+    expect(first.limitsCard?.tickPercentage).toBe(first.elapsedMarkerPercentage);
+    expect(second.limitsCard?.tickPercentage).toBe(second.elapsedMarkerPercentage);
+    expect(second.limitsCard?.tickPercentage).not.toBe(first.limitsCard?.tickPercentage);
+  });
+});
+
+describe('resolveCategoryTileColors (MA-326)', () => {
+  it.each(['#FF9900', '#0099FF', '#00FF00', '#2A3A4F'])(
+    'tints %s over the surface and gives a glyph that clears 3:1 on it',
+    (color) => {
+      const { tileFill, glyphColor } = resolveCategoryTileColors(color);
+
+      expect(tileFill).toBe(mixHex(color, CoreTokens.surface, 0x26 / 255));
+      expect(contrastRatio(glyphColor, tileFill)).toBeGreaterThanOrEqual(
+        NON_TEXT_MIN_CONTRAST_RATIO,
+      );
+    },
+  );
+
+  it.each(['#FF9900', '#0099FF', '#00FF00'])(
+    'keeps %s, which already clears, unchanged',
+    (color) => {
+      expect(resolveCategoryTileColors(color).glyphColor).toBe(color);
+    },
+  );
 });
