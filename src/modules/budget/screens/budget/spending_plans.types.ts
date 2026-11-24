@@ -142,10 +142,7 @@ export type SpendingPlanDetailCategoryRowVM =
       accessibilityLabel: string;
     };
 
-export type SpendingPlanDetailLimitRowVM = Extract<
-  SpendingPlanDetailCategoryRowVM,
-  { kind: 'allocated' }
->;
+export type SpendingPlanDetailLimitRowVM = SpendingPlanDetailCategoryRowVM & { kind: 'allocated' };
 
 export type SpendingPlanDetailUnlimitedRowVM = Extract<
   SpendingPlanDetailCategoryRowVM,

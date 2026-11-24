@@ -723,12 +723,8 @@ export const Strings = {
     `${category} has used ${percentage}% of its limit`,
   budgetPlansDetailCategoryOver: (category: string, amount: string) =>
     `${category} is ${amount} over its limit`,
-  budgetPlansDetailCategoryA11y: (
-    category: string,
-    caption: string,
-    balance: string,
-    tag?: string,
-  ) => `${category}, ${caption}, ${balance}${tag === undefined ? '' : `, ${tag}`}`,
+  budgetPlansDetailCategoryA11y: (name: string, caption: string, balance: string, tag?: string) =>
+    `${name}, ${caption}, ${balance}${tag === undefined ? '' : `, ${tag}`}`,
   budgetPlansDetailUnallocatedA11y: (category: string, spent: string) =>
     `${category}, ${spent} spent, included with no category limit`,
   budgetPlansAllocationChipA11y: (

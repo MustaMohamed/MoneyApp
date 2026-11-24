@@ -38,12 +38,7 @@ export function SectionHeader({ title, meta, count, action }: SectionHeaderProps
   const wraps = meta !== undefined && resolveRowStacking(fontScale) === 'stacked';
   const countPill =
     count !== undefined && count > 0 ? (
-      <View
-        className="rounded-full px-2 py-0.5"
-        style={{
-          backgroundColor: Colors.dark.goldTint,
-        }}
-      >
+      <View className="rounded-full px-2 py-0.5" style={{ backgroundColor: Colors.dark.goldTint }}>
         <Typography
           className="font-sora-bold"
           style={{

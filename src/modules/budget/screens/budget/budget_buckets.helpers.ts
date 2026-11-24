@@ -536,12 +536,12 @@ function buildSummaryPresentation({
   };
 }
 
-const compareContributors = rankedBy((row: Omit<BudgetRuleContributorVM, 'presentation'>) => ({
-  amount: row.planned,
-  spent: row.spent ?? 0,
-  name: row.name,
-  id: row.categoryId,
-}));
+const compareContributors = rankedBy((row: Omit<BudgetRuleContributorVM, 'presentation'>) => [
+  row.planned,
+  row.spent ?? 0,
+  row.name,
+  row.categoryId,
+]);
 
 export function buildBudgetRuleLens({
   income,

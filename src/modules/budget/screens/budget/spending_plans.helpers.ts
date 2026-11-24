@@ -90,11 +90,8 @@ const PLAN_STATUS_PRESENTATION: Record<
   over: { label: Strings.budgetPlansStatusOver, tone: 'danger' },
 };
 
-type LimitedCategory = SpendingPlanDetailCategoryVM & {
-  allocatedAmount: number;
-  left: number;
-  pct: number;
-};
+type LimitedCategory = SpendingPlanDetailCategoryVM &
+  Record<'allocatedAmount' | 'left' | 'pct', number>;
 
 // D2 `.cat-tile`: the category colour at alpha 0x26 over the card surface.
 const CATEGORY_TILE_FILL_SHARE = 0x26 / 255;
@@ -103,20 +100,18 @@ const LIMIT_TAG_FILL_SHARE = 0.15;
 /** `color` is a `#RRGGBB`; the glyph steps toward the text colour until it clears 3:1 on the tile. */
 export function resolveCategoryTileColors(color: string): { tileFill: string; glyphColor: string } {
   const tileFill = mixHex(color, CoreTokens.surface, CATEGORY_TILE_FILL_SHARE);
-  const glyphColor = stepTowardText(
-    color,
-    (candidate) => contrastRatio(candidate, tileFill) >= NON_TEXT_MIN_CONTRAST_RATIO,
-  );
-  return { tileFill, glyphColor };
+  return {
+    tileFill,
+    glyphColor: stepTowardText(
+      color,
+      (c) => contrastRatio(c, tileFill) >= NON_TEXT_MIN_CONTRAST_RATIO,
+    ),
+  };
 }
 
 type LimitTagStatus = Extract<SpendingPlanStatus, 'watch' | 'over'>;
 
-function limitTag(
-  status: LimitTagStatus,
-  icon: SpendingPlanLimitTagVM['icon'],
-  tone: string,
-): SpendingPlanLimitTagVM {
+function limitTag(status: LimitTagStatus, icon: SpendingPlanLimitTagVM['icon'], tone: string) {
   const { fill, foreground } = resolveBadgeColors({
     tone,
     backdrop: CoreTokens.surface,
@@ -131,12 +126,12 @@ const LIMIT_TAGS: Record<LimitTagStatus, SpendingPlanLimitTagVM> = {
   over: limitTag('over', 'alert-circle', Colors.dark.negative),
 };
 
-const compareLimitRows = rankedBy((row: LimitedCategory) => ({
-  amount: row.allocatedAmount,
-  spent: row.spent,
-  name: row.categoryName,
-  id: row.categoryId,
-}));
+const compareLimitRows = rankedBy((row: LimitedCategory) => [
+  row.allocatedAmount,
+  row.spent,
+  row.categoryName,
+  row.categoryId,
+]);
 
 function planLifecycleLabel(timing: SpendingPlanTimingVM): string {
   if (timing.lifecycle === 'upcoming') {
@@ -353,7 +348,7 @@ function buildUnlimitedRow(row: SpendingPlanDetailCategoryVM): SpendingPlanDetai
 
 function buildDetailCategoryRow(
   row: LimitedCategory,
-  isActive: boolean,
+  active: boolean,
 ): SpendingPlanDetailLimitRowVM {
   const supportingLabel = Strings.budgetPlansDetailLimitSpentOf(
     formatAmount(row.spent),
@@ -363,11 +358,7 @@ function buildDetailCategoryRow(
   const amountLabel = formatAmount(balance.magnitude);
   const balanceLabel =
     balance.label === 'over' ? Strings.budgetPlansOverStatus : Strings.budgetPlansLeftStatus;
-  const tag = row.isOver
-    ? LIMIT_TAGS.over
-    : row.isWarning && isActive
-      ? LIMIT_TAGS.watch
-      : undefined;
+  const tag = row.isOver ? LIMIT_TAGS.over : row.isWarning && active ? LIMIT_TAGS.watch : undefined;
   return {
     kind: 'allocated',
     categoryId: row.categoryId,
@@ -380,7 +371,6 @@ function buildDetailCategoryRow(
     supportingLabel,
     balanceLabel,
     balanceColor: row.isOver ? Colors.dark.negative : Colors.dark.text2,
-    // A limit of 0 is the one over row the band reads as under.
     progressColor: row.isOver
       ? Colors.dark.budgetOver
       : budgetBandColor(row.spent, row.allocatedAmount),
@@ -395,9 +385,8 @@ function buildDetailCategoryRow(
   };
 }
 
-function hasLimit(row: SpendingPlanDetailCategoryVM): row is LimitedCategory {
-  return row.allocatedAmount !== undefined && row.left !== undefined && row.pct !== undefined;
-}
+const hasLimit = (row: SpendingPlanDetailCategoryVM): row is LimitedCategory =>
+  row.allocatedAmount !== undefined && row.left !== undefined && row.pct !== undefined;
 
 function buildSpendingPlanDetail({
   card,
@@ -467,11 +456,10 @@ function buildSpendingPlanDetail({
     });
   }
 
-  const isActive = timing.lifecycle === 'active';
   const limitRows = detailCategoryRows
     .filter(hasLimit)
     .sort(compareLimitRows)
-    .map((row) => buildDetailCategoryRow(row, isActive));
+    .map((row) => buildDetailCategoryRow(row, timing.lifecycle === 'active'));
 
   return {
     pct,
