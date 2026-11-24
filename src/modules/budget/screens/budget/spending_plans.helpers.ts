@@ -1,6 +1,14 @@
+import { CURRENCY_CONFIG } from '@/constants/currency';
 import { CategoryType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
+import { CoreTokens } from '@/constants/theme_tokens';
+import { mixHex, resolveBadgeColors } from '@/modules/accounts/constants/account_badge_color';
+import {
+  contrastRatio,
+  NON_TEXT_MIN_CONTRAST_RATIO,
+} from '@/modules/accounts/constants/account_palette';
+import { stepTowardText } from '@/modules/accounts/constants/account_tile_color';
 import { normalizeNegativeZero } from '@/modules/accounts/domain/account_aggregation';
 import { monthRange } from '@/modules/budget/database/spending_plans';
 import type {
@@ -20,10 +28,12 @@ import type {
   SpendingPlanCardDisplayChipVM,
   SpendingPlanCardVM,
   SpendingPlanCategoryChipVM,
-  SpendingPlanDetailCategoryRowVM,
   SpendingPlanDetailCategoryVM,
   SpendingPlanDetailInsightVM,
+  SpendingPlanDetailLimitRowVM,
+  SpendingPlanDetailUnlimitedRowVM,
   SpendingPlanDetailVM,
+  SpendingPlanLimitTagVM,
   SpendingPlanRowVM,
   SpendingPlanStatus,
   SpendingPlanStatusTone,
@@ -58,8 +68,11 @@ export type {
   SpendingPlanDetailCategoryRowVM,
   SpendingPlanDetailCategoryVM,
   SpendingPlanDetailInsightVM,
+  SpendingPlanDetailLimitRowVM,
+  SpendingPlanDetailUnlimitedRowVM,
   SpendingPlanDetailVM,
   SpendingPlanLifecycle,
+  SpendingPlanLimitTagVM,
   SpendingPlanRowVM,
   SpendingPlansSummaryVM,
   SpendingPlanStatus,
@@ -78,6 +91,59 @@ const PLAN_STATUS_PRESENTATION: Record<
   watch: { label: Strings.budgetPlansStatusWatch, tone: 'warning' },
   over: { label: Strings.budgetPlansStatusOver, tone: 'danger' },
 };
+
+type LimitedCategory = SpendingPlanDetailCategoryVM & {
+  allocatedAmount: number;
+  left: number;
+  pct: number;
+};
+
+// D2 `.cat-tile`: the category colour at alpha 0x26 over the card surface.
+const CATEGORY_TILE_FILL_SHARE = 0x26 / 255;
+const LIMIT_TAG_FILL_SHARE = 0.15;
+
+/** `color` is a `#RRGGBB`; the glyph steps toward the text colour until it clears 3:1 on the tile. */
+export function resolveCategoryTileColors(color: string): { tileFill: string; glyphColor: string } {
+  const tileFill = mixHex(color, CoreTokens.surface, CATEGORY_TILE_FILL_SHARE);
+  const glyphColor = stepTowardText(
+    color,
+    (candidate) => contrastRatio(candidate, tileFill) >= NON_TEXT_MIN_CONTRAST_RATIO,
+  );
+  return { tileFill, glyphColor };
+}
+
+function limitTag(
+  label: string,
+  icon: SpendingPlanLimitTagVM['icon'],
+  tone: string,
+): SpendingPlanLimitTagVM {
+  const { fill, foreground } = resolveBadgeColors({
+    tone,
+    backdrop: CoreTokens.surface,
+    fillShare: LIMIT_TAG_FILL_SHARE,
+    inkShare: 1,
+  });
+  return { label, icon, fill, foreground };
+}
+
+const LIMIT_WATCH_TAG = limitTag(Strings.budgetPlansStatusWatch, 'trending-up', Colors.dark.gold);
+const LIMIT_OVER_TAG = limitTag(
+  Strings.budgetPlansStatusOver,
+  'alert-circle',
+  Colors.dark.negative,
+);
+
+function compareLimitRows(left: LimitedCategory, right: LimitedCategory): number {
+  if (left.allocatedAmount !== right.allocatedAmount) {
+    return right.allocatedAmount - left.allocatedAmount;
+  }
+  if (left.spent !== right.spent) return right.spent - left.spent;
+  if (left.categoryName < right.categoryName) return -1;
+  if (left.categoryName > right.categoryName) return 1;
+  if (left.categoryId < right.categoryId) return -1;
+  if (left.categoryId > right.categoryId) return 1;
+  return 0;
+}
 
 function planLifecycleLabel(timing: SpendingPlanTimingVM): string {
   if (timing.lifecycle === 'upcoming') {
@@ -278,39 +344,33 @@ function buildSpendingPlanCard({
   };
 }
 
-function buildDetailCategoryRow(
-  row: SpendingPlanDetailCategoryVM,
-): SpendingPlanDetailCategoryRowVM {
+function buildUnlimitedRow(row: SpendingPlanDetailCategoryVM): SpendingPlanDetailUnlimitedRowVM {
   const spentLabel = formatAmount(row.spent);
-  if (row.allocatedAmount === undefined || row.left === undefined || row.pct === undefined) {
-    return {
-      kind: 'unallocated',
-      categoryId: row.categoryId,
-      categoryName: row.categoryName,
-      icon: row.icon,
-      color: row.color,
-      amountLabel: Strings.budgetPlansDetailSpent(spentLabel),
-      supportingLabel: Strings.budgetPlansDetailNoCategoryLimit,
-      accessibilityLabel: Strings.budgetPlansDetailUnallocatedA11y(row.categoryName, spentLabel),
-    };
-  }
+  return {
+    kind: 'unallocated',
+    categoryId: row.categoryId,
+    categoryName: row.categoryName,
+    icon: row.icon,
+    color: row.color,
+    amountLabel: Strings.budgetPlansDetailSpent(spentLabel),
+    supportingLabel: Strings.budgetPlansDetailNoCategoryLimit,
+    accessibilityLabel: Strings.budgetPlansDetailUnallocatedA11y(row.categoryName, spentLabel),
+  };
+}
 
-  const allocatedLabel = formatAmount(row.allocatedAmount);
-  const percentage = allocationPercentage(row.spent, row.allocatedAmount);
-  const percentageLabel =
-    row.allocatedAmount === 0 && row.isOver
-      ? PLAN_STATUS_PRESENTATION.over.label
-      : `${percentage}%`;
-  const balance = remainingLabel(row.left);
-  const balanceLabel = Strings.budgetPlansDetailBalance(
-    formatAmount(balance.magnitude),
-    balance.label === 'over' ? Strings.budgetPlansOverStatus : Strings.budgetPlansLeftStatus,
+function buildDetailCategoryRow(
+  row: LimitedCategory,
+  isActive: boolean,
+): SpendingPlanDetailLimitRowVM {
+  const supportingLabel = Strings.budgetPlansDetailLimitSpentOf(
+    formatAmount(row.spent),
+    formatAmount(row.allocatedAmount),
   );
-  const status = row.isOver
-    ? PLAN_STATUS_PRESENTATION.over
-    : row.isWarning
-      ? PLAN_STATUS_PRESENTATION.watch
-      : PLAN_STATUS_PRESENTATION.onTrack;
+  const balance = remainingLabel(row.left);
+  const amountLabel = formatAmount(balance.magnitude);
+  const balanceLabel =
+    balance.label === 'over' ? Strings.budgetPlansOverStatus : Strings.budgetPlansLeftStatus;
+  const tag = row.isOver ? LIMIT_OVER_TAG : row.isWarning && isActive ? LIMIT_WATCH_TAG : undefined;
   return {
     kind: 'allocated',
     categoryId: row.categoryId,
@@ -318,25 +378,28 @@ function buildDetailCategoryRow(
     icon: row.icon,
     color: row.color,
     pct: row.pct,
-    amountLabel: `${spentLabel} / ${allocatedLabel}`,
-    percentageLabel,
-    supportingLabel: Strings.budgetPlansDetailCategoryStatus(percentage, status.label),
+    amountLabel,
+    amountCode: CURRENCY_CONFIG[Currency.EGP].code,
+    supportingLabel,
     balanceLabel,
     balanceColor: row.isOver ? Colors.dark.negative : Colors.dark.text2,
-    statusLabel: status.label,
-    statusTone: status.tone,
+    // A limit of 0 is the one over row the band reads as under.
     progressColor: row.isOver
-      ? Colors.dark.negative
+      ? Colors.dark.budgetOver
       : budgetBandColor(row.spent, row.allocatedAmount),
+    ...resolveCategoryTileColors(row.color),
+    ...(tag === undefined ? {} : { tag }),
     accessibilityLabel: Strings.budgetPlansDetailCategoryA11y(
       row.categoryName,
-      spentLabel,
-      allocatedLabel,
-      percentage,
-      balanceLabel,
-      status.label,
+      supportingLabel,
+      Strings.budgetPlansDetailBalance(amountLabel, balanceLabel),
+      tag?.label,
     ),
   };
+}
+
+function hasLimit(row: SpendingPlanDetailCategoryVM): row is LimitedCategory {
+  return row.allocatedAmount !== undefined && row.left !== undefined && row.pct !== undefined;
 }
 
 function buildSpendingPlanDetail({
@@ -350,7 +413,6 @@ function buildSpendingPlanDetail({
   buffer,
   detailCategoryRows,
   highestPressureCategory,
-  totalSpent,
 }: {
   card: SpendingPlanCardVM;
   pct: number;
@@ -362,7 +424,6 @@ function buildSpendingPlanDetail({
   buffer: number;
   detailCategoryRows: SpendingPlanDetailCategoryVM[];
   highestPressureCategory?: SpendingPlanDetailCategoryVM;
-  totalSpent: number;
 }): SpendingPlanDetailVM {
   const insights: SpendingPlanDetailInsightVM[] = [];
 
@@ -409,6 +470,12 @@ function buildSpendingPlanDetail({
     });
   }
 
+  const isActive = timing.lifecycle === 'active';
+  const limitRows = detailCategoryRows
+    .filter(hasLimit)
+    .sort(compareLimitRows)
+    .map((row) => buildDetailCategoryRow(row, isActive));
+
   return {
     pct,
     progressPercentage: Math.min(Math.max(usedPercentage, 0), 100),
@@ -421,7 +488,6 @@ function buildSpendingPlanDetail({
     statusTone: card.statusTone,
     spentLabel: card.spentLabel,
     percentageLabel: card.percentageLabel,
-    totalSpentLabel: Strings.budgetPlansDetailTotalSpent(formatAmount(totalSpent)),
     progressColor: card.progressColor,
     progressStatus: card.progressStatus,
     ...(card.elapsedMarkerPercentage === undefined || card.elapsedMarkerColor === undefined
@@ -437,7 +503,18 @@ function buildSpendingPlanDetail({
       { label: Strings.budgetPlansDetailFlexible, value: formatAmount(Math.max(buffer, 0)) },
     ],
     insights: insights.slice(0, 2),
-    categoryRows: detailCategoryRows.map(buildDetailCategoryRow),
+    ...(limitRows.length === 0
+      ? {}
+      : {
+          limitsCard: {
+            assignedLabel: Strings.budgetPlansDetailLimitsAssigned(formatAmount(allocatedTotal)),
+            ...(isActive && card.elapsedMarkerPercentage !== undefined
+              ? { tickPercentage: card.elapsedMarkerPercentage }
+              : {}),
+            rows: limitRows,
+          },
+        }),
+    categoryRows: detailCategoryRows.filter((row) => !hasLimit(row)).map(buildUnlimitedRow),
     ...(buffer > 0
       ? {
           flexibleRow: {
@@ -673,7 +750,6 @@ export function buildSpendingPlanRows({
         buffer,
         detailCategoryRows,
         highestPressureCategory,
-        totalSpent: spent,
       });
       return {
         id: plan.id,
