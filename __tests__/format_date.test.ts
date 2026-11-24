@@ -1,4 +1,5 @@
 import {
+  formatDateTileParts,
   formatShortDate,
   formatMonthYear,
   formatShortWeekdayDate,
@@ -94,5 +95,16 @@ describe('nextDueDate', () => {
 
   it('defaults "now" to the current date when omitted', () => {
     expect(nextDueDate(15)).toMatch(/^[A-Z][a-z]{2} \d{1,2}$/);
+  });
+});
+
+describe('formatDateTileParts', () => {
+  it.each([
+    ['2026-11-12', { month: 'NOV', day: '12' }],
+    ['2026-01-05', { month: 'JAN', day: '5' }],
+    ['2026-12-31', { month: 'DEC', day: '31' }],
+    ['2028-02-29', { month: 'FEB', day: '29' }],
+  ])('splits %s into the tile month and unpadded day', (dateStr, parts) => {
+    expect(formatDateTileParts(dateStr)).toEqual(parts);
   });
 });
