@@ -18,6 +18,10 @@ history row's `status === 'over'`, which `computeStatus` (`budget.helpers.ts`) s
 `exceedsToCent`, so 3,000 against 3,000 is not over and 3,000.01 is, and a legacy limit of 0 or
 less is never over. A month whose limit changed keeps the colour of the limit it had.
 
+A month with no limit, the selected month when the category has no budget in it, takes
+`Colors.dark.budgetNoLimit`, a neutral fill outside the band colours, is never over, and draws no
+limit line; the legend then carries no limit part (MA-323).
+
 ## 2. The amount over each bar
 
 The amount prints through `formatAmount(spent)`, the EGP whole unit, as the month ledger it
@@ -34,6 +38,8 @@ neither is stored.
 
 ## 4. The window
 
-The six-bar window lives in `buildMonthlyResult`: the last six history rows when one is the
-selected month, else the last five. `computeCategoryHistory` and the stat tiles keep their twelve
-month window until MA-323 (#986). This record writes nothing.
+The six-bar window lived in `buildMonthlyResult` until MA-323 (#986) moved it to
+`computeCategoryHistory`, which returns the last six rows ending at the selected month, planned
+months and a no-budget selected month included. `buildMonthlyResult` draws every row it gets.
+`docs/adr/2026-11-24-category-history-completed-months.md` records the figures over that window.
+This record writes nothing.

@@ -16,7 +16,6 @@ import { useCategoryDetail } from '@/modules/budget/screens/budget/category_deta
 import { CategoryDetailSkeleton } from '@/modules/budget/screens/budget/category_detail/components/category_detail_skeleton';
 import { LiveMonthCard } from '@/modules/budget/screens/budget/category_detail/components/live_month_card';
 import { MonthlyResultChart } from '@/modules/budget/screens/budget/category_detail/components/monthly_result_chart';
-import { StatTiles } from '@/modules/budget/screens/budget/category_detail/components/stat_tiles';
 import { ms } from '@/utils/responsive';
 
 export default function CategoryBudgetDetailScreen() {
@@ -50,12 +49,7 @@ export default function CategoryBudgetDetailScreen() {
                 color={state.color}
               />
             )}
-            {state.history.monthsTotal > 0 && (
-              <>
-                <StatTiles history={state.history} />
-                <MonthlyResultChart history={state.history} month={state.month} />
-              </>
-            )}
+            <MonthlyResultChart history={state.history} month={state.month} />
           </ScreenScroll>
 
           {state.viewState === 'refreshErrorWithData' ? (
