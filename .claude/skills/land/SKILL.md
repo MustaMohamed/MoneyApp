@@ -1,6 +1,6 @@
 ---
-name: ship
-description: "Use when the user invokes /ship with an issue number or MA id to take a Planned ticket to Awaiting Human, or asks to resume a ticket that has ~/.ship/MoneyApp/MA-XXX/state.md. '/ship' with no number pulls nothing."
+name: land
+description: "Use when the user invokes /land with an issue number or MA id to take a Planned ticket to Awaiting Human, or asks to resume a ticket that has ~/.ship/MoneyApp/MA-XXX/state.md. '/land' with no number pulls nothing."
 argument-hint: "<issue number> | MA-XXX"
 ---
 
@@ -10,7 +10,7 @@ Delivery of one leaf task from Planned to Awaiting Human with a merge summary, o
 
 ## Entry
 
-`/ship <n>` (an MA id resolves through `gh issue list --search "MA-XXX" --state all --json number,title --jq '.[] | select(.title | startswith("MA-XXX ")) | .number'`; the search alone returns every issue that mentions the id). The reverse, `gh issue view <n> --json title --jq .title`, gives MA-XXX, which names the artifact directory, the branch and the worktree below.
+`/land <n>` (an MA id resolves through `gh issue list --search "MA-XXX" --state all --json number,title --jq '.[] | select(.title | startswith("MA-XXX ")) | .number'`; the search alone returns every issue that mentions the id). The reverse, `gh issue view <n> --json title --jq .title`, gives MA-XXX, which names the artifact directory, the branch and the worktree below.
 
 **Lease check.** The Entry check of [queue § Lease](../queue/SKILL.md) runs on `<n>` as soon as it is known. When it passes, write the lease at once, before step 1 resumes or step 2 acts: `skill=ship`, `worktree=` the implementation worktree when it exists, else the primary checkout, keeping `task=` when the lease is the run's own.
 
@@ -21,7 +21,7 @@ Delivery of one leaf task from Planned to Awaiting Human with a merge summary, o
    - **In Progress / In Review / Awaiting Human** with no `state.md` → another machine or session owns it; report the branch (`gh issue develop --list <n>`) and the PR (`gh pr list --head <branch> --state all`) and stop.
    - **Ready For Development** with sub-issues → a parent, its column mirrors its children; name the children at Ready For Development and stop, nothing is pulled from a parent.
    - Anything else → say what you found and stop.
-3. `/ship` with no number pulls nothing and says so.
+3. `/land` with no number pulls nothing and says so.
 
 **Setup** (conductor, once, then `state.md`):
 
@@ -212,7 +212,7 @@ Teardown after the merge, in this order: review worktree (`--force`), implementa
 
 ## Dispatch recipe
 
-A subagent prompt is, in order: the charter from the phase file verbatim; absolute paths (`issue.md`, `plan.md`, the worktree, the diff range or PR URL, the report path); the repo required reading (`CLAUDE.md` at the worktree root and the `.claude/rules/` files matching the touched paths); the return shape of [references/returns.md](references/returns.md). The `unslop` skill binds every return; say so. Never paste conversation history, never summarize the ticket or the plan: pass the paths. Re-check dispatches also get `findings/cycle-<n>.md` and `## Adjudications` verbatim; first-pass lenses never get the ledger. The return shape and the open list of [references/returns.md](references/returns.md) bind every /ship charter, a lens or charter added after it included, and a ticket that adds one carries them. The conductor's own shell reads follow the same file.
+A subagent prompt is, in order: the charter from the phase file verbatim; absolute paths (`issue.md`, `plan.md`, the worktree, the diff range or PR URL, the report path); the repo required reading (`CLAUDE.md` at the worktree root and the `.claude/rules/` files matching the touched paths); the return shape of [references/returns.md](references/returns.md). The `unslop` skill binds every return; say so. Never paste conversation history, never summarize the ticket or the plan: pass the paths. Re-check dispatches also get `findings/cycle-<n>.md` and `## Adjudications` verbatim; first-pass lenses never get the ledger. The return shape and the open list of [references/returns.md](references/returns.md) bind every /land charter, a lens or charter added after it included, and a ticket that adds one carries them. The conductor's own shell reads follow the same file.
 
 ## Red flags, stop and re-read the hard rules
 

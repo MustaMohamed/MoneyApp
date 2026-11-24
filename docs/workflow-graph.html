@@ -134,7 +134,7 @@
 </section>
 
 <section>
-  <h2>4. /ship: Planned to Awaiting Human</h2>
+  <h2>4. /land: Planned to Awaiting Human</h2>
   <p>Five phases, one conductor that edits no code, fresh subagents that get paths and never the conversation. The run asks nothing: it rules by ticket text, frame, convention, then smallest change, and parks what it cannot rule.</p>
   <div class="board"><svg id="g-ship"></svg></div>
 </section>
@@ -233,9 +233,9 @@
       arc(0, 1, -60, ['/boundaries locks the body', 'gate: Lock this scope?'], 'hu', -22),
       arc(1, 2, -120, ['/issue-review marks it, then board.sh promote:', 'Reviewed date, parent marked, no open record,', 'deps closed, Size within ~400 lines'], '', -36),
       arc(2, 3, -60, ['/prep', 'branch + plan committed'], '', -22),
-      arc(3, 4, -120, ['/ship phase 1', 'implementer dispatched'], '', -22),
-      arc(4, 5, -60, ['/ship phase 2', 'PR open, lenses running'], '', -22),
-      arc(5, 6, -120, ['/ship phase 5', 'merge summary'], '', -22),
+      arc(3, 4, -120, ['/land phase 1', 'implementer dispatched'], '', -22),
+      arc(4, 5, -60, ['/land phase 2', 'PR open, lenses running'], '', -22),
+      arc(5, 6, -120, ['/land phase 5', 'merge summary'], '', -22),
       { from: 'merge', to: 's7', pts: [[scx(7), 228], [scx(7), SY]], label: ['Closes #N, then Board on merge:', 'status Done + promote parent'], kind: 'hu', lab: [scx(7) - 12, 262], anchor: 'end' },
       { from: 's7', to: 'parent', pts: [[sx(7) + SW - 10, SY], [sx(7) + SW - 10, 114]], label: '' },
       { from: 's1', to: 's1', pts: [[scx(1) + 30, SY + SH], [scx(1) + 30, SY + SH + 48], [scx(1) - 30, SY + SH + 48], [scx(1) - 30, SY + SH]], label: ['/tickets cuts a parent into children at Defined', 'gates: Which split?  Create these N?'], kind: 'hu', lab: [scx(1), SY + SH + 66] },
@@ -244,8 +244,8 @@
       { from: 's1', to: 'blocked', pts: [[scx(1) - 60, SY + SH], [scx(1) - 60, 620]], label: ['/boundaries, from Todo', 'or Defined: the lock', 'waits on #m', 'unattended /issue-review:', 'ask parked, stays Defined'], kind: 'pk', lab: [scx(1) - 68, 505], anchor: 'end' },
       { from: 's0', to: 'blocked', pts: [[scx(0) - 40, SY + SH], [scx(0) - 40, 620]], label: '', kind: 'pk' },
       { from: 's2', to: 'blocked', pts: [[scx(2) + 40, SY + SH], [scx(2) + 40, 620]], label: ['/prep: a gap nobody answers;', 'unattended: two or more seams,', 'a disputed finding;', 'the planner over budget twice;', 'by hand: a Depends on reopened'], kind: 'pk', lab: [scx(2) + 48, 545], anchor: 'start' },
-      { from: 'blocked', to: 's5', pts: [[scx(5) + 50, 620], [scx(5) + 50, SY + SH]], label: ['/queue asks on a /ship park: back to the', 'column Left: names, In Progress or In Review,', 'then /queue Planned resumes it'], kind: 'hu', lab: [scx(5) + 58, 555], anchor: 'start' },
-      { from: 's4', to: 'blocked', pts: [[scx(4), SY + SH], [scx(4), 620]], label: ['/ship parks: a Flag the diff needs,', 'a ticket line that cannot hold,', 'gaps from prep --amend'], kind: 'pk', lab: [scx(4) + 8, 550], anchor: 'start' },
+      { from: 'blocked', to: 's5', pts: [[scx(5) + 50, 620], [scx(5) + 50, SY + SH]], label: ['/queue asks on a /land park: back to the', 'column Left: names, In Progress or In Review,', 'then /queue Planned resumes it'], kind: 'hu', lab: [scx(5) + 58, 555], anchor: 'start' },
+      { from: 's4', to: 'blocked', pts: [[scx(4), SY + SH], [scx(4), 620]], label: ['/land parks: a Flag the diff needs,', 'a ticket line that cannot hold,', 'gaps from prep --amend'], kind: 'pk', lab: [scx(4) + 8, 550], anchor: 'start' },
       { from: 's5', to: 'blocked', pts: [[scx(5) - 30, SY + SH], [scx(5) - 30, 620]], label: '', kind: 'pk' },
       { from: 'blocked', to: 's2', pts: [[scx(2) - 40, 620], [scx(2) - 40, SY + SH]], label: ['/queue asks: last', 'record answered,', 'or by hand'], kind: 'hu', lab: [scx(2) - 48, 560], anchor: 'end' },
     ],
@@ -336,7 +336,7 @@
       { id: 'revise', kind: 'skill', x: 1340, y: 336, w: 150, h: 66, label: 'planner revise', sub: ['probe results, deltas,', 'answered questions'] },
       { id: 'commit', kind: 'script', x: 1530, y: 490, w: 150, h: 66, label: 'commit + push', sub: ['plan(MA-XXX)', 'Plan: comment on the issue', 'status Planned'] },
       { id: 'blk', kind: 'park', x: 260, y: 490, w: 380, h: 60, label: 'Blocked', sub: ['typed: comment Blocked on a ruling, worktree removed, branch kept', 'unattended: one question record per gap, Left: Ready For Development'] },
-      { id: 'amend', kind: 'note', x: 1110, y: 490, w: 300, h: 54, label: '--amend, called by /ship', sub: ['no probe, no board write, gaps return to /ship', 'an amendment over the gate is refused'] },
+      { id: 'amend', kind: 'note', x: 1110, y: 490, w: 300, h: 54, label: '--amend, called by /land', sub: ['no probe, no board write, gaps return to /land', 'an amendment over the gate is refused'] },
     ],
     edges: [
       { from: 'read', to: 'wt', pts: [[135, 242], [135, 300]] },
@@ -371,7 +371,7 @@
     ],
   });
 
-  // 4. /ship -------------------------------------------------------------------
+  // 4. /land -------------------------------------------------------------------
   draw('g-ship', {
     w: 1720, h: 720,
     lanes: [
@@ -450,8 +450,8 @@
       { id: 'held', kind: 'note', x: 300, y: 300, w: 220, h: 40, label: 'held, next candidate' },
       { id: 'lease', kind: 'script', x: 570, y: 100, w: 220, h: 54, label: 'write the lease', sub: ['~/.ship/MoneyApp/queue/leases/<n>', 'skill, worktree, task id'] },
       { id: 'task', kind: 'script', x: 570, y: 190, w: 220, h: 54, label: 'scheduled task, run now', sub: ['Run: unattended', 'review-<n> / prep-<n> / ship-<n>'] },
-      { id: 'run', kind: 'skill', x: 570, y: 280, w: 220, h: 66, label: '/issue-review · /prep · /ship', sub: ['parks instead of asking', 'releases the lease at exit', 'one log line per run'] },
-      { id: 'measure', kind: 'note', x: 60, y: 380, w: 730, h: 54, label: 'after 10 queued tickets, two measures gate every ship start', sub: ['three of the last ten shipped tickets parked a question during /ship: no ship start'] },
+      { id: 'run', kind: 'skill', x: 570, y: 280, w: 220, h: 66, label: '/issue-review · /prep · /land', sub: ['parks instead of asking', 'releases the lease at exit', 'one log line per run'] },
+      { id: 'measure', kind: 'note', x: 60, y: 380, w: 730, h: 54, label: 'after 10 queued tickets, two measures gate every ship start', sub: ['three of the last ten shipped tickets parked a question during /land: no ship start'] },
       { id: 'list', kind: 'script', x: 890, y: 80, w: 200, h: 54, label: 'list open records', sub: ['by root parent, screen, row', 'board.sh questions <n>'] },
       { id: 'reread', kind: 'decision', x: 1130, y: 70, w: 190, h: 80, label: 'cited files', sub: ['changed since Sha?'] },
       { id: 'closed', kind: 'script', x: 1360, y: 90, w: 200, h: 40, label: 'Answered by #pr, closed' },

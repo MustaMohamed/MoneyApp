@@ -7,7 +7,7 @@ const script = path.join(
   '..',
   '.claude',
   'skills',
-  'ship',
+  'land',
   'scripts',
   'pr_size.mjs',
 );
@@ -37,7 +37,7 @@ describe('the delivered size written back on merge', () => {
   });
 
   test('a side with no files prints 0, not a blank', () => {
-    expect(size([{ filename: '.claude/skills/ship/references/merge.md', additions: 2 }])).toBe(
+    expect(size([{ filename: '.claude/skills/land/references/merge.md', additions: 2 }])).toBe(
       'Delivered: 1 files outside tests, 2 lines, 0 lines in tests',
     );
     expect(size([{ filename: '__tests__/scripts/pr_size.test.ts', additions: 9 }])).toBe(
