@@ -2,6 +2,7 @@ import { DISPLAY_HEADLINE_MAX_FONT_SCALE } from '@/components/ui/display_headlin
 import { STATUS_BADGE_PADDING_VERTICAL } from '@/components/ui/status_badge';
 import {
   FITTED_LINE_SLACK,
+  resolveRowStacking,
   scaledFontSize,
   scaledTextStyle,
 } from '@/components/ui/text_scale.geometry';
@@ -25,11 +26,19 @@ export const DETAIL_HERO_BAR_TICK_WIDTH = ms(2);
 export const DETAIL_HERO_BAR_TICK_OVERHANG = ms(3);
 export const DETAIL_HERO_BAR_TICK_RADIUS = Size.hairline;
 export const DETAIL_HERO_BAR_CAPTION_GAP = Spacing.xs;
+export const DETAIL_HERO_FIGURES_GAP = Spacing.xs;
+export const DETAIL_HERO_FIGURE_VALUE_GAP = Spacing.xxxxs;
+export const DETAIL_HERO_FIGURES_COLUMN_GAP = Spacing.xs;
+export const DETAIL_HERO_INFO_ROW_GAP = Spacing.xs;
+// D2 draws no stacked info line, so the end span keeps the caption's own gap.
+export const DETAIL_HERO_INFO_STACK_GAP = DETAIL_HERO_CAPTION_GAP;
 const DETAIL_HERO_BADGE_CHROME = 2 * STATUS_BADGE_PADDING_VERTICAL;
 
 export interface DetailHeroLayout {
   hidesOverline?: boolean;
   bar?: boolean;
+  figures?: boolean;
+  captionEnd?: boolean;
 }
 
 interface DetailHeroGeometry {
@@ -47,6 +56,8 @@ interface DetailHeroGeometry {
   overlineMarginTop: number;
   amountMarginTop: number;
   captionGap: number;
+  figuresHeight: number;
+  stacksInfo: boolean;
   height: number;
 }
 
@@ -72,15 +83,28 @@ export function resolveDetailHeroGeometry(
   const amountMarginTop = hidesOverline ? DETAIL_HERO_OVERLINE_GAP : 0;
   const captionGap = layout.bar === true ? DETAIL_HERO_BAR_CAPTION_GAP : DETAIL_HERO_CAPTION_GAP;
   const barRowHeight = layout.bar === true ? DETAIL_HERO_BAR_GAP + DETAIL_HERO_BAR_HEIGHT : 0;
+  const figuresHeight =
+    layout.figures === true
+      ? DETAIL_HERO_FIGURES_GAP +
+        micro.lineHeight +
+        FITTED_LINE_SLACK +
+        DETAIL_HERO_FIGURE_VALUE_GAP +
+        scaledTextStyle(Type.meta, fontScale).lineHeight +
+        FITTED_LINE_SLACK
+      : 0;
+  const stacksInfo = layout.captionEnd === true && resolveRowStacking(fontScale) === 'stacked';
+  const infoStackHeight = stacksInfo ? DETAIL_HERO_INFO_STACK_GAP + micro.lineHeight : 0;
   const height =
     2 * DETAIL_HERO_PADDING +
     topHeight +
     overlineBlock +
     amountMarginTop +
     amountHeight +
+    figuresHeight +
     barRowHeight +
     captionGap +
-    micro.lineHeight;
+    micro.lineHeight +
+    infoStackHeight;
 
   return {
     titleFontSize: title.fontSize,
@@ -97,6 +121,8 @@ export function resolveDetailHeroGeometry(
     overlineMarginTop,
     amountMarginTop,
     captionGap,
+    figuresHeight,
+    stacksInfo,
     height,
   };
 }
