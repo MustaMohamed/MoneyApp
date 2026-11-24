@@ -29,7 +29,7 @@ describe('what the board page may run', () => {
       'bash scripts/board.sh promote 113; rm -rf /',
       'bash scripts/board.sh promote 113 && gh issue close 378',
       'gh issue close 378 --reason completed',
-      '/ship 104',
+      '/land 104',
       'fix the header line',
       '',
     ])

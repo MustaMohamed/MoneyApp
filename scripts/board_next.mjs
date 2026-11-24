@@ -345,14 +345,14 @@ function decide(item, ctx) {
       return {
         bucket: 'drift',
         action: 'Awaiting Human without a PR',
-        command: `/ship ${n}`,
+        command: `/land ${n}`,
         elsewhere,
       };
     if (openPr.checks === 'SUCCESS')
       return { bucket: 'yours', action: `merge PR #${openPr.number}` };
     if (openPr.checks === 'PENDING' || openPr.checks === 'EXPECTED')
       return { bucket: 'yours', action: `checks pending on PR #${openPr.number}` };
-    return { bucket: 'yours', action: `checks red on PR #${openPr.number}`, command: `/ship ${n}` };
+    return { bucket: 'yours', action: `checks red on PR #${openPr.number}`, command: `/land ${n}` };
   }
 
   const questions = openQuestions(item.comments ?? []);
@@ -479,7 +479,7 @@ function decide(item, ctx) {
         action: 'Planned without a linked branch',
         command: `/prep ${n} --replan`,
       };
-    return { bucket: 'pull', action: `Planned, branch ${br.name}`, command: `/ship ${n}` };
+    return { bucket: 'pull', action: `Planned, branch ${br.name}`, command: `/land ${n}` };
   }
 
   if (item.status === 'In Progress') {
@@ -487,7 +487,7 @@ function decide(item, ctx) {
       return {
         bucket: 'drift',
         action: `In Progress with PR #${openPr.number} open`,
-        command: `/ship ${n}`,
+        command: `/land ${n}`,
         elsewhere,
       };
     const br = (item.branches ?? [])[0];
@@ -495,7 +495,7 @@ function decide(item, ctx) {
     if (br) parts.push(`branch ${br.name}`);
     if (br?.committedDate) parts.push(`last commit ${age(br.committedDate, ctx.fetchedAt)}`);
     parts.push(elsewhere ? 'no ship state on this machine' : 'ship state on this machine');
-    return { bucket: 'flight', action: parts.join(', '), command: `/ship ${n}`, elsewhere };
+    return { bucket: 'flight', action: parts.join(', '), command: `/land ${n}`, elsewhere };
   }
 
   if (item.status === 'In Review') {
@@ -503,7 +503,7 @@ function decide(item, ctx) {
       return {
         bucket: 'drift',
         action: 'In Review without a PR',
-        command: `/ship ${n}`,
+        command: `/land ${n}`,
         elsewhere,
       };
     const checks =
@@ -517,7 +517,7 @@ function decide(item, ctx) {
     return {
       bucket: 'flight',
       action: `battery running on PR #${openPr.number}, checks ${checks}`,
-      command: `/ship ${n}`,
+      command: `/land ${n}`,
       elsewhere,
     };
   }
@@ -630,7 +630,7 @@ function queueOf(a, ctx) {
     return parentUnmarked ? null : 'Defined';
   if (a.status === 'Ready For Development' && cmd === `/prep ${a.number}`)
     return 'Ready For Development';
-  if (['Planned', 'In Progress', 'In Review'].includes(a.status) && /^\/ship /.test(cmd))
+  if (['Planned', 'In Progress', 'In Review'].includes(a.status) && /^\/land /.test(cmd))
     return 'Planned';
   return null;
 }

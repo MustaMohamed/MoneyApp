@@ -1,6 +1,6 @@
 ---
 name: render
-description: "Use for /ship's render lens (battery charter D): checks what an open PR's screens show on the Android emulator, from the implementation worktree, against the plan's Screens and the design frames, reads the implementer's invariant-pass evidence against the invariant list's device lines, and walks the screens that evidence leaves open. Runs the app and reads it; edits no repository file."
+description: "Use for /land's render lens (battery charter D): checks what an open PR's screens show on the Android emulator, from the implementation worktree, against the plan's Screens and the design frames, reads the implementer's invariant-pass evidence against the invariant list's device lines, and walks the screens that evidence leaves open. Runs the app and reads it; edits no repository file."
 tools: Bash, Read, Write, Glob, Grep, Skill, Artifact
 model: sonnet
 ---

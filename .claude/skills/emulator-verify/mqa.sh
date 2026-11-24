@@ -413,7 +413,7 @@ cmd_build() {
 # Native surface: a change to any of these paths reaches the device only in a new APK, except a package.json change pkg_scripts_only confines; everything else ships over Metro.
 NATIVE_RE='^(package(-lock)?\.json|app\.json|eas\.json|patches/|android/|ios/|.*\.gradle|gradle\.properties)'
 # Who builds on a REBUILD verdict; every REBUILD line ends with it.
-BUILD_WHO='A /ship implementer or a /prep probe builds, one call each: mqa build, then mqa install. Any other session asks first; the render lens never builds.'
+BUILD_WHO='A /land implementer or a /prep probe builds, one call each: mqa build, then mqa install. Any other session asks first; the render lens never builds.'
 
 # Returns 0 when package.json at <old-rev> and at <new-rev>, or in the working tree, differs only in scripts npm does not run on install; any failure, node missing included, reads as reaching the APK.
 pkg_scripts_only() {
@@ -1222,7 +1222,7 @@ env         MQA_UI MQA_SERIAL MQA_PORT MQA_PKG MQA_APK MQA_WORK MQA_SLOTS MQA_LE
 Slots: 1 emulator-5554 :8082 · 2 emulator-5556 :8083 · 3 emulator-5558 :8084 · 4 emulator-5560 :8085, one per worktree.
 
 A run is two lifecycle calls around one walk:
-  mqa up                    # on build: REBUILD, a /ship implementer builds: mqa build, then mqa install, one call each, then up again; any other session asks first, the render lens never builds
+  mqa up                    # on build: REBUILD, a /land implementer builds: mqa build, then mqa install, one call each, then up again; any other session asks first, the render lens never builds
   mqa walk <walk.sh>        # written with the Write tool, not a heredoc
   mqa down
 EOF

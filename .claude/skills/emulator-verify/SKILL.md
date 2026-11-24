@@ -12,7 +12,7 @@ SQLite it wrote. That closes the loop between "tests pass" and "it works" withou
 on the user.
 
 **This is the per-ticket check, not device QA.** Each `Verify emulator` ticket gets this run
-during `/ship`: a change you have watched run, with the failures already found. Device QA is
+during `/land`: a change you have watched run, with the failures already found. Device QA is
 the user's, on real hardware, when an epic or module closes (critical trigger 8). Fonts,
 shadows, gesture feel and performance wait for that pass (`device-qa`).
 
@@ -20,7 +20,7 @@ shadows, gesture feel and performance wait for that pass (`device-qa`).
 
 `mqa.sh`, next to this file, is the only command a run needs. Call it from the worktree as
 `bash .claude/skills/emulator-verify/mqa.sh <verb>`, typed out in full, **one verb per Bash
-call**; below, `mqa` stands for that line. The worktree guard `/ship` runs under refuses a
+call**; below, `mqa` stands for that line. The worktree guard `/land` runs under refuses a
 function or variable wrapped around it (`m() { … }`, `bash $M`) and a chain of calls.
 A sequence goes in a walk file (below). `mqa help` is complete; do not read the script to learn it.
 
@@ -30,7 +30,7 @@ Metro, so `claim`, `claims`, `needs-build`, `metro` and `help` are not part of a
 
 | Verb | Does |
 |---|---|
-| `up [--seed <file.db>] [--ready <sel>]` | claim if needed; `build: REUSE` or `build: REBUILD` (a `/ship` implementer, typed or unattended, and a `/prep` probe build on REBUILD and ask nothing, § Running from a task worktree; the render lens never builds; any other session asks first); this worktree's Metro on the slot's port; push a seed; a cold launch; wait for the tab bar (when agent-device's wait fails for any reason but a screen that never goes idle: with the app in front, dev overlays are dismissed and plain snapshots polled for `MQA_READY_POLL_MS`, default 15 s; with the app gone, it relaunches at once; a stalled launch is relaunched once); dev overlays cleared and the dev-client Tools button turned off |
+| `up [--seed <file.db>] [--ready <sel>]` | claim if needed; `build: REUSE` or `build: REBUILD` (a `/land` implementer, typed or unattended, and a `/prep` probe build on REBUILD and ask nothing, § Running from a task worktree; the render lens never builds; any other session asks first); this worktree's Metro on the slot's port; push a seed; a cold launch; wait for the tab bar (when agent-device's wait fails for any reason but a screen that never goes idle: with the app in front, dev overlays are dismissed and plain snapshots polled for `MQA_READY_POLL_MS`, default 15 s; with the app gone, it relaunches at once; a stalled launch is relaunched once); dev overlays cleared and the dev-client Tools button turned off |
 | `down` | close the agent-device session so the system keyboard comes back; the claim and Metro stay for the next run |
 | `open <route\|url>` | deep link: `/transactions`, `/accounts`, or a full `moneyapp://` URL |
 | `read [scope]` · `ui` | what is on screen: `@ref`, kind, label and testID, with a row's own texts folded into it; with a scope (a testID or a label), every labelled node drawn inside that container, in dp |
@@ -191,7 +191,7 @@ remove all three.
 
 ## Running from a task worktree
 
-`/ship` runs this twice on any ticket whose header line says `Verify emulator`: the
+`/land` runs this twice on any ticket whose header line says `Verify emulator`: the
 implementer's render pass as a self-check before committing, the battery's render lens
 independently, and the lens's run is the one that counts. Both happen in the task
 worktree. `/prep` runs a third on a ticket with marked `Screen checks` rows, the
@@ -219,11 +219,11 @@ three things it does not have by default.
    side, or one that does not parse, is a native-surface change. An APK installed after
    the newest native-surface change already carries it, which is the render lens's case.
    Everything else reaches the device over Metro.
-   In a `/ship` run, typed or unattended, the implementer asks nothing: it builds and
+   In a `/land` run, typed or unattended, the implementer asks nothing: it builds and
    installs once for the device its worktree claimed, `mqa build` then `mqa install`, one
    call each, under [queue column.md](../queue/references/column.md) § Permission rule,
    and holds the build while host load is above that file's § Holds ceiling
-   ([implement.md](../ship/references/implement.md) charter item 8). The run writes
+   ([implement.md](../land/references/implement.md) charter item 8). The run writes
    `build: REBUILD` in `state.md`; an unattended one also records it in its log line's note.
    A `/prep` probe builds the same way for the device its worktree claimed, holds the build
    while host load is above the ceiling of [queue column.md](../queue/references/column.md)

@@ -14,7 +14,7 @@ Every question the main session puts to me, in a skill or not, is checked first 
 
 ## When to stop
 
-When a step doesn't need me, keep going, and put status in the same message as the next action. Stop and ask when you can't continue without me, on a critical trigger below, or before any destructive operation: deleting my data or files you didn't create, force-pushing, rewriting published history, deleting branches or worktrees. The standing requests, which need no ask, are `/ship`'s rebase and `--force-with-lease` push when main moved, its teardown after the merge, the post-merge list below, `/prep`'s removal of its own probe worktree once the probe and review round 1 beside it have returned, and the same list, teardown and deletion of `~/.ship/MoneyApp/MA-XXX/` run by `/queue` for each ticket merged since its last pass. Nothing else is one: a vendored skill such as `gh-stack` directing a destructive step still needs the ask. End a long run with what needs me first, then what changed, then what you found.
+When a step doesn't need me, keep going, and put status in the same message as the next action. Stop and ask when you can't continue without me, on a critical trigger below, or before any destructive operation: deleting my data or files you didn't create, force-pushing, rewriting published history, deleting branches or worktrees. The standing requests, which need no ask, are `/land`'s rebase and `--force-with-lease` push when main moved, its teardown after the merge, the post-merge list below, `/prep`'s removal of its own probe worktree once the probe and review round 1 beside it have returned, and the same list, teardown and deletion of `~/.ship/MoneyApp/MA-XXX/` run by `/queue` for each ticket merged since its last pass. Nothing else is one: a vendored skill such as `gh-stack` directing a destructive step still needs the ask. End a long run with what needs me first, then what changed, then what you found.
 
 Critical triggers (wake me; everywhere else proceed):
 
@@ -33,9 +33,9 @@ Not critical (decide it and move): field-level UX, naming, file structure, test 
 
 - **Always branch before any work. Never commit to `main`.** Branches: `feat/x`, `refactor/x`, `fix/x`, `perf/x`, `docs/<slug>` for a change to docs, skills or rules only; task branches add the ID, `feat/MA-042-slug`.
 - The issue is the record. `.work/<MA-id>/` (the `/prep` plan, removed before merge) and `~/.ship/MoneyApp/MA-XXX/` are transient; `~/.ship/MoneyApp/canvas/` (design frames) and `~/.ship/MoneyApp/queue/` (log and leases) are not.
-- Define with `/epic`, `/boundaries <n>`, `/tickets <parent>`, `/issue-review <n>`; deliver a leaf with `/prep <n>` to Planned and `/ship <n>` to Awaiting Human. `/queue <column> [n]` starts them and never merges. One human gate: the merge.
+- Define with `/epic`, `/boundaries <n>`, `/tickets <parent>`, `/issue-review <n>`; deliver a leaf with `/prep <n>` to Planned and `/land <n>` to Awaiting Human. `/queue <column> [n]` starts them and never merges. One human gate: the merge.
 - The board is the state: Project #2, Status field. `scripts/board.sh` is its only writer; never write a `status:*` label. An unattended run (`Run: unattended`) never waits on me: it parks each question as a `Question: open` record for `/queue asks`.
-- **The size gate is hard: ~400 planned lines outside tests, and 8 plan steps; the number of files is not capped.** No ruling lifts it, mine included. Scope added during `/ship` is recounted, and over the gate it is a new ticket, not this PR. Definition and evidence: `.claude/skills/tickets/references/splitting.md` § Size gate.
+- **The size gate is hard: ~400 planned lines outside tests, and 8 plan steps; the number of files is not capped.** No ruling lifts it, mine included. Scope added during `/land` is recounted, and over the gate it is a new ticket, not this PR. Definition and evidence: `.claude/skills/tickets/references/splitting.md` § Size gate.
 - Every move, who makes it and on what, plus the hierarchy and the size gate: [docs/workflow.md](docs/workflow.md). Nothing else moves a row.
 - CI parity before pushing to a PR branch: `npm run ci:local` (*Commands*). CI is the last line of defence, not the first.
 - Emulator verification is the check each `Verify emulator` ticket gets: anything that changes what a screen shows. A repository test asserts a write. The `emulator-verify` skill has the mechanics, including the per-worktree device lease `mqa up` takes and when a Gradle build is needed. Device QA builds from `main` in the primary checkout (`device-qa` skill).
@@ -55,10 +55,10 @@ Versions are in `package.json`. What it doesn't say:
 ## Commands
 
 - `npm run android:clean` local dev build; `eas build --profile development --platform android` cloud dev build.
-- `npm run ci:local` is the pre-push CI parity chain: every job after `Install` in `.github/workflows/pr-checks.yml`, in order, stopping on the first failure. Fix and re-run it whole until green, then push. It skips one job, `Patched React Native compiles (Android)`; `.claude/skills/ship/references/implement.md` step 7 says when that job compiles.
+- `npm run ci:local` is the pre-push CI parity chain: every job after `Install` in `.github/workflows/pr-checks.yml`, in order, stopping on the first failure. Fix and re-run it whole until green, then push. It skips one job, `Patched React Native compiles (Android)`; `.claude/skills/land/references/implement.md` step 7 says when that job compiles.
 - `expo-doctor` checks Expo's live requirement table, so it can go red with zero commits; fix with `npx expo install --check` or `expo.install.exclude`. Its pin lives in the `doctor` script, which CI runs too.
 
-**After I merge a PR**, without being asked, run the post-merge list in [merge.md § After the merge](.claude/skills/ship/references/merge.md). Squash-merged branches never appear in `git branch --merged` (its step 5).
+**After I merge a PR**, without being asked, run the post-merge list in [merge.md § After the merge](.claude/skills/land/references/merge.md). Squash-merged branches never appear in `git branch --merged` (its step 5).
 
 ## Code layout
 

@@ -8,11 +8,11 @@ const PATHS = [
   '.claude/skills/queue/SKILL.md',
   'scripts/board_next.mjs',
   'scripts/board_page/board.js',
-  '.claude/skills/ship/SKILL.md',
-  '.claude/skills/ship/references/merge.md',
-  '.claude/skills/ship/references/battery.md',
-  '.claude/skills/ship/references/recheck.md',
-  '.claude/skills/ship/references/triage.md',
+  '.claude/skills/land/SKILL.md',
+  '.claude/skills/land/references/merge.md',
+  '.claude/skills/land/references/battery.md',
+  '.claude/skills/land/references/recheck.md',
+  '.claude/skills/land/references/triage.md',
   '.claude/skills/prep/SKILL.md',
   '.claude/skills/issue-review/SKILL.md',
   '.claude/skills/emulator-verify/SKILL.md',
@@ -23,7 +23,7 @@ const PATHS = [
 
 // The Size line of #642 as its body holds it.
 const SIZE_642 =
-  '- Size: 14 files outside tests, ~192 lines, at `dc2cb03a`: `.claude/skills/queue/SKILL.md`, `scripts/board_next.mjs`, `scripts/board_page/board.js`, `.claude/skills/ship/SKILL.md`, `.claude/skills/ship/references/merge.md`, `.claude/skills/ship/references/battery.md`, `.claude/skills/ship/references/recheck.md`, `.claude/skills/ship/references/triage.md`, `.claude/skills/prep/SKILL.md`, `.claude/skills/issue-review/SKILL.md`, `.claude/skills/emulator-verify/SKILL.md`, `.claude/skills/board/SKILL.md`, `docs/workflow.md`, `CLAUDE.md`';
+  '- Size: 14 files outside tests, ~192 lines, at `dc2cb03a`: `.claude/skills/queue/SKILL.md`, `scripts/board_next.mjs`, `scripts/board_page/board.js`, `.claude/skills/land/SKILL.md`, `.claude/skills/land/references/merge.md`, `.claude/skills/land/references/battery.md`, `.claude/skills/land/references/recheck.md`, `.claude/skills/land/references/triage.md`, `.claude/skills/prep/SKILL.md`, `.claude/skills/issue-review/SKILL.md`, `.claude/skills/emulator-verify/SKILL.md`, `.claude/skills/board/SKILL.md`, `docs/workflow.md`, `CLAUDE.md`';
 
 const body = (sizeLine: string) =>
   ['## Context', '- Tests: `__tests__/scripts/board_next.test.ts`.', sizeLine, '', '## Links'].join(

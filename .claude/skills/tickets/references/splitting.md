@@ -19,7 +19,7 @@
 
 ## Size gate
 
-One PR is a counted thing, and every step counts it the same way except `/prep`: `/tickets` on each candidate task before the split is shown, `/issue-review` on each body with one sizer per leaf that counts from LSP references as the planner does, `/ship` whenever scope is added after the plan. `/prep`'s planner, its reviewer and its step 7 hold the plan's `expected diff` × 1.25 against ~400. A task fits when this holds:
+One PR is a counted thing, and every step counts it the same way except `/prep`: `/tickets` on each candidate task before the split is shown, `/issue-review` on each body with one sizer per leaf that counts from LSP references as the planner does, `/land` whenever scope is added after the plan. `/prep`'s planner, its reviewer and its step 7 hold the plan's `expected diff` × 1.25 against ~400. A task fits when this holds:
 
 - at most ~400 changed lines outside tests; the implementer writes about 2.5 times that once tests are in (MA-039: 558 lines outside tests, 936 in tests)
 
@@ -27,9 +27,9 @@ One PR is a counted thing, and every step counts it the same way except `/prep`:
 
 The number of files is not capped. A file changed only to follow a rename or a moved reference is in the list and adds its lines, and the lines are the gate.
 
-Tests are `__tests__/`, `__mocks__/`, `src/test_helpers/` and `jest.setup.js`. Generated files are `package-lock.json` and `skills-lock.json`, and they count on neither side. A changed line is a line the diff adds: a modified line counts once and a deleted line counts nothing. `.claude/skills/ship/scripts/pr_size.mjs` counts a PR this way at merge.
+Tests are `__tests__/`, `__mocks__/`, `src/test_helpers/` and `jest.setup.js`. Generated files are `package-lock.json` and `skills-lock.json`, and they count on neither side. A changed line is a line the diff adds: a modified line counts once and a deleted line counts nothing. `.claude/skills/land/scripts/pr_size.mjs` counts a PR this way at merge.
 
-**The gate is hard.** No step waives it and no ruling does: not a reviewer, not the conductor, not the user in the session. More scope than the gate holds is another ticket. A plan past the gate is trimmed at a seam even when the extra lines were ruled in, and scope added at `/ship` (a ruling, a note that is another ticket's Acceptance, a ticket folded in) is recounted with the plan's figure; over the gate, the addition leaves the PR as its own ticket. The three PRs that went around the gate were the three costliest `/ship` runs of 71 merged 09-06 to 09-26: #422 planned at ~540, #575 at ~620 by ruling, #580 planned at ~265 and delivered at 866 lines after two tickets were folded in at review. Each cost 154M to 176M against ~86M from the size fit, and the three spawned 8 follow-up tickets.
+**The gate is hard.** No step waives it and no ruling does: not a reviewer, not the conductor, not the user in the session. More scope than the gate holds is another ticket. A plan past the gate is trimmed at a seam even when the extra lines were ruled in, and scope added at `/land` (a ruling, a note that is another ticket's Acceptance, a ticket folded in) is recounted with the plan's figure; over the gate, the addition leaves the PR as its own ticket. The three PRs that went around the gate were the three costliest `/land` runs of 71 merged 09-06 to 09-26: #422 planned at ~540, #575 at ~620 by ruling, #580 planned at ~265 and delivered at 866 lines after two tickets were folded in at review. Each cost 154M to 176M against ~86M from the size fit, and the three spawned 8 follow-up tickets.
 
 **400 is a planned figure.** Delivered lines ran 1.25 times the plan at the median over the 51 commitments tickets, so `/prep` counts a plan at 1.25 times its `expected diff`, and a plan that passes at ~320 ships about 400 lines. Ship cost per line turns up past ~700 delivered: 111k per line at 400 to 699, 168k past 700.
 
@@ -48,7 +48,7 @@ Lines are estimated per file from what it looks like today, then summed. A count
 - Size: <k> files outside tests, ~<n> lines, at <sha>: <the paths, comma separated>
 ```
 
-The next step disputes the list, not the number. Over the gate: `/tickets` cuts again before the split is shown, or the user creates the task at Todo for its own run; `/issue-review` returns an `ask` proposing the seam, answered with a seam or Todo, never with the body kept whole, and leaves the ticket unmarked at Defined for `/tickets`; `board.sh promote` refuses a leaf whose `Size:` line is missing or over the gate; `/prep` trims the ticket at one seam, keeps it at Ready For Development and opens the remainder as a sibling at Defined; `/ship` makes the addition its own ticket. A gate reached at `/prep` is a miss at the two steps before it.
+The next step disputes the list, not the number. Over the gate: `/tickets` cuts again before the split is shown, or the user creates the task at Todo for its own run; `/issue-review` returns an `ask` proposing the seam, answered with a seam or Todo, never with the body kept whole, and leaves the ticket unmarked at Defined for `/tickets`; `board.sh promote` refuses a leaf whose `Size:` line is missing or over the gate; `/prep` trims the ticket at one seam, keeps it at Ready For Development and opens the remainder as a sibling at Defined; `/land` makes the addition its own ticket. A gate reached at `/prep` is a miss at the two steps before it.
 
 ## Floor
 
