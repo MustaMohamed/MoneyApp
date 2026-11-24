@@ -3,8 +3,9 @@ import { View, useWindowDimensions } from 'react-native';
 
 import {
   DETAIL_HERO_BADGE_GAP,
-  DETAIL_HERO_CAPTION_GAP,
-  DETAIL_HERO_OVERLINE_GAP,
+  DETAIL_HERO_BAR_GAP,
+  DETAIL_HERO_BAR_HEIGHT,
+  DETAIL_HERO_BAR_RADIUS,
   DETAIL_HERO_PADDING,
   DETAIL_HERO_SHELL_STYLE,
   DETAIL_HERO_TILE_GAP,
@@ -22,7 +23,7 @@ import { Radius, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 
 export function CategoryDetailSkeleton(): React.ReactElement {
   const { fontScale } = useWindowDimensions();
-  const hero = resolveDetailHeroGeometry(fontScale);
+  const hero = resolveDetailHeroGeometry(fontScale, { bar: true });
   return (
     <ScreenScroll testID="budget-category-detail-skeleton">
       <SkeletonGroup isLoading isSkeletonOnly>
@@ -59,12 +60,20 @@ export function CategoryDetailSkeleton(): React.ReactElement {
             </View>
             <SkeletonGroup.Item
               className="w-15 rounded-md"
-              style={{ height: hero.overlineLineHeight, marginTop: DETAIL_HERO_OVERLINE_GAP }}
+              style={{ height: hero.overlineLineHeight, marginTop: hero.overlineMarginTop }}
             />
             <SkeletonGroup.Item className="w-45 rounded-lg" style={{ height: hero.amountHeight }} />
             <SkeletonGroup.Item
+              className="w-full"
+              style={{
+                height: DETAIL_HERO_BAR_HEIGHT,
+                marginTop: DETAIL_HERO_BAR_GAP,
+                borderRadius: DETAIL_HERO_BAR_RADIUS,
+              }}
+            />
+            <SkeletonGroup.Item
               className="w-38 rounded-md"
-              style={{ height: hero.captionLineHeight, marginTop: DETAIL_HERO_CAPTION_GAP }}
+              style={{ height: hero.captionLineHeight, marginTop: hero.captionGap }}
             />
           </View>
         </HeroShell>
