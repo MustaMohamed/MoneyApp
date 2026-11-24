@@ -1,9 +1,12 @@
 import { act, renderHook } from '@testing-library/react-native';
 
-import { CategoryType } from '@/constants/enums';
+import { BudgetGroup, CategoryType, Currency } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
+import { BUDGET_GROUP_OPTIONS } from '@/modules/budget/screens/budget/components/set_budget_sheet.helpers';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
+import { formatAmount, formatDisplayAmountParts } from '@/utils/format_amount';
 
 // `currentYearMonth` is left unmocked, so `jest.setSystemTime` drives the month.
 
@@ -38,6 +41,18 @@ jest.mock('@/utils/run_after_interactions', () => ({
   }),
 }));
 
+const mockDayListeners = new Set<(today: string) => void>();
+jest.mock('@/utils/local_day_ticker', () => ({
+  subscribeToLocalDay: jest.fn((listener: (today: string) => void) => {
+    mockDayListeners.add(listener);
+    return () => mockDayListeners.delete(listener);
+  }),
+}));
+
+function emitLocalDay(today: string) {
+  for (const listener of [...mockDayListeners]) listener(today);
+}
+
 jest.mock('@/modules/categories/store/category.store', () => ({ useCategoryStore: jest.fn() }));
 jest.mock('@/modules/budget/store/budget.store', () => ({ useBudgetStore: jest.fn() }));
 jest.mock('@/modules/budget/screens/budget/budget.state', () => ({ useBudgetState: jest.fn() }));
@@ -61,6 +76,8 @@ let spendByMonthState: Record<string, Record<string, number>>;
 let budgetLoadedState: boolean;
 let budgetLoadedMonthState: string | undefined;
 let budgetLoadErrorState: boolean;
+let expectedIncomeState: number | null;
+let budgetGroupByCategoryIdState: Record<string, BudgetGroup>;
 
 import { useBudget } from '@/modules/budget/screens/budget/budget.hook';
 import { useCategoryDetail } from '@/modules/budget/screens/budget/category_detail/category_detail.hook';
@@ -84,6 +101,8 @@ function setupStores() {
   budgetLoadedState = true;
   budgetLoadedMonthState = '2026-05';
   budgetLoadErrorState = false;
+  expectedIncomeState = null;
+  budgetGroupByCategoryIdState = {};
   loadCategoriesMock = jest.fn().mockResolvedValue(undefined);
   loadBudgetMock = jest.fn().mockResolvedValue(undefined);
   mockRouterBack = jest.fn();
@@ -107,9 +126,9 @@ function setupStores() {
     loaded: budgetLoadedState,
     loadedMonth: budgetLoadedMonthState,
     loadError: budgetLoadErrorState,
-    expectedIncome: null,
+    expectedIncome: expectedIncomeState,
     incomeSuggestion: null,
-    budgetGroupByCategoryId: {},
+    budgetGroupByCategoryId: budgetGroupByCategoryIdState,
     copyPreviewRows: [],
     copyPreviewSourceMonth: undefined,
     copyPreviewTargetMonth: undefined,
@@ -189,6 +208,7 @@ function budget(id: string, name: string): Budget {
 
 beforeEach(() => {
   capturedFocusCallback = null;
+  mockDayListeners.clear();
   mockInteractionTasks.length = 0;
   jest.useFakeTimers();
   runAfterInteractions.mockClear();
@@ -481,5 +501,145 @@ describe('useCategoryDetail — month rollover', () => {
     });
 
     expect(result.current.state.month).toBe('2026-06');
+  });
+});
+
+describe('useCategoryDetail — hero', () => {
+  const groupLabel = (group: BudgetGroup) =>
+    BUDGET_GROUP_OPTIONS.find((option) => option.value === group)?.label;
+
+  function loadedMay() {
+    categoriesState = [category('cat-1')];
+    budgetRowsState = [budget('budget-may', 'Monthly Food')];
+  }
+
+  it('gives no hero while the requested month is loading, and one once it loads', async () => {
+    jest.setSystemTime(new Date('2026-05-15T12:00:00'));
+    mockRouteMonth = '2026-06';
+    loadedMay();
+    budgetLoadedMonthState = '2026-05';
+
+    const { result, rerender } = await renderHook(() => useCategoryDetail());
+
+    expect(result.current.state.viewState).toBe('loading');
+    expect(result.current.state.hero).toBeUndefined();
+
+    budgetLoadedMonthState = '2026-06';
+    await rerender(undefined);
+
+    expect(result.current.state.viewState).toBe('ready');
+    expect(result.current.state.hero).toBeDefined();
+  });
+
+  it.each([
+    ['2026-04', () => Strings.budgetHeroLeftUnspent, false],
+    ['2026-05', () => Strings.budgetHeroLeftThisMonth, true],
+    ['2026-06', () => Strings.budgetHeroLeftToSpend, false],
+  ] as const)(
+    'labels selected %s by its place against today',
+    async (selectedMonth, overline, ticks) => {
+      jest.setSystemTime(new Date('2026-05-15T12:00:00'));
+      mockRouteMonth = selectedMonth;
+      budgetLoadedMonthState = selectedMonth;
+      categoriesState = [category('cat-1')];
+      budgetRowsState = [
+        { ...budget('budget-selected', 'Monthly Food'), effective_from: selectedMonth },
+      ];
+
+      const { result } = await renderHook(() => useCategoryDetail());
+
+      const hero = result.current.state.hero;
+      expect(hero).toBeDefined();
+      expect(hero?.overline).toBe(overline());
+      if (ticks) expect(hero?.bar?.tickShare).toBe(15 / 31);
+      else expect(hero?.bar?.tickShare).toBeUndefined();
+    },
+  );
+
+  it('recomputes days left and the tick when the local day changes while open', async () => {
+    jest.setSystemTime(new Date('2026-05-15T12:00:00'));
+    loadedMay();
+
+    const { result } = await renderHook(() => useCategoryDetail());
+    expect(result.current.state.hero?.caption.endsWith(Strings.budgetCategoriesDaysLeft(16))).toBe(
+      true,
+    );
+
+    jest.setSystemTime(new Date('2026-05-16T00:00:01'));
+    await act(async () => {
+      emitLocalDay('2026-05-16');
+    });
+
+    const hero = result.current.state.hero;
+    expect(hero?.caption.endsWith(Strings.budgetCategoriesDaysLeft(15))).toBe(true);
+    expect(hero?.bar?.tickShare).toBe(16 / 31);
+  });
+
+  it('hands focus a new callback that loads the new month when the day crosses the month end', async () => {
+    jest.setSystemTime(new Date('2026-05-31T12:00:00'));
+    loadedMay();
+
+    await renderHook(() => useCategoryDetail());
+    const beforeCallback = capturedFocusCallback;
+
+    jest.setSystemTime(new Date('2026-06-01T00:00:01'));
+    await act(async () => {
+      emitLocalDay('2026-06-01');
+    });
+
+    expect(capturedFocusCallback).not.toBe(beforeCallback);
+    loadBudgetMock.mockClear();
+    await act(async () => {
+      capturedFocusCallback?.();
+      await Promise.resolve();
+    });
+    expect(loadBudgetMock).toHaveBeenCalledWith('2026-06');
+  });
+
+  it("sums the month's budgets for the limit against the month's whole spending", async () => {
+    jest.setSystemTime(new Date('2026-05-15T12:00:00'));
+    categoriesState = [category('cat-1')];
+    budgetRowsState = [
+      { ...budget('budget-clothes', 'Clothes'), limit_amount: 2000 },
+      { ...budget('budget-home', 'Home'), limit_amount: 1000 },
+    ];
+    spendByMonthState = { 'cat-1': { '2026-05': 1150 } };
+
+    const { result } = await renderHook(() => useCategoryDetail());
+
+    const hero = result.current.state.hero;
+    expect(hero?.amountValue).toBe(formatDisplayAmountParts(1850, Currency.EGP).text);
+    expect(hero?.caption).toContain(formatAmount(3000));
+  });
+
+  it("reads the month's own group first", async () => {
+    jest.setSystemTime(new Date('2026-05-15T12:00:00'));
+    loadedMay();
+    budgetGroupByCategoryIdState = { 'cat-1': BudgetGroup.Need };
+
+    const { result } = await renderHook(() => useCategoryDetail());
+
+    expect(result.current.state.hero?.badgeLabel).toBe(groupLabel(BudgetGroup.Need));
+  });
+
+  it("falls back to the category's default group when the month has no income", async () => {
+    jest.setSystemTime(new Date('2026-05-15T12:00:00'));
+    loadedMay();
+    categoriesState = [{ ...category('cat-1'), budget_group: BudgetGroup.Want }];
+
+    const { result } = await renderHook(() => useCategoryDetail());
+
+    expect(result.current.state.hero?.badgeLabel).toBe(groupLabel(BudgetGroup.Want));
+  });
+
+  it('reads Not grouped when the month has income but no group for the category', async () => {
+    jest.setSystemTime(new Date('2026-05-15T12:00:00'));
+    loadedMay();
+    categoriesState = [{ ...category('cat-1'), budget_group: BudgetGroup.Want }];
+    expectedIncomeState = 5000;
+
+    const { result } = await renderHook(() => useCategoryDetail());
+
+    expect(result.current.state.hero?.badgeLabel).toBe(Strings.budget5030NotGroupedTitle);
   });
 });
