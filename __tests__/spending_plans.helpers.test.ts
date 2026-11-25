@@ -16,14 +16,14 @@ import {
   buildSpendingPlanRows,
   computeAllocationHelper,
   computePlanTiming,
-  heroStatusTag,
   planIntersectsMonth,
   resolveCategoryTileColors,
 } from '@/modules/budget/screens/budget/spending_plans.helpers';
 import { computeSpendingPlansSummary } from '@/modules/budget/screens/budget/spending_plans_summary.helpers';
+import { heroStatusTag } from '@/modules/budget/utils/budget_hero';
 import { budgetBandColor } from '@/modules/budget/utils/budget_summary';
 import type { Category } from '@/modules/categories/entities/category.entity';
-import { formatAmount } from '@/utils/format_amount';
+import { formatAmount, formatDisplayAmountParts } from '@/utils/format_amount';
 
 type PlanRow = ReturnType<typeof buildSpendingPlanRows>[number];
 
@@ -1517,7 +1517,9 @@ describe('an active plan draws the D2 hero (MA-331)', () => {
     expect(hero.amountValue).toBe('260');
     expect(hero.amountCode).toBe(egp);
     expect(hero.amountColor).toBe(Colors.dark.negative);
-    expect(hero.amountAccessibilityLabel).toBe(Strings.budgetPlansHeroOverA11y(`260 ${egp}`));
+    expect(hero.amountAccessibilityLabel).toBe(
+      Strings.budgetCategoryDetailHeroOverA11y(`260 ${egp}`),
+    );
     expect(hero.bar?.share).toBe(1);
     expect(hero.bar?.color).toBe(Colors.dark.budgetOver);
     expect(hero.tag).toEqual(
@@ -1608,7 +1610,9 @@ describe('an active plan draws the D2 hero (MA-331)', () => {
       build({ totalAmount: 0.3, limits: { cat_home: null }, spend: { cat_home: spent } }),
     );
 
-    expect(hero.overline).toBe(Strings.budgetPlansHeroLeftOf(formatAmount(0.3)));
+    expect(hero.overline).toBe(
+      Strings.budgetPlansHeroLeftOf(formatDisplayAmountParts(0.3, Currency.EGP).text),
+    );
     expect(hero.amountColor).toBe(CoreTokens.text1);
     expect(hero.bar?.share).toBe(1);
     expect(hero.bar?.color).toBe(budgetBandColor(spent, 0.3));
