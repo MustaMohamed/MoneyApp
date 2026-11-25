@@ -19,7 +19,7 @@ export interface StatusBadgeProps {
   foreground: string;
   icon?: IconName;
   size?: 'xs' | 'sm' | 'md' | 'tagMd';
-  /** Given, the label draws at this app scale on one line; omitted, the OS scales it. */
+  /** Given, the label draws at this app scale on one line unless `wraps` is set; omitted, the OS scales it. */
   fontScale?: number;
   /** With `fontScale`, the label wraps in place of its one line. */
   wraps?: boolean;

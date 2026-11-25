@@ -32,9 +32,9 @@ import { StatusBadge } from '@/components/ui/status_badge';
 import {
   resolveFitAmountTextProps,
   resolveFitLineTextProps,
-  resolveLoneWordLines,
   resolveUncappedLinesAboveOne,
 } from '@/components/ui/text_scale.geometry';
+import { useWordSafeLines } from '@/components/ui/word_safe_lines.hook';
 import { Strings } from '@/constants/strings';
 import { Size, Type, lineHeightFor } from '@/constants/theme';
 import type { DateTileParts } from '@/utils/format_date';
@@ -271,6 +271,11 @@ export function DetailHero({ hero, testID, entering }: Props): React.ReactElemen
   });
   const infoRow = hero.captionEnd !== undefined && !geometry.stacksInfo;
   const wraps = fontScale > 1;
+  const titleLines = useWordSafeLines(
+    hero.title,
+    resolveUncappedLinesAboveOne(1, fontScale),
+    fontScale,
+  );
   const infoTextStyle = infoRow ? { flexShrink: 1 } : undefined;
 
   return (
@@ -296,11 +301,9 @@ export function DetailHero({ hero, testID, entering }: Props): React.ReactElemen
           <View style={{ flex: 1 }}>
             <Typography
               allowFontScaling={false}
-              numberOfLines={resolveLoneWordLines(
-                hero.title,
-                resolveUncappedLinesAboveOne(1, fontScale),
-                fontScale,
-              )}
+              numberOfLines={titleLines.numberOfLines}
+              onTextLayout={titleLines.onTextLayout}
+              onLayout={titleLines.onLayout}
               className="font-sora-semibold text-foreground"
               style={{
                 fontSize: geometry.titleFontSize,
