@@ -1,3 +1,4 @@
+import type { DetailHeroModel } from '@/components/ui/detail_hero';
 import type { BudgetStatus } from '@/modules/budget/screens/budget/budget.helpers';
 
 export type SpendingPlanLifecycle = 'upcoming' | 'active' | 'completed';
@@ -174,6 +175,7 @@ export interface SpendingPlanDetailVM {
   };
   categoryRows: SpendingPlanDetailUnlimitedRowVM[];
   flexibleRow?: { label: string; amountLabel: string; supportingLabel: string };
+  hero?: DetailHeroModel;
 }
 
 export interface SpendingPlanRowVM {

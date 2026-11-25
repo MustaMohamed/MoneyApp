@@ -1,13 +1,11 @@
 import type { DetailHeroBadge, DetailHeroModel } from '@/components/ui/detail_hero';
 import type { DetailLoadErrorCopy } from '@/components/ui/detail_load_error.helpers';
-import { HERO_GRADIENT_COLORS } from '@/components/ui/hero_gradient';
 import { DETAIL_HERO_BADGE_COLORS } from '@/components/ui/hero_gradient_badge';
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { type BudgetGroup, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
-import { resolveBadgeColors } from '@/modules/accounts/constants/account_badge_color';
 import {
   type MonthResultVM,
   computeBudgetHealth,
@@ -15,7 +13,10 @@ import {
 } from '@/modules/budget/screens/budget/budget.helpers';
 import type { BudgetHealth } from '@/modules/budget/screens/budget/budget_categories.types';
 import { resolveBudgetGroupRowValue } from '@/modules/budget/screens/budget/components/set_budget_sheet.helpers';
-import { LIMIT_TAG_FILL_SHARE } from '@/modules/budget/screens/budget/spending_plans.helpers';
+import {
+  LIMIT_TAG_FILL_SHARE,
+  heroStatusTag,
+} from '@/modules/budget/screens/budget/spending_plans.helpers';
 import { budgetBandColor } from '@/modules/budget/utils/budget_summary';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import {
@@ -67,25 +68,19 @@ export const BUDGET_CATEGORY_DETAIL_NOT_FOUND_TEST_ID = 'budget-category-detail-
 
 export const BUDGET_CATEGORY_DETAIL_HERO_TEST_ID = 'budget-category-detail-hero';
 
-function heroTag(label: string, icon: DetailHeroBadge['badgeIcon'], tone: string): DetailHeroBadge {
-  const { fill, foreground } = resolveBadgeColors({
-    tone,
-    backdrop: HERO_GRADIENT_COLORS[1],
-    fillShare: LIMIT_TAG_FILL_SHARE,
-    inkShare: 1,
-  });
-  return { badgeLabel: label, badgeIcon: icon, badgeFill: fill, badgeForeground: foreground };
-}
-
 const HERO_TAGS = {
-  onTrack: heroTag(Strings.budgetCategoriesStatusOnTrack, 'check-circle', Colors.dark.positive),
-  withinLimit: heroTag(
+  onTrack: heroStatusTag(
+    Strings.budgetCategoriesStatusOnTrack,
+    'check-circle',
+    Colors.dark.positive,
+  ),
+  withinLimit: heroStatusTag(
     Strings.budgetCategoryDetailStatusWithinLimit,
     'check-circle',
     Colors.dark.positive,
   ),
-  watch: heroTag(Strings.budgetCategoriesStatusWatch, 'trending-up', Colors.dark.gold),
-  over: heroTag(Strings.budgetCategoriesStatusOver, 'alert-circle', Colors.dark.negative),
+  watch: heroStatusTag(Strings.budgetCategoriesStatusWatch, 'trending-up', Colors.dark.gold),
+  over: heroStatusTag(Strings.budgetCategoriesStatusOver, 'alert-circle', Colors.dark.negative),
 } as const;
 
 type MonthLifecycle = MonthResultVM['lifecycle'];
