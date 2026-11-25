@@ -44,3 +44,5 @@ export const SPENDING_PLAN_DETAIL_LOAD_ERROR_COPY: DetailLoadErrorCopy = {
 };
 
 export const SPENDING_PLAN_DETAIL_LOAD_ERROR_TEST_ID = 'spending-plan-detail-load-error';
+
+export const SPENDING_PLAN_DETAIL_HERO_TEST_ID = 'spending-plan-detail-hero';

@@ -29,7 +29,7 @@ export default function SpendingPlanDetailScreen() {
   return (
     <Screen>
       <StackHeader
-        title={plan?.name ?? Strings.budgetPlansDetailTitle}
+        title={Strings.budgetPlansDetailTitle}
         onBack={goBack}
         right={
           state.showsBody && plan ? (
