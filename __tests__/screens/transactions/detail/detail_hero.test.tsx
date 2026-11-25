@@ -51,8 +51,8 @@ describe('DetailHero', () => {
       minHeight: geometry.height,
     });
     // Above font scale 1.0 the title and the date badge wrap in place of an ellipsis (MA-331).
-    expect(title).toHaveProp('numberOfLines', undefined);
-    expect(badgeLabel).toHaveProp('numberOfLines', undefined);
+    expect(title.props.numberOfLines).toBeUndefined();
+    expect(badgeLabel.props.numberOfLines).toBeUndefined();
 
     const value = screen.getByText(hero.amountValue);
     expect(value).toHaveProp('allowFontScaling', false);
