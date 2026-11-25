@@ -1,6 +1,6 @@
 # Spending plan detail
 
-Route `/budget/plans/[id]`. Screen `src/modules/budget/screens/budget/spending_plan_detail/index.tsx`, summary `spending_plan_detail/components/spending_plan_detail_summary.tsx`. Frame D2 (budget canvas) draws the header, the load states and the Edit foot (MA-324), the Category limits card (MA-326) and the hero (MA-331). The summary is D2's hero (`id="spending-plan-detail-hero"`, the shared `DetailHero`) for an active plan, and the summary card for upcoming and ended plans until MA-327. This file carries only the states tickets have reached — add the rest when a ticket reaches them.
+Route `/budget/plans/[id]`. Screen `src/modules/budget/screens/budget/spending_plan_detail/index.tsx`, summary `spending_plan_detail/components/spending_plan_detail_summary.tsx`. Frame D2 (budget canvas) draws the header, the load states and the Edit foot (MA-324), the Category limits card (MA-326) and the hero (MA-331). The screen mounts D2's hero (`id="spending-plan-detail-hero"`, the shared `DetailHero`) for an active plan, and the summary card for upcoming and ended plans until MA-327. This file carries only the states tickets have reached — add the rest when a ticket reaches them.
 
 ## Reach it
 
