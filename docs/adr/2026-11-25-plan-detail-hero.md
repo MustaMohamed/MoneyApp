@@ -22,9 +22,10 @@ Spent `0.1 + 0.2` against a total of 0.3 is not over.
 
 The figure is `remainingLabel(total - spent).magnitude`, printed through
 `formatDisplayAmountParts(…, Currency.EGP)`: EGP's 0 decimals, escalated until a nonzero digit
-shows. The code slot reads `EGP`. Within the total the overline reads `Left of <total>`, the total
-through `formatAmount`, and the figure is `text1`; the screen reader reads `1,100 EGP`. Over, the
-overline reads `Over by`, the figure is `Colors.dark.negative`, and the screen reader reads
+shows. The code slot reads `EGP`. Within the total the overline reads `Left of <total>`, the
+figure is `text1`, and the screen reader reads `1,100 EGP`. The overline total goes through
+`formatDisplayAmountParts` too, so it escalates as the amount does: a 0.40 total reads
+`Left of 0.40`, not `Left of 0`. Over, the overline reads `Over by`, the figure is `Colors.dark.negative`, and the screen reader reads
 `260 EGP over`. Frame D2 reads 1,100 left of 5,000 with 3,900 spent.
 
 The plan card that upcoming and ended plans keep until MA-327 still prints its balance through

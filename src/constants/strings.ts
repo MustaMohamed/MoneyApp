@@ -2,7 +2,6 @@ const moreCount = (count: number) => `+${count}`;
 const inProgressMark = '*';
 const pacePointsLabel = (points: number) => (points === 1 ? '1 pt' : `${points} pts`);
 const onPace = 'On pace';
-const overA11y = (amountWithCode: string) => `${amountWithCode} over`;
 
 export const Strings = {
   loading: 'Loading...',
@@ -482,7 +481,7 @@ export const Strings = {
   budgetHeroLeftUnspent: 'Left unspent',
   budgetHeroLeftToSpend: 'Left to spend',
   budgetCategoryDetailHeroOverCode: (code: string) => `${code} over`,
-  budgetCategoryDetailHeroOverA11y: overA11y,
+  budgetCategoryDetailHeroOverA11y: (amountWithCode: string) => `${amountWithCode} over`,
   budgetCategoryDetailHeroNoBudget: 'No budget this month',
   budgetCategoryDetailHeroSpent: (spent: string) => `${spent} spent`,
   budgetCategoryDetailHeroCaption: (
@@ -724,7 +723,6 @@ export const Strings = {
   budgetPlansDetailTitle: 'Plan',
   budgetPlansHeroLeftOf: (total: string) => `Left of ${total}`,
   budgetPlansHeroOverBy: 'Over by',
-  budgetPlansHeroOverA11y: overA11y,
   budgetPlansHeroUsedLine: (percent: number, day: number, days: number) => [
     { strong: `${percent}%` },
     ' used · day ',

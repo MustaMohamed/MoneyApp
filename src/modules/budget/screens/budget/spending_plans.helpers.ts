@@ -91,7 +91,6 @@ export type {
 } from '@/modules/budget/screens/budget/spending_plans.types';
 
 export { computePlanTiming } from '@/modules/budget/screens/budget/spending_plan_timing.helpers';
-export { LIMIT_TAG_FILL_SHARE, heroStatusTag } from '@/modules/budget/utils/budget_hero';
 
 const PLAN_STATUS_PRESENTATION: Record<
   SpendingPlanStatus,
@@ -238,7 +237,7 @@ function buildSpendingPlanHero({
     tag: PLAN_HERO_TAGS[status],
     overline: isOver
       ? Strings.budgetPlansHeroOverBy
-      : Strings.budgetPlansHeroLeftOf(formatAmount(totalAmount)),
+      : Strings.budgetPlansHeroLeftOf(formatDisplayAmountParts(totalAmount, Currency.EGP).text),
     ...budgetHeroFigure(remainingLabel(left).magnitude, isOver),
     amountCode: CURRENCY_CONFIG[Currency.EGP].code,
     figures: [
