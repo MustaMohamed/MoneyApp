@@ -3,13 +3,11 @@ import { Card, Chip } from 'heroui-native';
 import React from 'react';
 import { View, useWindowDimensions } from 'react-native';
 
-import { DetailHero } from '@/components/ui/detail_hero';
 import { Text } from '@/components/ui/text';
 import { resolveRowStacking, scaledTextStyleAboveOne } from '@/components/ui/text_scale.geometry';
 import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { BudgetBar } from '@/modules/budget/screens/budget/components/budget_bar';
 import { BudgetSummaryMetricsRow } from '@/modules/budget/screens/budget/components/budget_summary_parts';
-import { SPENDING_PLAN_DETAIL_HERO_TEST_ID } from '@/modules/budget/screens/budget/spending_plan_detail/spending_plan_detail.helpers';
 import type { SpendingPlanDetailVM } from '@/modules/budget/screens/budget/spending_plans.types';
 
 interface SpendingPlanDetailSummaryProps {
@@ -18,9 +16,6 @@ interface SpendingPlanDetailSummaryProps {
 
 export function SpendingPlanDetailSummary({ detail }: SpendingPlanDetailSummaryProps) {
   const { fontScale } = useWindowDimensions();
-  if (detail.hero !== undefined) {
-    return <DetailHero hero={detail.hero} testID={SPENDING_PLAN_DETAIL_HERO_TEST_ID} />;
-  }
   const stacked = resolveRowStacking(fontScale) === 'stacked';
   const insightText = scaledTextStyleAboveOne(Type.meta, fontScale);
   return (

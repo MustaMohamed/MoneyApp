@@ -13,18 +13,14 @@ import {
 } from '@/modules/budget/screens/budget/budget.helpers';
 import type { BudgetHealth } from '@/modules/budget/screens/budget/budget_categories.types';
 import { resolveBudgetGroupRowValue } from '@/modules/budget/screens/budget/components/set_budget_sheet.helpers';
-import {
-  LIMIT_TAG_FILL_SHARE,
-  heroStatusTag,
-} from '@/modules/budget/screens/budget/spending_plans.helpers';
-import { budgetBandColor } from '@/modules/budget/utils/budget_summary';
+import { budgetHeroBar, budgetHeroFigure, heroStatusTag } from '@/modules/budget/utils/budget_hero';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import {
   resolveCategoryGlyph,
   resolveHeroTileGlyphColor,
 } from '@/modules/transactions/components/transaction_row.helpers';
-import { formatAmount, formatDisplayAmountParts } from '@/utils/format_amount';
-import { ratioHeldAtTie, wholePercent } from '@/utils/money';
+import { formatAmount } from '@/utils/format_amount';
+import { wholePercent } from '@/utils/money';
 import { daysLeftInMonth, lastDayOfMonth } from '@/utils/year_month';
 
 export type CategoryDetailViewState =
@@ -142,23 +138,17 @@ export function buildCategoryDetailHero({
   const lifecycle = resolveMonthLifecycle(month, today.slice(0, 7));
   const health = computeBudgetHealth(spent, limit);
   const over = health === 'over';
-  const parts = formatDisplayAmountParts(remainingLabel(limit - spent).magnitude, Currency.EGP);
   const code = CURRENCY_CONFIG[Currency.EGP].code;
   const daysLeft = daysLeftInMonth(month, today);
 
   return {
     ...base,
-    amountValue: parts.text,
+    ...budgetHeroFigure(remainingLabel(limit - spent).magnitude, over),
     amountCode: over ? Strings.budgetCategoryDetailHeroOverCode(code) : code,
-    amountColor: over ? Colors.dark.negative : CoreTokens.text1,
-    amountAccessibilityLabel: over
-      ? Strings.budgetCategoryDetailHeroOverA11y(parts.withCode)
-      : parts.withCode,
     overline: over ? false : LEFT_OVERLINE[lifecycle],
     tag: resolveHeroTag(health, lifecycle),
     bar: {
-      share: over ? 1 : ratioHeldAtTie(spent, limit),
-      color: over ? Colors.dark.budgetOver : budgetBandColor(spent, limit),
+      ...budgetHeroBar(spent, limit, over),
       tickShare:
         lifecycle === 'provisional'
           ? Number(today.slice(8, 10)) / lastDayOfMonth(month)

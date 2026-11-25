@@ -49,8 +49,8 @@ const PERMITTED = {
   ],
   ratioHeldAtTie: [
     'src/modules/budget/screens/budget/budget.helpers.ts',
-    'src/modules/budget/screens/budget/category_detail/category_detail.helpers.ts',
     'src/modules/budget/screens/budget/spending_plans.helpers.ts',
+    'src/modules/budget/utils/budget_hero.ts',
     'src/utils/money.ts',
   ],
   wholePercent: [
