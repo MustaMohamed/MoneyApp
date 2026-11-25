@@ -3,7 +3,11 @@ import { Typography } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
-import { scaledFontSize, scaledTextStyle } from '@/components/ui/text_scale.geometry';
+import {
+  resolveLoneWordLines,
+  scaledFontSize,
+  scaledTextStyle,
+} from '@/components/ui/text_scale.geometry';
 import { Size, Type, lineHeightFor } from '@/constants/theme';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -17,6 +21,8 @@ export interface StatusBadgeProps {
   size?: 'xs' | 'sm' | 'md' | 'tagMd';
   /** Given, the label draws at this app scale on one line; omitted, the OS scales it. */
   fontScale?: number;
+  /** With `fontScale`, the label wraps in place of its one line. */
+  wraps?: boolean;
 }
 
 // Raw, never ms(): the detail hero's geometry adds it above and below the label.
@@ -93,6 +99,7 @@ export function StatusBadge({
   icon,
   size = 'sm',
   fontScale,
+  wraps = false,
 }: StatusBadgeProps) {
   const scaled = fontScale !== undefined;
   return (
@@ -112,7 +119,9 @@ export function StatusBadge({
       ) : null}
       <Typography
         allowFontScaling={!scaled}
-        numberOfLines={scaled ? 1 : undefined}
+        numberOfLines={
+          scaled ? (wraps ? resolveLoneWordLines(label, undefined, fontScale) : 1) : undefined
+        }
         className={LABEL_CLASS[size]}
         style={{
           color: foreground,

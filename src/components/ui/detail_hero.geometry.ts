@@ -68,7 +68,7 @@ interface DetailHeroGeometry {
   height: number;
 }
 
-/** The loaded hero and its skeleton both stand at `height`; the amount line is fitted, so it keeps one device pixel of slack. */
+/** At font scale 1.0 the loaded hero and its skeleton stand at `height`, above it `height` is the loaded hero's floor; the amount line is fitted, so it keeps one device pixel of slack. */
 export function resolveDetailHeroGeometry(
   fontScale: number,
   layout: DetailHeroLayout = {},
