@@ -557,7 +557,6 @@ describe('spending plan helpers', () => {
       expect.objectContaining({ allocatedAmount: 0, spent: 50, pct: 1, isOver: true }),
     );
     expect(limitRow(row, 'cat_food').tag?.label).toBe(Strings.budgetPlansStatusOver);
-    expect(row.highestPressureCategory?.categoryId).toBe('cat_food');
     expect(row.status).toBe('watch');
   });
 
@@ -616,9 +615,6 @@ describe('spending plan helpers', () => {
         isWarning: false,
       },
     ]);
-    expect(row.highestPressureCategory).toEqual(
-      expect.objectContaining({ categoryId: 'cat_food', pct: 0.8 }),
-    );
     expect(row.cardChips).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -1681,7 +1677,12 @@ describe('upcoming and ended plans draw their heroes (MA-327)', () => {
       }),
     );
 
-    expect(hero.caption).toEqual([{ strong: '1 day' }, ' · starts tomorrow']);
+    expect(hero.caption).toEqual(
+      Strings.budgetPlansHeroUpcomingLine(1, Strings.budgetPlansStartsTomorrow),
+    );
+    expect(hero.caption).not.toEqual(
+      Strings.budgetPlansHeroUpcomingLine(2, Strings.budgetPlansStartsTomorrow),
+    );
   });
 
   it('a one-day ended plan reads its percent used over 1 day', () => {
@@ -1696,7 +1697,8 @@ describe('upcoming and ended plans draw their heroes (MA-327)', () => {
       }),
     );
 
-    expect(hero.caption).toEqual([{ strong: '50%' }, ' used · 1 day']);
+    expect(hero.caption).toEqual(Strings.budgetPlansHeroEndedUsedLine(50, 1));
+    expect(hero.caption).not.toEqual(Strings.budgetPlansHeroEndedUsedLine(50, 2));
   });
 
   it.each([

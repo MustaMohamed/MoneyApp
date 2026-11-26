@@ -42,7 +42,7 @@ const tickAt = (percent: number): ViewStyle => ({
   transform: [{ translateX: (-TICK_WIDTH * percent) / 100 }],
 });
 
-// D2 `.bg-row.sm`: a row with no limit pads 8 dp a side and has no bar, so no min height.
+// D2 `.bg-row.sm`: a row with no limit pads 8 dp top and bottom and has no bar, so no min height.
 export function SpendingPlanDetailCategoryRow({ row, tickPercentage }: Props) {
   const { fontScale } = useWindowDimensions();
   const stacked = resolveRowStacking(fontScale) === 'stacked';

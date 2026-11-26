@@ -107,7 +107,6 @@ export type SpendingPlanDetailCategoryRowVM =
       categoryId: string;
       categoryName: string;
       icon: string;
-      color: string;
       pct: number;
       amountLabel: string;
       amountCode: string;
@@ -125,7 +124,6 @@ export type SpendingPlanDetailCategoryRowVM =
       categoryId: string;
       categoryName: string;
       icon: string;
-      color: string;
       amountLabel: string;
       amountCode: string;
       supportingLabel: string;
@@ -176,7 +174,6 @@ export interface SpendingPlanRowVM {
   timing: SpendingPlanTimingVM;
   status: SpendingPlanStatus;
   detailCategoryRows: SpendingPlanDetailCategoryVM[];
-  highestPressureCategory?: SpendingPlanDetailCategoryVM;
   card: SpendingPlanCardVM;
   detail: SpendingPlanDetailVM;
 }
