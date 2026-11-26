@@ -20,7 +20,7 @@ import {
   resolveCategoryTileColors,
 } from '@/modules/budget/screens/budget/spending_plans.helpers';
 import { computeSpendingPlansSummary } from '@/modules/budget/screens/budget/spending_plans_summary.helpers';
-import { heroStatusTag } from '@/modules/budget/utils/budget_hero';
+import { BUDGET_LIMIT_TAGS, heroStatusTag } from '@/modules/budget/utils/budget_hero';
 import { budgetBandColor } from '@/modules/budget/utils/budget_summary';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import {
@@ -943,6 +943,11 @@ describe('a spend that ties its plan or its allocation to the cent is not over (
       tag: { label: Strings.budgetPlansStatusWatch, icon: 'trending-up' },
     });
     expect(tie.summary).toMatchObject({ balanceStatus: 'left', barStatus: 'under', overCount: 0 });
+  });
+
+  it("a limit row's Over and Watch tags are the shared limit tags", () => {
+    expect(limitRow(build(0.3, 0.31).row, 'cat_food').tag).toBe(BUDGET_LIMIT_TAGS.over);
+    expect(limitRow(build(0.3, 0.1 + 0.2).row, 'cat_food').tag).toBe(BUDGET_LIMIT_TAGS.watch);
   });
 
   it('reads a zero allocation with a spend under half a cent as 0%, and with a spend of 0.01 as over', () => {

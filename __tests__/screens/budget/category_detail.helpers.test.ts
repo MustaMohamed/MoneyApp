@@ -19,7 +19,7 @@ import {
   resolveCategoryDetailViewState,
 } from '@/modules/budget/screens/budget/category_detail/category_detail.helpers';
 import { BUDGET_GROUP_OPTIONS } from '@/modules/budget/screens/budget/components/set_budget_sheet.helpers';
-import { LIMIT_TAG_FILL_SHARE } from '@/modules/budget/utils/budget_hero';
+import { BUDGET_LIMIT_TAGS, LIMIT_TAG_FILL_SHARE } from '@/modules/budget/utils/budget_hero';
 import { budgetBandColor } from '@/modules/budget/utils/budget_summary';
 import { makeTestBudget, makeTestCategory } from '@/test_helpers/transaction';
 import { formatAmount, formatDisplayAmountParts } from '@/utils/format_amount';
@@ -422,6 +422,14 @@ describe('buildCategoryBudgetsCard', () => {
       expect(row.amountWordColor).toBe(Colors.dark.negative);
     },
   );
+
+  it("a Watch or Over budget row's tag is the shared limit tag", () => {
+    const [watch] = build(oneBudget(5000, 4000)).rows;
+    const [over] = build(oneBudget(5000, 5200)).rows;
+
+    expect(watch.tag).toBe(BUDGET_LIMIT_TAGS.watch);
+    expect(over.tag).toBe(BUDGET_LIMIT_TAGS.over);
+  });
 
   it('decides over to the cent: 0.1 + 0.2 against 0.3 is Watch, not over', () => {
     const [row] = build(oneBudget(0.3, 0.1 + 0.2)).rows;
