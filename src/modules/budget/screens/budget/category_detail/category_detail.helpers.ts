@@ -224,7 +224,7 @@ export interface CategoryBudgetsCardVM {
   emptyLine: string | undefined;
 }
 
-export interface CategoryBudgetsCardInput {
+interface CategoryBudgetsCardInput {
   category: Category;
   budgets: Budget[];
   spendByMonth: Record<string, Record<string, number>>;
@@ -277,10 +277,9 @@ function toRingRow(budget: NamedBudgetVM, lifecycle: MonthLifecycle): CategoryBu
     ),
     amountLabel: budget.balanceAmountLabel,
     amountCode: CURRENCY_CONFIG[Currency.EGP].code,
-    amountWord:
-      remainingLabel(budget.left).label === 'over'
-        ? Strings.budgetCategoryDetailBudgetOver
-        : Strings.budgetCategoryDetailBudgetLeft,
+    amountWord: over
+      ? Strings.budgetCategoryDetailBudgetOver
+      : Strings.budgetCategoryDetailBudgetLeft,
     amountWordColor: over ? Colors.dark.negative : Colors.dark.text2,
     tag: resolveBudgetRowTag(health, lifecycle),
     accessibilityLabel: budget.accessibilityLabel,
