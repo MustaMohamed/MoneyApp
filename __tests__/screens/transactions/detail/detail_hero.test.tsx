@@ -47,7 +47,15 @@ describe('DetailHero', () => {
     expect(screen.getByText(Strings.detailAmountOverline)).toBeTruthy();
     expect(screen.getByText(caption)).toBeTruthy();
 
-    expect(screen.getByTestId('transaction-detail-hero')).toHaveStyle({ height: geometry.height });
+    expect(screen.getByTestId('transaction-detail-hero')).toHaveStyle({
+      minHeight: geometry.height,
+    });
+    expect(screen.getByTestId('transaction-detail-hero')).not.toHaveStyle({
+      height: geometry.height,
+    });
+    // Above font scale 1.0 the title and the date badge wrap in place of an ellipsis (MA-331).
+    expect(title.props.numberOfLines).toBeUndefined();
+    expect(badgeLabel.props.numberOfLines).toBeUndefined();
 
     const value = screen.getByText(hero.amountValue);
     expect(value).toHaveProp('allowFontScaling', false);

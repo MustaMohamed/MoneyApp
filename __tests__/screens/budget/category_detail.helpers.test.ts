@@ -17,7 +17,7 @@ import {
   resolveCategoryDetailViewState,
 } from '@/modules/budget/screens/budget/category_detail/category_detail.helpers';
 import { BUDGET_GROUP_OPTIONS } from '@/modules/budget/screens/budget/components/set_budget_sheet.helpers';
-import { LIMIT_TAG_FILL_SHARE } from '@/modules/budget/screens/budget/spending_plans.helpers';
+import { LIMIT_TAG_FILL_SHARE } from '@/modules/budget/utils/budget_hero';
 import { makeTestCategory } from '@/test_helpers/transaction';
 import { formatAmount, formatDisplayAmountParts } from '@/utils/format_amount';
 

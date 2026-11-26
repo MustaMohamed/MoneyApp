@@ -4,6 +4,7 @@ import {
   formatMonthYear,
   formatShortWeekdayDate,
   formatWeekdayDate,
+  formatWeekdayDateRange,
   nextDueDate,
   toLocalDateString,
 } from '@/utils/format_date';
@@ -106,5 +107,18 @@ describe('formatDateTileParts', () => {
     ['2028-02-29', { month: 'FEB', day: '29' }],
   ])('splits %s into the tile month and unpadded day', (dateStr, parts) => {
     expect(formatDateTileParts(dateStr)).toEqual(parts);
+  });
+});
+
+describe('formatWeekdayDateRange (MA-331)', () => {
+  it.each([
+    ['2026-11-12', '2026-11-15', '2026-11-25', 'Thu 12 – Sun 15 Nov'],
+    ['2026-11-29', '2026-12-01', '2026-11-25', 'Sun 29 Nov – Tue 1 Dec'],
+    ['2026-12-30', '2027-01-02', '2026-12-31', 'Wed 30 Dec – Sat 2 Jan 2027'],
+    ['2025-11-13', '2025-11-16', '2026-11-25', 'Thu 13 – Sun 16 Nov 2025'],
+    ['2026-11-12', '2026-11-12', '2026-11-25', 'Thu 12 – Thu 12 Nov'],
+    ['2028-02-28', '2028-03-01', '2028-02-28', 'Mon 28 Feb – Wed 1 Mar'],
+  ])('reads %s to %s on %s as %s', (startDate, endDate, today, badge) => {
+    expect(formatWeekdayDateRange(startDate, endDate, today)).toBe(badge);
   });
 });

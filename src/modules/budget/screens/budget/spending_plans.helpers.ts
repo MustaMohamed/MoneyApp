@@ -1,3 +1,5 @@
+import type { DetailHeroBadge, DetailHeroModel, DetailHeroText } from '@/components/ui/detail_hero';
+import { DETAIL_HERO_BADGE_COLORS } from '@/components/ui/hero_gradient_badge';
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { CategoryType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -39,11 +41,21 @@ import type {
   SpendingPlanStatusTone,
   SpendingPlanTimingVM,
 } from '@/modules/budget/screens/budget/spending_plans.types';
+import {
+  LIMIT_TAG_FILL_SHARE,
+  budgetHeroBar,
+  budgetHeroFigure,
+  heroStatusTag,
+} from '@/modules/budget/utils/budget_hero';
 import { rankedBy } from '@/modules/budget/utils/budget_row_order';
 import { BUDGET_WARNING_PERCENT, budgetBandColor } from '@/modules/budget/utils/budget_summary';
 import type { Category } from '@/modules/categories/entities/category.entity';
-import { formatAmount, formatCurrencyAmount } from '@/utils/format_amount';
-import { formatShortDate } from '@/utils/format_date';
+import {
+  formatAmount,
+  formatCurrencyAmount,
+  formatDisplayAmountParts,
+} from '@/utils/format_amount';
+import { formatDateTileParts, formatShortDate, formatWeekdayDateRange } from '@/utils/format_date';
 import {
   compareToPercent,
   exceedsToCent,
@@ -90,12 +102,19 @@ const PLAN_STATUS_PRESENTATION: Record<
   over: { label: Strings.budgetPlansStatusOver, tone: 'danger' },
 };
 
+type PlanHeroStatus = Exclude<SpendingPlanStatus, 'upcoming'>;
+
+const PLAN_STATUS_TAG_STYLE = {
+  onTrack: { icon: 'check-circle', tone: Colors.dark.positive },
+  watch: { icon: 'trending-up', tone: Colors.dark.gold },
+  over: { icon: 'alert-circle', tone: Colors.dark.negative },
+} as const satisfies Record<PlanHeroStatus, { icon: DetailHeroBadge['badgeIcon']; tone: string }>;
+
 type LimitedCategory = SpendingPlanDetailCategoryVM &
   Record<'allocatedAmount' | 'left' | 'pct', number>;
 
 // D2 `.cat-tile`: the category colour at alpha 0x26 over the card surface.
 const CATEGORY_TILE_FILL_SHARE = 0x26 / 255;
-export const LIMIT_TAG_FILL_SHARE = 0.15;
 
 /** `color` is a `#RRGGBB`; the glyph steps toward the text colour until it clears 3:1 on the tile. */
 export function resolveCategoryTileColors(color: string): { tileFill: string; glyphColor: string } {
@@ -111,7 +130,8 @@ export function resolveCategoryTileColors(color: string): { tileFill: string; gl
 
 type LimitTagStatus = Extract<SpendingPlanStatus, 'watch' | 'over'>;
 
-function limitTag(status: LimitTagStatus, icon: SpendingPlanLimitTagVM['icon'], tone: string) {
+function limitTag(status: LimitTagStatus): SpendingPlanLimitTagVM {
+  const { icon, tone } = PLAN_STATUS_TAG_STYLE[status];
   const { fill, foreground } = resolveBadgeColors({
     tone,
     backdrop: CoreTokens.surface,
@@ -122,8 +142,19 @@ function limitTag(status: LimitTagStatus, icon: SpendingPlanLimitTagVM['icon'], 
 }
 
 const LIMIT_TAGS: Record<LimitTagStatus, SpendingPlanLimitTagVM> = {
-  watch: limitTag('watch', 'trending-up', Colors.dark.gold),
-  over: limitTag('over', 'alert-circle', Colors.dark.negative),
+  watch: limitTag('watch'),
+  over: limitTag('over'),
+};
+
+function planHeroTag(status: PlanHeroStatus): DetailHeroBadge {
+  const { icon, tone } = PLAN_STATUS_TAG_STYLE[status];
+  return heroStatusTag(PLAN_STATUS_PRESENTATION[status].label, icon, tone);
+}
+
+const PLAN_HERO_TAGS: Record<PlanHeroStatus, DetailHeroBadge> = {
+  onTrack: planHeroTag('onTrack'),
+  watch: planHeroTag('watch'),
+  over: planHeroTag('over'),
 };
 
 const compareLimitRows = rankedBy((row: LimitedCategory) => [
@@ -154,6 +185,73 @@ function activePlanPaceLabel(pacePoints: number): string {
   return pacePoints > 0
     ? Strings.budgetPlansPaceAhead(pacePoints)
     : Strings.budgetPlansPaceUnder(Math.abs(pacePoints));
+}
+
+function planHeroPaceLine(pacePoints: number, timing: SpendingPlanTimingVM): DetailHeroText {
+  const timingLabel = planLifecycleLabel(timing);
+  if (pacePoints === 0) return Strings.budgetPlansHeroOnPace(timingLabel);
+  return pacePoints > 0
+    ? Strings.budgetPlansHeroPaceAhead(pacePoints, timingLabel)
+    : Strings.budgetPlansHeroPaceUnder(Math.abs(pacePoints), timingLabel);
+}
+
+function buildSpendingPlanHero({
+  name,
+  startDate,
+  endDate,
+  totalAmount,
+  spent,
+  left,
+  isOver,
+  status,
+  today,
+  usedPercentage,
+  pacePoints,
+  timing,
+  allocatedTotal,
+  buffer,
+}: {
+  name: string;
+  startDate: string;
+  endDate: string;
+  totalAmount: number;
+  spent: number;
+  left: number;
+  isOver: boolean;
+  status: PlanHeroStatus;
+  today: string;
+  usedPercentage: number;
+  pacePoints: number;
+  timing: SpendingPlanTimingVM;
+  allocatedTotal: number;
+  buffer: number;
+}): DetailHeroModel {
+  return {
+    title: name,
+    tileDate: { ...formatDateTileParts(startDate), ink: Colors.shared.midnightBlue },
+    tileColor: Colors.dark.gold,
+    badgeLabel: formatWeekdayDateRange(startDate, endDate, today),
+    badgeIcon: 'calendar-outline',
+    badgeFill: DETAIL_HERO_BADGE_COLORS.fill,
+    badgeForeground: DETAIL_HERO_BADGE_COLORS.foreground,
+    tag: PLAN_HERO_TAGS[status],
+    overline: isOver
+      ? Strings.budgetPlansHeroOverBy
+      : Strings.budgetPlansHeroLeftOf(formatDisplayAmountParts(totalAmount, Currency.EGP).text),
+    ...budgetHeroFigure(remainingLabel(left).magnitude, isOver),
+    amountCode: CURRENCY_CONFIG[Currency.EGP].code,
+    figures: [
+      { label: Strings.budgetPlansDetailAssigned, value: formatAmount(allocatedTotal) },
+      { label: Strings.budgetPlansDetailFlexible, value: formatAmount(Math.max(buffer, 0)) },
+      { label: Strings.budgetPlansSummarySpent, value: formatAmount(spent) },
+    ],
+    bar: {
+      ...budgetHeroBar(spent, totalAmount, isOver),
+      tickShare: timing.elapsedDays / timing.totalDays,
+    },
+    caption: Strings.budgetPlansHeroUsedLine(usedPercentage, timing.elapsedDays, timing.totalDays),
+    captionEnd: planHeroPaceLine(pacePoints, timing),
+  };
 }
 
 /** Over is decided once, to the cent; an allocation of 0 has ratio 1 when over, else 0. */
@@ -389,6 +487,7 @@ const hasLimit = (row: SpendingPlanDetailCategoryVM): row is LimitedCategory =>
   row.allocatedAmount !== undefined && row.left !== undefined && row.pct !== undefined;
 
 function buildSpendingPlanDetail({
+  hero,
   card,
   pct,
   usedPercentage,
@@ -410,6 +509,7 @@ function buildSpendingPlanDetail({
   buffer: number;
   detailCategoryRows: SpendingPlanDetailCategoryVM[];
   highestPressureCategory?: SpendingPlanDetailCategoryVM;
+  hero?: DetailHeroModel;
 }): SpendingPlanDetailVM {
   const insights: SpendingPlanDetailInsightVM[] = [];
 
@@ -509,6 +609,7 @@ function buildSpendingPlanDetail({
           },
         }
       : {}),
+    ...(hero === undefined ? {} : { hero }),
   };
 }
 
@@ -680,6 +781,7 @@ export function buildSpendingPlanRows({
         if (row.isWarning !== highest.isWarning) return row.isWarning ? row : highest;
         return row.pct > highest.pct ? row : highest;
       }, undefined);
+      const left = plan.total_amount - spent;
       const pct = plan.total_amount > 0 ? spent / plan.total_amount : 0;
       const isOver = exceedsToCent(spent, plan.total_amount);
       const timing = computePlanTiming(plan.start_date, plan.end_date, today);
@@ -711,7 +813,7 @@ export function buildSpendingPlanRows({
         endDate: plan.end_date,
         totalAmount: plan.total_amount,
         spent,
-        left: plan.total_amount - spent,
+        left,
         usedPercentage,
         elapsedPercentage,
         pacePoints,
@@ -724,7 +826,27 @@ export function buildSpendingPlanRows({
         allocationRows,
         categoryChips,
       });
+      const hero =
+        timing.lifecycle === 'active' && status !== 'upcoming'
+          ? buildSpendingPlanHero({
+              name: plan.name,
+              startDate: plan.start_date,
+              endDate: plan.end_date,
+              totalAmount: plan.total_amount,
+              spent,
+              left,
+              isOver,
+              status,
+              today,
+              usedPercentage,
+              pacePoints,
+              timing,
+              allocatedTotal,
+              buffer,
+            })
+          : undefined;
       const detail = buildSpendingPlanDetail({
+        hero,
         card,
         pct,
         usedPercentage,
@@ -743,7 +865,7 @@ export function buildSpendingPlanRows({
         endDate: plan.end_date,
         totalAmount: plan.total_amount,
         spent,
-        left: plan.total_amount - spent,
+        left,
         pct,
         isOver,
         categoryCount: plan.categories.length,

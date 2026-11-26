@@ -1,5 +1,7 @@
 const moreCount = (count: number) => `+${count}`;
 const inProgressMark = '*';
+const pacePointsLabel = (points: number) => (points === 1 ? '1 pt' : `${points} pts`);
+const onPace = 'On pace';
 
 export const Strings = {
   loading: 'Loading...',
@@ -709,7 +711,7 @@ export const Strings = {
   budgetPlansCardSpentOf: (spent: string, total: string) => `${spent} / ${total} spent`,
   budgetPlansPaceAhead: (points: number) => `${points} pts ahead of pace`,
   budgetPlansPaceUnder: (points: number) => `${points} pts under pace`,
-  budgetPlansPaceEven: 'On pace',
+  budgetPlansPaceEven: onPace,
   budgetPlansFinishedLeft: (amount: string) => `${amount} left at finish`,
   budgetPlansFinishedOver: (amount: string) => `${amount} over at finish`,
   budgetPlansCardAllocationFooter: (assigned: string, flexible: string) =>
@@ -718,7 +720,24 @@ export const Strings = {
   budgetPlansDetailTimeElapsed: 'Time elapsed',
   budgetPlansDetailAssigned: 'Assigned',
   budgetPlansDetailFlexible: 'Flexible',
-  budgetPlansDetailTitle: 'Plan details',
+  budgetPlansDetailTitle: 'Plan',
+  budgetPlansHeroLeftOf: (total: string) => `Left of ${total}`,
+  budgetPlansHeroOverBy: 'Over by',
+  budgetPlansHeroUsedLine: (percent: number, day: number, days: number) => [
+    { strong: `${percent}%` },
+    ' used · day ',
+    { strong: `${day}` },
+    ` of ${days}`,
+  ],
+  budgetPlansHeroPaceAhead: (points: number, timing: string) => [
+    { strong: pacePointsLabel(points) },
+    ` ahead · ${timing}`,
+  ],
+  budgetPlansHeroPaceUnder: (points: number, timing: string) => [
+    { strong: pacePointsLabel(points) },
+    ` under · ${timing}`,
+  ],
+  budgetPlansHeroOnPace: (timing: string) => [{ strong: onPace }, ` · ${timing}`],
   budgetPlansDetailEditAccessibility: 'Edit plan',
   budgetPlansDetailNotFoundTitle: 'This plan is gone',
   budgetPlansDetailNotFoundBody: 'It no longer exists.',

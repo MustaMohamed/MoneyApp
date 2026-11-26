@@ -32,7 +32,9 @@ import { StatusBadge } from '@/components/ui/status_badge';
 import {
   resolveFitAmountTextProps,
   resolveFitLineTextProps,
+  resolveUncappedLinesAboveOne,
 } from '@/components/ui/text_scale.geometry';
+import { useWordSafeLines } from '@/components/ui/word_safe_lines.hook';
 import { Strings } from '@/constants/strings';
 import { Size, Type, lineHeightFor } from '@/constants/theme';
 import type { DateTileParts } from '@/utils/format_date';
@@ -268,24 +270,40 @@ export function DetailHero({ hero, testID, entering }: Props): React.ReactElemen
     captionEnd: hero.captionEnd !== undefined,
   });
   const infoRow = hero.captionEnd !== undefined && !geometry.stacksInfo;
+  const wraps = fontScale > 1;
+  const titleLines = useWordSafeLines(
+    hero.title,
+    resolveUncappedLinesAboveOne(1, fontScale),
+    fontScale,
+  );
   const infoTextStyle = infoRow ? { flexShrink: 1 } : undefined;
 
   return (
     <HeroShell glowColor={hero.tileColor} style={DETAIL_HERO_SHELL_STYLE} entering={entering}>
-      <View testID={testID} style={{ padding: DETAIL_HERO_PADDING, height: geometry.height }}>
+      <View
+        testID={testID}
+        style={{
+          padding: DETAIL_HERO_PADDING,
+          minHeight: geometry.height,
+          height: wraps ? undefined : geometry.height,
+        }}
+      >
         <View
           style={{
             flexDirection: 'row',
             alignItems: 'center',
             gap: DETAIL_HERO_TILE_GAP,
-            height: geometry.topHeight,
+            minHeight: geometry.topHeight,
+            height: wraps ? undefined : geometry.topHeight,
           }}
         >
           <DetailHeroTileSlot hero={hero} />
           <View style={{ flex: 1 }}>
             <Typography
               allowFontScaling={false}
-              numberOfLines={1}
+              numberOfLines={titleLines.numberOfLines}
+              onTextLayout={titleLines.onTextLayout}
+              onLayout={titleLines.onLayout}
               className="font-sora-semibold text-foreground"
               style={{
                 fontSize: geometry.titleFontSize,
@@ -298,13 +316,14 @@ export function DetailHero({ hero, testID, entering }: Props): React.ReactElemen
             <View
               style={{
                 flexDirection: 'row',
+                flexWrap: wraps ? 'wrap' : 'nowrap',
                 alignSelf: 'flex-start',
                 gap: DETAIL_HERO_BADGE_ROW_GAP,
                 marginTop: DETAIL_HERO_BADGE_GAP,
               }}
             >
               {hero.tag === undefined ? undefined : (
-                // The state tag keeps its whole label; the badge beside it takes the ellipsis.
+                // The state tag keeps its whole label; the badge beside it ellipsizes at 1.0 and wraps above.
                 <View style={{ flexShrink: 0 }}>
                   <StatusBadge
                     label={hero.tag.badgeLabel}
@@ -323,6 +342,7 @@ export function DetailHero({ hero, testID, entering }: Props): React.ReactElemen
                 icon={hero.badgeIcon}
                 size="md"
                 fontScale={fontScale}
+                wraps={wraps}
               />
             </View>
           </View>

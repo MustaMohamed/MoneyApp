@@ -46,6 +46,23 @@ export function formatShortWeekdayDate(dateStr: string, today: string): string {
   return `${weekday} ${day} ${MONTHS_SHORT[month - 1]}`;
 }
 
+function weekdayOf(year: number, month: number, day: number): string {
+  return WEEKDAYS_SHORT[new Date(year, month - 1, day).getDay()];
+}
+
+/** `Thu 12 – Sun 15 Nov`: the month once when both dates share it, a year outside `today`'s on its date. */
+export function formatWeekdayDateRange(startDate: string, endDate: string, today: string): string {
+  const [startYear, startMonth, startDay] = startDate.split('-').map(Number);
+  const [endYear, endMonth, endDay] = endDate.split('-').map(Number);
+  if (startYear !== endYear || startMonth !== endMonth) {
+    return `${formatShortWeekdayDate(startDate, today)} – ${formatShortWeekdayDate(endDate, today)}`;
+  }
+  const startWeekday = weekdayOf(startYear, startMonth, startDay);
+  const endWeekday = weekdayOf(endYear, endMonth, endDay);
+  const year = startYear === Number(today.slice(0, 4)) ? '' : ` ${startYear}`;
+  return `${startWeekday} ${startDay} – ${endWeekday} ${endDay} ${MONTHS_SHORT[startMonth - 1]}${year}`;
+}
+
 export function formatMonthYear(dateStr: string): string {
   const [y, month] = dateStr.split('-').map(Number);
   return `${MONTHS_LONG[month - 1]} ${y}`;

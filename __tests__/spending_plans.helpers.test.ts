@@ -1,3 +1,4 @@
+import { DETAIL_HERO_BADGE_COLORS } from '@/components/ui/hero_gradient_badge';
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { CategoryType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -19,9 +20,10 @@ import {
   resolveCategoryTileColors,
 } from '@/modules/budget/screens/budget/spending_plans.helpers';
 import { computeSpendingPlansSummary } from '@/modules/budget/screens/budget/spending_plans_summary.helpers';
+import { heroStatusTag } from '@/modules/budget/utils/budget_hero';
 import { budgetBandColor } from '@/modules/budget/utils/budget_summary';
 import type { Category } from '@/modules/categories/entities/category.entity';
-import { formatAmount } from '@/utils/format_amount';
+import { formatAmount, formatDisplayAmountParts } from '@/utils/format_amount';
 
 type PlanRow = ReturnType<typeof buildSpendingPlanRows>[number];
 
@@ -1427,4 +1429,203 @@ describe('resolveCategoryTileColors (MA-326)', () => {
       expect(resolveCategoryTileColors(color).glyphColor).toBe(color);
     },
   );
+});
+
+describe('an active plan draws the D2 hero (MA-331)', () => {
+  const heroCategories: Category[] = [
+    ...categories,
+    { ...categories[0], id: 'cat_home', name: 'Home', icon: 'home', sort_order: 3 },
+  ];
+
+  const build = ({
+    startDate = '2026-11-12',
+    endDate = '2026-11-15',
+    today = '2026-11-14',
+    totalAmount = 5000,
+    limits = { cat_travel: 2000, cat_food: 1000, cat_home: null },
+    spend = { cat_travel: 1750, cat_food: 650, cat_home: 1500 },
+  }: {
+    startDate?: string;
+    endDate?: string;
+    today?: string;
+    totalAmount?: number;
+    limits?: Record<string, number | null>;
+    spend?: Record<string, number>;
+  } = {}) =>
+    buildSpendingPlanRows({
+      plans: [
+        planFixture({
+          startDate,
+          endDate,
+          totalAmount,
+          categoryRows: Object.entries(limits).map(([categoryId, allocated]) => ({
+            plan_id: 'plan_trip',
+            category_id: categoryId,
+            allocated_amount: allocated,
+          })),
+        }),
+      ],
+      categories: heroCategories,
+      spendByPlanId: { plan_trip: spend },
+      selectedMonth: startDate.slice(0, 7),
+      today,
+    })[0];
+
+  function heroOf(row: PlanRow) {
+    const hero = row.detail.hero;
+    if (hero === undefined) throw new Error('Expected the D2 hero on an active plan');
+    return hero;
+  }
+
+  const egp = CURRENCY_CONFIG[Currency.EGP].code;
+
+  it('frame D2: tile, title, badge, Watch tag, Left of, figures, bar, used line and pace line', () => {
+    const hero = heroOf(build());
+
+    expect(hero.title).toBe('Plan plan_trip');
+    expect(hero.tileDate).toEqual({ month: 'NOV', day: '12', ink: Colors.shared.midnightBlue });
+    expect(hero.tileColor).toBe(Colors.dark.gold);
+    expect(hero.badgeLabel).toBe('Thu 12 – Sun 15 Nov');
+    expect(hero.badgeIcon).toBe('calendar-outline');
+    expect(hero.badgeFill).toBe(DETAIL_HERO_BADGE_COLORS.fill);
+    expect(hero.badgeForeground).toBe(DETAIL_HERO_BADGE_COLORS.foreground);
+    // The 87.5% Travel limit makes the plan Watch (2026-11-24 ruling); D2 draws On track.
+    expect(hero.tag).toEqual(
+      heroStatusTag(Strings.budgetPlansStatusWatch, 'trending-up', Colors.dark.gold),
+    );
+    expect(hero.overline).toBe(Strings.budgetPlansHeroLeftOf(formatAmount(5000)));
+    expect(hero.amountValue).toBe('1,100');
+    expect(hero.amountCode).toBe(egp);
+    expect(hero.amountColor).toBe(CoreTokens.text1);
+    expect(hero.amountAccessibilityLabel).toBe(`1,100 ${egp}`);
+    expect(hero.figures).toEqual([
+      { label: Strings.budgetPlansDetailAssigned, value: formatAmount(3000) },
+      { label: Strings.budgetPlansDetailFlexible, value: formatAmount(2000) },
+      { label: Strings.budgetPlansSummarySpent, value: formatAmount(3900) },
+    ]);
+    expect(hero.bar).toEqual({ share: 0.78, color: Colors.dark.budgetSteady, tickShare: 0.75 });
+    expect(hero.caption).toEqual(Strings.budgetPlansHeroUsedLine(78, 3, 4));
+    expect(hero.captionEnd).toEqual(
+      Strings.budgetPlansHeroPaceAhead(3, Strings.budgetPlansEndsTomorrow),
+    );
+  });
+
+  it('a plan over its total reads Over by, the overage in negative, a full budgetOver bar and the Over tag', () => {
+    const hero = heroOf(build({ spend: { cat_travel: 1750, cat_food: 650, cat_home: 2860 } }));
+
+    expect(hero.overline).toBe(Strings.budgetPlansHeroOverBy);
+    expect(hero.amountValue).toBe('260');
+    expect(hero.amountCode).toBe(egp);
+    expect(hero.amountColor).toBe(Colors.dark.negative);
+    expect(hero.amountAccessibilityLabel).toBe(
+      Strings.budgetCategoryDetailHeroOverA11y(`260 ${egp}`),
+    );
+    expect(hero.bar?.share).toBe(1);
+    expect(hero.bar?.color).toBe(Colors.dark.budgetOver);
+    expect(hero.tag).toEqual(
+      heroStatusTag(Strings.budgetPlansStatusOver, 'alert-circle', Colors.dark.negative),
+    );
+  });
+
+  it.each([
+    [7400, 'under'],
+    [7600, 'ahead'],
+    [7500, 'even'],
+  ] as const)('a day-3-of-4 plan at %d of 10,000 spent reads its pace %s', (spent, pace) => {
+    const hero = heroOf(
+      build({ totalAmount: 10000, limits: { cat_home: null }, spend: { cat_home: spent } }),
+    );
+    const timing = Strings.budgetPlansEndsTomorrow;
+    const expected = {
+      under: Strings.budgetPlansHeroPaceUnder(1, timing),
+      ahead: Strings.budgetPlansHeroPaceAhead(1, timing),
+      even: Strings.budgetPlansHeroOnPace(timing),
+    }[pace];
+
+    expect(hero.captionEnd).toEqual(expected);
+    expect(hero.tag?.badgeLabel).toBe(Strings.budgetPlansStatusOnTrack);
+  });
+
+  it('a one-day plan reads day 1 of 1, ends today, with its tick at the end', () => {
+    const hero = heroOf(
+      build({
+        startDate: '2026-11-12',
+        endDate: '2026-11-12',
+        today: '2026-11-12',
+        totalAmount: 1000,
+        limits: { cat_home: null },
+        spend: { cat_home: 400 },
+      }),
+    );
+
+    expect(hero.caption).toEqual(Strings.budgetPlansHeroUsedLine(40, 1, 1));
+    expect(hero.captionEnd).toEqual(
+      Strings.budgetPlansHeroPaceUnder(60, Strings.budgetPlansEndsToday),
+    );
+    expect(hero.bar?.tickShare).toBe(1);
+  });
+
+  it('the D2 plan rebuilt the next day reads day 4 of 4, its tick at 1 and ends today', () => {
+    const hero = heroOf(build({ today: '2026-11-15' }));
+
+    expect(hero.caption).toEqual(Strings.budgetPlansHeroUsedLine(78, 4, 4));
+    expect(hero.bar?.tickShare).toBe(1);
+    expect(hero.captionEnd).toEqual(
+      Strings.budgetPlansHeroPaceUnder(22, Strings.budgetPlansEndsToday),
+    );
+  });
+
+  it('open across midnight: the 3-day seed moves from Watch, 13 pts ahead to On track, 20 pts under', () => {
+    const onDay = (today: string) =>
+      heroOf(
+        build({
+          startDate: '2026-11-12',
+          endDate: '2026-11-14',
+          today,
+          totalAmount: 3000,
+          limits: { cat_home: null },
+          spend: { cat_home: 2400 },
+        }),
+      );
+    const dayTwo = onDay('2026-11-13');
+    const dayThree = onDay('2026-11-14');
+
+    expect(dayTwo.tag?.badgeLabel).toBe(Strings.budgetPlansStatusWatch);
+    expect(dayTwo.caption).toEqual(Strings.budgetPlansHeroUsedLine(80, 2, 3));
+    expect(dayTwo.captionEnd).toEqual(
+      Strings.budgetPlansHeroPaceAhead(13, Strings.budgetPlansEndsTomorrow),
+    );
+    expect(dayThree.tag?.badgeLabel).toBe(Strings.budgetPlansStatusOnTrack);
+    expect(dayThree.caption).toEqual(Strings.budgetPlansHeroUsedLine(80, 3, 3));
+    expect(dayThree.captionEnd).toEqual(
+      Strings.budgetPlansHeroPaceUnder(20, Strings.budgetPlansEndsToday),
+    );
+    expect(dayThree.bar?.tickShare).toBe(1);
+    expect(dayTwo.bar?.tickShare).toBeCloseTo(2 / 3);
+  });
+
+  it('a float tie at the total is not over: Left of, a full bar in the band colour, 100% used', () => {
+    const spent = 0.1 + 0.2;
+    const hero = heroOf(
+      build({ totalAmount: 0.3, limits: { cat_home: null }, spend: { cat_home: spent } }),
+    );
+
+    expect(hero.overline).toBe(
+      Strings.budgetPlansHeroLeftOf(formatDisplayAmountParts(0.3, Currency.EGP).text),
+    );
+    expect(hero.amountColor).toBe(CoreTokens.text1);
+    expect(hero.bar?.share).toBe(1);
+    expect(hero.bar?.color).toBe(budgetBandColor(spent, 0.3));
+    expect(hero.caption).toEqual(Strings.budgetPlansHeroUsedLine(100, 3, 4));
+  });
+
+  it('only an active plan carries the hero; upcoming and ended plans keep the card', () => {
+    const heroDrawn = (today: string) => build({ today }).detail.hero !== undefined;
+
+    expect({
+      upcoming: heroDrawn('2026-11-10'),
+      active: heroDrawn('2026-11-14'),
+      ended: heroDrawn('2026-11-20'),
+    }).toEqual({ upcoming: false, active: true, ended: false });
+  });
 });

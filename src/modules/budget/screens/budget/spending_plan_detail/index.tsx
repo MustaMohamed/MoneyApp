@@ -3,6 +3,7 @@ import React from 'react';
 import { View } from 'react-native';
 
 import { DetailEditAction } from '@/components/ui/detail_edit_action';
+import { DetailHero } from '@/components/ui/detail_hero';
 import { DetailLoadError } from '@/components/ui/detail_load_error';
 import { DetailNotFoundState } from '@/components/ui/detail_not_found_state';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
@@ -16,6 +17,7 @@ import { SpendingPlanDetailLimitsCard } from '@/modules/budget/screens/budget/sp
 import { SpendingPlanDetailSkeleton } from '@/modules/budget/screens/budget/spending_plan_detail/components/spending_plan_detail_skeleton';
 import { SpendingPlanDetailSummary } from '@/modules/budget/screens/budget/spending_plan_detail/components/spending_plan_detail_summary';
 import {
+  SPENDING_PLAN_DETAIL_HERO_TEST_ID,
   SPENDING_PLAN_DETAIL_LOAD_ERROR_COPY,
   SPENDING_PLAN_DETAIL_LOAD_ERROR_TEST_ID,
 } from '@/modules/budget/screens/budget/spending_plan_detail/spending_plan_detail.helpers';
@@ -29,7 +31,7 @@ export default function SpendingPlanDetailScreen() {
   return (
     <Screen>
       <StackHeader
-        title={plan?.name ?? Strings.budgetPlansDetailTitle}
+        title={Strings.budgetPlansDetailTitle}
         onBack={goBack}
         right={
           state.showsBody && plan ? (
@@ -69,7 +71,11 @@ export default function SpendingPlanDetailScreen() {
         <>
           <ScreenScroll showsVerticalScrollIndicator={false}>
             <View className="pb-6">
-              <SpendingPlanDetailSummary detail={plan.detail} />
+              {plan.detail.hero ? (
+                <DetailHero hero={plan.detail.hero} testID={SPENDING_PLAN_DETAIL_HERO_TEST_ID} />
+              ) : (
+                <SpendingPlanDetailSummary detail={plan.detail} />
+              )}
 
               {plan.detail.limitsCard ? (
                 <SpendingPlanDetailLimitsCard card={plan.detail.limitsCard} />

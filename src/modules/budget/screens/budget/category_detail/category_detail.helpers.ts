@@ -1,13 +1,11 @@
 import type { DetailHeroBadge, DetailHeroModel } from '@/components/ui/detail_hero';
 import type { DetailLoadErrorCopy } from '@/components/ui/detail_load_error.helpers';
-import { HERO_GRADIENT_COLORS } from '@/components/ui/hero_gradient';
 import { DETAIL_HERO_BADGE_COLORS } from '@/components/ui/hero_gradient_badge';
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { type BudgetGroup, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
-import { resolveBadgeColors } from '@/modules/accounts/constants/account_badge_color';
 import {
   type MonthResultVM,
   computeBudgetHealth,
@@ -15,15 +13,14 @@ import {
 } from '@/modules/budget/screens/budget/budget.helpers';
 import type { BudgetHealth } from '@/modules/budget/screens/budget/budget_categories.types';
 import { resolveBudgetGroupRowValue } from '@/modules/budget/screens/budget/components/set_budget_sheet.helpers';
-import { LIMIT_TAG_FILL_SHARE } from '@/modules/budget/screens/budget/spending_plans.helpers';
-import { budgetBandColor } from '@/modules/budget/utils/budget_summary';
+import { budgetHeroBar, budgetHeroFigure, heroStatusTag } from '@/modules/budget/utils/budget_hero';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import {
   resolveCategoryGlyph,
   resolveHeroTileGlyphColor,
 } from '@/modules/transactions/components/transaction_row.helpers';
-import { formatAmount, formatDisplayAmountParts } from '@/utils/format_amount';
-import { ratioHeldAtTie, wholePercent } from '@/utils/money';
+import { formatAmount } from '@/utils/format_amount';
+import { wholePercent } from '@/utils/money';
 import { daysLeftInMonth, lastDayOfMonth } from '@/utils/year_month';
 
 export type CategoryDetailViewState =
@@ -67,25 +64,19 @@ export const BUDGET_CATEGORY_DETAIL_NOT_FOUND_TEST_ID = 'budget-category-detail-
 
 export const BUDGET_CATEGORY_DETAIL_HERO_TEST_ID = 'budget-category-detail-hero';
 
-function heroTag(label: string, icon: DetailHeroBadge['badgeIcon'], tone: string): DetailHeroBadge {
-  const { fill, foreground } = resolveBadgeColors({
-    tone,
-    backdrop: HERO_GRADIENT_COLORS[1],
-    fillShare: LIMIT_TAG_FILL_SHARE,
-    inkShare: 1,
-  });
-  return { badgeLabel: label, badgeIcon: icon, badgeFill: fill, badgeForeground: foreground };
-}
-
 const HERO_TAGS = {
-  onTrack: heroTag(Strings.budgetCategoriesStatusOnTrack, 'check-circle', Colors.dark.positive),
-  withinLimit: heroTag(
+  onTrack: heroStatusTag(
+    Strings.budgetCategoriesStatusOnTrack,
+    'check-circle',
+    Colors.dark.positive,
+  ),
+  withinLimit: heroStatusTag(
     Strings.budgetCategoryDetailStatusWithinLimit,
     'check-circle',
     Colors.dark.positive,
   ),
-  watch: heroTag(Strings.budgetCategoriesStatusWatch, 'trending-up', Colors.dark.gold),
-  over: heroTag(Strings.budgetCategoriesStatusOver, 'alert-circle', Colors.dark.negative),
+  watch: heroStatusTag(Strings.budgetCategoriesStatusWatch, 'trending-up', Colors.dark.gold),
+  over: heroStatusTag(Strings.budgetCategoriesStatusOver, 'alert-circle', Colors.dark.negative),
 } as const;
 
 type MonthLifecycle = MonthResultVM['lifecycle'];
@@ -147,23 +138,17 @@ export function buildCategoryDetailHero({
   const lifecycle = resolveMonthLifecycle(month, today.slice(0, 7));
   const health = computeBudgetHealth(spent, limit);
   const over = health === 'over';
-  const parts = formatDisplayAmountParts(remainingLabel(limit - spent).magnitude, Currency.EGP);
   const code = CURRENCY_CONFIG[Currency.EGP].code;
   const daysLeft = daysLeftInMonth(month, today);
 
   return {
     ...base,
-    amountValue: parts.text,
+    ...budgetHeroFigure(remainingLabel(limit - spent).magnitude, over),
     amountCode: over ? Strings.budgetCategoryDetailHeroOverCode(code) : code,
-    amountColor: over ? Colors.dark.negative : CoreTokens.text1,
-    amountAccessibilityLabel: over
-      ? Strings.budgetCategoryDetailHeroOverA11y(parts.withCode)
-      : parts.withCode,
     overline: over ? false : LEFT_OVERLINE[lifecycle],
     tag: resolveHeroTag(health, lifecycle),
     bar: {
-      share: over ? 1 : ratioHeldAtTie(spent, limit),
-      color: over ? Colors.dark.budgetOver : budgetBandColor(spent, limit),
+      ...budgetHeroBar(spent, limit, over),
       tickShare:
         lifecycle === 'provisional'
           ? Number(today.slice(8, 10)) / lastDayOfMonth(month)
