@@ -6,7 +6,6 @@ import { type BudgetGroup, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
-import { resolveBadgeColors } from '@/modules/accounts/constants/account_badge_color';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 import {
   type MonthResultVM,
@@ -19,12 +18,12 @@ import type {
   NamedBudgetVM,
 } from '@/modules/budget/screens/budget/budget_categories.types';
 import { resolveBudgetGroupRowValue } from '@/modules/budget/screens/budget/components/set_budget_sheet.helpers';
-import type { SpendingPlanLimitTagVM } from '@/modules/budget/screens/budget/spending_plans.types';
 import {
-  LIMIT_TAG_FILL_SHARE,
+  BUDGET_LIMIT_TAGS,
+  type BudgetLimitTag,
   budgetHeroBar,
   budgetHeroFigure,
-  heroStatusTag,
+  budgetStatusHeroTag,
 } from '@/modules/budget/utils/budget_hero';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import {
@@ -79,18 +78,10 @@ export const BUDGET_CATEGORY_DETAIL_HERO_TEST_ID = 'budget-category-detail-hero'
 export const BUDGET_CATEGORY_DETAIL_BUDGETS_CARD_TEST_ID = 'budget-category-detail-budgets-card';
 
 const HERO_TAGS = {
-  onTrack: heroStatusTag(
-    Strings.budgetCategoriesStatusOnTrack,
-    'check-circle',
-    Colors.dark.positive,
-  ),
-  withinLimit: heroStatusTag(
-    Strings.budgetCategoryDetailStatusWithinLimit,
-    'check-circle',
-    Colors.dark.positive,
-  ),
-  watch: heroStatusTag(Strings.budgetCategoriesStatusWatch, 'trending-up', Colors.dark.gold),
-  over: heroStatusTag(Strings.budgetCategoriesStatusOver, 'alert-circle', Colors.dark.negative),
+  onTrack: budgetStatusHeroTag(Strings.budgetCategoriesStatusOnTrack, 'onTrack'),
+  withinLimit: budgetStatusHeroTag(Strings.budgetCategoryDetailStatusWithinLimit, 'onTrack'),
+  watch: budgetStatusHeroTag(Strings.budgetCategoriesStatusWatch, 'watch'),
+  over: budgetStatusHeroTag(Strings.budgetCategoriesStatusOver, 'over'),
 } as const;
 
 type MonthLifecycle = MonthResultVM['lifecycle'];
@@ -183,25 +174,6 @@ function resolveHeroTag(health: BudgetHealth, lifecycle: MonthLifecycle): Detail
   return health === 'watch' ? HERO_TAGS.watch : HERO_TAGS.onTrack;
 }
 
-function budgetRowTag(
-  label: string,
-  icon: SpendingPlanLimitTagVM['icon'],
-  tone: string,
-): SpendingPlanLimitTagVM {
-  const { fill, foreground } = resolveBadgeColors({
-    tone,
-    backdrop: CoreTokens.surface,
-    fillShare: LIMIT_TAG_FILL_SHARE,
-    inkShare: 1,
-  });
-  return { label, icon, fill, foreground };
-}
-
-const BUDGET_ROW_TAGS = {
-  watch: budgetRowTag(Strings.budgetCategoriesStatusWatch, 'trending-up', Colors.dark.gold),
-  over: budgetRowTag(Strings.budgetCategoriesStatusOver, 'alert-circle', Colors.dark.negative),
-} as const;
-
 export interface CategoryBudgetRingRowVM {
   id: string;
   name: string;
@@ -213,7 +185,7 @@ export interface CategoryBudgetRingRowVM {
   amountCode: string;
   amountWord: string;
   amountWordColor: string;
-  tag?: SpendingPlanLimitTagVM;
+  tag?: BudgetLimitTag;
   accessibilityLabel: string;
 }
 
@@ -289,8 +261,8 @@ function toRingRow(budget: NamedBudgetVM, lifecycle: MonthLifecycle): CategoryBu
 function resolveBudgetRowTag(
   health: BudgetHealth,
   lifecycle: MonthLifecycle,
-): SpendingPlanLimitTagVM | undefined {
-  if (health === 'over') return BUDGET_ROW_TAGS.over;
-  if (health === 'watch' && lifecycle !== 'completed') return BUDGET_ROW_TAGS.watch;
+): BudgetLimitTag | undefined {
+  if (health === 'over') return BUDGET_LIMIT_TAGS.over;
+  if (health === 'watch' && lifecycle !== 'completed') return BUDGET_LIMIT_TAGS.watch;
   return undefined;
 }

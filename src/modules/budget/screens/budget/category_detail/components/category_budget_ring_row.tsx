@@ -2,6 +2,7 @@ import React from 'react';
 import { View, useWindowDimensions } from 'react-native';
 
 import { BudgetRing } from '@/components/ui/budget_ring';
+import { budgetRingLabelMaxWidth } from '@/components/ui/budget_ring.geometry';
 import { StatusBadge } from '@/components/ui/status_badge';
 import { Text } from '@/components/ui/text';
 import {
@@ -12,8 +13,7 @@ import {
 import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import type { CategoryBudgetRingRowVM } from '@/modules/budget/screens/budget/category_detail/category_detail.helpers';
 
-// The ring's hole less 2 dp each side, so a label shrinks to fit rather than wrap onto the stroke.
-const RING_LABEL_MAX_WIDTH = Size.budgetDetailRing - 2 * (Size.budgetRingStroke + Spacing.xxxs);
+const RING_LABEL_MAX_WIDTH = budgetRingLabelMaxWidth(Size.budgetDetailRing);
 
 const RING_LABEL_TEXT = {
   fontSize: Type.compactBadge,

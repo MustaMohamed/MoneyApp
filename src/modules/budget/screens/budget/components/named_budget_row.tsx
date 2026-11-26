@@ -3,14 +3,13 @@ import { Chip, Menu, PressableFeedback, Typography } from 'heroui-native';
 import { View } from 'react-native';
 
 import { BudgetRing } from '@/components/ui/budget_ring';
+import { budgetRingLabelMaxWidth } from '@/components/ui/budget_ring.geometry';
 import { Strings } from '@/constants/strings';
-import { Colors, Size, Spacing, TouchSize, Type, lineHeightFor } from '@/constants/theme';
+import { Colors, Size, TouchSize, Type, lineHeightFor } from '@/constants/theme';
 import type { NamedBudgetVM } from '@/modules/budget/screens/budget/budget_categories.types';
 import { TitleWithChip } from '@/modules/budget/screens/budget/components/title_with_chip';
 
-// The ring's hole less 2 dp each side, so a label shrinks to fit rather than wrap onto the stroke.
-const NAMED_RING_LABEL_MAX_WIDTH =
-  Size.budgetNamedRing - 2 * (Size.budgetRingStroke + Spacing.xxxs);
+const NAMED_RING_LABEL_MAX_WIDTH = budgetRingLabelMaxWidth(Size.budgetNamedRing);
 
 interface NamedBudgetRowProps {
   budget: NamedBudgetVM;

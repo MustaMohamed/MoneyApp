@@ -5,7 +5,7 @@ import { CategoryType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
-import { mixHex, resolveBadgeColors } from '@/modules/accounts/constants/account_badge_color';
+import { mixHex } from '@/modules/accounts/constants/account_badge_color';
 import {
   contrastRatio,
   NON_TEXT_MIN_CONTRAST_RATIO,
@@ -35,16 +35,16 @@ import type {
   SpendingPlanDetailLimitRowVM,
   SpendingPlanDetailUnlimitedRowVM,
   SpendingPlanDetailVM,
-  SpendingPlanLimitTagVM,
   SpendingPlanRowVM,
   SpendingPlanStatus,
   SpendingPlanStatusTone,
   SpendingPlanTimingVM,
 } from '@/modules/budget/screens/budget/spending_plans.types';
 import {
-  LIMIT_TAG_FILL_SHARE,
+  BUDGET_LIMIT_TAGS,
   budgetHeroBar,
   budgetHeroFigure,
+  budgetStatusHeroTag,
   heroStatusTag,
 } from '@/modules/budget/utils/budget_hero';
 import { rankedBy } from '@/modules/budget/utils/budget_row_order';
@@ -101,17 +101,6 @@ const PLAN_STATUS_PRESENTATION: Record<
   over: { label: Strings.budgetPlansStatusOver, tone: 'danger' },
 };
 
-type PlanTagStyleStatus = Exclude<SpendingPlanStatus, 'upcoming'>;
-
-const PLAN_STATUS_TAG_STYLE = {
-  onTrack: { icon: 'check-circle', tone: Colors.dark.positive },
-  watch: { icon: 'trending-up', tone: Colors.dark.gold },
-  over: { icon: 'alert-circle', tone: Colors.dark.negative },
-} as const satisfies Record<
-  PlanTagStyleStatus,
-  { icon: DetailHeroBadge['badgeIcon']; tone: string }
->;
-
 type LimitedCategory = SpendingPlanDetailCategoryVM &
   Record<'allocatedAmount' | 'left' | 'pct', number>;
 
@@ -130,40 +119,16 @@ export function resolveCategoryTileColors(color: string): { tileFill: string; gl
   };
 }
 
-type LimitTagStatus = Extract<SpendingPlanStatus, 'watch' | 'over'>;
-
-function limitTag(status: LimitTagStatus): SpendingPlanLimitTagVM {
-  const { icon, tone } = PLAN_STATUS_TAG_STYLE[status];
-  const { fill, foreground } = resolveBadgeColors({
-    tone,
-    backdrop: CoreTokens.surface,
-    fillShare: LIMIT_TAG_FILL_SHARE,
-    inkShare: 1,
-  });
-  return { label: PLAN_STATUS_PRESENTATION[status].label, icon, fill, foreground };
-}
-
-const LIMIT_TAGS: Record<LimitTagStatus, SpendingPlanLimitTagVM> = {
-  watch: limitTag('watch'),
-  over: limitTag('over'),
-};
-
-function planHeroTag(status: PlanTagStyleStatus): DetailHeroBadge {
-  const { icon, tone } = PLAN_STATUS_TAG_STYLE[status];
-  return heroStatusTag(PLAN_STATUS_PRESENTATION[status].label, icon, tone);
-}
-
 const PLAN_HERO_TAGS: Record<SpendingPlanStatus, DetailHeroBadge> = {
   upcoming: heroStatusTag(Strings.budgetPlansStatusUpcoming, 'calendar-outline', Colors.dark.text2),
-  onTrack: planHeroTag('onTrack'),
-  watch: planHeroTag('watch'),
-  over: planHeroTag('over'),
+  onTrack: budgetStatusHeroTag(PLAN_STATUS_PRESENTATION.onTrack.label, 'onTrack'),
+  watch: budgetStatusHeroTag(PLAN_STATUS_PRESENTATION.watch.label, 'watch'),
+  over: budgetStatusHeroTag(PLAN_STATUS_PRESENTATION.over.label, 'over'),
 };
 
-const PLAN_WITHIN_LIMIT_HERO_TAG = heroStatusTag(
+const PLAN_WITHIN_LIMIT_HERO_TAG = budgetStatusHeroTag(
   Strings.budgetPlansHeroWithinLimit,
-  'check-circle',
-  Colors.dark.positive,
+  'onTrack',
 );
 
 const compareLimitRows = rankedBy((row: LimitedCategory) => [
@@ -537,7 +502,11 @@ function buildDetailCategoryRow(
   const amountLabel = formatAmount(balance.magnitude);
   const balanceLabel =
     balance.label === 'over' ? Strings.budgetPlansOverStatus : Strings.budgetPlansLeftStatus;
-  const tag = row.isOver ? LIMIT_TAGS.over : row.isWarning && active ? LIMIT_TAGS.watch : undefined;
+  const tag = row.isOver
+    ? BUDGET_LIMIT_TAGS.over
+    : row.isWarning && active
+      ? BUDGET_LIMIT_TAGS.watch
+      : undefined;
   return {
     kind: 'allocated',
     categoryId: row.categoryId,
