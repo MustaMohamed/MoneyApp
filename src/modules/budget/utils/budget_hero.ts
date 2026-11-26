@@ -32,9 +32,9 @@ export interface BudgetLimitTag {
   foreground: string;
 }
 
-export type BudgetTagStatus = 'onTrack' | 'watch' | 'over';
+type BudgetTagStatus = 'onTrack' | 'watch' | 'over';
 
-export const BUDGET_STATUS_TAG_STYLE = {
+const BUDGET_STATUS_TAG_STYLE = {
   onTrack: { icon: 'check-circle', tone: Colors.dark.positive },
   watch: { icon: 'trending-up', tone: Colors.dark.gold },
   over: { icon: 'alert-circle', tone: Colors.dark.negative },

@@ -8,7 +8,7 @@ import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { BudgetLimitRowBody } from '@/modules/budget/components/budget_limit_row_body';
 import type { CategoryBudgetRingRowVM } from '@/modules/budget/screens/budget/category_detail/category_detail.helpers';
 
-const RING_LABEL_MAX_WIDTH = budgetRingLabelMaxWidth(Size.budgetDetailRing);
+const RING_LABEL_MAX_WIDTH = budgetRingLabelMaxWidth(Size.budgetDetailRing, Size.budgetRingStroke);
 
 const RING_LABEL_TEXT = {
   fontSize: Type.compactBadge,

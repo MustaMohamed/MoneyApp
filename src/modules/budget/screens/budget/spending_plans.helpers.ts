@@ -119,11 +119,15 @@ export function resolveCategoryTileColors(color: string): { tileFill: string; gl
   };
 }
 
+function planHeroTag(status: Exclude<SpendingPlanStatus, 'upcoming'>): DetailHeroBadge {
+  return budgetStatusHeroTag(PLAN_STATUS_PRESENTATION[status].label, status);
+}
+
 const PLAN_HERO_TAGS: Record<SpendingPlanStatus, DetailHeroBadge> = {
   upcoming: heroStatusTag(Strings.budgetPlansStatusUpcoming, 'calendar-outline', Colors.dark.text2),
-  onTrack: budgetStatusHeroTag(PLAN_STATUS_PRESENTATION.onTrack.label, 'onTrack'),
-  watch: budgetStatusHeroTag(PLAN_STATUS_PRESENTATION.watch.label, 'watch'),
-  over: budgetStatusHeroTag(PLAN_STATUS_PRESENTATION.over.label, 'over'),
+  onTrack: planHeroTag('onTrack'),
+  watch: planHeroTag('watch'),
+  over: planHeroTag('over'),
 };
 
 const PLAN_WITHIN_LIMIT_HERO_TAG = budgetStatusHeroTag(
