@@ -15,6 +15,8 @@ import {
   resolveBudgetRuleGroup,
 } from '@/modules/budget/screens/budget/budget_buckets.helpers';
 import {
+  type CategoryBudgetsCardVM,
+  buildCategoryBudgetsCard,
   buildCategoryDetailHero,
   resolveCategoryDetailViewState,
   resolveMonthLifecycle,
@@ -51,6 +53,7 @@ export function useCategoryDetail() {
   const {
     budgetRows,
     spendByMonth,
+    spendByBudgetId,
     budgetLoaded,
     loadedMonth,
     loadError,
@@ -60,6 +63,7 @@ export function useCategoryDetail() {
     useShallow((s) => ({
       budgetRows: s.rows,
       spendByMonth: s.spendByMonth,
+      spendByBudgetId: s.spendByBudgetId,
       budgetLoaded: s.loaded,
       loadedMonth: s.loadedMonth,
       loadError: s.loadError,
@@ -133,9 +137,21 @@ export function useCategoryDetail() {
     spendByMonth,
     today,
   ]);
+  const budgetsCard: CategoryBudgetsCardVM | undefined = useMemo(() => {
+    if (!hasLoaded || category === undefined) return undefined;
+    return buildCategoryBudgetsCard({
+      category,
+      budgets: budgetRows,
+      spendByMonth,
+      spendByBudgetId,
+      month,
+      currentMonth,
+    });
+  }, [budgetRows, category, currentMonth, hasLoaded, month, spendByBudgetId, spendByMonth]);
 
   return {
     state: {
+      budgetsCard,
       history,
       hero,
       month,
