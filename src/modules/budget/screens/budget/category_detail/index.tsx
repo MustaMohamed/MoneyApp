@@ -15,6 +15,7 @@ import {
   BUDGET_CATEGORY_DETAIL_NOT_FOUND_TEST_ID,
 } from '@/modules/budget/screens/budget/category_detail/category_detail.helpers';
 import { useCategoryDetail } from '@/modules/budget/screens/budget/category_detail/category_detail.hook';
+import { CategoryBudgetsCard } from '@/modules/budget/screens/budget/category_detail/components/category_budgets_card';
 import { CategoryDetailSkeleton } from '@/modules/budget/screens/budget/category_detail/components/category_detail_skeleton';
 import { MonthlyResultChart } from '@/modules/budget/screens/budget/category_detail/components/monthly_result_chart';
 import { ms } from '@/utils/responsive';
@@ -49,6 +50,7 @@ export default function CategoryBudgetDetailScreen() {
             <View style={styles.chart}>
               <MonthlyResultChart history={state.history} month={state.month} />
             </View>
+            {state.budgetsCard && <CategoryBudgetsCard card={state.budgetsCard} />}
           </ScreenScroll>
 
           {state.viewState === 'refreshErrorWithData' ? (
