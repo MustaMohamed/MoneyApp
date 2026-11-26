@@ -1,16 +1,10 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import React from 'react';
-import { View, useWindowDimensions, type ViewStyle } from 'react-native';
+import { View, type ViewStyle } from 'react-native';
 
-import { StatusBadge } from '@/components/ui/status_badge';
-import { Text } from '@/components/ui/text';
-import {
-  resolveLoneWordLines,
-  resolveRowStacking,
-  resolveUncappedLinesAboveOne,
-} from '@/components/ui/text_scale.geometry';
-import { Radius, Size, Spacing, Type, lineHeightFor, withAlpha } from '@/constants/theme';
+import { Radius, Size, Spacing, withAlpha } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
+import { BudgetLimitRowBody } from '@/modules/budget/components/budget_limit_row_body';
 import { BudgetBar } from '@/modules/budget/screens/budget/components/budget_bar';
 import type { SpendingPlanDetailCategoryRowVM } from '@/modules/budget/screens/budget/spending_plans.types';
 import { toIconName } from '@/utils/icon_name_guard';
@@ -20,10 +14,7 @@ interface Props {
   tickPercentage?: number;
 }
 
-const MICRO_TEXT = { fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) };
-const NAME_TEXT = { fontSize: Type.bodyStrong, lineHeight: lineHeightFor(Type.bodyStrong) };
 const TILE_STYLE = { width: Size.spendingPlanLimitTile, height: Size.spendingPlanLimitTile };
-const BODY_STYLE = { flex: 1, columnGap: Spacing.sm, rowGap: Spacing.xxs };
 const TICK_WIDTH = Spacing.xxxs + 2 * Size.hairline;
 const TICK_STYLE: Readonly<ViewStyle> = Object.freeze({
   position: 'absolute',
@@ -44,9 +35,6 @@ const tickAt = (percent: number): ViewStyle => ({
 
 // D2 `.bg-row.sm`: a row with no limit pads 8 dp top and bottom and has no bar, so no min height.
 export function SpendingPlanDetailCategoryRow({ row, tickPercentage }: Props) {
-  const { fontScale } = useWindowDimensions();
-  const stacked = resolveRowStacking(fontScale) === 'stacked';
-  const lines = resolveUncappedLinesAboveOne(1, fontScale);
   const allocated = row.kind === 'allocated';
   return (
     <View
@@ -71,67 +59,34 @@ export function SpendingPlanDetailCategoryRow({ row, tickPercentage }: Props) {
           color={row.glyphColor}
         />
       </View>
-      <View
-        className="min-w-0"
-        style={[BODY_STYLE, { flexDirection: 'row', flexWrap: stacked ? 'wrap' : 'nowrap' }]}
+      <BudgetLimitRowBody
+        name={row.categoryName}
+        tag={allocated ? row.tag : undefined}
+        caption={row.supportingLabel}
+        amountLabel={row.amountLabel}
+        amountCode={row.amountCode}
+        amountWord={row.balanceLabel}
+        amountWordColor={row.balanceColor}
       >
-        <View
-          className="min-w-0 justify-center"
-          style={stacked ? { flexGrow: 1, flexShrink: 1 } : { flex: 1 }}
-        >
-          <View
-            className={stacked ? 'items-start' : 'items-center'}
-            style={{ flexDirection: stacked ? 'column' : 'row', gap: Spacing.xxs }}
-          >
-            <Text
-              className="font-inter-medium text-foreground"
-              numberOfLines={resolveLoneWordLines(row.categoryName, lines, fontScale)}
-              style={{ ...NAME_TEXT, flexShrink: 1 }}
-            >
-              {row.categoryName}
-            </Text>
-            {allocated && row.tag ? <StatusBadge {...row.tag} size="xs" /> : null}
-          </View>
-          <Text
-            className="font-inter text-content-secondary mt-0.5"
-            numberOfLines={lines}
-            style={MICRO_TEXT}
-          >
-            {row.supportingLabel}
-          </Text>
-          {allocated ? (
-            <View>
-              <BudgetBar
-                pct={row.pct}
-                status="under"
-                color={row.progressColor}
-                height={Size.spendingPlanLimitTrack}
+        {allocated ? (
+          <View>
+            <BudgetBar
+              pct={row.pct}
+              status="under"
+              color={row.progressColor}
+              height={Size.spendingPlanLimitTrack}
+            />
+            {tickPercentage === undefined ? null : (
+              <View
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+                pointerEvents="none"
+                style={[TICK_STYLE, tickAt(tickPercentage)]}
               />
-              {tickPercentage === undefined ? null : (
-                <View
-                  accessibilityElementsHidden
-                  importantForAccessibility="no-hide-descendants"
-                  pointerEvents="none"
-                  style={[TICK_STYLE, tickAt(tickPercentage)]}
-                />
-              )}
-            </View>
-          ) : null}
-        </View>
-        <View className="items-end justify-center">
-          <View className="items-baseline" style={{ flexDirection: 'row', gap: Spacing.xxs }}>
-            <Text className="font-sora text-foreground" style={NAME_TEXT}>
-              {row.amountLabel}
-            </Text>
-            <Text className="font-inter text-content-secondary" style={MICRO_TEXT}>
-              {row.amountCode}
-            </Text>
+            )}
           </View>
-          <Text className="font-inter mt-0.5" style={{ ...MICRO_TEXT, color: row.balanceColor }}>
-            {row.balanceLabel}
-          </Text>
-        </View>
-      </View>
+        ) : null}
+      </BudgetLimitRowBody>
     </View>
   );
 }

@@ -1,5 +1,6 @@
 import type { DetailHeroModel } from '@/components/ui/detail_hero';
 import type { BudgetStatus } from '@/modules/budget/screens/budget/budget.helpers';
+import type { BudgetLimitTag } from '@/modules/budget/utils/budget_hero';
 
 export type SpendingPlanLifecycle = 'upcoming' | 'active' | 'completed';
 export type SpendingPlanStatus = 'upcoming' | 'onTrack' | 'watch' | 'over';
@@ -94,13 +95,6 @@ export interface SpendingPlanCardVM {
   chips: SpendingPlanCardDisplayChipVM[];
 }
 
-export interface SpendingPlanLimitTagVM {
-  label: string;
-  icon: 'trending-up' | 'alert-circle';
-  fill: string;
-  foreground: string;
-}
-
 export type SpendingPlanDetailCategoryRowVM =
   | {
       kind: 'allocated';
@@ -116,7 +110,7 @@ export type SpendingPlanDetailCategoryRowVM =
       progressColor: string;
       tileFill: string;
       glyphColor: string;
-      tag?: SpendingPlanLimitTagVM;
+      tag?: BudgetLimitTag;
       accessibilityLabel: string;
     }
   | {

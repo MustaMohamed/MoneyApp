@@ -25,6 +25,42 @@ export function heroStatusTag(
   return { badgeLabel: label, badgeIcon: icon, badgeFill: fill, badgeForeground: foreground };
 }
 
+export interface BudgetLimitTag {
+  label: string;
+  icon: 'trending-up' | 'alert-circle';
+  fill: string;
+  foreground: string;
+}
+
+type BudgetTagStatus = 'onTrack' | 'watch' | 'over';
+
+const BUDGET_STATUS_TAG_STYLE = {
+  onTrack: { icon: 'check-circle', tone: Colors.dark.positive },
+  watch: { icon: 'trending-up', tone: Colors.dark.gold },
+  over: { icon: 'alert-circle', tone: Colors.dark.negative },
+} as const satisfies Record<BudgetTagStatus, { icon: DetailHeroBadge['badgeIcon']; tone: string }>;
+
+export function budgetStatusHeroTag(label: string, status: BudgetTagStatus): DetailHeroBadge {
+  const { icon, tone } = BUDGET_STATUS_TAG_STYLE[status];
+  return heroStatusTag(label, icon, tone);
+}
+
+function budgetLimitTag(label: string, status: 'watch' | 'over'): BudgetLimitTag {
+  const { icon, tone } = BUDGET_STATUS_TAG_STYLE[status];
+  const { fill, foreground } = resolveBadgeColors({
+    tone,
+    backdrop: CoreTokens.surface,
+    fillShare: LIMIT_TAG_FILL_SHARE,
+    inkShare: 1,
+  });
+  return { label, icon, fill, foreground };
+}
+
+export const BUDGET_LIMIT_TAGS: Record<'watch' | 'over', BudgetLimitTag> = {
+  watch: budgetLimitTag(Strings.budgetCategoriesStatusWatch, 'watch'),
+  over: budgetLimitTag(Strings.budgetCategoriesStatusOver, 'over'),
+};
+
 type BudgetHeroFigure = Pick<
   DetailHeroModel,
   'amountValue' | 'amountColor' | 'amountAccessibilityLabel'
