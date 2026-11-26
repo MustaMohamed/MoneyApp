@@ -17,6 +17,7 @@ import type {
   SpendingPlanCategory,
   SpendingPlanWithCategories,
 } from '@/modules/budget/entities/budget.entity';
+import { formatPlanDailyAmount } from '@/modules/budget/screens/budget/spending_plan_sheet/spending_plan_sheet.helpers';
 import {
   computePlanTiming,
   derivePlanStatus,
@@ -31,7 +32,6 @@ import type {
   SpendingPlanCardVM,
   SpendingPlanCategoryChipVM,
   SpendingPlanDetailCategoryVM,
-  SpendingPlanDetailInsightVM,
   SpendingPlanDetailLimitRowVM,
   SpendingPlanDetailUnlimitedRowVM,
   SpendingPlanDetailVM,
@@ -80,7 +80,6 @@ export type {
   SpendingPlanCategoryChipVM,
   SpendingPlanDetailCategoryRowVM,
   SpendingPlanDetailCategoryVM,
-  SpendingPlanDetailInsightVM,
   SpendingPlanDetailVM,
   SpendingPlanLifecycle,
   SpendingPlanRowVM,
@@ -157,6 +156,18 @@ const PLAN_HERO_TAGS: Record<PlanHeroStatus, DetailHeroBadge> = {
   over: planHeroTag('over'),
 };
 
+const PLAN_UPCOMING_HERO_TAG = heroStatusTag(
+  Strings.budgetPlansStatusUpcoming,
+  'calendar-outline',
+  Colors.dark.text2,
+);
+
+const PLAN_WITHIN_LIMIT_HERO_TAG = heroStatusTag(
+  Strings.budgetPlansHeroWithinLimit,
+  'check-circle',
+  Colors.dark.positive,
+);
+
 const compareLimitRows = rankedBy((row: LimitedCategory) => [
   row.allocatedAmount,
   row.spent,
@@ -218,7 +229,7 @@ function buildSpendingPlanHero({
   spent: number;
   left: number;
   isOver: boolean;
-  status: PlanHeroStatus;
+  status: SpendingPlanStatus;
   today: string;
   usedPercentage: number;
   pacePoints: number;
@@ -226,7 +237,7 @@ function buildSpendingPlanHero({
   allocatedTotal: number;
   buffer: number;
 }): DetailHeroModel {
-  return {
+  const shared = {
     title: name,
     tileDate: { ...formatDateTileParts(startDate), ink: Colors.shared.midnightBlue },
     tileColor: Colors.dark.gold,
@@ -234,17 +245,49 @@ function buildSpendingPlanHero({
     badgeIcon: 'calendar-outline',
     badgeFill: DETAIL_HERO_BADGE_COLORS.fill,
     badgeForeground: DETAIL_HERO_BADGE_COLORS.foreground,
-    tag: PLAN_HERO_TAGS[status],
-    overline: isOver
-      ? Strings.budgetPlansHeroOverBy
-      : Strings.budgetPlansHeroLeftOf(formatDisplayAmountParts(totalAmount, Currency.EGP).text),
-    ...budgetHeroFigure(remainingLabel(left).magnitude, isOver),
     amountCode: CURRENCY_CONFIG[Currency.EGP].code,
     figures: [
       { label: Strings.budgetPlansDetailAssigned, value: formatAmount(allocatedTotal) },
       { label: Strings.budgetPlansDetailFlexible, value: formatAmount(Math.max(buffer, 0)) },
       { label: Strings.budgetPlansSummarySpent, value: formatAmount(spent) },
     ],
+  } satisfies Partial<DetailHeroModel>;
+  if (status === 'upcoming') {
+    return {
+      ...shared,
+      tag: PLAN_UPCOMING_HERO_TAG,
+      overline: Strings.budgetPlansHeroPlanned,
+      ...budgetHeroFigure(totalAmount, false),
+      bar: { share: 0, color: Colors.dark.text2 },
+      caption: Strings.budgetPlansHeroUpcomingLine(timing.totalDays, planLifecycleLabel(timing)),
+      captionEnd: Strings.budgetPlansHeroPerDay(
+        formatPlanDailyAmount(totalAmount, timing.totalDays),
+      ),
+    };
+  }
+  const balance = {
+    overline: isOver
+      ? Strings.budgetPlansHeroOverBy
+      : Strings.budgetPlansHeroLeftOf(formatDisplayAmountParts(totalAmount, Currency.EGP).text),
+    ...budgetHeroFigure(remainingLabel(left).magnitude, isOver),
+  };
+  if (timing.lifecycle === 'completed') {
+    return {
+      ...shared,
+      ...balance,
+      tag: isOver ? PLAN_HERO_TAGS.over : PLAN_WITHIN_LIMIT_HERO_TAG,
+      bar: budgetHeroBar(spent, totalAmount, isOver),
+      caption: Strings.budgetPlansHeroEndedUsedLine(usedPercentage, timing.totalDays),
+      captionEnd:
+        timing.daysValue === 1
+          ? Strings.budgetPlansHeroEndedYesterday
+          : Strings.budgetPlansHeroEndedDaysAgo(timing.daysValue),
+    };
+  }
+  return {
+    ...shared,
+    ...balance,
+    tag: PLAN_HERO_TAGS[status],
     bar: {
       ...budgetHeroBar(spent, totalAmount, isOver),
       tickShare: timing.elapsedDays / timing.totalDays,
@@ -438,9 +481,42 @@ function buildUnlimitedRow(row: SpendingPlanDetailCategoryVM): SpendingPlanDetai
     categoryName: row.categoryName,
     icon: row.icon,
     color: row.color,
-    amountLabel: Strings.budgetPlansDetailSpent(spentLabel),
+    amountLabel: spentLabel,
+    amountCode: CURRENCY_CONFIG[Currency.EGP].code,
     supportingLabel: Strings.budgetPlansDetailNoCategoryLimit,
+    balanceLabel: Strings.budgetPlansSpentStatus,
+    balanceColor: Colors.dark.text2,
+    ...resolveCategoryTileColors(row.color),
     accessibilityLabel: Strings.budgetPlansDetailUnallocatedA11y(row.categoryName, spentLabel),
+  };
+}
+
+const compareUnlimitedRows = rankedBy((row: SpendingPlanDetailCategoryVM) => [
+  row.spent,
+  0,
+  row.categoryName,
+  row.categoryId,
+]);
+
+function buildFlexibleCard(
+  buffer: number,
+  unlimited: SpendingPlanDetailCategoryVM[],
+  lifecycle: SpendingPlanTimingVM['lifecycle'],
+): SpendingPlanDetailVM['flexibleCard'] {
+  const flexible = Math.max(buffer, 0);
+  if (unlimited.length === 0 && flexible <= 0) return undefined;
+  const rows = [...unlimited].sort(compareUnlimitedRows).map(buildUnlimitedRow);
+  const card = { amountLabel: formatCurrencyAmount(flexible, Currency.EGP), rows };
+  if (lifecycle === 'upcoming' && unlimited.length > 0) return card;
+  const unlimitedSpent = unlimited.reduce((total, row) => total + row.spent, 0);
+  const over = exceedsToCent(unlimitedSpent, flexible);
+  return {
+    ...card,
+    footer: {
+      label: over ? Strings.budgetPlansDetailFlexibleOver : Strings.budgetPlansDetailFlexibleLeft,
+      amountLabel: formatAmount(remainingLabel(flexible - unlimitedSpent).magnitude),
+      amountColor: over ? Colors.dark.negative : CoreTokens.text1,
+    },
   };
 }
 
@@ -489,105 +565,30 @@ const hasLimit = (row: SpendingPlanDetailCategoryVM): row is LimitedCategory =>
 function buildSpendingPlanDetail({
   hero,
   card,
-  pct,
-  usedPercentage,
-  elapsedPercentage,
-  pacePoints,
   timing,
   allocatedTotal,
   buffer,
   detailCategoryRows,
-  highestPressureCategory,
 }: {
+  hero: DetailHeroModel;
   card: SpendingPlanCardVM;
-  pct: number;
-  usedPercentage: number;
-  elapsedPercentage: number;
-  pacePoints: number;
   timing: SpendingPlanTimingVM;
   allocatedTotal: number;
   buffer: number;
   detailCategoryRows: SpendingPlanDetailCategoryVM[];
-  highestPressureCategory?: SpendingPlanDetailCategoryVM;
-  hero?: DetailHeroModel;
 }): SpendingPlanDetailVM {
-  const insights: SpendingPlanDetailInsightVM[] = [];
-
-  if (card.paceLabel !== undefined) {
-    const isFinal = timing.lifecycle === 'completed';
-    insights.push({
-      key: isFinal ? 'final' : 'pace',
-      icon: isFinal ? 'flag-checkered' : 'speedometer',
-      color:
-        isFinal && card.progressStatus === 'over'
-          ? Colors.dark.negative
-          : !isFinal && pacePoints > 0
-            ? Colors.dark.warning
-            : Colors.dark.positive,
-      label: card.paceLabel,
-    });
-  }
-
-  if (
-    highestPressureCategory?.allocatedAmount !== undefined &&
-    highestPressureCategory.pct !== undefined &&
-    (highestPressureCategory.isOver || highestPressureCategory.isWarning)
-  ) {
-    const overAmount = Math.max(
-      0,
-      highestPressureCategory.spent - highestPressureCategory.allocatedAmount,
-    );
-    insights.push({
-      key: 'category',
-      icon: highestPressureCategory.isOver ? 'alert-octagon-outline' : 'alert-circle-outline',
-      color: highestPressureCategory.isOver ? Colors.dark.negative : Colors.dark.warning,
-      label: highestPressureCategory.isOver
-        ? Strings.budgetPlansDetailCategoryOver(
-            highestPressureCategory.categoryName,
-            formatAmount(overAmount),
-          )
-        : Strings.budgetPlansDetailCategoryPressure(
-            highestPressureCategory.categoryName,
-            allocationPercentage(
-              highestPressureCategory.spent,
-              highestPressureCategory.allocatedAmount,
-            ),
-          ),
-    });
-  }
-
   const limitRows = detailCategoryRows
     .filter(hasLimit)
     .sort(compareLimitRows)
     .map((row) => buildDetailCategoryRow(row, timing.lifecycle === 'active'));
+  const flexibleCard = buildFlexibleCard(
+    buffer,
+    detailCategoryRows.filter((row) => !hasLimit(row)),
+    timing.lifecycle,
+  );
 
   return {
-    pct,
-    progressPercentage: Math.min(Math.max(usedPercentage, 0), 100),
-    dateLabel: card.dateLabel,
-    balanceAmountLabel: card.balanceAmountLabel,
-    balanceMetaLabel: card.balanceMetaLabel,
-    balanceAccessibilityLabel: card.balanceAccessibilityLabel,
-    balanceColor: card.balanceColor,
-    statusLabel: card.statusLabel,
-    statusTone: card.statusTone,
-    spentLabel: card.spentLabel,
-    percentageLabel: card.percentageLabel,
-    progressColor: card.progressColor,
-    progressStatus: card.progressStatus,
-    ...(card.elapsedMarkerPercentage === undefined || card.elapsedMarkerColor === undefined
-      ? {}
-      : {
-          elapsedMarkerPercentage: card.elapsedMarkerPercentage,
-          elapsedMarkerColor: card.elapsedMarkerColor,
-        }),
-    metrics: [
-      { label: Strings.budgetPlansDetailBudgetUsed, value: `${usedPercentage}%` },
-      { label: Strings.budgetPlansDetailTimeElapsed, value: `${elapsedPercentage}%` },
-      { label: Strings.budgetPlansDetailAssigned, value: formatAmount(allocatedTotal) },
-      { label: Strings.budgetPlansDetailFlexible, value: formatAmount(Math.max(buffer, 0)) },
-    ],
-    insights: insights.slice(0, 2),
+    hero,
     ...(limitRows.length === 0
       ? {}
       : {
@@ -599,17 +600,7 @@ function buildSpendingPlanDetail({
             rows: limitRows,
           },
         }),
-    categoryRows: detailCategoryRows.filter((row) => !hasLimit(row)).map(buildUnlimitedRow),
-    ...(buffer > 0
-      ? {
-          flexibleRow: {
-            label: Strings.budgetPlansDetailFlexible,
-            amountLabel: formatCurrencyAmount(buffer, Currency.EGP),
-            supportingLabel: Strings.budgetPlansDetailUnassigned,
-          },
-        }
-      : {}),
-    ...(hero === undefined ? {} : { hero }),
+    ...(flexibleCard === undefined ? {} : { flexibleCard }),
   };
 }
 
@@ -826,37 +817,29 @@ export function buildSpendingPlanRows({
         allocationRows,
         categoryChips,
       });
-      const hero =
-        timing.lifecycle === 'active' && status !== 'upcoming'
-          ? buildSpendingPlanHero({
-              name: plan.name,
-              startDate: plan.start_date,
-              endDate: plan.end_date,
-              totalAmount: plan.total_amount,
-              spent,
-              left,
-              isOver,
-              status,
-              today,
-              usedPercentage,
-              pacePoints,
-              timing,
-              allocatedTotal,
-              buffer,
-            })
-          : undefined;
-      const detail = buildSpendingPlanDetail({
-        hero,
-        card,
-        pct,
+      const hero = buildSpendingPlanHero({
+        name: plan.name,
+        startDate: plan.start_date,
+        endDate: plan.end_date,
+        totalAmount: plan.total_amount,
+        spent,
+        left,
+        isOver,
+        status,
+        today,
         usedPercentage,
-        elapsedPercentage,
         pacePoints,
         timing,
         allocatedTotal,
         buffer,
+      });
+      const detail = buildSpendingPlanDetail({
+        hero,
+        card,
+        timing,
+        allocatedTotal,
+        buffer,
         detailCategoryRows,
-        highestPressureCategory,
       });
       return {
         id: plan.id,

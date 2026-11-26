@@ -94,18 +94,6 @@ export interface SpendingPlanCardVM {
   chips: SpendingPlanCardDisplayChipVM[];
 }
 
-export interface SpendingPlanDetailMetricVM {
-  label: string;
-  value: string;
-}
-
-export interface SpendingPlanDetailInsightVM {
-  key: 'pace' | 'final' | 'category';
-  icon: 'speedometer' | 'flag-checkered' | 'alert-circle-outline' | 'alert-octagon-outline';
-  color: string;
-  label: string;
-}
-
 export interface SpendingPlanLimitTagVM {
   label: string;
   icon: 'trending-up' | 'alert-circle';
@@ -139,7 +127,12 @@ export type SpendingPlanDetailCategoryRowVM =
       icon: string;
       color: string;
       amountLabel: string;
+      amountCode: string;
       supportingLabel: string;
+      balanceLabel: string;
+      balanceColor: string;
+      tileFill: string;
+      glyphColor: string;
       accessibilityLabel: string;
     };
 
@@ -151,31 +144,17 @@ export type SpendingPlanDetailUnlimitedRowVM = Extract<
 >;
 
 export interface SpendingPlanDetailVM {
-  pct: number;
-  progressPercentage: number;
-  dateLabel: string;
-  balanceAmountLabel: string;
-  balanceMetaLabel: string;
-  balanceAccessibilityLabel: string;
-  balanceColor: string;
-  statusLabel: string;
-  statusTone: SpendingPlanStatusTone;
-  spentLabel: string;
-  percentageLabel: string;
-  progressColor: string;
-  progressStatus: BudgetStatus;
-  elapsedMarkerPercentage?: number;
-  elapsedMarkerColor?: string;
-  metrics: SpendingPlanDetailMetricVM[];
-  insights: SpendingPlanDetailInsightVM[];
+  hero: DetailHeroModel;
   limitsCard?: {
     assignedLabel: string;
     tickPercentage?: number;
     rows: SpendingPlanDetailLimitRowVM[];
   };
-  categoryRows: SpendingPlanDetailUnlimitedRowVM[];
-  flexibleRow?: { label: string; amountLabel: string; supportingLabel: string };
-  hero?: DetailHeroModel;
+  flexibleCard?: {
+    amountLabel: string;
+    rows: SpendingPlanDetailUnlimitedRowVM[];
+    footer?: { label: string; amountLabel: string; amountColor: string };
+  };
 }
 
 export interface SpendingPlanRowVM {

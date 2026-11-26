@@ -26,6 +26,10 @@ export function formatLimitsFigure(value: number, hasCents: boolean): string {
 }
 
 /** Display only: total over the inclusive days, unrounded before the formatter (ADR 2026-08-21 §2.1). */
+export function formatPlanDailyAmount(totalAmount: number, days: number): string {
+  return formatDisplayMagnitude(totalAmount / days, Currency.EGP).text;
+}
+
 export function resolvePlanDailyLine(
   totalAmount: number | undefined,
   startDate: string,
@@ -34,10 +38,7 @@ export function resolvePlanDailyLine(
   if (totalAmount === undefined || startDate === '' || endDate === '') return undefined;
   const days = calendarDaysBetween(startDate, endDate) + 1;
   if (days < 1) return undefined;
-  return Strings.budgetPlanDailyLine(
-    days,
-    formatDisplayMagnitude(totalAmount / days, Currency.EGP).text,
-  );
+  return Strings.budgetPlanDailyLine(days, formatPlanDailyAmount(totalAmount, days));
 }
 
 export interface SpendingPlanFieldFaults {

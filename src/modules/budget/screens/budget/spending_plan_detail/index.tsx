@@ -1,4 +1,3 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import React from 'react';
 import { View } from 'react-native';
 
@@ -8,14 +7,11 @@ import { DetailLoadError } from '@/components/ui/detail_load_error';
 import { DetailNotFoundState } from '@/components/ui/detail_not_found_state';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { StackHeader } from '@/components/ui/stack_header';
-import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Colors, Size } from '@/constants/theme';
 import { SpendingPlanDetailActions } from '@/modules/budget/screens/budget/spending_plan_detail/components/spending_plan_detail_actions';
-import { SpendingPlanDetailCategoryRow } from '@/modules/budget/screens/budget/spending_plan_detail/components/spending_plan_detail_category_row';
+import { SpendingPlanDetailFlexibleCard } from '@/modules/budget/screens/budget/spending_plan_detail/components/spending_plan_detail_flexible_card';
 import { SpendingPlanDetailLimitsCard } from '@/modules/budget/screens/budget/spending_plan_detail/components/spending_plan_detail_limits_card';
 import { SpendingPlanDetailSkeleton } from '@/modules/budget/screens/budget/spending_plan_detail/components/spending_plan_detail_skeleton';
-import { SpendingPlanDetailSummary } from '@/modules/budget/screens/budget/spending_plan_detail/components/spending_plan_detail_summary';
 import {
   SPENDING_PLAN_DETAIL_HERO_TEST_ID,
   SPENDING_PLAN_DETAIL_LOAD_ERROR_COPY,
@@ -71,36 +67,14 @@ export default function SpendingPlanDetailScreen() {
         <>
           <ScreenScroll showsVerticalScrollIndicator={false}>
             <View className="pb-6">
-              {plan.detail.hero ? (
-                <DetailHero hero={plan.detail.hero} testID={SPENDING_PLAN_DETAIL_HERO_TEST_ID} />
-              ) : (
-                <SpendingPlanDetailSummary detail={plan.detail} />
-              )}
+              <DetailHero hero={plan.detail.hero} testID={SPENDING_PLAN_DETAIL_HERO_TEST_ID} />
 
               {plan.detail.limitsCard ? (
                 <SpendingPlanDetailLimitsCard card={plan.detail.limitsCard} />
               ) : null}
-              <View className="mt-1 px-4">
-                {plan.detail.categoryRows.map((row) => (
-                  <SpendingPlanDetailCategoryRow key={row.categoryId} row={row} />
-                ))}
-                {plan.detail.flexibleRow ? (
-                  <View className="border-border min-h-[52px] flex-row items-center gap-2 border-t">
-                    <MaterialCommunityIcons
-                      accessible={false}
-                      name="wallet-outline"
-                      size={Size.iconXs}
-                      color={Colors.dark.gold}
-                    />
-                    <Text className="font-inter-medium text-content-secondary flex-1 text-[14px]">
-                      {plan.detail.flexibleRow.label}
-                    </Text>
-                    <Text className="font-sora-semibold text-foreground text-[15px]">
-                      {plan.detail.flexibleRow.amountLabel}
-                    </Text>
-                  </View>
-                ) : null}
-              </View>
+              {plan.detail.flexibleCard ? (
+                <SpendingPlanDetailFlexibleCard card={plan.detail.flexibleCard} />
+              ) : null}
               <SpendingPlanDetailActions onEdit={editPlan} />
             </View>
           </ScreenScroll>

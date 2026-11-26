@@ -716,8 +716,6 @@ export const Strings = {
   budgetPlansFinishedOver: (amount: string) => `${amount} over at finish`,
   budgetPlansCardAllocationFooter: (assigned: string, flexible: string) =>
     `${assigned} assigned · ${flexible} flexible`,
-  budgetPlansDetailBudgetUsed: 'Budget used',
-  budgetPlansDetailTimeElapsed: 'Time elapsed',
   budgetPlansDetailAssigned: 'Assigned',
   budgetPlansDetailFlexible: 'Flexible',
   budgetPlansDetailTitle: 'Plan',
@@ -738,6 +736,19 @@ export const Strings = {
     ` under · ${timing}`,
   ],
   budgetPlansHeroOnPace: (timing: string) => [{ strong: onPace }, ` · ${timing}`],
+  budgetPlansHeroPlanned: 'Planned',
+  budgetPlansHeroUpcomingLine: (days: number, timing: string) => [
+    { strong: days === 1 ? '1 day' : `${days} days` },
+    ` · ${timing}`,
+  ],
+  budgetPlansHeroPerDay: (amount: string) => [{ strong: `${amount} EGP` }, ' a day'],
+  budgetPlansHeroEndedUsedLine: (percent: number, days: number) => [
+    { strong: `${percent}%` },
+    days === 1 ? ' used · 1 day' : ` used · ${days} days`,
+  ],
+  budgetPlansHeroEndedDaysAgo: (days: number) => ['Ended ', { strong: `${days} days` }, ' ago'],
+  budgetPlansHeroEndedYesterday: 'Ended yesterday',
+  budgetPlansHeroWithinLimit: 'Within limit',
   budgetPlansDetailEditAccessibility: 'Edit plan',
   budgetPlansDetailNotFoundTitle: 'This plan is gone',
   budgetPlansDetailNotFoundBody: 'It no longer exists.',
@@ -748,15 +759,12 @@ export const Strings = {
   budgetPlansDetailRetry: 'Try again',
   budgetPlansDetailCategories: 'Category limits',
   budgetPlansDetailLimitsAssigned: (amount: string) => `${amount} assigned`,
-  budgetPlansDetailUnassigned: 'Unassigned plan budget',
-  budgetPlansDetailNoCategoryLimit: 'Included · no category limit',
-  budgetPlansDetailSpent: (amount: string) => `${amount} spent`,
+  budgetPlansDetailNoCategoryLimit: 'No category limit',
+  budgetPlansSpentStatus: 'spent',
+  budgetPlansDetailFlexibleLeft: 'Left in flexible',
+  budgetPlansDetailFlexibleOver: 'Over in flexible',
   budgetPlansDetailBalance: (amount: string, status: string) => `${amount} ${status}`,
   budgetPlansDetailLimitSpentOf: (spent: string, limit: string) => `${spent} of ${limit} spent`,
-  budgetPlansDetailCategoryPressure: (category: string, percentage: number) =>
-    `${category} has used ${percentage}% of its limit`,
-  budgetPlansDetailCategoryOver: (category: string, amount: string) =>
-    `${category} is ${amount} over its limit`,
   budgetPlansDetailCategoryA11y: (name: string, caption: string, balance: string, tag?: string) =>
     `${name}, ${caption}, ${balance}${tag === undefined ? '' : `, ${tag}`}`,
   budgetPlansDetailUnallocatedA11y: (category: string, spent: string) =>
