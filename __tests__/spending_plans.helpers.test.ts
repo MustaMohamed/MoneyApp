@@ -23,7 +23,11 @@ import { computeSpendingPlansSummary } from '@/modules/budget/screens/budget/spe
 import { heroStatusTag } from '@/modules/budget/utils/budget_hero';
 import { budgetBandColor } from '@/modules/budget/utils/budget_summary';
 import type { Category } from '@/modules/categories/entities/category.entity';
-import { formatAmount, formatDisplayAmountParts } from '@/utils/format_amount';
+import {
+  formatAmount,
+  formatCurrencyAmount,
+  formatDisplayAmountParts,
+} from '@/utils/format_amount';
 
 type PlanRow = ReturnType<typeof buildSpendingPlanRows>[number];
 
@@ -553,7 +557,6 @@ describe('spending plan helpers', () => {
       expect.objectContaining({ allocatedAmount: 0, spent: 50, pct: 1, isOver: true }),
     );
     expect(limitRow(row, 'cat_food').tag?.label).toBe(Strings.budgetPlansStatusOver);
-    expect(row.highestPressureCategory?.categoryId).toBe('cat_food');
     expect(row.status).toBe('watch');
   });
 
@@ -612,9 +615,6 @@ describe('spending plan helpers', () => {
         isWarning: false,
       },
     ]);
-    expect(row.highestPressureCategory).toEqual(
-      expect.objectContaining({ categoryId: 'cat_food', pct: 0.8 }),
-    );
     expect(row.cardChips).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -625,7 +625,7 @@ describe('spending plan helpers', () => {
     );
   });
 
-  it('derives a display-ready detail summary, insights, and honest category rows', () => {
+  it('derives honest limit rows and puts the category with no limit on the Flexible card', () => {
     const row = buildSpendingPlanRows({
       plans: [
         planFixture({
@@ -642,31 +642,6 @@ describe('spending plan helpers', () => {
       today: '2026-07-13',
     })[0];
 
-    expect(row.detail).toEqual(
-      expect.objectContaining({
-        dateLabel: 'Jul 8 - Jul 18 · 5 days left',
-        balanceAmountLabel: '4,025',
-        balanceMetaLabel: 'EGP left',
-        spentLabel: '975 / 5,000 spent',
-        percentageLabel: '20% used',
-        elapsedMarkerPercentage: 55,
-        metrics: [
-          { label: 'Budget used', value: '20%' },
-          { label: 'Time elapsed', value: '55%' },
-          { label: 'Assigned', value: '1,000' },
-          { label: 'Flexible', value: '4,000' },
-        ],
-        insights: [
-          expect.objectContaining({ label: '35 pts under pace' }),
-          expect.objectContaining({ label: 'Food has used 85% of its limit' }),
-        ],
-        flexibleRow: {
-          label: 'Flexible',
-          amountLabel: '4,000 EGP',
-          supportingLabel: 'Unassigned plan budget',
-        },
-      }),
-    );
     expect(limitRows(row)).toEqual([
       expect.objectContaining({
         categoryId: 'cat_food',
@@ -681,67 +656,19 @@ describe('spending plan helpers', () => {
         tag: expect.objectContaining({ label: Strings.budgetPlansStatusWatch }),
       }),
     ]);
-    expect(row.detail.categoryRows).toEqual([
+    const flexibleRows = row.detail.flexibleCard?.rows ?? [];
+    expect(flexibleRows).toEqual([
       expect.objectContaining({
         categoryId: 'cat_travel',
         kind: 'unallocated',
         categoryName: 'Travel',
-        amountLabel: Strings.budgetPlansDetailSpent(formatAmount(125)),
+        amountLabel: formatAmount(125),
         supportingLabel: Strings.budgetPlansDetailNoCategoryLimit,
       }),
     ]);
-    for (const field of ['pct', 'balanceLabel', 'progressColor', 'tag', 'tileFill']) {
-      expect(row.detail.categoryRows[0]).not.toHaveProperty(field);
+    for (const field of ['pct', 'progressColor', 'tag']) {
+      expect(flexibleRows[0]).not.toHaveProperty(field);
     }
-  });
-
-  it('limits detail insights and omits the elapsed marker outside active plans', () => {
-    const [upcoming, completed] = buildSpendingPlanRows({
-      plans: [
-        planFixture({
-          id: 'upcoming_detail',
-          startDate: '2026-07-18',
-          endDate: '2026-07-21',
-          categoryRows: [
-            {
-              plan_id: 'upcoming_detail',
-              category_id: 'cat_food',
-              allocated_amount: 1000,
-            },
-          ],
-        }),
-        planFixture({
-          id: 'completed_detail',
-          startDate: '2026-07-01',
-          endDate: '2026-07-12',
-          totalAmount: 1000,
-          categoryRows: [
-            {
-              plan_id: 'completed_detail',
-              category_id: 'cat_food',
-              allocated_amount: 1000,
-            },
-          ],
-        }),
-      ],
-      categories,
-      spendByPlanId: {
-        upcoming_detail: { cat_food: 900 },
-        completed_detail: { cat_food: 800 },
-      },
-      selectedMonth: '2026-07',
-      today: '2026-07-13',
-    });
-
-    expect(upcoming.detail).not.toHaveProperty('elapsedMarkerPercentage');
-    expect(upcoming.detail.metrics[1]).toEqual({ label: 'Time elapsed', value: '0%' });
-    expect(upcoming.detail.insights).toHaveLength(1);
-    expect(completed.detail).not.toHaveProperty('elapsedMarkerPercentage');
-    expect(completed.detail.metrics[1]).toEqual({ label: 'Time elapsed', value: '100%' });
-    expect(completed.detail.insights).toEqual([
-      expect.objectContaining({ label: '200 left at finish' }),
-      expect.objectContaining({ label: 'Food has used 80% of its limit' }),
-    ]);
   });
 
   it('summarizes itemization, lifecycle, status, and attention counts', () => {
@@ -1040,7 +967,7 @@ describe('a spend that ties its plan or its allocation to the cent is not over (
 });
 
 // 0.8 - (0.7 + 0.1) is 1.1102230246251565e-16 and 0.3 - (0.1 + 0.2) is -5.551115123125783e-17.
-describe('a plan buffer under half a cent draws no flexible row (MA-158)', () => {
+describe('a plan buffer under half a cent draws no Flexible card (MA-158)', () => {
   const build = (totalAmount: number, first: number, second: number) =>
     buildSpendingPlanRows({
       plans: [
@@ -1062,20 +989,19 @@ describe('a plan buffer under half a cent draws no flexible row (MA-158)', () =>
     { side: 'above', totalAmount: 0.8, first: 0.7, second: 0.1 },
     { side: 'below', totalAmount: 0.3, first: 0.1, second: 0.2 },
   ])(
-    'reads a buffer one float step $side zero as zero, with no flexible row',
+    'reads a buffer one float step $side zero as zero, with no Flexible card',
     ({ totalAmount, first, second }) => {
       const row = build(totalAmount, first, second);
 
-      expect(row.detail.flexibleRow).toBeUndefined();
+      expect(row.detail).not.toHaveProperty('flexibleCard');
       expect(Object.is(row.buffer, 0)).toBe(true);
     },
   );
 
-  it('keeps the flexible row for a buffer of 0.01', () => {
-    expect(build(0.8, 0.7, 0.09).detail.flexibleRow).toEqual({
-      label: Strings.budgetPlansDetailFlexible,
-      amountLabel: '0 EGP',
-      supportingLabel: Strings.budgetPlansDetailUnassigned,
+  it('keeps the Flexible card for a buffer of 0.01', () => {
+    expect(build(0.8, 0.7, 0.09).detail.flexibleCard).toMatchObject({
+      amountLabel: formatCurrencyAmount(0.01, Currency.EGP),
+      rows: [],
     });
   });
 });
@@ -1123,37 +1049,25 @@ describe('plan percents round a half up, the pace line rounds the exact gap, and
       today: '2026-07-03',
       spent,
     });
-    const insight = row.detail.insights.find((item) => item.key === 'pace');
-    return { paceLabel: row.card.paceLabel, insightLabel: insight?.label, color: insight?.color };
+    return row.card.paceLabel;
   };
 
   it('a plan of 1,000 on day 3 of 30 reads 1 pts under pace at 95 spent and 1 pts ahead of pace at 105', () => {
     const under = Strings.budgetPlansPaceUnder(1);
     const ahead = Strings.budgetPlansPaceAhead(1);
 
-    expect(onDayThreeOfThirty(95)).toMatchObject({ paceLabel: under, insightLabel: under });
-    expect(onDayThreeOfThirty(105)).toEqual({
-      paceLabel: ahead,
-      insightLabel: ahead,
-      color: Colors.dark.warning,
-    });
+    expect(onDayThreeOfThirty(95)).toBe(under);
+    expect(onDayThreeOfThirty(105)).toBe(ahead);
   });
 
-  it('a pace gap whose size rounds to 0 reads On pace in the even-pace colour: 104 spent on day 3 of 30', () => {
-    expect(onDayThreeOfThirty(104)).toEqual({
-      paceLabel: Strings.budgetPlansPaceEven,
-      insightLabel: Strings.budgetPlansPaceEven,
-      color: Colors.dark.positive,
-    });
+  it('a pace gap whose size rounds to 0 reads On pace: 104 spent on day 3 of 30', () => {
+    expect(onDayThreeOfThirty(104)).toBe(Strings.budgetPlansPaceEven);
   });
 
-  it('a plan of 1,000 with 145 spent reads 15% used on the card and 15% in Budget used', () => {
+  it('a plan of 1,000 with 145 spent reads 15% used on the card', () => {
     const { row } = build({ spent: 145 });
 
-    expect({ card: row.card.percentageLabel, budgetUsed: row.detail.metrics[0] }).toEqual({
-      card: Strings.budgetPlansSummaryUsed(15),
-      budgetUsed: { label: Strings.budgetPlansDetailBudgetUsed, value: '15%' },
-    });
+    expect(row.card.percentageLabel).toBe(Strings.budgetPlansSummaryUsed(15));
   });
 
   it('the Plans summary reads 15 used and 15 itemized for one plan of 1,000 with 145 spent and 145 allocated', () => {
@@ -1163,7 +1077,7 @@ describe('plan percents round a half up, the pace line rounds the exact gap, and
   });
 
   // 23 days of 40 is 57.49999999999999 in floating point.
-  it('the elapsed marker sits at the whole percent the detail prints as Time elapsed: day 23 of 40 is 58', () => {
+  it('the elapsed marker sits at the whole percent: day 23 of 40 is 58', () => {
     const { row } = build({
       startDate: '2026-07-01',
       endDate: '2026-08-09',
@@ -1171,13 +1085,7 @@ describe('plan percents round a half up, the pace line rounds the exact gap, and
       spent: 0,
     });
 
-    expect({
-      marker: row.card.elapsedMarkerPercentage,
-      timeElapsed: row.detail.metrics[1],
-    }).toEqual({
-      marker: 58,
-      timeElapsed: { label: Strings.budgetPlansDetailTimeElapsed, value: '58%' },
-    });
+    expect(row.card.elapsedMarkerPercentage).toBe(58);
   });
 
   it('an allocation of 200 with 29 spent reads 15% on the chip and in its accessibility label, and the limit row reads its caption and balance, and a zero allocation with 50 spent reads Over', () => {
@@ -1208,11 +1116,11 @@ describe('plan percents round a half up, the pace line rounds the exact gap, and
   });
 
   // 844.9 + 0.05 + 0.05 is 844.9999999999999, which a float quotient prints as 84.
-  it('an allocation of 1,000 with a float sum of 845 spent reads 85% in the pressure insight', () => {
-    const { row } = build({ totalAmount: 5000, allocated: 1000, spent: 844.9 + 0.05 + 0.05 });
+  it('a plan of 1,000 with a float sum of 845 spent reads 85% used on the hero', () => {
+    const { row } = build({ spent: 844.9 + 0.05 + 0.05 });
 
-    expect(row.detail.insights.find((item) => item.key === 'category')?.label).toBe(
-      Strings.budgetPlansDetailCategoryPressure('Food', 85),
+    expect(row.detail.hero?.caption).toEqual(
+      Strings.budgetPlansHeroUsedLine(85, row.timing.elapsedDays, row.timing.totalDays),
     );
   });
 
@@ -1292,7 +1200,7 @@ describe('plan detail draws a Category limits card (MA-326)', () => {
 
     expect(card?.assignedLabel).toBe(Strings.budgetPlansDetailLimitsAssigned(formatAmount(3000)));
     expect(limitRows(row).map((item) => item.categoryId)).toEqual(['cat_travel', 'cat_food']);
-    expect(row.detail.categoryRows.map((item) => item.categoryId)).toEqual(['cat_home']);
+    expect(row.detail.flexibleCard?.rows.map((item) => item.categoryId)).toEqual(['cat_home']);
 
     const caption = Strings.budgetPlansDetailLimitSpentOf(formatAmount(1750), formatAmount(2000));
     const travel = limitRow(row, 'cat_travel');
@@ -1332,7 +1240,7 @@ describe('plan detail draws a Category limits card (MA-326)', () => {
     const limited = build({ limits: { cat_food: 1000, cat_travel: null }, spend });
 
     expect(unlimited.detail).not.toHaveProperty('limitsCard');
-    expect(unlimited.detail.categoryRows).toHaveLength(2);
+    expect(unlimited.detail.flexibleCard?.rows).toHaveLength(2);
     expect(limitRows(limited).map((item) => item.categoryId)).toEqual(['cat_food']);
   });
 
@@ -1399,14 +1307,16 @@ describe('plan detail draws a Category limits card (MA-326)', () => {
 
   it("moves an active plan's today tick with the day, each day's at its elapsed marker", () => {
     const onDay = (today: string) =>
-      build({ today, limits: { cat_food: 1000 }, spend: { cat_food: 300 } }).detail;
+      build({ today, limits: { cat_food: 1000 }, spend: { cat_food: 300 } });
     const first = onDay('2026-07-13');
     const second = onDay('2026-07-14');
 
-    expect(first.limitsCard?.tickPercentage).toBeDefined();
-    expect(first.limitsCard?.tickPercentage).toBe(first.elapsedMarkerPercentage);
-    expect(second.limitsCard?.tickPercentage).toBe(second.elapsedMarkerPercentage);
-    expect(second.limitsCard?.tickPercentage).not.toBe(first.limitsCard?.tickPercentage);
+    expect(first.detail.limitsCard?.tickPercentage).toBeDefined();
+    expect(first.detail.limitsCard?.tickPercentage).toBe(first.card.elapsedMarkerPercentage);
+    expect(second.detail.limitsCard?.tickPercentage).toBe(second.card.elapsedMarkerPercentage);
+    expect(second.detail.limitsCard?.tickPercentage).not.toBe(
+      first.detail.limitsCard?.tickPercentage,
+    );
   });
 });
 
@@ -1619,13 +1529,454 @@ describe('an active plan draws the D2 hero (MA-331)', () => {
     expect(hero.caption).toEqual(Strings.budgetPlansHeroUsedLine(100, 3, 4));
   });
 
-  it('only an active plan carries the hero; upcoming and ended plans keep the card', () => {
+  it('every lifecycle carries the hero', () => {
     const heroDrawn = (today: string) => build({ today }).detail.hero !== undefined;
 
     expect({
       upcoming: heroDrawn('2026-11-10'),
       active: heroDrawn('2026-11-14'),
       ended: heroDrawn('2026-11-20'),
-    }).toEqual({ upcoming: false, active: true, ended: false });
+    }).toEqual({ upcoming: true, active: true, ended: true });
+  });
+});
+
+const ma327Categories: Category[] = [
+  ...categories,
+  { ...categories[0], id: 'cat_home', name: 'Home', icon: 'home', sort_order: 3 },
+  {
+    ...categories[0],
+    id: 'cat_groceries',
+    name: 'Groceries',
+    icon: 'cart',
+    color: '#33AA55',
+    sort_order: 4,
+  },
+  {
+    ...categories[0],
+    id: 'cat_shopping',
+    name: 'Shopping',
+    icon: 'shopping',
+    color: '#AA55FF',
+    sort_order: 5,
+  },
+  {
+    ...categories[0],
+    id: 'cat_utilities',
+    name: 'Utilities',
+    icon: 'flash',
+    color: '#FFCC00',
+    sort_order: 6,
+  },
+  { ...categories[0], id: 'cat_dusk', name: 'Dusk', icon: 'weather-night', color: '#2A3A4F' },
+];
+
+function buildMa327Row({
+  startDate = '2026-07-08',
+  endDate = '2026-07-18',
+  today = '2026-07-13',
+  totalAmount = 5000,
+  limits,
+  spend,
+}: {
+  startDate?: string;
+  endDate?: string;
+  today?: string;
+  totalAmount?: number;
+  limits: Record<string, number | null>;
+  spend: Record<string, number>;
+}): PlanRow {
+  return buildSpendingPlanRows({
+    plans: [
+      planFixture({
+        startDate,
+        endDate,
+        totalAmount,
+        categoryRows: Object.entries(limits).map(([categoryId, allocated]) => ({
+          plan_id: 'plan_trip',
+          category_id: categoryId,
+          allocated_amount: allocated,
+        })),
+      }),
+    ],
+    categories: ma327Categories,
+    spendByPlanId: { plan_trip: spend },
+    selectedMonth: startDate.slice(0, 7),
+    today,
+  })[0];
+}
+
+describe('upcoming and ended plans draw their heroes (MA-327)', () => {
+  function heroOf(row: PlanRow) {
+    const hero = row.detail.hero;
+    if (hero === undefined) throw new Error('Expected the hero');
+    return hero;
+  }
+
+  const s18 = (today = '2026-11-14') =>
+    heroOf(
+      buildMa327Row({
+        startDate: '2026-11-16',
+        endDate: '2026-11-22',
+        today,
+        totalAmount: 3500,
+        limits: { cat_home: null },
+        spend: {},
+      }),
+    );
+
+  const ended = (spent: number, today = '2026-11-14') =>
+    heroOf(
+      buildMa327Row({
+        startDate: '2026-11-01',
+        endDate: '2026-11-05',
+        today,
+        totalAmount: 2000,
+        limits: { cat_home: null },
+        spend: { cat_home: spent },
+      }),
+    );
+
+  it('frame S18: Planned over the total, the grey track at 0, the day count, the start and the per-day amount', () => {
+    const hero = s18();
+
+    expect(hero.tag).toEqual(
+      heroStatusTag(Strings.budgetPlansStatusUpcoming, 'calendar-outline', Colors.dark.text2),
+    );
+    expect(hero.tag?.badgeLabel).toBe(Strings.budgetPlansStatusUpcoming);
+    expect(hero.overline).toBe(Strings.budgetPlansHeroPlanned);
+    expect(hero.amountValue).toBe('3,500');
+    expect(hero.amountColor).toBe(CoreTokens.text1);
+    expect(hero.figures).toEqual([
+      { label: Strings.budgetPlansDetailAssigned, value: formatAmount(0) },
+      { label: Strings.budgetPlansDetailFlexible, value: formatAmount(3500) },
+      { label: Strings.budgetPlansSummarySpent, value: formatAmount(0) },
+    ]);
+    expect(hero.bar).toEqual({ share: 0, color: Colors.dark.text2 });
+    expect(hero.bar).not.toHaveProperty('tickShare');
+    expect(hero.caption).toEqual(
+      Strings.budgetPlansHeroUpcomingLine(7, Strings.budgetPlansStartsInDays(2)),
+    );
+    expect(hero.captionEnd).toEqual(Strings.budgetPlansHeroPerDay('500'));
+  });
+
+  it('the S18 plan seen the day before it starts reads starts tomorrow', () => {
+    expect(s18('2026-11-15').caption).toEqual(
+      Strings.budgetPlansHeroUpcomingLine(7, Strings.budgetPlansStartsTomorrow),
+    );
+  });
+
+  it('a one-day upcoming plan seen the day before reads 1 day · starts tomorrow', () => {
+    const hero = heroOf(
+      buildMa327Row({
+        startDate: '2026-11-16',
+        endDate: '2026-11-16',
+        today: '2026-11-15',
+        totalAmount: 500,
+        limits: { cat_home: null },
+        spend: {},
+      }),
+    );
+
+    expect(hero.caption).toEqual(
+      Strings.budgetPlansHeroUpcomingLine(1, Strings.budgetPlansStartsTomorrow),
+    );
+    expect(hero.caption).not.toEqual(
+      Strings.budgetPlansHeroUpcomingLine(2, Strings.budgetPlansStartsTomorrow),
+    );
+  });
+
+  it('a one-day ended plan reads its percent used over 1 day', () => {
+    const hero = heroOf(
+      buildMa327Row({
+        startDate: '2026-11-10',
+        endDate: '2026-11-10',
+        today: '2026-11-14',
+        totalAmount: 1000,
+        limits: { cat_home: null },
+        spend: { cat_home: 500 },
+      }),
+    );
+
+    expect(hero.caption).toEqual(Strings.budgetPlansHeroEndedUsedLine(50, 1));
+    expect(hero.caption).not.toEqual(Strings.budgetPlansHeroEndedUsedLine(50, 2));
+  });
+
+  it.each([
+    ['across the leap day', '2028-03-01', '2028-03-03', '2028-02-28', 'starts in 2 days'],
+    ['across a 30-day month end', '2026-12-01', '2026-12-03', '2026-11-30', 'starts tomorrow'],
+    ['across a 31-day month end', '2026-11-01', '2026-11-03', '2026-10-31', 'starts tomorrow'],
+  ])('counts the start %s', (_case, startDate, endDate, today, expected) => {
+    const hero = heroOf(
+      buildMa327Row({
+        startDate,
+        endDate,
+        today,
+        totalAmount: 900,
+        limits: { cat_home: null },
+        spend: {},
+      }),
+    );
+    const timing =
+      expected === 'starts tomorrow'
+        ? Strings.budgetPlansStartsTomorrow
+        : Strings.budgetPlansStartsInDays(2);
+
+    expect(hero.caption).toEqual(Strings.budgetPlansHeroUpcomingLine(3, timing));
+  });
+
+  it('frame S19: an ended plan over its total reads Over by, a full over bar with no tick, 113% over 5 days, ended 9 days ago and Over', () => {
+    const hero = ended(2260);
+
+    expect(hero.overline).toBe(Strings.budgetPlansHeroOverBy);
+    expect(hero.amountColor).toBe(Colors.dark.negative);
+    expect(hero.bar).toEqual({ share: 1, color: Colors.dark.budgetOver });
+    expect(hero.bar).not.toHaveProperty('tickShare');
+    expect(hero.caption).toEqual(Strings.budgetPlansHeroEndedUsedLine(113, 5));
+    expect(hero.captionEnd).toEqual(Strings.budgetPlansHeroEndedDaysAgo(9));
+    expect(hero.tag).toEqual(
+      heroStatusTag(Strings.budgetPlansStatusOver, 'alert-circle', Colors.dark.negative),
+    );
+  });
+
+  it('frame S29: an ended plan within its total keeps Left of, its band colour and the Within limit tag', () => {
+    const hero = ended(1480);
+
+    expect(hero.overline).toBe(Strings.budgetPlansHeroLeftOf(formatAmount(2000)));
+    expect(hero.amountColor).toBe(CoreTokens.text1);
+    expect(hero.tag).toEqual(
+      heroStatusTag(Strings.budgetPlansHeroWithinLimit, 'check-circle', Colors.dark.positive),
+    );
+    expect(hero.tag?.badgeLabel).toBe(Strings.budgetPlansHeroWithinLimit);
+    expect(hero.bar?.share).toBeCloseTo(0.74);
+    expect(hero.bar?.color).toBe(budgetBandColor(1480, 2000));
+    expect(hero.bar).not.toHaveProperty('tickShare');
+    expect(hero.caption).toEqual(Strings.budgetPlansHeroEndedUsedLine(74, 5));
+  });
+
+  it('an ended plan seen the day after its end reads Ended yesterday', () => {
+    expect(ended(1480, '2026-11-06').captionEnd).toBe(Strings.budgetPlansHeroEndedYesterday);
+  });
+
+  it('open across midnight: the S18 start count and the S19 days since recompute for the new day', () => {
+    expect(s18('2026-11-14').caption).toEqual(
+      Strings.budgetPlansHeroUpcomingLine(7, Strings.budgetPlansStartsInDays(2)),
+    );
+    expect(s18('2026-11-15').caption).toEqual(
+      Strings.budgetPlansHeroUpcomingLine(7, Strings.budgetPlansStartsTomorrow),
+    );
+    expect(ended(2260, '2026-11-14').captionEnd).toEqual(Strings.budgetPlansHeroEndedDaysAgo(9));
+    expect(ended(2260, '2026-11-15').captionEnd).toEqual(Strings.budgetPlansHeroEndedDaysAgo(10));
+  });
+});
+
+describe('plan detail draws the Flexible card (MA-327)', () => {
+  function flexibleCardOf(row: PlanRow) {
+    const card = row.detail.flexibleCard;
+    if (card === undefined) throw new Error('Expected a Flexible card');
+    return card;
+  }
+
+  const upcomingDates = { startDate: '2026-07-18', endDate: '2026-07-21', today: '2026-07-13' };
+
+  it('frame D2: the flexible amount, the category with no limit and its spending, and what is left', () => {
+    const card = flexibleCardOf(
+      buildMa327Row({
+        limits: { cat_travel: 2000, cat_food: 1000, cat_shopping: null },
+        spend: { cat_travel: 1750, cat_food: 650, cat_shopping: 1500 },
+      }),
+    );
+
+    expect(card.amountLabel).toBe(formatCurrencyAmount(2000, Currency.EGP));
+    expect(card.rows).toHaveLength(1);
+    expect(card.rows[0]).toMatchObject({
+      kind: 'unallocated',
+      categoryId: 'cat_shopping',
+      categoryName: 'Shopping',
+      amountLabel: formatAmount(1500),
+      amountCode: CURRENCY_CONFIG[Currency.EGP].code,
+      supportingLabel: Strings.budgetPlansDetailNoCategoryLimit,
+      balanceLabel: Strings.budgetPlansSpentStatus,
+      balanceColor: Colors.dark.text2,
+      ...resolveCategoryTileColors('#AA55FF'),
+    });
+    expect(card.footer).toEqual({
+      label: Strings.budgetPlansDetailFlexibleLeft,
+      amountLabel: formatAmount(500),
+      amountColor: CoreTokens.text1,
+    });
+  });
+
+  it('frame S19: rows run by spending, largest first, and spending past the flexible amount reads Over in flexible', () => {
+    const card = flexibleCardOf(
+      buildMa327Row({
+        startDate: '2026-11-01',
+        endDate: '2026-11-05',
+        today: '2026-11-14',
+        totalAmount: 2000,
+        limits: { cat_utilities: null, cat_food: 1200, cat_shopping: null, cat_groceries: null },
+        spend: { cat_food: 1280, cat_groceries: 420, cat_shopping: 360, cat_utilities: 200 },
+      }),
+    );
+
+    expect(card.rows.map((row) => row.categoryName)).toEqual([
+      'Groceries',
+      'Shopping',
+      'Utilities',
+    ]);
+    expect(card.footer).toEqual({
+      label: Strings.budgetPlansDetailFlexibleOver,
+      amountLabel: formatAmount(180),
+      amountColor: Colors.dark.negative,
+    });
+  });
+
+  it('orders equal spending by name', () => {
+    const card = flexibleCardOf(
+      buildMa327Row({
+        limits: { cat_utilities: null, cat_shopping: null, cat_groceries: null, cat_food: null },
+        spend: { cat_utilities: 300, cat_shopping: 300, cat_groceries: 300, cat_food: 500 },
+      }),
+    );
+
+    expect(card.rows.map((row) => row.categoryName)).toEqual([
+      'Food',
+      'Groceries',
+      'Shopping',
+      'Utilities',
+    ]);
+  });
+
+  it('frame S30: a flexible amount of 0 with spending in a category with no limit reads Over in flexible', () => {
+    const card = flexibleCardOf(
+      buildMa327Row({
+        totalAmount: 3000,
+        limits: { cat_food: 2000, cat_travel: 1000, cat_shopping: null },
+        spend: { cat_shopping: 300 },
+      }),
+    );
+
+    expect(card.amountLabel).toBe(formatCurrencyAmount(0, Currency.EGP));
+    expect(card.footer).toEqual({
+      label: Strings.budgetPlansDetailFlexibleOver,
+      amountLabel: formatAmount(300),
+      amountColor: Colors.dark.negative,
+    });
+  });
+
+  it('a plan with a flexible amount of 0 and every category limited has no flexibleCard key, and with one category with no limit a card', () => {
+    const limited = buildMa327Row({
+      totalAmount: 3000,
+      limits: { cat_food: 2000, cat_travel: 1000 },
+      spend: { cat_food: 500 },
+    });
+    const withUnlimited = buildMa327Row({
+      totalAmount: 3000,
+      limits: { cat_food: 2000, cat_travel: 1000, cat_shopping: null },
+      spend: { cat_food: 500 },
+    });
+
+    expect(limited.detail).not.toHaveProperty('flexibleCard');
+    expect(withUnlimited.detail).toHaveProperty('flexibleCard');
+  });
+
+  it('with every category limited and 2,000 flexible the card has no rows and the Left in flexible line', () => {
+    const card = flexibleCardOf(
+      buildMa327Row({
+        limits: { cat_food: 2000, cat_travel: 1000 },
+        spend: { cat_food: 500 },
+      }),
+    );
+
+    expect(card.rows).toEqual([]);
+    expect(card.footer).toEqual({
+      label: Strings.budgetPlansDetailFlexibleLeft,
+      amountLabel: formatAmount(2000),
+      amountColor: CoreTokens.text1,
+    });
+  });
+
+  it('an upcoming plan with a category with no limit lists its rows with no footer key', () => {
+    const card = flexibleCardOf(
+      buildMa327Row({
+        ...upcomingDates,
+        limits: { cat_food: 1000, cat_shopping: null },
+        spend: {},
+      }),
+    );
+
+    expect(card.rows.map((row) => row.categoryId)).toEqual(['cat_shopping']);
+    expect(card).not.toHaveProperty('footer');
+  });
+
+  it('an upcoming plan with every category limited shows Left in flexible at the whole flexible amount', () => {
+    const card = flexibleCardOf(
+      buildMa327Row({
+        ...upcomingDates,
+        limits: { cat_food: 2000, cat_travel: 1000 },
+        spend: {},
+      }),
+    );
+
+    expect(card.amountLabel).toBe(formatCurrencyAmount(2000, Currency.EGP));
+    expect(card.rows).toEqual([]);
+    expect(card.footer).toEqual({
+      label: Strings.budgetPlansDetailFlexibleLeft,
+      amountLabel: formatAmount(2000),
+      amountColor: CoreTokens.text1,
+    });
+  });
+
+  it('decides over to the cent: 1,000.01 against 1,000 is Over, 0.1 + 0.2 against 0.3 is Left', () => {
+    const overByACent = flexibleCardOf(
+      buildMa327Row({
+        totalAmount: 3000,
+        limits: { cat_food: 2000, cat_shopping: null },
+        spend: { cat_shopping: 1000.01 },
+      }),
+    );
+    const floatTie = flexibleCardOf(
+      buildMa327Row({
+        totalAmount: 0.3,
+        limits: { cat_shopping: null },
+        spend: { cat_shopping: 0.1 + 0.2 },
+      }),
+    );
+
+    expect(overByACent.footer).toMatchObject({
+      label: Strings.budgetPlansDetailFlexibleOver,
+      amountColor: Colors.dark.negative,
+    });
+    expect(floatTie.footer).toMatchObject({
+      label: Strings.budgetPlansDetailFlexibleLeft,
+      amountColor: CoreTokens.text1,
+    });
+  });
+
+  it('clamps a negative buffer to a 0 header', () => {
+    const card = flexibleCardOf(
+      buildMa327Row({
+        totalAmount: 1000,
+        limits: { cat_food: 1500, cat_shopping: null },
+        spend: { cat_shopping: 100 },
+      }),
+    );
+
+    expect(card.amountLabel).toBe(formatCurrencyAmount(0, Currency.EGP));
+    expect(card.footer).toEqual({
+      label: Strings.budgetPlansDetailFlexibleOver,
+      amountLabel: formatAmount(100),
+      amountColor: Colors.dark.negative,
+    });
+  });
+
+  it('gives a category coloured near the surface a glyph that clears 3:1 on its tile', () => {
+    const [row] = flexibleCardOf(
+      buildMa327Row({ limits: { cat_dusk: null }, spend: { cat_dusk: 50 } }),
+    ).rows;
+
+    expect(row.tileFill).toBe(resolveCategoryTileColors('#2A3A4F').tileFill);
+    expect(contrastRatio(row.glyphColor, row.tileFill)).toBeGreaterThanOrEqual(
+      NON_TEXT_MIN_CONTRAST_RATIO,
+    );
   });
 });

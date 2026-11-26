@@ -4,6 +4,7 @@ import { Size, Type } from '@/constants/theme';
 import {
   countSpendingPlanFaults,
   formatLimitsFigure,
+  formatPlanDailyAmount,
   formatPlanCategoriesValue,
   resolveAllocationSlotMinHeight,
   resolveAllocationSlotWidth,
@@ -388,4 +389,21 @@ describe('resolvePlanFooterLine', () => {
       ),
     ).toBe(overLine);
   });
+});
+
+describe('formatPlanDailyAmount (MA-327)', () => {
+  it.each<[number, string, string, number, string]>([
+    [3500, '2026-11-16', '2026-11-22', 7, '500'],
+    [1000, '2026-11-12', '2026-11-14', 3, '333'],
+    [1, '2026-11-12', '2026-11-14', 3, '0.33'],
+  ])(
+    'prints %p over the span unrounded before the formatter, as the daily line does',
+    (total, start, end, days, expected) => {
+      const amount = formatPlanDailyAmount(total, days);
+      expect(amount).toBe(expected);
+      expect(resolvePlanDailyLine(total, start, end)).toBe(
+        Strings.budgetPlanDailyLine(days, amount),
+      );
+    },
+  );
 });

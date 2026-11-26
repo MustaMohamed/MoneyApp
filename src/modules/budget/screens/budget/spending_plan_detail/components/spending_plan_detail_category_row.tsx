@@ -6,18 +6,13 @@ import { StatusBadge } from '@/components/ui/status_badge';
 import { Text } from '@/components/ui/text';
 import {
   resolveLoneWordLines,
-  resolveOneLineTextProps,
   resolveRowStacking,
   resolveUncappedLinesAboveOne,
-  scaledTextStyleAboveOne,
 } from '@/components/ui/text_scale.geometry';
 import { Radius, Size, Spacing, Type, lineHeightFor, withAlpha } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 import { BudgetBar } from '@/modules/budget/screens/budget/components/budget_bar';
-import type {
-  SpendingPlanDetailCategoryRowVM,
-  SpendingPlanDetailLimitRowVM,
-} from '@/modules/budget/screens/budget/spending_plans.types';
+import type { SpendingPlanDetailCategoryRowVM } from '@/modules/budget/screens/budget/spending_plans.types';
 import { toIconName } from '@/utils/icon_name_guard';
 
 interface Props {
@@ -47,17 +42,23 @@ const tickAt = (percent: number): ViewStyle => ({
   transform: [{ translateX: (-TICK_WIDTH * percent) / 100 }],
 });
 
-function LimitRow({ row, tickPercentage }: Props & { row: SpendingPlanDetailLimitRowVM }) {
+// D2 `.bg-row.sm`: a row with no limit pads 8 dp top and bottom and has no bar, so no min height.
+export function SpendingPlanDetailCategoryRow({ row, tickPercentage }: Props) {
   const { fontScale } = useWindowDimensions();
   const stacked = resolveRowStacking(fontScale) === 'stacked';
   const lines = resolveUncappedLinesAboveOne(1, fontScale);
+  const allocated = row.kind === 'allocated';
   return (
     <View
       accessible
       accessibilityRole="text"
       accessibilityLabel={row.accessibilityLabel}
-      style={{ flexDirection: 'row', gap: Spacing.sm, minHeight: Size.spendingPlanLimitRowHeight }}
-      className="items-center px-4 py-2.5"
+      style={{
+        flexDirection: 'row',
+        gap: Spacing.sm,
+        ...(allocated ? { minHeight: Size.spendingPlanLimitRowHeight } : {}),
+      }}
+      className={allocated ? 'items-center px-4 py-2.5' : 'items-center px-4 py-2'}
     >
       <View
         className="items-center justify-center"
@@ -89,7 +90,7 @@ function LimitRow({ row, tickPercentage }: Props & { row: SpendingPlanDetailLimi
             >
               {row.categoryName}
             </Text>
-            {row.tag ? <StatusBadge {...row.tag} size="xs" /> : null}
+            {allocated && row.tag ? <StatusBadge {...row.tag} size="xs" /> : null}
           </View>
           <Text
             className="font-inter text-content-secondary mt-0.5"
@@ -98,22 +99,24 @@ function LimitRow({ row, tickPercentage }: Props & { row: SpendingPlanDetailLimi
           >
             {row.supportingLabel}
           </Text>
-          <View>
-            <BudgetBar
-              pct={row.pct}
-              status="under"
-              color={row.progressColor}
-              height={Size.spendingPlanLimitTrack}
-            />
-            {tickPercentage === undefined ? null : (
-              <View
-                accessibilityElementsHidden
-                importantForAccessibility="no-hide-descendants"
-                pointerEvents="none"
-                style={[TICK_STYLE, tickAt(tickPercentage)]}
+          {allocated ? (
+            <View>
+              <BudgetBar
+                pct={row.pct}
+                status="under"
+                color={row.progressColor}
+                height={Size.spendingPlanLimitTrack}
               />
-            )}
-          </View>
+              {tickPercentage === undefined ? null : (
+                <View
+                  accessibilityElementsHidden
+                  importantForAccessibility="no-hide-descendants"
+                  pointerEvents="none"
+                  style={[TICK_STYLE, tickAt(tickPercentage)]}
+                />
+              )}
+            </View>
+          ) : null}
         </View>
         <View className="items-end justify-center">
           <View className="items-baseline" style={{ flexDirection: 'row', gap: Spacing.xxs }}>
@@ -128,48 +131,6 @@ function LimitRow({ row, tickPercentage }: Props & { row: SpendingPlanDetailLimi
             {row.balanceLabel}
           </Text>
         </View>
-      </View>
-    </View>
-  );
-}
-
-export function SpendingPlanDetailCategoryRow({ row, tickPercentage }: Props) {
-  const { fontScale } = useWindowDimensions();
-  const statusLines = resolveUncappedLinesAboveOne(1, fontScale);
-  if (row.kind === 'allocated') return <LimitRow row={row} tickPercentage={tickPercentage} />;
-  return (
-    <View
-      accessible
-      accessibilityRole="text"
-      accessibilityLabel={row.accessibilityLabel}
-      className="border-border min-h-[52px] flex-row items-center gap-2 border-b py-1"
-    >
-      <View className="bg-default h-7 w-7 items-center justify-center rounded-full">
-        <MaterialCommunityIcons
-          accessible={false}
-          name={toIconName(row.icon, 'tag-outline')}
-          size={Size.iconXs}
-          color={row.color}
-        />
-      </View>
-
-      <View className="min-w-0 flex-1">
-        <Text
-          className="font-inter-semibold text-foreground text-[15px]"
-          {...resolveOneLineTextProps(scaledTextStyleAboveOne(Type.bodyStrong, fontScale))}
-        >
-          {row.categoryName}
-        </Text>
-        <Text
-          className="font-inter text-content-secondary mt-px text-[11.5px]"
-          numberOfLines={statusLines}
-        >
-          {row.supportingLabel}
-        </Text>
-      </View>
-
-      <View className="items-end">
-        <Text className="font-sora-semibold text-foreground text-[15px]">{row.amountLabel}</Text>
       </View>
     </View>
   );
