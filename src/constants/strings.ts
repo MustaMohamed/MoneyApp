@@ -492,6 +492,11 @@ export const Strings = {
   ) =>
     `${spent} of ${limit} spent · ${percentage}% used${daysLeft === undefined ? '' : ` · ${daysLeft}`}`,
   budgetCategoryDetailStatusWithinLimit: 'Within limit',
+  budgetCategoryDetailBudgetsTitle: 'Budgets',
+  budgetCategoryDetailBudgetSpentOf: (spent: string, limit: string) => `${spent} of ${limit} spent`,
+  budgetCategoryDetailBudgetLeft: 'left',
+  budgetCategoryDetailBudgetOver: 'over',
+  budgetCategoryDetailNoBudgets: (month: string) => `No budgets in ${month}.`,
   budgetAddCategory: 'Add budget',
   amountSuggestionSpentLastMonth: (amount: string) => `${amount} · spent last month`,
   amountSuggestionThreeMonthAverage: (amount: string) => `${amount} · 3-month average`,

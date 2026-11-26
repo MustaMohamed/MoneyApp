@@ -7,6 +7,7 @@ import { BUDGET_GROUP_OPTIONS } from '@/modules/budget/screens/budget/components
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 import { formatAmount, formatDisplayAmountParts } from '@/utils/format_amount';
+import { wholePercent } from '@/utils/money';
 
 // `currentYearMonth` is left unmocked, so `jest.setSystemTime` drives the month.
 
@@ -73,6 +74,7 @@ let categoriesLoadedState: boolean;
 let categoriesLoadErrorState: boolean;
 let budgetRowsState: Budget[];
 let spendByMonthState: Record<string, Record<string, number>>;
+let spendByBudgetIdState: Record<string, number>;
 let budgetLoadedState: boolean;
 let budgetLoadedMonthState: string | undefined;
 let budgetLoadErrorState: boolean;
@@ -98,6 +100,7 @@ function setupStores() {
   categoriesLoadErrorState = false;
   budgetRowsState = [];
   spendByMonthState = {};
+  spendByBudgetIdState = {};
   budgetLoadedState = true;
   budgetLoadedMonthState = '2026-05';
   budgetLoadErrorState = false;
@@ -120,7 +123,7 @@ function setupStores() {
   attachMockSelectorStore(useBudgetStore as jest.Mock, () => ({
     rows: budgetRowsState,
     spendByMonth: spendByMonthState,
-    spendByBudgetId: {},
+    spendByBudgetId: spendByBudgetIdState,
     spendingPlans: [],
     spendingPlanSpendById: {},
     loaded: budgetLoadedState,
@@ -632,5 +635,59 @@ describe('useCategoryDetail — hero', () => {
     const { result } = await renderHook(() => useCategoryDetail());
 
     expect(result.current.state.hero?.badgeLabel).toBe(Strings.budget5030NotGroupedTitle);
+  });
+
+  function homeThenClothes(yearMonth: string) {
+    categoriesState = [category('cat-1')];
+    budgetRowsState = [
+      { ...budget('b-2', 'Home'), effective_from: yearMonth },
+      { ...budget('b-1', 'Clothes'), effective_from: yearMonth },
+    ];
+    spendByMonthState = { 'cat-1': { [yearMonth]: 900 } };
+    spendByBudgetIdState = { 'b-1': 900 };
+  }
+
+  it("hands the screen the month's budgets in store order with the Watch tag in the current month", async () => {
+    jest.setSystemTime(new Date('2026-05-15T12:00:00'));
+    homeThenClothes('2026-05');
+
+    const { result } = await renderHook(() => useCategoryDetail());
+
+    const card = result.current.state.budgetsCard;
+    expect(card?.rows.map((r) => r.id)).toEqual(['b-2', 'b-1']);
+    const clothes = card?.rows.find((r) => r.id === 'b-1');
+    expect(clothes?.usedLabel).toBe(`${wholePercent(900, 1000)}%`);
+    expect(clothes?.tag?.label).toBe(Strings.budgetCategoriesStatusWatch);
+  });
+
+  it('gives a watch-level row no tag in a completed month', async () => {
+    jest.setSystemTime(new Date('2026-05-15T12:00:00'));
+    mockRouteMonth = '2026-04';
+    budgetLoadedMonthState = '2026-04';
+    homeThenClothes('2026-04');
+
+    const { result } = await renderHook(() => useCategoryDetail());
+
+    const clothes = result.current.state.budgetsCard?.rows.find((r) => r.id === 'b-1');
+    expect(clothes).toBeDefined();
+    expect(clothes?.usedLabel).toBe(`${wholePercent(900, 1000)}%`);
+    expect(clothes?.tag).toBeUndefined();
+  });
+
+  it('gives no card while the requested month is loading, and one once it loads', async () => {
+    jest.setSystemTime(new Date('2026-05-15T12:00:00'));
+    mockRouteMonth = '2026-06';
+    homeThenClothes('2026-06');
+    budgetLoadedMonthState = '2026-05';
+
+    const { result, rerender } = await renderHook(() => useCategoryDetail());
+
+    expect(result.current.state.viewState).toBe('loading');
+    expect(result.current.state.budgetsCard).toBeUndefined();
+
+    budgetLoadedMonthState = '2026-06';
+    await rerender(undefined);
+
+    expect(result.current.state.budgetsCard?.count).toBe(2);
   });
 });

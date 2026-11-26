@@ -1,6 +1,6 @@
 import { HERO_GRADIENT_COLORS } from '@/components/ui/hero_gradient';
 import { CURRENCY_CONFIG } from '@/constants/currency';
-import { BudgetGroup, Currency } from '@/constants/enums';
+import { BudgetGroup, CategoryType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
@@ -9,17 +9,22 @@ import {
   NON_TEXT_MIN_CONTRAST_RATIO,
   contrastRatio,
 } from '@/modules/accounts/constants/account_palette';
+import { remainingLabel } from '@/modules/budget/screens/budget/budget.helpers';
 import {
   BUDGET_CATEGORY_DETAIL_LOAD_ERROR_COPY,
   type CategoryDetailViewState,
+  buildCategoryBudgetsCard,
   buildCategoryDetailHero,
   categoryDetailShowsBody,
   resolveCategoryDetailViewState,
 } from '@/modules/budget/screens/budget/category_detail/category_detail.helpers';
 import { BUDGET_GROUP_OPTIONS } from '@/modules/budget/screens/budget/components/set_budget_sheet.helpers';
 import { LIMIT_TAG_FILL_SHARE } from '@/modules/budget/utils/budget_hero';
-import { makeTestCategory } from '@/test_helpers/transaction';
+import { budgetBandColor } from '@/modules/budget/utils/budget_summary';
+import { makeTestBudget, makeTestCategory } from '@/test_helpers/transaction';
 import { formatAmount, formatDisplayAmountParts } from '@/utils/format_amount';
+import { ratioHeldAtTie, wholePercent } from '@/utils/money';
+import { fullMonthName } from '@/utils/year_month';
 
 describe('resolveCategoryDetailViewState', () => {
   it.each([
@@ -288,5 +293,159 @@ describe('buildCategoryDetailHero', () => {
     expect(contrastRatio(hero.tileGlyphColor, hero.tileColor)).toBeGreaterThanOrEqual(
       NON_TEXT_MIN_CONTRAST_RATIO,
     );
+  });
+});
+
+describe('buildCategoryBudgetsCard', () => {
+  const EGP = CURRENCY_CONFIG[Currency.EGP].code;
+  const MONTH = '2026-05';
+  const clothesCategory = makeTestCategory({ id: 'cat-1', name: 'Clothes' });
+  const limitTagColors = (tone: string) =>
+    resolveBadgeColors({
+      tone,
+      backdrop: CoreTokens.surface,
+      fillShare: LIMIT_TAG_FILL_SHARE,
+      inkShare: 1,
+    });
+  const watchTag = () => ({
+    label: Strings.budgetCategoriesStatusWatch,
+    icon: 'trending-up',
+    ...limitTagColors(Colors.dark.gold),
+  });
+  const overTag = () => ({
+    label: Strings.budgetCategoriesStatusOver,
+    icon: 'alert-circle',
+    ...limitTagColors(Colors.dark.negative),
+  });
+  const lifecycles = [
+    ['the current month', MONTH],
+    ['a future month', '2026-04'],
+    ['a completed month', '2026-06'],
+  ] as const;
+
+  function oneBudget(limit: number, spent: number, effectiveFrom = MONTH) {
+    return {
+      budgets: [
+        makeTestBudget({
+          id: 'b1',
+          category_id: 'cat-1',
+          name: 'Clothes',
+          limit_amount: limit,
+          effective_from: effectiveFrom,
+        }),
+      ],
+      spendByMonth: { 'cat-1': { [effectiveFrom]: spent } },
+      spendByBudgetId: { b1: spent },
+    };
+  }
+
+  function build(overrides: Partial<Parameters<typeof buildCategoryBudgetsCard>[0]> = {}) {
+    return buildCategoryBudgetsCard({
+      category: clothesCategory,
+      budgets: [],
+      spendByMonth: {},
+      spendByBudgetId: {},
+      month: MONTH,
+      currentMonth: MONTH,
+      ...overrides,
+    });
+  }
+
+  it("keeps the store's order, not a sort by name or id, and counts the rows", () => {
+    const card = build({
+      budgets: [
+        makeTestBudget({ id: 'b2', category_id: 'cat-1', name: 'Home', effective_from: MONTH }),
+        makeTestBudget({ id: 'b1', category_id: 'cat-1', name: 'Clothes', effective_from: MONTH }),
+      ],
+    });
+
+    expect(card.rows.map((r) => r.id)).toEqual(['b2', 'b1']);
+    expect(card.count).toBe(2);
+    expect(card.emptyLine).toBeUndefined();
+  });
+
+  it('draws an on-track row with no tag, the band colour, the left word and the a11y label', () => {
+    const [row] = build(oneBudget(2000, 900)).rows;
+
+    expect(row.id).toBe('b1');
+    expect(row.name).toBe('Clothes');
+    expect(row.tag).toBeUndefined();
+    expect(row.ringShare).toBe(ratioHeldAtTie(900, 2000));
+    expect(row.ringColor).toBe(budgetBandColor(900, 2000));
+    expect(row.usedLabel).toBe(`${wholePercent(900, 2000)}%`);
+    expect(row.caption).toBe(
+      Strings.budgetCategoryDetailBudgetSpentOf(formatAmount(900), formatAmount(2000)),
+    );
+    expect(row.amountLabel).toBe(formatAmount(1100));
+    expect(row.amountCode).toBe(EGP);
+    expect(row.amountWord).toBe(Strings.budgetCategoryDetailBudgetLeft);
+    expect(row.amountWordColor).toBe(Colors.dark.text2);
+    expect(row.accessibilityLabel).toBe(
+      Strings.budgetCategoriesBudgetA11y(
+        'Clothes',
+        formatAmount(900),
+        formatAmount(2000),
+        wholePercent(900, 2000),
+        formatAmount(1100),
+        remainingLabel(1100).label,
+      ),
+    );
+  });
+
+  it.each([
+    ['the current month', MONTH],
+    ['a future month', '2026-04'],
+  ] as const)('tags a row at 80%% and within its limit Watch in %s', (_name, currentMonth) => {
+    const [row] = build({ ...oneBudget(5000, 4000), currentMonth }).rows;
+
+    expect(row.tag).toEqual(watchTag());
+    expect(row.amountWord).toBe(Strings.budgetCategoryDetailBudgetLeft);
+  });
+
+  it('gives a watch-level row no tag in a completed month', () => {
+    const [row] = build({ ...oneBudget(5000, 4000), currentMonth: '2026-06' }).rows;
+
+    expect(row.tag).toBeUndefined();
+  });
+
+  it.each(lifecycles)(
+    'tags a row over its limit Over with a full ring and the real percent in %s',
+    (_name, currentMonth) => {
+      const [row] = build({ ...oneBudget(5000, 5200), currentMonth }).rows;
+
+      expect(row.tag).toEqual(overTag());
+      expect(row.ringShare).toBe(ratioHeldAtTie(5200, 5000));
+      expect(row.ringColor).toBe(Colors.dark.budgetOver);
+      expect(row.usedLabel).toBe(`${wholePercent(5200, 5000)}%`);
+      expect(row.amountLabel).toBe(formatAmount(200));
+      expect(row.amountWord).toBe(Strings.budgetCategoryDetailBudgetOver);
+      expect(row.amountWordColor).toBe(Colors.dark.negative);
+    },
+  );
+
+  it('decides over to the cent: 0.1 + 0.2 against 0.3 is Watch, not over', () => {
+    const [row] = build(oneBudget(0.3, 0.1 + 0.2)).rows;
+
+    expect(row.tag).toEqual(watchTag());
+    expect(row.amountWord).toBe(Strings.budgetCategoryDetailBudgetLeft);
+    expect(row.amountWordColor).toBe(Colors.dark.text2);
+  });
+
+  it.each([
+    ['budgets only in another month', () => build(oneBudget(2000, 900, '2026-04'))],
+    [
+      'an income category with a budget row',
+      () =>
+        build({
+          ...oneBudget(2000, 900),
+          category: { ...clothesCategory, type: CategoryType.Income },
+        }),
+    ],
+  ] as const)('gives the empty card for %s', (_name, make) => {
+    const card = make();
+
+    expect(card.count).toBe(0);
+    expect(card.rows).toEqual([]);
+    expect(card.emptyLine).toBe(Strings.budgetCategoryDetailNoBudgets(fullMonthName(MONTH)));
   });
 });
