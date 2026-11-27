@@ -5,12 +5,14 @@ import { View } from 'react-native';
 import { BudgetRing } from '@/components/ui/budget_ring';
 import { budgetRingLabelMaxWidth } from '@/components/ui/budget_ring.geometry';
 import { Text } from '@/components/ui/text';
-import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
+import { Size, Type, lineHeightFor } from '@/constants/theme';
 import { BudgetLimitRowBody } from '@/modules/budget/components/budget_limit_row_body';
 import type {
   CategoryBudgetRingRowVM,
   CategoryUnassignedRowVM,
 } from '@/modules/budget/screens/budget/category_detail/category_detail.helpers';
+
+import { CATEGORY_BUDGET_ROW_STYLE } from './category_budget_row.geometry';
 
 const RING_LABEL_MAX_WIDTH = budgetRingLabelMaxWidth(Size.budgetDetailRing, Size.budgetRingStroke);
 
@@ -19,12 +21,6 @@ const RING_LABEL_TEXT = {
   lineHeight: lineHeightFor(Type.compactBadge),
   maxWidth: RING_LABEL_MAX_WIDTH,
   textAlign: 'center' as const,
-};
-
-const ROW_STYLE = {
-  flexDirection: 'row' as const,
-  gap: Spacing.sm,
-  minHeight: Size.budgetDetailRowMinHeight,
 };
 
 function RowShell({
@@ -39,8 +35,7 @@ function RowShell({
       accessible
       accessibilityRole="text"
       accessibilityLabel={accessibilityLabel}
-      style={ROW_STYLE}
-      className="items-center px-4 py-2.5"
+      style={CATEGORY_BUDGET_ROW_STYLE}
     >
       {children}
     </View>
