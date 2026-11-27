@@ -1,4 +1,4 @@
-import { SkeletonGroup } from 'heroui-native';
+import { SkeletonGroup, cn } from 'heroui-native';
 import { View, useWindowDimensions } from 'react-native';
 
 import {
@@ -11,6 +11,7 @@ import {
   DETAIL_HERO_TILE_GAP,
   resolveDetailHeroGeometry,
 } from '@/components/ui/detail_hero.geometry';
+import { DETAIL_ROWS_CARD_MARGIN_TOP } from '@/components/ui/detail_rows_card.geometry';
 import { HeroShell } from '@/components/ui/hero_shell';
 import { ListCard } from '@/components/ui/list_card';
 import { ScreenScroll } from '@/components/ui/screen';
@@ -20,6 +21,22 @@ import {
 } from '@/components/ui/section_header.geometry';
 import { ScaledBar } from '@/components/ui/skeleton_bar';
 import { Radius, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
+
+const SKELETON_BUDGET_ROWS = [0, 1, 2];
+
+const BUDGETS_CARD_STYLE = {
+  borderRadius: Radius.detailCard,
+  marginTop: DETAIL_ROWS_CARD_MARGIN_TOP,
+};
+
+const BUDGET_ROW_STYLE = {
+  flexDirection: 'row' as const,
+  alignItems: 'center' as const,
+  gap: Spacing.sm,
+  minHeight: Size.budgetDetailRowMinHeight,
+};
+
+const BUDGET_RING_STYLE = { width: Size.budgetDetailRing, height: Size.budgetDetailRing };
 
 export function CategoryDetailSkeleton(): React.ReactElement {
   const { fontScale } = useWindowDimensions();
@@ -93,6 +110,40 @@ export function CategoryDetailSkeleton(): React.ReactElement {
                 style={{ height: Size.budgetMonthlyBarMaxHeight }}
               />
             </View>
+          </ListCard>
+          <View
+            style={{
+              marginTop: SECTION_HEADER_MARGIN_TOP,
+              marginBottom: SECTION_HEADER_MARGIN_BOTTOM,
+            }}
+          >
+            <ScaledBar height={lineHeightFor(Type.caption)} className="w-28 rounded-md" />
+          </View>
+          <ListCard style={BUDGETS_CARD_STYLE}>
+            {SKELETON_BUDGET_ROWS.map((index) => (
+              <View
+                key={index}
+                testID="budget-category-detail-skeleton-budget-row"
+                style={BUDGET_ROW_STYLE}
+                className={cn('px-4 py-2.5', index > 0 && 'border-separator border-t')}
+              >
+                <SkeletonGroup.Item className="rounded-full" style={BUDGET_RING_STYLE} />
+                <View style={{ flex: 1 }}>
+                  <ScaledBar height={lineHeightFor(Type.bodyStrong)} className="w-30 rounded-md" />
+                  <ScaledBar
+                    height={lineHeightFor(Type.micro)}
+                    className="mt-0.5 w-22.5 rounded-md"
+                  />
+                </View>
+                <View className="items-end">
+                  <ScaledBar height={lineHeightFor(Type.bodyStrong)} className="w-16 rounded-md" />
+                  <ScaledBar
+                    height={lineHeightFor(Type.micro)}
+                    className="mt-0.5 w-8.5 rounded-md"
+                  />
+                </View>
+              </View>
+            ))}
           </ListCard>
         </View>
       </SkeletonGroup>
