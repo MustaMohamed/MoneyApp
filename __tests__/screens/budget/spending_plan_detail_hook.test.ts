@@ -115,6 +115,7 @@ beforeEach(() => {
 
 afterEach(() => {
   mockOnDayChange = undefined;
+  mockAccountsRead.lookupFailed = false;
   jest.useRealTimers();
   jest.clearAllMocks();
   useSpendingPlanDetailState.getState().reset();
@@ -357,5 +358,28 @@ describe('useSpendingPlanDetail', () => {
       const asked = new Set(mockLoadAccountLookup.mock.calls.flatMap(([ids]) => ids));
       expect(asked).toEqual(new Set(['acc_card', 'acc_cash']));
     });
+  });
+
+  it("MA-305: a failed account lookup over a row's account shows the floating alert, and Try again asks again", async () => {
+    mockLoadAccountLookup.mockRejectedValue(new Error('lookup failed'));
+    mockAccountsRead.lookupFailed = true;
+    mockGetDetails.mockResolvedValue({
+      plan,
+      spend: { cat_food: 1100 },
+      transactions: [fishMarket],
+    });
+    const { result } = await renderHook(() => useSpendingPlanDetail());
+    await act(async () => {
+      mockFocusEffect.mock.calls[0][0]();
+    });
+
+    await waitFor(() => expect(result.current.state.viewState).toBe('refreshErrorWithData'));
+    expect(result.current.state.spendingCard?.rows.map((row) => row.id)).toEqual(['tx_1']);
+    const asked = mockLoadAccountLookup.mock.calls.length;
+
+    await act(async () => result.current.retry());
+
+    expect(mockLoadAccountLookup.mock.calls.length).toBeGreaterThan(asked);
+    expect(mockLoadAccountLookup).toHaveBeenLastCalledWith([fishMarket.account_id]);
   });
 });

@@ -19,7 +19,7 @@ interface Props {
 
 const EMPTY_NOTE_STYLE = { fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) };
 
-export function SpendingPlanSpendingCard({ card, onRowPress }: Props): React.ReactElement {
+export function SpendingPlanDetailSpendingCard({ card, onRowPress }: Props): React.ReactElement {
   return (
     <>
       <SectionHeader

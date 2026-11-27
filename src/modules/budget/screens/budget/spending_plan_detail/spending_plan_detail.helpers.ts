@@ -113,12 +113,16 @@ function planSpendingRow(
   };
 }
 
-function planSpendingEmptyNote(plan: PlanSpendingCardInput['plan'], today: string): string {
+function planSpendingEmptyNote(
+  plan: PlanSpendingCardInput['plan'],
+  categoriesById: ReadonlyMap<string, Category>,
+  today: string,
+): string {
   if (plan.timing.lifecycle === 'completed') return Strings.budgetPlansDetailSpendingEmptyEnded;
   const startDate = formatShortWeekdayDate(plan.startDate, today);
   if (plan.detailCategoryRows.length === 1) {
     return Strings.budgetPlansDetailSpendingEmptyOne(
-      plan.detailCategoryRows[0].categoryName,
+      categoriesById.get(plan.detailCategoryRows[0].categoryId)?.name ?? Strings.uncategorized,
       startDate,
     );
   }
@@ -145,6 +149,6 @@ export function buildPlanSpendingCard({
     totalLabel: formatCurrencyAmount(plan.spent, Currency.EGP),
     count: rows.length,
     rows,
-    emptyNote: rows.length === 0 ? planSpendingEmptyNote(plan, today) : undefined,
+    emptyNote: rows.length === 0 ? planSpendingEmptyNote(plan, categoriesById, today) : undefined,
   };
 }

@@ -4,7 +4,10 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { CategoryType } from '@/constants/enums';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
-import { getTransactionAccountIds } from '@/modules/accounts/store/account_lookup.helpers';
+import {
+  getTransactionAccountIds,
+  lookupLeavesUnresolved,
+} from '@/modules/accounts/store/account_lookup.helpers';
 import { useAccountsById } from '@/modules/accounts/store/use_accounts_by_id.hook';
 import { budgetRepository } from '@/modules/budget/repositories/budget.repository';
 import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
@@ -37,7 +40,8 @@ export function useSpendingPlanDetail() {
   const { id, month } = useLocalSearchParams<{ id: string; month?: string }>();
   const categories = useCategoryStore((state) => state.categories);
   const loadCategories = useCategoryStore.getState().loadCategories;
-  const { accountsById } = useAccountsById();
+  const accountRead = useAccountsById();
+  const { accountsById } = accountRead;
   const loadAccountLookup = useAccountStore.getState().loadAccountLookup;
   const entry = useSpendingPlanDetailStore(
     useShallow((state) => state.entries[owner] ?? INITIAL_DATA_ENTRY),
@@ -128,9 +132,10 @@ export function useSpendingPlanDetail() {
     [holdsRoute, transactions],
   );
   useEffect(() => {
-    // The store records the failure in accountLookupError; an unresolved row keeps the hollow tile.
+    // The store records the failure in accountLookupError, which the floating load-error alert reads.
     loadAccountLookup(rowAccountIds).catch(() => {});
   }, [loadAccountLookup, rowAccountIds]);
+  const accountLookupError = lookupLeavesUnresolved(accountRead, rowAccountIds);
   const categoriesById = useMemo(
     () => new Map(categories.map((category) => [category.id, category])),
     [categories],
@@ -156,8 +161,12 @@ export function useSpendingPlanDetail() {
     hasPlan: sourcePlan !== undefined,
     ownsStatus: activeId === id,
     status,
-    refreshError,
+    refreshError: refreshError || accountLookupError,
   });
+  const retryAll = useCallback(() => {
+    retry();
+    if (accountLookupError) loadAccountLookup(rowAccountIds).catch(() => {});
+  }, [accountLookupError, loadAccountLookup, retry, rowAccountIds]);
 
   return {
     state: {
@@ -168,7 +177,7 @@ export function useSpendingPlanDetail() {
       budgetableCategories,
     },
     goBack: () => router.back(),
-    retry,
+    retry: retryAll,
     reload: loadPlan,
     openTransaction: (transactionId: string) => {
       router.push(stackedTransactionDetailRoute(transactionId));

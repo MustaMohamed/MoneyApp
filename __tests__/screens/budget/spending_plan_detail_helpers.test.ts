@@ -343,6 +343,26 @@ describe('buildPlanSpendingCard', () => {
     );
   });
 
+  it('notes an empty card whose only category is gone from the store as uncategorized, never its id', () => {
+    const gone = makeTestCategory({ id: 'cat_gone', name: 'Gone' });
+    const plan = planInput({
+      spent: 0,
+      startDate: '2026-11-16',
+      timing: { lifecycle: 'upcoming', totalDays: 5, elapsedDays: 0, daysValue: 3 },
+      detailCategoryRows: [{ ...detailCategory(gone), categoryName: gone.id }],
+    });
+
+    const note = card([], plan).emptyNote;
+
+    expect(note).toBe(
+      Strings.budgetPlansDetailSpendingEmptyOne(
+        Strings.uncategorized,
+        formatShortWeekdayDate('2026-11-16', TODAY),
+      ),
+    );
+    expect(note).not.toContain(gone.id);
+  });
+
   it('notes an empty card of a two-category plan with the category count', () => {
     const plan = planInput({ spent: 0, startDate: '2026-11-16' });
 

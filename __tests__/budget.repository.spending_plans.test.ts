@@ -376,6 +376,15 @@ describe('BudgetRepository spending plans', () => {
     expect(getSpendingPlanTransactions).toHaveBeenCalledWith(expect.anything(), 'plan_trip');
   });
 
+  it('returns undefined for a missing plan without reading its transactions', async () => {
+    getSpendingPlanById.mockResolvedValueOnce(null);
+
+    await expect(
+      new BudgetRepository().getSpendingPlanDetails('plan_missing'),
+    ).resolves.toBeUndefined();
+    expect(getSpendingPlanTransactions).not.toHaveBeenCalled();
+  });
+
   it('rejects the plan detail read when its transactions read rejects', async () => {
     const loadedPlan = plan('plan_trip', 'Trip', '2026-08-01', '2026-08-04', ['cat_food']);
     getSpendingPlanById.mockResolvedValueOnce(loadedPlan);

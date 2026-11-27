@@ -9,7 +9,7 @@
   `docs/adr/2026-11-26-plan-flexible-card-and-lifecycle-heroes.md`.
 - **Applies to:** `getSpendingPlanTransactions` in `src/modules/budget/database/budget_stats.ts`,
   `buildPlanSpendingCard` in `spending_plan_detail/spending_plan_detail.helpers.ts`, and
-  `spending_plan_detail/components/spending_plan_spending_card.tsx`.
+  `spending_plan_detail/components/spending_plan_detail_spending_card.tsx`.
 
 ## 1. Which rows
 
