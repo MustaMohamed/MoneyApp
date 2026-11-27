@@ -1,14 +1,22 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 
 import { CategoryType } from '@/constants/enums';
+import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { SpendingPlanWithCategories } from '@/modules/budget/entities/budget.entity';
 import { useSpendingPlanDetail } from '@/modules/budget/screens/budget/spending_plan_detail/spending_plan_detail.hook';
 import { useSpendingPlanDetailState } from '@/modules/budget/screens/budget/spending_plan_detail/spending_plan_detail.state';
 import { useSpendingPlanDetailStore } from '@/modules/budget/screens/budget/spending_plan_detail/spending_plan_detail.store';
 import { deferred } from '@/test_helpers/deferred';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
+import { makeTestTransaction } from '@/test_helpers/transaction';
 
 const mockRouterBack = jest.fn();
+const mockRouterPush = jest.fn();
+const mockLoadAccountLookup = jest.fn<Promise<void>, [string[]]>();
+const mockAccountsRead: { accountsById: ReadonlyMap<string, Account>; lookupFailed: boolean } = {
+  accountsById: new Map(),
+  lookupFailed: false,
+};
 const mockOpenEditPlan = jest.fn();
 const mockGetDetails = jest.fn();
 const mockFocusEffect = jest.fn();
@@ -18,7 +26,7 @@ let mockOnDayChange: (() => void) | undefined;
 jest.mock('expo-router', () => ({
   useFocusEffect: (effect: () => void | (() => void)) => mockFocusEffect(effect),
   useLocalSearchParams: () => mockRouteParams,
-  useRouter: () => ({ back: mockRouterBack }),
+  useRouter: () => ({ back: mockRouterBack, push: mockRouterPush }),
 }));
 jest.mock('@/utils/run_after_interactions', () => ({
   runAfterInteractions: (task: () => void) => {
@@ -27,6 +35,10 @@ jest.mock('@/utils/run_after_interactions', () => ({
   },
 }));
 jest.mock('@/modules/categories/store/category.store', () => ({ useCategoryStore: jest.fn() }));
+jest.mock('@/modules/accounts/store/account.store', () => ({ useAccountStore: jest.fn() }));
+jest.mock('@/modules/accounts/store/use_accounts_by_id.hook', () => ({
+  useAccountsById: () => mockAccountsRead,
+}));
 jest.mock('@/modules/budget/repositories/budget.repository', () => ({
   budgetRepository: { getSpendingPlanDetails: (...args: unknown[]) => mockGetDetails(...args) },
 }));
@@ -43,6 +55,26 @@ const { useCategoryStore } = jest.requireMock('@/modules/categories/store/catego
 const { useBudgetState } = jest.requireMock('@/modules/budget/screens/budget/budget.state') as {
   useBudgetState: jest.Mock;
 };
+const { useAccountStore } = jest.requireMock('@/modules/accounts/store/account.store') as {
+  useAccountStore: jest.Mock;
+};
+
+const giftShop = makeTestTransaction({
+  id: 'tx_2',
+  account_id: 'acc_card',
+  category_id: 'cat_food',
+  amount: 1500,
+  egp_amount: 1500,
+  transaction_date: '2026-08-03',
+});
+const fishMarket = makeTestTransaction({
+  id: 'tx_1',
+  account_id: 'acc_cash',
+  category_id: 'cat_food',
+  amount: 1100,
+  egp_amount: 1100,
+  transaction_date: '2026-08-02',
+});
 
 const plan: SpendingPlanWithCategories = {
   id: 'plan_trip',
@@ -76,6 +108,8 @@ beforeEach(() => {
     loadCategories: jest.fn().mockResolvedValue(undefined),
   }));
   attachMockSelectorStore(useBudgetState, () => ({ openEditPlan: mockOpenEditPlan }));
+  mockLoadAccountLookup.mockReset().mockResolvedValue(undefined);
+  attachMockSelectorStore(useAccountStore, () => ({ loadAccountLookup: mockLoadAccountLookup }));
   mockGetDetails.mockReset().mockResolvedValue({ plan, spend: { cat_food: 1200 } });
 });
 
@@ -246,5 +280,82 @@ describe('useSpendingPlanDetail', () => {
 
     await waitFor(() => expect(result.current.state.plan?.timing.daysValue).toBe(0));
     expect(mockOnDayChange).toBeDefined();
+  });
+  it("MA-305: carries the read's transactions onto the Spending card with the plan, in the read's order", async () => {
+    mockGetDetails.mockResolvedValue({
+      plan,
+      spend: { cat_food: 2600 },
+      transactions: [giftShop, fishMarket],
+    });
+    const { result } = await renderHook(() => useSpendingPlanDetail());
+    await act(async () => {
+      mockFocusEffect.mock.calls[0][0]();
+    });
+
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+    expect(result.current.state.plan?.name).toBe('Alex weekend');
+    expect(result.current.state.spendingCard?.rows.map((row) => row.id)).toEqual(['tx_2', 'tx_1']);
+    expect(result.current.state.spendingCard?.count).toBe(2);
+  });
+
+  it('MA-305: a focus reload whose read drops a row shows the card without it', async () => {
+    mockGetDetails
+      .mockResolvedValueOnce({
+        plan,
+        spend: { cat_food: 2600 },
+        transactions: [giftShop, fishMarket],
+      })
+      .mockResolvedValueOnce({ plan, spend: { cat_food: 1100 }, transactions: [fishMarket] });
+    const { result } = await renderHook(() => useSpendingPlanDetail());
+    await act(async () => {
+      mockFocusEffect.mock.calls[0][0]();
+    });
+    await waitFor(() => expect(result.current.state.spendingCard?.rows).toHaveLength(2));
+
+    await act(async () => {
+      mockFocusEffect.mock.calls.at(-1)?.[0]();
+    });
+
+    await waitFor(() =>
+      expect(result.current.state.spendingCard?.rows.map((row) => row.id)).toEqual(['tx_1']),
+    );
+    expect(mockGetDetails).toHaveBeenCalledTimes(2);
+    expect(result.current.state.viewState).toBe('ready');
+  });
+
+  it("MA-305: opening a spending row pushes that transaction's stacked detail", async () => {
+    mockGetDetails.mockResolvedValue({
+      plan,
+      spend: { cat_food: 1100 },
+      transactions: [fishMarket],
+    });
+    const { result } = await renderHook(() => useSpendingPlanDetail());
+    await act(async () => {
+      mockFocusEffect.mock.calls[0][0]();
+    });
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+
+    await act(async () => result.current.openTransaction('tx_1'));
+
+    expect(mockRouterPush).toHaveBeenCalledTimes(1);
+    expect(mockRouterPush).toHaveBeenCalledWith('/stacked/transactions/detail/tx_1');
+  });
+
+  it("MA-305: asks the account lookup for the held rows' account ids", async () => {
+    mockGetDetails.mockResolvedValue({
+      plan,
+      spend: { cat_food: 2600 },
+      transactions: [giftShop, fishMarket],
+    });
+    const { result } = await renderHook(() => useSpendingPlanDetail());
+    await act(async () => {
+      mockFocusEffect.mock.calls[0][0]();
+    });
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+
+    await waitFor(() => {
+      const asked = new Set(mockLoadAccountLookup.mock.calls.flatMap(([ids]) => ids));
+      expect(asked).toEqual(new Set(['acc_card', 'acc_cash']));
+    });
   });
 });
