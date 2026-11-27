@@ -774,6 +774,18 @@ export const Strings = {
     `${name}, ${caption}, ${balance}${tag === undefined ? '' : `, ${tag}`}`,
   budgetPlansDetailUnallocatedA11y: (category: string, spent: string) =>
     `${category}, ${spent} spent, included with no category limit`,
+  budgetPlansDetailSpending: 'Spending',
+  budgetPlansDetailSpendingEmptyOne: (category: string, startDate: string) =>
+    `Nothing yet. ${category} spending from ${startDate} counts here.`,
+  budgetPlansDetailSpendingEmptyMany: (count: number, startDate: string) =>
+    `Nothing yet. Spending in its ${count} categories from ${startDate} counts here.`,
+  budgetPlansDetailSpendingEmptyEnded: 'Nothing was spent in this plan.',
+  budgetPlansDetailSpendingRowA11y: (
+    title: string,
+    amount: string,
+    date: string,
+    category: string,
+  ) => `${title}, ${amount}, ${date}, ${category}`,
   budgetPlansAllocationChipA11y: (
     category: string,
     spent: string,

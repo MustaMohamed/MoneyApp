@@ -1,6 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 import { REPORTING_SIGN_SQL } from '@/modules/transactions/database/reporting_sign';
+import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 
 // Net spend per (category, month).
 export async function getCategorySpendByMonth(
@@ -105,4 +106,29 @@ export async function getSpendingPlanSpend(
     (out[row.plan_id] ??= {})[row.category_id] = Math.max(0, row.spent);
   }
   return out;
+}
+
+// The rows getSpendingPlanSpend multiplies by ±1, in the transactions list's order.
+export async function getSpendingPlanTransactions(
+  db: SQLiteDatabase,
+  planId: string,
+): Promise<Transaction[]> {
+  return db.getAllAsync<Transaction>(
+    `SELECT transaction_row.*
+       FROM spending_plans plan
+       JOIN spending_plan_categories assignment ON assignment.plan_id = plan.id
+       JOIN transactions transaction_row
+         ON transaction_row.category_id = assignment.category_id
+        AND transaction_row.type IN ('expense', 'income')
+        AND transaction_row.transaction_date >= plan.start_date
+        AND transaction_row.transaction_date <= plan.end_date
+       JOIN accounts account_row ON account_row.id = transaction_row.account_id
+      WHERE plan.id = ?
+        AND (${REPORTING_SIGN_SQL.out}) <> 0
+      ORDER BY transaction_row.transaction_date DESC,
+               transaction_row.transaction_time DESC,
+               transaction_row.created_at DESC,
+               transaction_row.id DESC`,
+    [planId],
+  );
 }
