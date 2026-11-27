@@ -56,6 +56,8 @@ interface BodyProps {
   presentation: TransactionRowPresentation;
   onPress: () => void;
   showSeparator?: boolean;
+  /** The title wraps whole and the row grows from its fixed height; off, the title ellipsizes on one line. */
+  wrapsTitle?: boolean;
 }
 
 const DUAL_TILE_TOP = (Size.accountTile - Size.dualTile) / 2;
@@ -126,6 +128,7 @@ export function TransactionRowBody({
   presentation,
   onPress,
   showSeparator = true,
+  wrapsTitle = false,
 }: BodyProps): React.ReactElement {
   const { scale, onPressIn, onPressOut } = useRowPressScale();
   const press = useDragCancelledPress(onPress, { onPressIn, onPressOut });
@@ -143,6 +146,7 @@ export function TransactionRowBody({
   const titleLineMinWidth = resolveRowTitleLineMinWidth(slotMinWidth, fontScale);
   const primaryText = resolveFitAmountTextProps(TRANSACTION_ROW_AMOUNT_FONT_SIZE, fontScale);
   const secondaryText = resolveFitAmountTextProps(TRANSACTION_ROW_CODE_FONT_SIZE, fontScale);
+  const rowHeight = resolveTransactionRowHeight(fontScale);
 
   return (
     // animation={false} keeps PressableFeedback's own scale off the Reanimated one below.
@@ -155,7 +159,8 @@ export function TransactionRowBody({
         testID="transaction-row"
         style={[
           animStyle,
-          { height: resolveTransactionRowHeight(fontScale), justifyContent: 'center' },
+          wrapsTitle ? { minHeight: rowHeight } : { height: rowHeight },
+          { justifyContent: 'center' },
         ]}
         className={showSeparator ? 'border-separator border-b px-4' : 'px-4'}
       >
@@ -175,7 +180,7 @@ export function TransactionRowBody({
                 allowFontScaling={false}
                 className="font-inter-medium text-foreground min-w-0 shrink"
                 style={scaledTextStyle(TRANSACTION_ROW_TITLE_FONT_SIZE, fontScale)}
-                numberOfLines={1}
+                numberOfLines={wrapsTitle ? undefined : 1}
               >
                 {presentation.title}
               </Text>

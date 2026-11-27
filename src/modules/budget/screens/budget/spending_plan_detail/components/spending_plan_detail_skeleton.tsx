@@ -2,9 +2,21 @@ import { Card, SkeletonGroup } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
+import { DetailRowsCard } from '@/components/ui/detail_rows_card';
 import { ScaledBar } from '@/components/ui/skeleton_bar';
+import { TransactionRowsSkeleton } from '@/modules/transactions/components/transaction_rows_skeleton';
 
 const CATEGORY_ROWS = [0, 1, 2];
+const SPENDING_ROWS = 3;
+
+function SectionHeaderSkeleton(): React.ReactElement {
+  return (
+    <View className="mt-3 flex-row justify-between px-4">
+      <ScaledBar height={13} className="w-20 rounded-lg" />
+      <ScaledBar height={13} className="w-16 rounded-lg" />
+    </View>
+  );
+}
 
 export function SpendingPlanDetailSkeleton(): React.ReactElement {
   return (
@@ -40,10 +52,7 @@ export function SpendingPlanDetailSkeleton(): React.ReactElement {
           </View>
         </Card.Body>
       </Card>
-      <View className="mt-3 flex-row justify-between px-4">
-        <ScaledBar height={13} className="w-20 rounded-lg" />
-        <ScaledBar height={13} className="w-16 rounded-lg" />
-      </View>
+      <SectionHeaderSkeleton />
       {CATEGORY_ROWS.map((row) => (
         <View key={row} className="min-h-[52px] flex-row items-center gap-2 px-4 py-1">
           <SkeletonGroup.Item className="h-7 w-7 rounded-full" />
@@ -54,6 +63,10 @@ export function SpendingPlanDetailSkeleton(): React.ReactElement {
           <ScaledBar height={15} className="w-16 rounded-lg" />
         </View>
       ))}
+      <SectionHeaderSkeleton />
+      <DetailRowsCard>
+        <TransactionRowsSkeleton rows={SPENDING_ROWS} />
+      </DetailRowsCard>
     </SkeletonGroup>
   );
 }

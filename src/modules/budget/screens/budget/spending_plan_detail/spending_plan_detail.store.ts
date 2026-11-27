@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import type { SpendingPlanWithCategories } from '@/modules/budget/entities/budget.entity';
+import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { withEntry, withoutEntry, type KeyedEntries } from '@/utils/keyed_entries';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
@@ -8,6 +9,7 @@ interface SpendingPlanDetailEntry {
   planId: string | undefined;
   plan: SpendingPlanWithCategories | undefined;
   spend: Record<string, number>;
+  transactions: readonly Transaction[];
   loadedOn: string | undefined;
 }
 
@@ -25,11 +27,13 @@ type SpendingPlanDetailStore = SpendingPlanDetailStoreShape & {
 
 // One shared object, so an unkeyed read is referentially stable across renders.
 const EMPTY_SPEND: Record<string, number> = Object.freeze({});
+const EMPTY_TRANSACTIONS: readonly Transaction[] = Object.freeze([]);
 
 export const INITIAL_DATA_ENTRY: SpendingPlanDetailEntry = Object.freeze({
   planId: undefined,
   plan: undefined,
   spend: EMPTY_SPEND,
+  transactions: EMPTY_TRANSACTIONS,
   loadedOn: undefined,
 });
 
