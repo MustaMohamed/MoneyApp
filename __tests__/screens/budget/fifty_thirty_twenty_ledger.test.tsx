@@ -389,9 +389,22 @@ describe('budget skeletons at the window font scale', () => {
       hero.captionLineHeight,
       bar(lineHeightFor(Type.caption)),
       Size.budgetMonthlyBarMaxHeight,
+      bar(lineHeightFor(Type.caption)),
+      ...[0, 1, 2].flatMap(() => [
+        Size.budgetDetailRing,
+        bar(lineHeightFor(Type.bodyStrong)),
+        bar(lineHeightFor(Type.micro)),
+        bar(lineHeightFor(Type.bodyStrong)),
+        bar(lineHeightFor(Type.micro)),
+      ]),
     ]);
     expect(screen.getByTestId('budget-category-detail-skeleton-hero')).toHaveStyle({
       height: hero.height,
     });
+    const budgetRows = screen.getAllByTestId('budget-category-detail-skeleton-budget-row');
+    expect(budgetRows).toHaveLength(3);
+    for (const row of budgetRows) {
+      expect(row).toHaveStyle({ minHeight: Size.budgetDetailRowMinHeight });
+    }
   });
 });

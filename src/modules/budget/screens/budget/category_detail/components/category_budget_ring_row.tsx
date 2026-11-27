@@ -1,12 +1,18 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import React from 'react';
 import { View } from 'react-native';
 
 import { BudgetRing } from '@/components/ui/budget_ring';
 import { budgetRingLabelMaxWidth } from '@/components/ui/budget_ring.geometry';
 import { Text } from '@/components/ui/text';
-import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
+import { Size, Type, lineHeightFor } from '@/constants/theme';
 import { BudgetLimitRowBody } from '@/modules/budget/components/budget_limit_row_body';
-import type { CategoryBudgetRingRowVM } from '@/modules/budget/screens/budget/category_detail/category_detail.helpers';
+import type {
+  CategoryBudgetRingRowVM,
+  CategoryUnassignedRowVM,
+} from '@/modules/budget/screens/budget/category_detail/category_detail.helpers';
+
+import { CATEGORY_BUDGET_ROW_STYLE } from './category_budget_row.geometry';
 
 const RING_LABEL_MAX_WIDTH = budgetRingLabelMaxWidth(Size.budgetDetailRing, Size.budgetRingStroke);
 
@@ -17,15 +23,28 @@ const RING_LABEL_TEXT = {
   textAlign: 'center' as const,
 };
 
-export function CategoryBudgetRingRow({ row }: { row: CategoryBudgetRingRowVM }) {
+function RowShell({
+  accessibilityLabel,
+  children,
+}: {
+  accessibilityLabel: string;
+  children: React.ReactNode;
+}) {
   return (
     <View
       accessible
       accessibilityRole="text"
-      accessibilityLabel={row.accessibilityLabel}
-      style={{ flexDirection: 'row', gap: Spacing.sm, minHeight: Size.budgetDetailRowMinHeight }}
-      className="items-center px-4 py-2.5"
+      accessibilityLabel={accessibilityLabel}
+      style={CATEGORY_BUDGET_ROW_STYLE}
     >
+      {children}
+    </View>
+  );
+}
+
+export function CategoryBudgetRingRow({ row }: { row: CategoryBudgetRingRowVM }) {
+  return (
+    <RowShell accessibilityLabel={row.accessibilityLabel}>
       <BudgetRing
         pct={row.ringShare}
         color={row.ringColor}
@@ -51,6 +70,33 @@ export function CategoryBudgetRingRow({ row }: { row: CategoryBudgetRingRowVM })
         amountWordColor={row.amountWordColor}
         amountMinWidth={Size.budgetDetailAmountColumn}
       />
-    </View>
+    </RowShell>
+  );
+}
+
+export function CategoryUnassignedRow({ row }: { row: CategoryUnassignedRowVM }) {
+  return (
+    <RowShell accessibilityLabel={row.accessibilityLabel}>
+      <View
+        className="items-center justify-center rounded-full"
+        style={{
+          width: Size.budgetDetailRing,
+          height: Size.budgetDetailRing,
+          borderWidth: Size.hairline,
+          borderColor: row.glyphColor,
+        }}
+      >
+        <MaterialCommunityIcons name={row.glyphName} size={Size.rowGlyph} color={row.glyphColor} />
+      </View>
+      <BudgetLimitRowBody
+        name={row.name}
+        caption={row.caption}
+        amountLabel={row.amountLabel}
+        amountCode={row.amountCode}
+        amountWord={row.amountWord}
+        amountWordColor={row.amountWordColor}
+        amountMinWidth={Size.budgetDetailAmountColumn}
+      />
+    </RowShell>
   );
 }

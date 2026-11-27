@@ -497,6 +497,8 @@ export const Strings = {
   budgetCategoryDetailBudgetLeft: 'left',
   budgetCategoryDetailBudgetOver: 'over',
   budgetCategoryDetailNoBudgets: (month: string) => `No budgets in ${month}.`,
+  budgetCategoryDetailUnassignedA11y: (amount: string) =>
+    `Unassigned spending, ${amount} spent, not linked to a named budget`,
   budgetAddCategory: 'Add budget',
   amountSuggestionSpentLastMonth: (amount: string) => `${amount} · spent last month`,
   amountSuggestionThreeMonthAverage: (amount: string) => `${amount} · 3-month average`,

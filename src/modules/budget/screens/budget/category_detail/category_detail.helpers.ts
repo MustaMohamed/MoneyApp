@@ -5,7 +5,7 @@ import { CURRENCY_CONFIG } from '@/constants/currency';
 import { type BudgetGroup, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
-import { CoreTokens } from '@/constants/theme_tokens';
+import { AcctTokens, CoreTokens } from '@/constants/theme_tokens';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 import {
   type MonthResultVM,
@@ -27,6 +27,7 @@ import {
 } from '@/modules/budget/utils/budget_hero';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import {
+  type RowGlyph,
   resolveCategoryGlyph,
   resolveHeroTileGlyphColor,
 } from '@/modules/transactions/components/transaction_row.helpers';
@@ -189,9 +190,23 @@ export interface CategoryBudgetRingRowVM {
   accessibilityLabel: string;
 }
 
+export interface CategoryUnassignedRowVM {
+  name: string;
+  caption: string;
+  glyphName: RowGlyph['glyphName'];
+  glyphColor: string;
+  amountLabel: string;
+  amountCode: string;
+  amountWord: string;
+  amountWordColor: string;
+  accessibilityLabel: string;
+}
+
 export interface CategoryBudgetsCardVM {
   count: number;
   rows: CategoryBudgetRingRowVM[];
+  /** Set only when the month has a budget and spending no named budget holds. */
+  unassigned: CategoryUnassignedRowVM | undefined;
   /** Set only when `rows` is empty. */
   emptyLine: string | undefined;
 }
@@ -224,13 +239,30 @@ export function buildCategoryBudgetsCard({
   });
   const lifecycle = resolveMonthLifecycle(month, currentMonth);
   const ringRows = (rows[0]?.budgets ?? []).map((budget) => toRingRow(budget, lifecycle));
+  const unassignedSpend = rows[0]?.unassignedSpend ?? 0;
   return {
     count: ringRows.length,
     rows: ringRows,
+    unassigned: unassignedSpend > 0 ? toUnassignedRow(category, unassignedSpend) : undefined,
     emptyLine:
       ringRows.length === 0
         ? Strings.budgetCategoryDetailNoBudgets(fullMonthName(month))
         : undefined,
+  };
+}
+
+function toUnassignedRow(category: Category, spend: number): CategoryUnassignedRowVM {
+  const amountLabel = formatAmount(spend);
+  return {
+    name: Strings.budgetCategoriesUnassignedSpending,
+    caption: Strings.budgetCategoriesUnassignedExplanation,
+    glyphName: resolveCategoryGlyph(category).glyphName,
+    glyphColor: AcctTokens.graphite.soft,
+    amountLabel,
+    amountCode: CURRENCY_CONFIG[Currency.EGP].code,
+    amountWord: Strings.budgetPlansSpentStatus,
+    amountWordColor: Colors.dark.text2,
+    accessibilityLabel: Strings.budgetCategoryDetailUnassignedA11y(amountLabel),
   };
 }
 
