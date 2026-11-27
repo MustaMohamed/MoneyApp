@@ -2,7 +2,10 @@ import Database from 'better-sqlite3';
 import * as SQLite from 'expo-sqlite';
 
 import { MIGRATIONS } from '@/database/migrations';
-import { getSpendingPlanSpend } from '@/modules/budget/database/budget_stats';
+import {
+  getSpendingPlanSpend,
+  getSpendingPlanTransactions,
+} from '@/modules/budget/database/budget_stats';
 import {
   getSpendingPlanCategoryRows,
   replaceSpendingPlanCategoryRows,
@@ -25,7 +28,7 @@ function tx(row: Partial<Record<string, unknown>>) {
     amount: row.amount ?? 100,
     currency: row.currency ?? 'EGP',
     egp_amount: row.egp_amount ?? 100,
-    exchange_rate: null,
+    exchange_rate: row.exchange_rate ?? null,
     to_amount: row.to_amount ?? null,
     minimum_payment_snapshot: null,
     account_id: row.account_id ?? 'acc',
@@ -33,7 +36,7 @@ function tx(row: Partial<Record<string, unknown>>) {
     category_id: row.category_id ?? 'cat_plan_food',
     note: null,
     transaction_date: row.transaction_date ?? '2026-07-19',
-    transaction_time: '12:00:00',
+    transaction_time: row.transaction_time ?? '12:00:00',
     commitment_payment_id: null,
     installment_id: null,
     created_at: NOW,
@@ -312,5 +315,84 @@ describe('spending plan query file', () => {
     await expect(getSpendingPlanSpend(db, ['plan_credit'])).resolves.toEqual({
       plan_credit: { cat_plan_food: 450, cat_plan_travel: 0 },
     });
+  });
+
+  it("lists the plan's expense and card-credit rows in its categories and inclusive range, newest first", async () => {
+    realDb
+      .prepare(
+        `INSERT OR IGNORE INTO categories (id,name,type,icon,color,is_default,sort_order,created_at,updated_at)
+         VALUES ('cat_outside','Outside','expense','home','#fff',0,2,?,?)`,
+      )
+      .run(NOW, NOW);
+    await savePlan(
+      {
+        id: 'plan_spend',
+        name: 'Spend plan',
+        start_date: '2026-07-18',
+        end_date: '2026-07-21',
+        total_amount: 8000,
+        created_at: NOW,
+        updated_at: NOW,
+      },
+      [
+        { plan_id: 'plan_spend', category_id: 'cat_plan_food', allocated_amount: null },
+        { plan_id: 'plan_spend', category_id: 'cat_plan_travel', allocated_amount: null },
+      ],
+    );
+    tx({ id: 'start-day', category_id: 'cat_plan_food', transaction_date: '2026-07-18' });
+    tx({ id: 'end-day', category_id: 'cat_plan_travel', transaction_date: '2026-07-21' });
+    tx({ id: 'before-range', category_id: 'cat_plan_food', transaction_date: '2026-07-17' });
+    tx({ id: 'after-range', category_id: 'cat_plan_food', transaction_date: '2026-07-22' });
+    tx({ id: 'outside-category', category_id: 'cat_outside', transaction_date: '2026-07-19' });
+    tx({
+      id: 'transfer',
+      type: 'transfer',
+      category_id: 'cat_plan_food',
+      to_account_id: 'acc_card',
+      to_amount: 100,
+      transaction_date: '2026-07-19',
+    });
+    tx({
+      id: 'bank-income',
+      type: 'income',
+      account_id: 'acc',
+      category_id: 'cat_plan_food',
+      transaction_date: '2026-07-19',
+    });
+    tx({
+      id: 'card-credit',
+      type: 'income',
+      account_id: 'acc_card',
+      category_id: 'cat_plan_food',
+      transaction_date: '2026-07-20',
+    });
+    tx({
+      id: 'same-day-morning',
+      category_id: 'cat_plan_travel',
+      transaction_date: '2026-07-19',
+      transaction_time: '08:00:00',
+    });
+    tx({
+      id: 'same-day-evening',
+      category_id: 'cat_plan_food',
+      transaction_date: '2026-07-19',
+      transaction_time: '20:00:00',
+    });
+
+    const rows = await getSpendingPlanTransactions(db, 'plan_spend');
+
+    expect(rows.map((row) => row.id)).toEqual([
+      'end-day',
+      'card-credit',
+      'same-day-evening',
+      'same-day-morning',
+      'start-day',
+    ]);
+  });
+
+  it('lists no rows for a plan id that does not exist', async () => {
+    tx({ id: 'orphan', category_id: 'cat_plan_food', transaction_date: '2026-07-19' });
+
+    await expect(getSpendingPlanTransactions(db, 'plan_missing')).resolves.toEqual([]);
   });
 });

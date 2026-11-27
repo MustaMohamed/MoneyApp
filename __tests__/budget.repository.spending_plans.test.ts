@@ -6,6 +6,8 @@ import {
   BudgetRepository,
   SpendingPlanValidationError,
 } from '@/modules/budget/repositories/budget.repository';
+import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
+import { makeTestTransaction } from '@/test_helpers/transaction';
 
 jest.mock('react-native-uuid', () => ({ v4: jest.fn(() => 'new-plan-id') }));
 jest.mock('@/database/client', () => {
@@ -23,6 +25,7 @@ jest.mock('@/database/client', () => {
 jest.mock('@/modules/budget/database/budget_stats', () => ({
   getCategorySpendByMonth: jest.fn().mockResolvedValue({}),
   getSpendingPlanSpend: jest.fn().mockResolvedValue({}),
+  getSpendingPlanTransactions: jest.fn().mockResolvedValue([]),
 }));
 jest.mock('@/modules/budget/database/budget_month_profiles', () => ({
   copyBudgetMonthCategoryGroups: jest.fn().mockResolvedValue(undefined),
@@ -96,11 +99,14 @@ const { getSpendingPlanCategoryRows, replaceSpendingPlanCategoryRows } = jest.re
     [SQLiteDatabase, string, SpendingPlanCategory[]]
   >;
 };
-const { getSpendingPlanSpend } = jest.requireMock('@/modules/budget/database/budget_stats') as {
+const { getSpendingPlanSpend, getSpendingPlanTransactions } = jest.requireMock(
+  '@/modules/budget/database/budget_stats',
+) as {
   getSpendingPlanSpend: jest.Mock<
     Promise<Record<string, Record<string, number>>>,
     [SQLiteDatabase, string[]]
   >;
+  getSpendingPlanTransactions: jest.Mock<Promise<Transaction[]>, [SQLiteDatabase, string]>;
 };
 const { getCategoriesByType } = jest.requireMock('@/modules/categories/database/categories') as {
   getCategoriesByType: jest.Mock<
@@ -350,10 +356,36 @@ describe('BudgetRepository spending plans', () => {
     getSpendingPlanById.mockResolvedValueOnce(loadedPlan);
     getSpendingPlanCategoryRows.mockResolvedValueOnce(loadedPlan.categories);
     getSpendingPlanSpend.mockResolvedValueOnce({ plan_trip: { cat_food: 400 } });
+    const transactions = [
+      makeTestTransaction({
+        id: 'tx_new',
+        category_id: 'cat_food',
+        transaction_date: '2026-08-03',
+      }),
+      makeTestTransaction({
+        id: 'tx_old',
+        category_id: 'cat_food',
+        transaction_date: '2026-08-01',
+      }),
+    ];
+    getSpendingPlanTransactions.mockResolvedValueOnce(transactions);
 
     const result = await new BudgetRepository().getSpendingPlanDetails('plan_trip');
 
-    expect(result).toEqual({ plan: loadedPlan, spend: { cat_food: 400 } });
+    expect(result).toEqual({ plan: loadedPlan, spend: { cat_food: 400 }, transactions });
+    expect(getSpendingPlanTransactions).toHaveBeenCalledWith(expect.anything(), 'plan_trip');
+  });
+
+  it('rejects the plan detail read when its transactions read rejects', async () => {
+    const loadedPlan = plan('plan_trip', 'Trip', '2026-08-01', '2026-08-04', ['cat_food']);
+    getSpendingPlanById.mockResolvedValueOnce(loadedPlan);
+    getSpendingPlanCategoryRows.mockResolvedValueOnce(loadedPlan.categories);
+    getSpendingPlanSpend.mockResolvedValueOnce({ plan_trip: { cat_food: 400 } });
+    const failure = new Error('transactions read failed');
+    getSpendingPlanTransactions.mockRejectedValueOnce(failure);
+
+    await expect(new BudgetRepository().getSpendingPlanDetails('plan_trip')).rejects.toBe(failure);
+    expect(getSpendingPlanTransactions).toHaveBeenCalledWith(expect.anything(), 'plan_trip');
   });
 
   it('deletes a spending plan by id', async () => {

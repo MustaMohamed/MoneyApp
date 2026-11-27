@@ -4,6 +4,7 @@ import {
   getBudgetSpendByMonth,
   getCategorySpendByMonth,
   getSpendingPlanSpend,
+  getSpendingPlanTransactions,
 } from '@/modules/budget/database/budget_stats';
 import type { SpendingPlan, SpendingPlanCategory } from '@/modules/budget/entities/budget.entity';
 import {
@@ -313,6 +314,24 @@ describe('every query on the reporting sign agrees with the domain classifier', 
     const spend = await getSpendingPlanSpend(db, [PLAN.id]);
 
     expect(spend[PLAN.id]?.[FOOD]).toBe(expectedFoodSpend);
+  });
+
+  it('spending-plan transactions', async () => {
+    const planCategoryIds = new Set([PLAN_CATEGORY.category_id]);
+    const expectedIds = FOLDED.filter(
+      (entry) =>
+        entry.row.category_id !== null &&
+        planCategoryIds.has(entry.row.category_id) &&
+        entry.row.transaction_date >= PLAN.start_date &&
+        entry.row.transaction_date <= PLAN.end_date &&
+        entry.effect.spendingEgp !== 0,
+    ).map((entry) => entry.row.id);
+
+    const rows = await getSpendingPlanTransactions(db, PLAN.id);
+
+    expect(expectedIds.length).toBeGreaterThan(0);
+    expect(new Set(rows.map((row) => row.id))).toEqual(new Set(expectedIds));
+    expect(rows).toHaveLength(expectedIds.length);
   });
 
   it('dashboard month facts', async () => {
