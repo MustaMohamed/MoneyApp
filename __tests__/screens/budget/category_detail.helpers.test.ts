@@ -9,7 +9,10 @@ import {
   NON_TEXT_MIN_CONTRAST_RATIO,
   contrastRatio,
 } from '@/modules/accounts/constants/account_palette';
-import { remainingLabel } from '@/modules/budget/screens/budget/budget.helpers';
+import {
+  buildCategoryBudgetRows,
+  remainingLabel,
+} from '@/modules/budget/screens/budget/budget.helpers';
 import {
   BUDGET_CATEGORY_DETAIL_LOAD_ERROR_COPY,
   type CategoryDetailViewState,
@@ -21,6 +24,7 @@ import {
 import { BUDGET_GROUP_OPTIONS } from '@/modules/budget/screens/budget/components/set_budget_sheet.helpers';
 import { BUDGET_LIMIT_TAGS, LIMIT_TAG_FILL_SHARE } from '@/modules/budget/utils/budget_hero';
 import { budgetBandColor } from '@/modules/budget/utils/budget_summary';
+import { resolveCategoryGlyph } from '@/modules/transactions/components/transaction_row.helpers';
 import { makeTestBudget, makeTestCategory } from '@/test_helpers/transaction';
 import { formatAmount, formatDisplayAmountParts } from '@/utils/format_amount';
 import { ratioHeldAtTie, wholePercent } from '@/utils/money';
@@ -439,8 +443,100 @@ describe('buildCategoryBudgetsCard', () => {
     expect(row.amountWordColor).toBe(Colors.dark.text2);
   });
 
+  function twoBudgets(categorySpend: number, clothesSpend: number, homeSpend: number) {
+    return {
+      budgets: [
+        makeTestBudget({
+          id: 'b1',
+          category_id: 'cat-1',
+          name: 'Clothes',
+          limit_amount: 2000,
+          effective_from: MONTH,
+        }),
+        makeTestBudget({
+          id: 'b2',
+          category_id: 'cat-1',
+          name: 'Home',
+          limit_amount: 1000,
+          effective_from: MONTH,
+        }),
+      ],
+      spendByMonth: { 'cat-1': { [MONTH]: categorySpend } },
+      spendByBudgetId: { b1: clothesSpend, b2: homeSpend },
+    };
+  }
+
+  it('draws the Unassigned spending row for spending no named budget holds, adding nothing to the count', () => {
+    const card = build(twoBudgets(1150, 900, 150));
+
+    expect(card.unassigned).toEqual(
+      expect.objectContaining({
+        name: Strings.budgetCategoriesUnassignedSpending,
+        caption: Strings.budgetCategoriesUnassignedExplanation,
+        amountLabel: formatAmount(100),
+        amountCode: EGP,
+        amountWord: Strings.budgetPlansSpentStatus,
+        amountWordColor: Colors.dark.text2,
+      }),
+    );
+    expect(card.unassigned?.accessibilityLabel).toBe(
+      Strings.budgetCategoryDetailUnassignedA11y(formatAmount(100)),
+    );
+    expect(card.count).toBe(2);
+    expect(card.rows).toHaveLength(2);
+  });
+
+  it("prints the tab's unassigned figure for the category and month", () => {
+    const input = twoBudgets(1150, 900, 150);
+    const card = build(input);
+    const { rows } = buildCategoryBudgetRows({
+      categories: [clothesCategory],
+      budgets: input.budgets,
+      spendByMonth: input.spendByMonth,
+      spendByBudgetId: input.spendByBudgetId,
+      yearMonth: MONTH,
+    });
+
+    expect(rows[0].unassignedSpend).toBeGreaterThan(0);
+    expect(card.unassigned?.amountLabel).toBe(formatAmount(rows[0].unassignedSpend));
+  });
+
+  it('hides the Unassigned spending row when every budget holds all the spending', () => {
+    const card = build(twoBudgets(1050, 900, 150));
+
+    expect(card).toHaveProperty('unassigned', undefined);
+    expect(card.count).toBe(2);
+  });
+
+  it('hides the Unassigned spending row on a float tie: 0.1 + 0.2 spent, 0.3 linked', () => {
+    const card = build({
+      ...oneBudget(2000, 0.3),
+      spendByMonth: { 'cat-1': { [MONTH]: 0.1 + 0.2 } },
+    });
+
+    expect(card).toHaveProperty('unassigned', undefined);
+  });
+
+  it("draws the category's own glyph in a colour that clears 3:1 on the card", () => {
+    const card = build(twoBudgets(1150, 900, 150));
+
+    expect(card.unassigned).toEqual(
+      expect.objectContaining({ glyphName: resolveCategoryGlyph(clothesCategory).glyphName }),
+    );
+    expect(
+      contrastRatio(card.unassigned?.glyphColor ?? CoreTokens.surface, CoreTokens.surface),
+    ).toBeGreaterThanOrEqual(NON_TEXT_MIN_CONTRAST_RATIO);
+  });
+
   it.each([
-    ['budgets only in another month', () => build(oneBudget(2000, 900, '2026-04'))],
+    [
+      'budgets only in another month',
+      () =>
+        build({
+          ...oneBudget(2000, 900, '2026-04'),
+          spendByMonth: { 'cat-1': { '2026-04': 900, [MONTH]: 400 } },
+        }),
+    ],
     [
       'an income category with a budget row',
       () =>
@@ -455,5 +551,6 @@ describe('buildCategoryBudgetsCard', () => {
     expect(card.count).toBe(0);
     expect(card.rows).toEqual([]);
     expect(card.emptyLine).toBe(Strings.budgetCategoryDetailNoBudgets(fullMonthName(MONTH)));
+    expect(card).toHaveProperty('unassigned', undefined);
   });
 });
