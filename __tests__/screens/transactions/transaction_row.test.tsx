@@ -9,13 +9,17 @@ import { Currency, TransactionType } from '@/constants/enums';
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/modules/accounts/entities/account.entity';
-import { TransactionRow } from '@/modules/transactions/components/transaction_row';
+import {
+  TransactionRow,
+  TransactionRowBody,
+} from '@/modules/transactions/components/transaction_row';
 import {
   TRANSACTION_ROW_AMOUNT_FONT_SIZE,
   TRANSACTION_ROW_CAPTION_FONT_SIZE,
   TRANSACTION_ROW_CODE_FONT_SIZE,
   TRANSACTION_ROW_HEIGHT,
   TRANSACTION_ROW_TITLE_FONT_SIZE,
+  buildTransactionRowPresentation,
   resolveRowTitleLineMinWidth,
   resolveTransactionRowCaptionLines,
   resolveTransactionRowHeight,
@@ -200,6 +204,32 @@ describe('TransactionRow ownership actions', () => {
     expect(title).toHaveProp('allowFontScaling', false);
     expect(title).toHaveStyle(scaledTextStyle(TRANSACTION_ROW_TITLE_FONT_SIZE, fontScale));
     expect(TRANSACTION_ROW_HEIGHT).toBe(PixelRatio.roundToNearestPixel(ms(60)));
+  });
+
+  it('MA-305: with wrapsTitle the title wraps whole and the row grows from its fixed height, without it the title holds one line at that height', async () => {
+    const presentation = {
+      ...buildTransactionRowPresentation({ tx: transaction(null) }),
+      title: 'Bibliotheca gift shop by the north gate',
+    };
+    const { fontScale } = Dimensions.get('window');
+    const rowHeight = resolveTransactionRowHeight(fontScale);
+
+    const wrapped = await render(
+      <TransactionRowBody presentation={presentation} onPress={jest.fn()} wrapsTitle />,
+    );
+    expect(wrapped.getByText(presentation.title).props.numberOfLines).toBeUndefined();
+    const wrappedRow = StyleSheet.flatten(wrapped.getByTestId('transaction-row').props.style);
+    expect(wrappedRow.minHeight).toBe(rowHeight);
+    expect(wrappedRow.height).toBeUndefined();
+    await wrapped.unmount();
+
+    const clipped = await render(
+      <TransactionRowBody presentation={presentation} onPress={jest.fn()} />,
+    );
+    expect(clipped.getByText(presentation.title).props.numberOfLines).toBe(1);
+    const clippedRow = StyleSheet.flatten(clipped.getByTestId('transaction-row').props.style);
+    expect(clippedRow.height).toBe(rowHeight);
+    expect(clippedRow.minHeight).toBeUndefined();
   });
 
   it('MA-241: at font scale 2.0 a commitment-owned row holds its title line open past the badge and lets the value track give way, and at 1.0 neither', async () => {

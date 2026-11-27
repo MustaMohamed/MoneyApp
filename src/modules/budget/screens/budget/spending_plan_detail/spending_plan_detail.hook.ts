@@ -3,9 +3,16 @@ import { useCallback, useEffect, useId, useMemo, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import { CategoryType } from '@/constants/enums';
+import { useAccountStore } from '@/modules/accounts/store/account.store';
+import {
+  getTransactionAccountIds,
+  lookupLeavesUnresolved,
+} from '@/modules/accounts/store/account_lookup.helpers';
+import { useAccountsById } from '@/modules/accounts/store/use_accounts_by_id.hook';
 import { budgetRepository } from '@/modules/budget/repositories/budget.repository';
 import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
 import {
+  buildPlanSpendingCard,
   resolveSpendingPlanDetailViewState,
   spendingPlanDetailShowsBody,
 } from '@/modules/budget/screens/budget/spending_plan_detail/spending_plan_detail.helpers';
@@ -22,6 +29,7 @@ import {
   planIntersectsMonth,
 } from '@/modules/budget/screens/budget/spending_plans.helpers';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
+import { stackedTransactionDetailRoute } from '@/modules/navigation/domain/stacked_route';
 import { toLocalDateString } from '@/utils/format_date';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
 import { useLocalDayChange } from '@/utils/use_local_day_change.hook';
@@ -32,6 +40,9 @@ export function useSpendingPlanDetail() {
   const { id, month } = useLocalSearchParams<{ id: string; month?: string }>();
   const categories = useCategoryStore((state) => state.categories);
   const loadCategories = useCategoryStore.getState().loadCategories;
+  const accountRead = useAccountsById();
+  const { accountsById } = accountRead;
+  const loadAccountLookup = useAccountStore.getState().loadAccountLookup;
   const entry = useSpendingPlanDetailStore(
     useShallow((state) => state.entries[owner] ?? INITIAL_DATA_ENTRY),
   );
@@ -55,7 +66,12 @@ export function useSpendingPlanDetail() {
         budgetRepository.getSpendingPlanDetails(id),
       ]);
       if (request !== latestLoadRequest.current) return;
-      setDetail(owner, id, { plan: result?.plan, spend: result?.spend ?? {}, loadedOn });
+      setDetail(owner, id, {
+        plan: result?.plan,
+        spend: result?.spend ?? {},
+        transactions: result?.transactions ?? [],
+        loadedOn,
+      });
       resolve(owner, id);
     } catch {
       if (request !== latestLoadRequest.current) return;
@@ -91,7 +107,7 @@ export function useSpendingPlanDetail() {
 
   const holdsRoute = entry.planId === id;
   const sourcePlan = holdsRoute ? entry.plan : undefined;
-  const { spend, loadedOn } = entry;
+  const { spend, transactions, loadedOn } = entry;
   const selectedMonth = sourcePlan
     ? month && planIntersectsMonth(sourcePlan, month)
       ? month
@@ -110,6 +126,33 @@ export function useSpendingPlanDetail() {
         : undefined,
     [categories, loadedOn, selectedMonth, sourcePlan, spend],
   );
+  // The rows may name archived or deleted accounts; the lookup resolves them.
+  const rowAccountIds = useMemo(
+    () => (holdsRoute ? transactions.flatMap((tx) => getTransactionAccountIds(tx)) : []),
+    [holdsRoute, transactions],
+  );
+  useEffect(() => {
+    // The store records the failure in accountLookupError, which the floating load-error alert reads.
+    loadAccountLookup(rowAccountIds).catch(() => {});
+  }, [loadAccountLookup, rowAccountIds]);
+  const accountLookupError = lookupLeavesUnresolved(accountRead, rowAccountIds);
+  const categoriesById = useMemo(
+    () => new Map(categories.map((category) => [category.id, category])),
+    [categories],
+  );
+  const spendingCard = useMemo(
+    () =>
+      holdsRoute && plan && loadedOn
+        ? buildPlanSpendingCard({
+            plan,
+            transactions,
+            accountsById,
+            categoriesById,
+            today: loadedOn,
+          })
+        : undefined,
+    [accountsById, categoriesById, holdsRoute, loadedOn, plan, transactions],
+  );
   const budgetableCategories = useMemo(
     () => categories.filter((category) => category.type === CategoryType.Expense),
     [categories],
@@ -118,19 +161,27 @@ export function useSpendingPlanDetail() {
     hasPlan: sourcePlan !== undefined,
     ownsStatus: activeId === id,
     status,
-    refreshError,
+    refreshError: refreshError || accountLookupError,
   });
+  const retryAll = useCallback(() => {
+    retry();
+    if (accountLookupError) loadAccountLookup(rowAccountIds).catch(() => {});
+  }, [accountLookupError, loadAccountLookup, retry, rowAccountIds]);
 
   return {
     state: {
       viewState,
       showsBody: spendingPlanDetailShowsBody(viewState),
       plan,
+      spendingCard,
       budgetableCategories,
     },
     goBack: () => router.back(),
-    retry,
+    retry: retryAll,
     reload: loadPlan,
+    openTransaction: (transactionId: string) => {
+      router.push(stackedTransactionDetailRoute(transactionId));
+    },
     editPlan: () => {
       if (plan) openEditPlan('planDetail', plan.id);
     },

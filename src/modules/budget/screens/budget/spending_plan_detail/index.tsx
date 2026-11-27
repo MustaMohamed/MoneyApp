@@ -12,6 +12,7 @@ import { SpendingPlanDetailActions } from '@/modules/budget/screens/budget/spend
 import { SpendingPlanDetailFlexibleCard } from '@/modules/budget/screens/budget/spending_plan_detail/components/spending_plan_detail_flexible_card';
 import { SpendingPlanDetailLimitsCard } from '@/modules/budget/screens/budget/spending_plan_detail/components/spending_plan_detail_limits_card';
 import { SpendingPlanDetailSkeleton } from '@/modules/budget/screens/budget/spending_plan_detail/components/spending_plan_detail_skeleton';
+import { SpendingPlanDetailSpendingCard } from '@/modules/budget/screens/budget/spending_plan_detail/components/spending_plan_detail_spending_card';
 import {
   SPENDING_PLAN_DETAIL_HERO_TEST_ID,
   SPENDING_PLAN_DETAIL_LOAD_ERROR_COPY,
@@ -21,7 +22,7 @@ import { useSpendingPlanDetail } from '@/modules/budget/screens/budget/spending_
 import { SpendingPlanSheet } from '@/modules/budget/screens/budget/spending_plan_sheet';
 
 export default function SpendingPlanDetailScreen() {
-  const { state, goBack, editPlan, retry, reload } = useSpendingPlanDetail();
+  const { state, goBack, editPlan, openTransaction, retry, reload } = useSpendingPlanDetail();
   const plan = state.plan;
 
   return (
@@ -74,6 +75,12 @@ export default function SpendingPlanDetailScreen() {
               ) : null}
               {plan.detail.flexibleCard ? (
                 <SpendingPlanDetailFlexibleCard card={plan.detail.flexibleCard} />
+              ) : null}
+              {state.spendingCard ? (
+                <SpendingPlanDetailSpendingCard
+                  card={state.spendingCard}
+                  onRowPress={openTransaction}
+                />
               ) : null}
               <SpendingPlanDetailActions onEdit={editPlan} />
             </View>

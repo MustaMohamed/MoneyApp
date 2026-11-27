@@ -15,6 +15,7 @@ import {
   getBudgetSpendByMonth,
   getCategorySpendByMonth,
   getSpendingPlanSpend,
+  getSpendingPlanTransactions,
   getTrailingIncomeSuggestion,
 } from '@/modules/budget/database/budget_stats';
 import {
@@ -44,6 +45,7 @@ import type {
   SpendingPlanWithCategories,
 } from '@/modules/budget/entities/budget.entity';
 import { getCategoriesByType } from '@/modules/categories/database/categories';
+import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { roundMoney } from '@/utils/money';
 import { spendingPlanInputSchema, type SpendingPlanInput } from '@/utils/schemas/budget.schema';
 
@@ -105,6 +107,7 @@ export interface SpendingPlansForMonthResult {
 export interface SpendingPlanDetailsResult {
   plan: SpendingPlanWithCategories;
   spend: Record<string, number>;
+  transactions: Transaction[];
 }
 
 export interface BudgetMonthSnapshot {
@@ -433,13 +436,15 @@ export class BudgetRepository implements IBudgetRepository {
     const db = await getDb();
     const plan = await getSpendingPlanById(db, id);
     if (!plan) return undefined;
-    const [categories, spendByPlanId] = await Promise.all([
+    const [categories, spendByPlanId, transactions] = await Promise.all([
       getSpendingPlanCategoryRows(db, [id]),
       getSpendingPlanSpend(db, [id]),
+      getSpendingPlanTransactions(db, id),
     ]);
     return {
       plan: { ...plan, categories },
       spend: spendByPlanId[id] ?? {},
+      transactions,
     };
   }
 
